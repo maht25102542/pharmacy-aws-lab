@@ -1,0 +1,74 @@
+# ของจริงอยู่ที่: ใน Kubernetes cluster namespace argocd
+# apply ครั้งเดียวจาก VM pharmacy-k8s-1:  kubectl apply -f apps.yaml
+# ก่อนใช้: แก้ YOUR_GITHUB_USER ให้เป็นชื่อบัญชี GitHub ของคุณ
+#
+# dev: sync อัตโนมัติเมื่อ Git เปลี่ยน
+# prd: ต้องมีคนสั่ง sync (กดใน ArgoCD หรือติ๊ก AUTO_SYNC ใน Jenkins)
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pharmacy-backend-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
+    targetRevision: main
+    path: dev/backend
+  destination:
+    name: pharmacy-dev   # cluster ของ VM pharmacy-dev (ansible/k8s.yml ลงทะเบียนให้)
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pharmacy-frontend-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
+    targetRevision: main
+    path: dev/frontend
+  destination:
+    name: pharmacy-dev   # cluster ของ VM pharmacy-dev (ansible/k8s.yml ลงทะเบียนให้)
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pharmacy-backend-prd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
+    targetRevision: main
+    path: prd/backend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pharmacy-frontend-prd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
+    targetRevision: main
+    path: prd/frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prd

@@ -1,0 +1,17 @@
+# ของจริงอยู่ที่: VM pharmacy-db-1, -2, -3  /etc/mysql/mariadb.conf.d/60-galera.cnf
+[mysqld]
+bind-address             = 0.0.0.0
+binlog_format            = ROW
+default_storage_engine   = InnoDB
+innodb_autoinc_lock_mode = 2
+
+# Galera
+wsrep_on              = ON
+wsrep_provider        = /usr/lib/galera/libgalera_smm.so
+wsrep_cluster_name    = "pharmacy_galera"
+wsrep_cluster_address = "gcomm://{{ galera_ips | join(',') }}"
+wsrep_sst_method      = rsync
+
+# ค่าเฉพาะของเครื่องนี้
+wsrep_node_address = "{{ private_ip_address }}"
+wsrep_node_name    = "{{ inventory_hostname }}"

@@ -1,0 +1,6 @@
+# ตั้งค่าทุกเครื่องในคำสั่งเดียว: ansible-playbook site.yml
+# หรือรันทีละบทบาท เช่น: ansible-playbook jenkins.yml
+- import_playbook: db.yml
+- import_playbook: k8s.yml
+- import_playbook: sonarqube.yml
+- import_playbook: jenkins.yml

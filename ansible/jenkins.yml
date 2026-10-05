@@ -1,0 +1,40 @@
+# เป้าหมาย: VM pharmacy-jenkins
+# เอาไฟล์จากโฟลเดอร์ vm-jenkins/ ไปวางที่ /opt/jenkins บนเครื่อง แล้วสั่งรัน
+- name: Jenkins VM
+  hosts: role_jenkins
+  become: true
+  vars:
+    k8s_server_ip: "{{ hostvars[groups['role_k8s_server'][0]].private_ip_address }}"
+    sonarqube_ip: "{{ hostvars[groups['role_sonarqube'][0]].private_ip_address }}"
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+          - docker-buildx
+        state: present
+        update_cache: true
+
+    - name: Copy Jenkins files to /opt/jenkins
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../vm-jenkins/"
+        dest: /opt/jenkins/
+        mode: "0644"
+
+    - name: Write /opt/jenkins/.env (ค่าที่ pipeline อ่านเป็นตัวแปรสภาพแวดล้อม)
+      ansible.builtin.copy:
+        dest: /opt/jenkins/.env
+        mode: "0600"
+        content: |
+          AWS_DEFAULT_REGION={{ aws_region }}
+          ECR_REGISTRY={{ ecr_registry }}
+          SONAR_HOST_URL=http://{{ sonarqube_ip }}:9000
+          ARGOCD_SERVER={{ k8s_server_ip }}:30443
+          MANIFESTS_REPO={{ manifests_repo }}
+
+    - name: Build and start Jenkins
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: /opt/jenkins
+      changed_when: true

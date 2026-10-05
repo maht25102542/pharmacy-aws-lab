@@ -1,0 +1,80 @@
+# เป้าหมาย: VM pharmacy-db-1, 2, 3
+# ติดตั้ง MariaDB และรวมเป็น Galera cluster
+# ไฟล์ตั้งค่ามาจาก vm-db/60-galera.cnf.j2
+
+- name: Install MariaDB on every DB VM
+  hosts: role_db
+  become: true
+  vars:
+    galera_ips: "{{ groups['role_db'] | map('extract', hostvars, 'private_ip_address') | list }}"
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - mariadb-server
+          - galera-4
+          - rsync
+        state: present
+        update_cache: true
+
+    - name: Write Galera config (/etc/mysql/mariadb.conf.d/60-galera.cnf)
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../vm-db/60-galera.cnf.j2"
+        dest: /etc/mysql/mariadb.conf.d/60-galera.cnf
+        mode: "0644"
+
+    - name: Check whether the cluster was already bootstrapped
+      ansible.builtin.stat:
+        path: /etc/mysql/.galera_bootstrapped
+      register: marker
+
+    - name: Stop MariaDB before the first bootstrap
+      ansible.builtin.service:
+        name: mariadb
+        state: stopped
+      when: not marker.stat.exists
+
+- name: Bootstrap the cluster on the first node (pharmacy-db-1)
+  hosts: role_db[0]
+  become: true
+  tasks:
+    - name: Start a new cluster
+      ansible.builtin.command: galera_new_cluster
+      when: not marker.stat.exists
+      changed_when: true
+
+- name: Join the remaining nodes one at a time
+  hosts: role_db[1:]
+  become: true
+  serial: 1
+  tasks:
+    - name: Start MariaDB (joins the cluster and copies data)
+      ansible.builtin.service:
+        name: mariadb
+        state: started
+
+- name: Create databases and the application user
+  hosts: role_db[0]
+  become: true
+  tasks:
+    - name: Create pharmacy_dev, pharmacy_prd and the app user
+      ansible.builtin.command:
+        cmd: mariadb
+        stdin: |
+          CREATE DATABASE IF NOT EXISTS pharmacy_dev;
+          CREATE DATABASE IF NOT EXISTS pharmacy_prd;
+          CREATE USER IF NOT EXISTS '{{ db_app_user }}'@'10.0.%' IDENTIFIED BY '{{ db_app_password }}';
+          GRANT ALL PRIVILEGES ON pharmacy_dev.* TO '{{ db_app_user }}'@'10.0.%';
+          GRANT ALL PRIVILEGES ON pharmacy_prd.* TO '{{ db_app_user }}'@'10.0.%';
+          FLUSH PRIVILEGES;
+      changed_when: true
+
+- name: Mark the cluster as bootstrapped
+  hosts: role_db
+  become: true
+  tasks:
+    - name: Write marker file
+      ansible.builtin.file:
+        path: /etc/mysql/.galera_bootstrapped
+        state: touch
+        mode: "0644"

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ร้านขายยา</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #1c2b33; }
+    h1 { margin-bottom: 4px; }
+    .meta { color: #5b6b73; font-size: 14px; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid #dde3e6; }
+    .error { color: #b3261e; }
+  </style>
+</head>
+<body>
+  <h1>ร้านขายยา</h1>
+  <div class="meta">
+    Frontend <strong>__VERSION__</strong> ·
+    Backend <strong id="be-version">...</strong> ·
+    ตอบโดย <span id="be-host">...</span>
+  </div>
+
+  <h2>สต็อกยา</h2>
+  <table>
+    <thead><tr><th>ชื่อยา</th><th>คงเหลือ</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="2">กำลังโหลด...</td></tr></tbody>
+  </table>
+
+  <script>
+    fetch('/api/version').then(r => r.json()).then(v => {
+      document.getElementById('be-version').textContent = v.version + ' (' + v.env + ')';
+      document.getElementById('be-host').textContent = v.host;
+    }).catch(() => {
+      document.getElementById('be-version').textContent = 'ติดต่อไม่ได้';
+    });
+
+    fetch('/api/medicines').then(r => r.json()).then(d => {
+      const rows = document.getElementById('rows');
+      if (d.error) {
+        rows.innerHTML = '<tr><td colspan="2" class="error"></td></tr>';
+        rows.querySelector('td').textContent = d.error;
+        return;
+      }
+      rows.innerHTML = '';
+      d.medicines.forEach(m => {
+        const tr = document.createElement('tr');
+        const name = document.createElement('td');
+        const stock = document.createElement('td');
+        name.textContent = m.name;
+        stock.textContent = m.stock;
+        tr.append(name, stock);
+        rows.append(tr);
+      });
+    }).catch(() => {
+      document.getElementById('rows').innerHTML =
+        '<tr><td colspan="2" class="error">ติดต่อ backend ไม่ได้</td></tr>';
+    });
+  </script>
+</body>
+</html>

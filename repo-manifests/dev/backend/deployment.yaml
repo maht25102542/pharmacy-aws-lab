@@ -1,0 +1,57 @@
+# Backend ของ dev | ArgoCD app: pharmacy-backend-dev
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      imagePullSecrets:
+        - name: ecr-pull
+      # กระจาย pod ไปคนละเครื่อง เครื่องหนึ่งล่มจะได้ไม่ล่มทั้งหมด
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: backend
+      containers:
+        - name: backend
+          image: WAITING_FOR_FIRST_JENKINS_DEPLOY
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_ENV
+              value: dev
+          envFrom:
+            - secretRef:
+                name: db-credentials
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: dev
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000

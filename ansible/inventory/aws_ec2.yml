@@ -1,0 +1,16 @@
+# ให้ Ansible ถาม AWS เองว่ามีเครื่องอะไรบ้าง โดยดูจากป้ายที่ Terraform ติดไว้
+# ได้กลุ่ม: role_jenkins, role_sonarqube, role_k8s_server, role_k8s_agent, role_db
+# ทดสอบ: ansible-inventory --graph
+plugin: amazon.aws.aws_ec2
+regions:
+  - ap-southeast-1
+filters:
+  tag:Project: pharmacy
+  instance-state-name: running
+hostnames:
+  - tag:Name
+keyed_groups:
+  - key: tags.Role
+    prefix: role
+compose:
+  ansible_host: public_ip_address

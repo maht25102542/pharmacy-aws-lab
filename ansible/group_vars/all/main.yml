@@ -1,0 +1,9 @@
+# ค่าที่คุณต้องแก้เองก่อนรัน
+# ระบบจริงจะเข้ารหัสไฟล์นี้ด้วย ansible-vault และไม่เก็บรหัสผ่านเป็นข้อความธรรมดา
+
+github_user: "YOUR_GITHUB_USER"
+manifests_repo: "github.com/{{ github_user }}/pharmacy-manifests.git"
+
+db_app_user: "pharmacy"
+db_app_password: "ChangeMe-App-123"
+sonar_db_password: "ChangeMe-Sonar-123"

@@ -1,0 +1,16 @@
+# ของจริงอยู่ที่: VM pharmacy-jenkins  /opt/jenkins/docker-compose.yml
+services:
+  jenkins:
+    build: .
+    container_name: jenkins          # pipeline อ้างชื่อนี้ใน --volumes-from
+    user: root                       # เพื่อใช้ docker.sock ได้ (ระบบจริงควรจำกัดสิทธิ์กว่านี้)
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env                   # ECR_REGISTRY, SONAR_HOST_URL, ARGOCD_SERVER, MANIFESTS_REPO
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock   # ให้ Jenkins สั่ง docker build ได้
+
+volumes:
+  jenkins_home:

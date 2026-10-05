@@ -1,0 +1,9 @@
+# ของจริงอยู่ที่: VM pharmacy-k8s-1 และ pharmacy-dev  /etc/systemd/system/ecr-refresh.service
+[Unit]
+Description=Refresh ECR pull secret in Kubernetes
+After=k3s.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/ecr-refresh
+ExecStart=/usr/local/bin/ecr-refresh.sh

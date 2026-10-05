@@ -1,0 +1,10 @@
+# ของจริงอยู่ที่: VM pharmacy-k8s-1 และ pharmacy-dev  /etc/systemd/system/ecr-refresh.timer
+[Unit]
+Description=Refresh ECR pull secret every 6 hours
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target

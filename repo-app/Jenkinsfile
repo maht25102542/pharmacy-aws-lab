@@ -1,0 +1,159 @@
+// ของจริงอยู่ที่: GitHub repo pharmacy-app (ไฟล์ชื่อ Jenkinsfile ที่ราก repo)
+// ใครรัน: Jenkins บน VM pharmacy-jenkins
+//
+// ตัวแปรที่มาจากไฟล์ /opt/jenkins/.env บนเครื่อง Jenkins:
+//   ECR_REGISTRY, SONAR_HOST_URL, ARGOCD_SERVER, MANIFESTS_REPO
+// credentials ที่ต้องสร้างในหน้า Jenkins:
+//   github-token (Username with password), sonar-token (Secret text), argocd-admin (Username with password)
+
+pipeline {
+  agent any
+
+  options {
+    disableConcurrentBuilds()
+  }
+
+  parameters {
+    choice(name: 'TARGET_ENV', choices: ['dev', 'prd'],
+           description: 'ปลายทาง (ค่าตั้งต้น: dev)')
+    choice(name: 'SERVICE', choices: ['backend', 'frontend'],
+           description: 'บริการที่จะปล่อย (ถ้าแก้ทั้งคู่ ให้ปล่อย backend ก่อน)')
+    gitParameter(name: 'VERSION', type: 'PT_TAG',
+           sortMode: 'DESCENDING_SMART', selectedValue: 'TOP',
+           description: 'เลือก tag เวอร์ชันจาก Git')
+    choice(name: 'ACTION', choices: ['build-and-deploy', 'deploy-only'],
+           description: 'deploy-only: ใช้ image ที่มีอยู่แล้ว (เอาตัวที่ทดสอบใน dev ขึ้น prd หรือย้อนเวอร์ชัน)')
+    booleanParam(name: 'AUTO_SYNC', defaultValue: false,
+           description: 'ให้ Jenkins สั่ง ArgoCD sync ทันที (ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD)')
+    string(name: 'CHANGE_NOTE', defaultValue: '',
+           description: 'เลข ticket หรือเหตุผล')
+  }
+
+  environment {
+    IMAGE = "${env.ECR_REGISTRY}/pharmacy/${params.SERVICE}:${params.VERSION}"
+    APP   = "pharmacy-${params.SERVICE}-${params.TARGET_ENV}"
+  }
+
+  stages {
+    stage('Validate') {
+      steps {
+        script {
+          if (!params.VERSION) {
+            error('ยังไม่ได้เลือก VERSION (ถ้ารายการว่าง ให้ติด tag ใน Git ก่อน แล้ว build อีกครั้ง)')
+          }
+          if (params.TARGET_ENV == 'prd' && !(params.VERSION ==~ /^v\d+\.\d+\.\d+$/)) {
+            error("prd รับเฉพาะ tag รูปแบบ v1.2.3 แต่ได้ '${params.VERSION}'")
+          }
+        }
+      }
+    }
+
+    stage('Confirm production') {
+      when { expression { params.TARGET_ENV == 'prd' } }
+      steps {
+        input message: "ปล่อย ${params.SERVICE} ${params.VERSION} ขึ้น PRD ใช่ไหม?", ok: 'ยืนยัน'
+      }
+    }
+
+    stage('Checkout version') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        checkout scmGit(
+          branches: [[name: "refs/tags/${params.VERSION}"]],
+          userRemoteConfigs: scm.userRemoteConfigs
+        )
+      }
+    }
+
+    stage('SonarQube scan') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+          sh '''
+            docker run --rm --user 0:0 --volumes-from jenkins -w "$WORKSPACE" \
+              -e SONAR_HOST_URL -e SONAR_TOKEN \
+              sonarsource/sonar-scanner-cli \
+              -Dsonar.projectVersion="$VERSION" \
+              -Dsonar.qualitygate.wait=true
+          '''
+        }
+      }
+    }
+
+    stage('Build and push image') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        sh '''
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+          docker build --build-arg APP_VERSION="$VERSION" -t "$IMAGE" "$SERVICE"
+          docker push "$IMAGE"
+        '''
+      }
+    }
+
+    stage('Check image exists') {
+      when { expression { params.ACTION == 'deploy-only' } }
+      steps {
+        sh '''
+          aws ecr describe-images \
+            --repository-name "pharmacy/$SERVICE" \
+            --image-ids imageTag="$VERSION" > /dev/null
+        '''
+      }
+    }
+
+    stage('Update manifest') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'github-token',
+                         usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+          sh '''
+            rm -rf manifests
+            git clone "https://$GIT_USER:$GIT_TOKEN@$MANIFESTS_REPO" manifests
+            cd manifests
+
+            sed -i "s|image: .*|image: $IMAGE|" "$TARGET_ENV/$SERVICE/deployment.yaml"
+
+            git config user.name "jenkins"
+            git config user.email "jenkins@pharmacy.local"
+
+            if git diff --quiet; then
+              echo "manifest เป็นเวอร์ชันนี้อยู่แล้ว ไม่มีอะไรเปลี่ยน"
+            else
+              git commit -am "$SERVICE $VERSION -> $TARGET_ENV ($CHANGE_NOTE) [build $BUILD_NUMBER]"
+              git push
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Sync ArgoCD') {
+      when { expression { params.AUTO_SYNC } }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'argocd-admin',
+                         usernameVariable: 'ARGO_USER', passwordVariable: 'ARGO_PASS')]) {
+          sh '''
+            argocd login "$ARGOCD_SERVER" --username "$ARGO_USER" --password "$ARGO_PASS" --insecure --grpc-web
+            argocd app sync "$APP" --timeout 300
+            argocd app wait "$APP" --health --timeout 300
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'rm -rf manifests'
+    }
+    success {
+      script {
+        if (params.AUTO_SYNC) {
+          echo "เสร็จแล้ว: ${env.APP} รันเวอร์ชัน ${params.VERSION} และผ่านการตรวจสุขภาพ"
+        } else {
+          echo "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป ${env.APP}"
+        }
+      }
+    }
+  }
+}

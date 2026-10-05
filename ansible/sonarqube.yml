@@ -1,0 +1,46 @@
+# เป้าหมาย: VM pharmacy-sonarqube
+# เอาไฟล์จากโฟลเดอร์ vm-sonarqube/ ไปวางที่ /opt/sonarqube บนเครื่อง แล้วสั่งรัน
+- name: SonarQube VM
+  hosts: role_sonarqube
+  become: true
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: Kernel settings required by SonarQube (/etc/sysctl.d/99-sonarqube.conf)
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-sonarqube.conf
+        mode: "0644"
+        content: |
+          vm.max_map_count=524288
+          fs.file-max=131072
+      register: sysctl_file
+
+    - name: Apply kernel settings
+      ansible.builtin.command: sysctl --system
+      when: sysctl_file.changed
+      changed_when: true
+
+    - name: Copy SonarQube files to /opt/sonarqube
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../vm-sonarqube/"
+        dest: /opt/sonarqube/
+        mode: "0644"
+
+    - name: Write /opt/sonarqube/.env
+      ansible.builtin.copy:
+        dest: /opt/sonarqube/.env
+        mode: "0600"
+        content: |
+          SONAR_DB_PASSWORD={{ sonar_db_password }}
+
+    - name: Start SonarQube
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/sonarqube
+      changed_when: true
