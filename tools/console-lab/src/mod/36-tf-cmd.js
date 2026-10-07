@@ -1,10 +1,12 @@
 // ===== คำสั่ง terraform ที่เรียกจากเทอร์มินัล (ไม่มี DOM) =====
 function tfDir() { return S.laptop.cwd; }
-function tfInitCmd(dir) {
+function tfInitCmd(dir, upgrade) {
   var files = tfFilesIn(dir), out = [];
   if (!Object.keys(files).length) return ["Terraform initialized in an empty directory!", "", "The directory has no Terraform configuration files. You may begin working", "with Terraform immediately by creating Terraform configuration files."];
   var cfg = tfLoad(files); if (cfg.errors.length) return tfFmtErrors(cfg.errors, cfg);
   var req = ["aws", "local"].filter(function (p) { return Object.keys(cfg.res).some(function (a) { return cfg.res[a].type.indexOf(p === "aws" ? "aws_" : "local_") === 0; }) || Object.keys(cfg.data).some(function (a) { return cfg.data[a].type.indexOf("aws_") === 0 && p === "aws"; }); });
+  if (S.faults.providerLock && !upgrade) return ["Initializing the backend...", "", "Initializing provider plugins...", "- Reusing previous version of hashicorp/aws from the dependency lock file", "╷", "│ Error: Failed to query available provider packages", "│ ", "│ Could not retrieve the list of available versions for provider hashicorp/aws: locked provider registry.terraform.io/hashicorp/aws 4.67.0 does not match configured version constraint >= 5.0; must use terraform init -upgrade to allow selection of new versions", "╵"];
+  if (S.faults.providerLock && upgrade) delete S.faults.providerLock;
   out.push("Initializing the backend...", "", "Initializing provider plugins...");
   req.forEach(function (p) { out.push("- Finding hashicorp/" + p + " versions matching \"" + (p === "aws" ? ">= 5.0" : ">= 2.4") + "\"...", "- Installing hashicorp/" + p + " (จำลอง: ไม่ได้ดาวน์โหลดจริง)...", "- Installed hashicorp/" + p + " (signed by HashiCorp)"); });
   out.push("", "Terraform has created a lock file .terraform.lock.hcl to record the provider", "selections it made above. Include this file in your version control repository", "so that Terraform can guarantee to make the same selections by default when", "you run \"terraform init\" in the future.", "", "Terraform has been successfully initialized!", "", "You may now begin working with Terraform. Try running \"terraform plan\" to see", "any changes that are required for your infrastructure. All Terraform commands", "should now work.");
@@ -30,14 +32,19 @@ function tfPlanCmd(dir, cli, destroy) {
   res = tfExec({ prep: prep, mode: "plan", out: out });
   if (res.fail) return { lines: res.fail };
   if (res.failed) return { lines: tfErrFrom(res.failed.e, res.cfg, res.failed.node, res.failed.addr) };
-  return { lines: tfPlanText(res), res: res, prep: prep };
+  var lines = tfPlanText(res), creates = res.actions.filter(function (a) { return a.type === "aws_instance" && a.act === "create"; });
+  if (creates.length) {
+    var run = S.insts.filter(function (i) { return i.state === "running"; }).length * 2, add = creates.reduce(function (n, a) { return n + (VCPU[(a.attrs || {}).instance_type] || 2); }, 0), tot = run + add;
+    lines.push("", "Console Lab: vCPU ที่จะรันหลัง apply = " + tot + " (ใหม่ " + add + " + เดิม " + run + ")  เทียบ default quota " + VCPU_QUOTA + " ของ Running On-Demand Standard instances", tot > VCPU_QUOTA ? "  ⚠ เกิน default quota: บนบัญชีใหม่ apply จะล้มด้วย VcpuLimitExceeded ตรวจ Service Quotas → EC2 ก่อน แล้ว Request increase หรือลดจำนวนเครื่อง (k8s_node_count, db_count)" : "  OK ไม่เกิน default quota");
+  }
+  return { lines: lines, res: res, prep: prep };
 }
 function tfApplyCmd(plan) {
   var out = [];
   if (plan.destroy) {
     var acts = plan.acts.slice(); var r = tfApplyDestroys(acts, plan.prep.cfg, out); S.tf.serial++;
     if (r) { out.push.apply(out, tfErrFrom(r.e, plan.prep.cfg, r.node, r.addr)); return out; }
-    S.tf.outputs = {}; out.push("", "Destroy complete! Resources: " + acts.length + " destroyed."); return out;
+    S.tf.outputs = {}; S.tf.fresh = {}; S.tf.hit = {}; out.push("", "Destroy complete! Resources: " + acts.length + " destroyed."); return out;
   }
   var res = tfExec({ prep: plan.prep, mode: "apply", out: out });
   if (res.fail) return res.fail;

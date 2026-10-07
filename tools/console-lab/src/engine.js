@@ -14,6 +14,8 @@ var POLICIES = Object.keys(POLICY_DEF);
 var PUSH_ACTIONS = ["ecr:GetAuthorizationToken", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:BatchCheckLayerAvailability", "ecr:PutImage", "ecr:BatchGetImage"];
 var PULL_ACTIONS = ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"];
 var ITYPE_INFO = { "t3.micro": [2, 1], "t3.small": [2, 2], "t3.medium": [2, 4], "t3.large": [2, 8], "t4g.small": [2, 2], "c7i-flex.large": [2, 4], "m7i-flex.large": [2, 8], "m5.large": [2, 8] };
+var VCPU = { "t3.micro": 2, "t3.small": 2, "t3.medium": 2, "t3.large": 2, "t4g.small": 2, "c7i-flex.large": 2, "m7i-flex.large": 2, "m5.large": 2 }; // ponytail: จำนวน vCPU จากความจำ
+var VCPU_QUOTA = 5;
 var ITYPES = ["t3.micro", "t3.small", "t3.medium", "t3.large", "t4g.small", "c7i-flex.large", "m7i-flex.large", "m5.large"];
 var FREE = ["t3.micro", "t3.small", "t4g.micro", "t4g.small", "c7i-flex.large", "m7i-flex.large"];
 var AMIS = [["ami-ubuntu2404", "Ubuntu Server 24.04 LTS (HVM), SSD Volume Type"], ["ami-al2023", "Amazon Linux 2023 AMI"], ["ami-ubuntu2204", "Ubuntu Server 22.04 LTS (HVM), SSD Volume Type"]];
@@ -47,7 +49,7 @@ function mkVpc(o) {
   return v;
 }
 function fresh() {
-  S = { vpcs: [], subnets: [], igws: [], rtbs: [], sgs: [], keys: [], roles: [], repos: [], insts: [], tgs: [], albs: [], users: [], eips: [], policies: [], eipSeq: 0, myIp: MYIP0, newAcct: true, acct: "normal", pubSeq: 10, tf: { inited: false, state: {}, serial: 0, outputs: {} }, laptop: null };
+  S = { vpcs: [], subnets: [], faults: {}, igws: [], nats: [], rtbs: [], sgs: [], keys: [], roles: [], repos: [], insts: [], tgs: [], albs: [], users: [], eips: [], policies: [], eipSeq: 0, myIp: MYIP0, newAcct: true, acct: "normal", pubSeq: 10, tf: { inited: false, state: {}, serial: 0, outputs: {} }, laptop: null };
   var v = mkVpc({ cidr: "172.31.0.0/16", dns: true, isDefault: true });
   var g = { id: rid("igw"), name: "", vpcId: v.id }; S.igws.push(g);
   rtbMain(v.id).routes.push({ dest: "0.0.0.0/0", target: g.id });
@@ -59,6 +61,8 @@ function ensureState() {
   if (!S.laptop) labInit();
   if (!S.tf) S.tf = { inited: false, state: {}, serial: 0, outputs: {} };
   if (!S.acct) S.acct = "normal";
+  if (!S.nats) S.nats = [];
+  if (!S.faults) S.faults = {};
   ["users", "eips", "policies"].forEach(function (k) { if (!S[k]) S[k] = []; });
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
@@ -137,6 +141,7 @@ function egressOpen(sgIds) {
 var API = {};
 API.createVpc = function (o) {
   var er = {};
+  if (S.vpcs.length >= 5) return E("_", "VpcLimitExceeded: The maximum number of VPCs has been reached.");
   if (!parseCidr(o.cidr)) er.cidr = "CIDR ไม่ถูกต้อง (รูปแบบ 10.0.0.0/16)";
   else if (!canon(o.cidr)) er.cidr = "CIDR นี้มี bit ของ host ติดอยู่ ลองเปลี่ยนเป็น " + n2ip(parseCidr(o.cidr).base) + "/" + parseCidr(o.cidr).prefix;
   else if (parseCidr(o.cidr).prefix < 16 || parseCidr(o.cidr).prefix > 28) er.cidr = "ขนาดต้องอยู่ระหว่าง /16 ถึง /28";
@@ -146,14 +151,30 @@ API.createVpc = function (o) {
   return { res: v };
 };
 API.createVpcAndMore = function (o) {
-  var r = API.createVpc({ name: o.name ? o.name + "-vpc" : "", cidr: o.cidr, dns: true }); if (r.errors) return r;
-  var v = r.res, g = { id: rid("igw"), name: o.name ? o.name + "-igw" : "", vpcId: v.id }; S.igws.push(g);
-  var rt = { id: rid("rtb"), name: o.name ? o.name + "-rtb-public" : "", vpcId: v.id, main: false, routes: [{ dest: "0.0.0.0/0", target: g.id }], assoc: [] }; S.rtbs.push(rt);
-  var base = parseCidr(o.cidr).base, n = Math.max(0, Math.min(3, +o.publicCount || 0));
-  for (var i = 0; i < n; i++) {
-    var sn = { id: rid("subnet"), name: o.name ? o.name + "-subnet-public" + (i + 1) + "-" + AZS[i] : "", vpcId: v.id, az: AZS[i], cidr: n2ip(base + i * 4096) + "/20", autoIp: false };
-    S.subnets.push(sn); rt.assoc.push(sn.id);
+  var nAz = Math.max(1, Math.min(3, +o.azs || 2)), pub = +o.pub || 0, priv = +o.priv || 0, nat = o.nat || "none", er = {};
+  if (pub > nAz) er.pub = "จำนวน public subnet ต้องไม่เกินจำนวน AZ (" + nAz + ")";
+  if (priv > nAz) er.priv = "จำนวน private subnet ต้องไม่เกินจำนวน AZ (" + nAz + ")";
+  if (nat !== "none" && pub < 1) er.nat = "NAT gateway ต้องวางใน public subnet อย่างน้อย 1 อัน";
+  if (nat === "perAz" && pub < nAz) er.nat = "ตัวเลือก 1 per AZ ต้องมี public subnet ครบทุก AZ ที่เลือก";
+  var needEip = nat === "none" ? 0 : nat === "perAz" ? nAz : 1;
+  if (needEip && S.eips.length + needEip > 5) er.nat = "AddressLimitExceeded: The maximum number of addresses has been reached. (Elastic IP ใช้ " + S.eips.length + "/5 ต้องการเพิ่ม " + needEip + ")";
+  if (Object.keys(er).length) return { errors: er };
+  var nm = o.name || "", r = API.createVpc({ name: nm ? nm + "-vpc" : "", cidr: o.cidr, dns: true }); if (r.errors) return r;
+  var v = r.res; API.setDns(v.id, o.dnsHost !== false, o.dnsRes !== false);
+  var g = { id: rid("igw"), name: nm ? nm + "-igw" : "", vpcId: v.id }; S.igws.push(g);
+  var base = parseCidr(o.cidr).base, rtPub = null, pubSn = [], privSn = [];
+  if (pub) { rtPub = { id: rid("rtb"), name: nm ? nm + "-rtb-public" : "", vpcId: v.id, main: false, routes: [{ dest: "0.0.0.0/0", target: g.id }], assoc: [] }; S.rtbs.push(rtPub); }
+  for (var i = 0; i < pub; i++) { var sn = { id: rid("subnet"), name: nm ? nm + "-subnet-public" + (i + 1) + "-" + AZS[i] : "", vpcId: v.id, az: AZS[i], cidr: n2ip(base + i * 4096) + "/20", autoIp: false }; S.subnets.push(sn); rtPub.assoc.push(sn.id); pubSn.push(sn); }
+  var nats = [];
+  if (nat !== "none") for (var j = 0; j < (nat === "perAz" ? nAz : 1); j++) { var ea = API.allocEip(); if (ea.errors) return ea; var e = ea.res, nt = { id: rid("nat"), name: nm ? nm + "-nat-public" + (j + 1) + "-" + AZS[j] : "", vpcId: v.id, subnetId: pubSn[j].id, eipId: e.id, state: "available" }; S.nats.push(nt); nats.push(nt); }
+  for (var k = 0; k < priv; k++) {
+    var ps = { id: rid("subnet"), name: nm ? nm + "-subnet-private" + (k + 1) + "-" + AZS[k] : "", vpcId: v.id, az: AZS[k], cidr: n2ip(base + 32768 + k * 4096) + "/20", autoIp: false }; S.subnets.push(ps); privSn.push(ps);
+    var rt = { id: rid("rtb"), name: nm ? nm + "-rtb-private" + (k + 1) + "-" + AZS[k] : "", vpcId: v.id, main: false, routes: [], assoc: [ps.id] };
+    if (nats.length) rt.routes.push({ dest: "0.0.0.0/0", target: (nat === "perAz" ? nats[k] : nats[0]).id });
+    if (o.s3) rt.routes.push({ dest: "pl-s3 (S3 gateway endpoint)", target: "vpce-s3" });
+    S.rtbs.push(rt);
   }
+  if (o.s3) { v.s3ep = true; if (rtPub) rtPub.routes.push({ dest: "pl-s3 (S3 gateway endpoint)", target: "vpce-s3" }); }
   return { res: v };
 };
 API.setDns = function (id, hostnames, resolution) { var v = find(S.vpcs, id); if (!v) return E("_", "ไม่พบ VPC"); v.dnsHostnames = !!hostnames; v.dnsResolution = !!resolution; return { res: v }; };
@@ -177,7 +198,7 @@ API.createSubnet = function (o) {
   return { res: made };
 };
 API.setAutoIp = function (id, on) { var s = find(S.subnets, id); if (!s) return E("_", "ไม่พบ subnet"); s.autoIp = !!on; return { res: s }; };
-API.createIgw = function (o) { var g = { id: rid("igw"), name: o.name || "", vpcId: null }; S.igws.push(g); return { res: g }; };
+API.createIgw = function (o) { if (S.igws.length >= 5) return E("_", "InternetGatewayLimitExceeded: The maximum number of internet gateways has been reached."); var g = { id: rid("igw"), name: o.name || "", vpcId: null }; S.igws.push(g); return { res: g }; };
 API.attachIgw = function (igwId, vpcId) {
   var g = find(S.igws, igwId), v = find(S.vpcs, vpcId);
   if (!g) return E("_", "ไม่พบ internet gateway"); if (!v) return E("vpcId", "ต้องเลือก VPC");
@@ -215,7 +236,7 @@ API.createSg = function (o) {
   if (!nmv) er.name = "ต้องกรอกชื่อ"; else if (nmv.length > 255) er.name = "ชื่อยาวได้ไม่เกิน 255 ตัวอักษร"; else if (!SGCH.test(nmv)) er.name = "ชื่อมีอักขระที่ไม่อนุญาต (ใช้ได้: a-z A-Z 0-9 ช่องว่าง และ ._-:/()#,@[]+=&;{}!$*)"; else if (/^sg-/.test(nmv)) er.name = "ชื่อห้ามขึ้นต้นด้วย sg-"; else if (S.sgs.some(function (g) { return g.vpcId === o.vpcId && g.name.toLowerCase() === nmv.toLowerCase(); })) er.name = "มี security group ชื่อ " + nmv + " ใน VPC นี้แล้ว (ชื่อไม่แยกตัวพิมพ์ใหญ่เล็ก)";
   if (!o.desc) er.desc = "ต้องกรอก description"; else if (o.desc.length > 255 || !SGCH.test(o.desc)) er.desc = "description ยาวไม่เกิน 255 ตัว และใช้อักขระที่อนุญาตเท่านั้น";
   if (!v) er.vpcId = "ต้องเลือก VPC";
-  var n = normRules(o.rows || [], o.vpcId); if (n.errs.length) er.rules = n.errs.join(" · ");
+  var n = normRules(o.rows || [], o.vpcId); if (n.errs.length) er.rules = n.errs.join(" · "); else if (n.rules.length > 60) er.rules = "RulesPerSecurityGroupLimitExceeded: The maximum number of rules per security group has been reached. (default 60 ต่อทิศทาง)";
   if (Object.keys(er).length) return { errors: er };
   var g = { id: rid("sg"), name: o.name, desc: o.desc, vpcId: v.id, inbound: n.rules, outbound: [{ proto: "-1", from: 0, to: 65535, srcKind: "cidr", src: "0.0.0.0/0" }] };
   S.sgs.push(g); return { res: g };
@@ -270,7 +291,10 @@ API.launch = function (o) {
   }
   if (o.profile && !S.roles.some(function (r) { return r.profile === o.profile; })) er.profile = "ไม่พบ instance profile นี้";
   if (S.acct === "free" && FREE.indexOf(o.type) < 0) er.type = "InvalidParameterCombination: The specified instance type is not eligible for Free Tier. (Free plan จำลอง: ใช้ได้เฉพาะ " + FREE.join(", ") + ")";
-  var cnt = +o.count || 1; if (cnt < 1 || cnt > 20) er.count = "จำนวนเครื่องต้องอยู่ระหว่าง 1 ถึง 20";
+  var cnt = +o.count || 1;
+  if (sn && S.faults.azMissing && sn.az === AZS[1] && o.type === "t3.medium") er._az = "Unsupported: Your requested instance type (" + o.type + ") is not supported in your requested Availability Zone (" + sn.az + "). Please retry your request by not specifying an Availability Zone or choosing " + AZS.filter(function (z) { return z !== sn.az; }).join(", ") + ".";
+  var qe = vcpuCheck(cnt); if (qe) er._quota = qe;
+  if (cnt < 1 || cnt > 20) er.count = "จำนวนเครื่องต้องอยู่ระหว่าง 1 ถึง 20";
   var size = +o.diskSize; if (!(size >= 8 && size <= 16384)) er.diskSize = "ขนาดดิสก์ 8 ถึง 16384 GiB";
   var hop = +o.hop; if (!(hop >= 1 && hop <= 64)) er.hop = "hop limit ต้องอยู่ระหว่าง 1 ถึง 64";
   if (Object.keys(er).length) { if (o.newSg && !er.newSgName) { /* nothing created */ } return { errors: er }; }
@@ -352,9 +376,13 @@ function sessionCheck(inst) {
   var ok = steps.every(function (x) { return x.ok; });
   return { steps: steps, ok: ok, out: ok ? "Session started (Session Manager) ไม่ต้องเปิด port 22 และไม่ต้องมีกุญแจ" : "Your instance isn't connected to Session Manager (SSM Agent not online / ไม่มีสิทธิ์)" };
 }
+function natRoute(rt) {
+  if (!rt) return false;
+  return rt.routes.some(function (x) { var n = /^nat-/.test(x.target) ? find(S.nats, x.target) : null, ns = n && find(S.subnets, n.subnetId); return x.dest === "0.0.0.0/0" && n && n.state === "available" && ns && hasIgwRoute(subnetRtb(ns)); });
+}
 function internetOut(inst) {
   var sn = find(S.subnets, inst.subnetId), rt = sn ? subnetRtb(sn) : null;
-  return inst.state === "running" && !!inst.publicIp && hasIgwRoute(rt) && egressOpen(inst.sgIds);
+  return inst.state === "running" && egressOpen(inst.sgIds) && ((!!inst.publicIp && hasIgwRoute(rt)) || natRoute(rt));
 }
 function albHealth(alb) {
   var rows = [], azs = alb.subnetIds.map(function (id) { var x = find(S.subnets, id); return x && x.az; });
@@ -372,12 +400,18 @@ function albHealth(alb) {
   return rows;
 }
 function liveInsts(vpcId, subnetId) { return S.insts.filter(function (i) { return i.state !== "terminated" && (!vpcId || i.vpcId === vpcId) && (!subnetId || i.subnetId === subnetId); }); }
+// fault vcpuQuota: running vCPU + จำนวนเครื่องใหม่ ต้องไม่เกิน VCPU_QUOTA (ทุก type ใน ITYPES = 2 vCPU)
+function vcpuCheck(n) {
+  if (!S.faults.vcpuQuota) return "";
+  var run = liveInsts().filter(function (x) { return x.state === "running"; }).length * 2;
+  return run + n * 2 > VCPU_QUOTA ? "VcpuLimitExceeded: You have requested more vCPU capacity than your current vCPU limit of " + VCPU_QUOTA + " allows for the instance bucket that the specified instance type belongs to. Please visit http://aws.amazon.com/contact-us/ec2-request to request an adjustment to this limit." : "";
+}
 API.instState = function (id, act) {
   var i = find(S.insts, id); if (!i) return E("_", "ไม่พบเครื่อง");
   var e = i.eipId ? find(S.eips, i.eipId) : null;
   if (i.state === "terminated") return E("_", "เครื่องที่ terminate แล้วทำอะไรต่อไม่ได้");
   if (act === "stop") { if (i.state !== "running") return E("_", "หยุดได้เฉพาะเครื่องที่ running"); i.state = "stopped"; i.publicIp = e ? e.ip : ""; }
-  else if (act === "start") { if (i.state !== "stopped") return E("_", "start ได้เฉพาะเครื่องที่ stopped"); i.state = "running"; i.publicIp = e ? e.ip : (i.hadPub ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : ""); }
+  else if (act === "start") { if (i.state !== "stopped") return E("_", "start ได้เฉพาะเครื่องที่ stopped"); var q = vcpuCheck(1); if (q) return E("_", q); i.state = "running"; i.publicIp = e ? e.ip : (i.hadPub ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : ""); }
   else if (act === "reboot") { if (i.state !== "running") return E("_", "reboot ได้เฉพาะเครื่องที่ running"); }
   else if (act === "terminate") { i.state = "terminated"; i.publicIp = ""; if (e) { e.instId = null; i.eipId = null; } }
   else return E("_", "ไม่รู้จัก action");
@@ -401,7 +435,7 @@ API.setInstanceRole = function (id, profile, word) {
   if (i.profile && i.state !== "running") return E("profile", "การ replace role ทำได้เฉพาะเครื่องที่ running (ถ้ายังไม่มี role จะ attach ตอน stopped ได้)");
   i.profile = profile; return { res: i };
 };
-API.allocEip = function () { S.eipSeq = (S.eipSeq || 0) % 250 + 1; var e = { id: rid("eipalloc"), ip: "192.0.2." + S.eipSeq, instId: null }; S.eips.push(e); return { res: e }; };
+API.allocEip = function () { if (S.eips.length >= 5) return E("_", "AddressLimitExceeded: The maximum number of addresses has been reached."); S.eipSeq = (S.eipSeq || 0) % 250 + 1; var e = { id: rid("eipalloc"), ip: "192.0.2." + S.eipSeq, instId: null }; S.eips.push(e); return { res: e }; };
 API.assocEip = function (eipId, instId) {
   var e = find(S.eips, eipId), i = find(S.insts, instId);
   if (!e) return E("_", "ไม่พบ Elastic IP"); if (!i) return E("instId", "ต้องเลือกเครื่อง"); if (i.state === "terminated") return E("instId", "เครื่องถูก terminate แล้ว");
@@ -495,12 +529,17 @@ function delPlan(kind, id) {
     S.subnets.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("subnet " + (x.name || x.id)); });
     S.rtbs.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("route table " + (x.main ? "main " : "") + (x.name || x.id)); });
     S.igws.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("internet gateway " + (x.name || x.id)); });
+    S.nats.filter(function (x) { return x.vpcId === v.id && x.state !== "deleted"; }).forEach(function (x) { P.blockers.push("ต้องลบ NAT gateway " + (x.name || x.id) + " ก่อน"); });
     S.sgs.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("security group " + x.name); });
     P.note = "ลบ VPC ผ่าน console จะลบ subnet, route table, internet gateway, security group ให้ด้วย (ผ่าน CLI ต้องลบทีละชิ้นเอง)";
   } else if (kind === "igw" || kind === "igw-detach") {
     var g = find(S.igws, id); if (!g) return null;
     if (kind === "igw") { P.title = "Delete internet gateway (" + nm(g) + ")"; P.crumb = "VPC › Internet gateways › Delete"; P.word = "delete"; P.button = "Delete internet gateway"; P.done = "ลบ internet gateway แล้ว"; if (g.vpcId) P.blockers.push("ยัง attach กับ VPC อยู่ ต้อง Actions → Detach from VPC ก่อน"); }
     else { P.title = "Detach from VPC (" + nm(g) + ")"; P.crumb = "VPC › Internet gateways › Detach from VPC"; P.button = "Detach internet gateway"; P.done = "Detach แล้ว"; if (!g.vpcId) P.blockers.push("ไม่ได้ attach กับ VPC ใด"); else liveInsts(g.vpcId).filter(function (i) { return i.publicIp; }).forEach(function (i) { P.blockers.push("เครื่อง " + (i.name || i.id) + " ยังมี public IP " + i.publicIp + " (VPC ที่มีของที่ผูก public IP อยู่ detach ไม่ได้)"); }); }
+  } else if (kind === "nat") {
+    var nt0 = find(S.nats, id); if (!nt0) return null;
+    P.title = "Delete NAT gateway (" + (nt0.name || nt0.id) + ")"; P.crumb = "VPC › NAT gateways › Delete NAT gateway"; P.word = "delete"; P.button = "Delete"; P.done = "NAT gateway ถูกลบ (Elastic IP ยังถูกจองอยู่ ต้อง Release เอง)";
+    P.note = "route 0.0.0.0/0 ที่ชี้ NAT นี้จะกลายเป็น blackhole";
   } else if (kind === "sg") {
     var sg = find(S.sgs, id); if (!sg) return null;
     P.title = "Delete security group (" + sg.name + ")"; P.crumb = "VPC › Security groups › Delete security groups"; P.word = "Delete"; P.done = "ลบ security group แล้ว";
@@ -513,6 +552,7 @@ function delPlan(kind, id) {
     P.title = "Delete subnet (" + (sn.name || sn.id) + ")"; P.crumb = "VPC › Subnets › Delete subnet"; P.word = "delete"; P.button = "Delete"; P.done = "ลบ subnet แล้ว";
     liveInsts(sn.vpcId, sn.id).forEach(function (i) { P.blockers.push("ยังมีเครื่อง " + (i.name || i.id) + " ในซอยนี้"); });
     S.albs.filter(function (a) { return a.subnetIds.indexOf(sn.id) >= 0; }).forEach(function (a) { P.blockers.push("ยังถูกใช้โดย load balancer " + a.name); });
+    S.nats.filter(function (n) { return n.subnetId === sn.id; }).forEach(function (n) { P.blockers.push("ยังมี NAT gateway " + (n.name || n.id) + " ในซอยนี้ ต้องลบก่อน"); });
   } else if (kind === "key") {
     var k = find(S.keys, id); if (!k) return null;
     P.title = "Delete key pair (" + k.name + ")"; P.crumb = "EC2 › Key Pairs › Delete"; P.done = "ลบ key pair แล้ว";
@@ -540,6 +580,7 @@ API.del = function (kind, id, word) {
   if (P.blockers.length) return E("_", P.blockers.join(" · "));
   if (P.word && String(word || "").trim().toLowerCase() !== P.word.toLowerCase()) return E("confirm", "พิมพ์ " + P.word + " เพื่อยืนยัน");
   if (kind === "vpc") { S.subnets = S.subnets.filter(function (x) { return x.vpcId !== id; }); S.rtbs = S.rtbs.filter(function (x) { return x.vpcId !== id; }); S.igws = S.igws.filter(function (x) { return x.vpcId !== id; }); S.sgs = S.sgs.filter(function (x) { return x.vpcId !== id; }); S.vpcs = S.vpcs.filter(function (x) { return x.id !== id; }); }
+  else if (kind === "nat") { S.nats = S.nats.filter(function (x) { return x.id !== id; }); S.rtbs.forEach(function (r) { r.routes.forEach(function (x) { if (x.target === id) x.target = id + " (blackhole)"; }); }); }
   else if (kind === "igw") S.igws = S.igws.filter(function (x) { return x.id !== id; });
   else if (kind === "igw-detach") find(S.igws, id).vpcId = null;
   else if (kind === "sg") S.sgs = S.sgs.filter(function (x) { return x.id !== id; });
@@ -707,6 +748,9 @@ var RULES = [
   ["Ansible dynamic inventory: กรอง tag Project=pharmacy + running, กลุ่ม role_<Role>, ชื่อโฮสต์จาก tag Name, ansible_host = public IP (ตาม inventory/aws_ec2.yml ของ repo)", 1],
   ["Ansible ผลของแต่ละ task (changed/ok, UNREACHABLE จาก SG/route/key, ต้องมีทางออกเน็ตสำหรับ apt/curl/docker, ECR refresh ต้องมีสิทธิ์) เป็นกฎที่เขียนเองตามชื่อ task ไม่ใช่การรันจริง", 0],
   ["บัญชี suspended: ทุกคำสั่ง AWS CLI / Terraform / Ansible inventory ล้มเหลวด้วย AuthFailure (ข้อความจำลองจากความจำ)", 0],
+  ["Default quota ตามเอกสาร: Standard (A,C,D,H,I,M,R,T,Z) running On-Demand = 5 vCPU, Elastic IP 5/Region, VPC 5/Region, Internet gateway 5/Region, NAT gateway 5/AZ, SG rule 60/ทิศทาง, SG ต่อ ENI 5 (บัญชีจริงอาจสูงกว่าเพราะ EC2 ปรับให้อัตโนมัติ)", 1],
+  ["ข้อความ error ของ quota (VcpuLimitExceeded มี URL contact-us/ec2-request; AddressLimitExceeded, VpcLimitExceeded ฯลฯ) และ error ของ AZ/instance profile: รหัสและหลักการตรงเอกสาร/กระทู้ แต่ถ้อยคำเต็มจำลองจากความจำ", 0],
+  ["Free plan: ปิดบัญชีเมื่อครบ 6 เดือนหรือ credit หมด (เก็บข้อมูล 90 วัน), credit เริ่มต้น $100 + ทำกิจกรรมได้อีกสูงสุด $100; ไม่รวม Savings Plans/Reserved Instances/บางรายการ Marketplace ส่วน ALB/NAT/ECR ว่าใช้ได้ไหมเอกสารไม่ระบุ จึงไม่จำลองการบล็อก", 1],
   ["IAM access key: user ละ 2 ชุด, ลบต้อง Deactivate ก่อน, secret ดูได้ครั้งเดียว (Show / Download .csv file)", 1],
  ["IAM: ชื่อ use case ใน Create access key, กล่องยืนยันของ CLI, ขั้นตอนและชื่อช่องของ Create user", 0],
  ["IAM policy JSON ของ AmazonEC2ContainerRegistryPowerUser, ReadOnly และ AmazonSSMManagedInstanceCore ตรงเอกสาร; S3ReadOnly และ CloudWatchAgent ยังไม่ได้ตรวจเนื้อหา", 1],

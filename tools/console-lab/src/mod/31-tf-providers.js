@@ -155,6 +155,7 @@ var TF_PROV = {
       var r = S.roles.filter(function (x) { return x.name === a.role; })[0];
       if (a.role && !r) throw TfAwsError("adding IAM Role (" + a.role + ") to IAM Instance Profile (" + nm0 + ")", "IAM", "AddRoleToInstanceProfile", "NoSuchEntity", "The role with name " + a.role + " cannot be found.");
       if (r) r.profile = nm0;
+      S.tf.fresh = S.tf.fresh || {}; S.tf.fresh[nm0] = S.tf.serial;
       return { id: nm0, computed: { id: nm0, name: nm0, arn: arnOf("profile", nm0, nm0), role: a.role || "" }, sim: { role: r ? r.id : null, profile: nm0 } };
     },
     update: function () {},
@@ -178,6 +179,7 @@ var TF_PROV = {
       if (a.subnet_id && !sn) throw TfAwsError(label, "EC2", "RunInstances", "InvalidSubnetID.NotFound", "The subnet ID '" + a.subnet_id + "' does not exist");
       if (!AMIS.some(function (x) { return x[0] === a.ami; })) throw TfAwsError(label, "EC2", "RunInstances", "InvalidAMIID.NotFound", "The image id '[" + a.ami + "]' does not exist");
       if (a.key_name && !byName(S.keys, a.key_name)) throw TfAwsError(label, "EC2", "RunInstances", "InvalidKeyPair.NotFound", "The key pair '" + a.key_name + "' does not exist");
+      if (S.faults.eventual && a.iam_instance_profile && S.tf.fresh && S.tf.fresh[a.iam_instance_profile] === S.tf.serial && !(S.tf.hit || {})[a.iam_instance_profile]) { S.tf.hit = S.tf.hit || {}; S.tf.hit[a.iam_instance_profile] = 1; throw TfAwsError(label, "EC2", "RunInstances", "InvalidParameterValue", "Value (" + a.iam_instance_profile + ") for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name"); }
       if (a.iam_instance_profile && !S.roles.some(function (x) { return x.profile === a.iam_instance_profile; })) throw TfAwsError(label, "EC2", "RunInstances", "InvalidParameterValue", "Value (" + a.iam_instance_profile + ") for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name");
       var md = (a.metadata_options || [{}])[0], rb = (a.root_block_device || [{}])[0];
       var autoIp = a.associate_public_ip_address === undefined ? (sn && sn.autoIp ? "Enable" : "Disable") : (a.associate_public_ip_address ? "Enable" : "Disable");
@@ -262,6 +264,8 @@ function tfReadData(node, env, attrs) {
     var pats = []; (attrs.filter || []).forEach(function (f) { if (f.name === "name") pats = pats.concat(f.values || []); });
     var map = [["ubuntu-noble-24.04", "ami-ubuntu2404"], ["ubuntu-jammy-22.04", "ami-ubuntu2204"], ["al2023", "ami-al2023"]];
     var hit = null; map.forEach(function (m) { if (!hit && pats.some(function (p) { return String(p).indexOf(m[0]) >= 0 || (m[0] === "al2023" && /al2023/.test(p)); })) hit = m[1]; });
+    var own = {"ami-ubuntu2404": "099720109477", "ami-ubuntu2204": "099720109477", "ami-al2023": "137112412989"};
+    if (hit && (attrs.owners || []).length && (attrs.owners || []).indexOf(own[hit]) < 0 && (attrs.owners || []).indexOf(own[hit] === "137112412989" ? "amazon" : "x") < 0) hit = null;
     if (!hit) throw hclErr("Your query returned no results. Please change your search criteria and try again.", node.file, node.line);
     return { id: hit, name: AMIS.filter(function (a) { return a[0] === hit; })[0][1], owner_id: (attrs.owners || [])[0] || "" };
   }

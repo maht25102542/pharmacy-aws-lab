@@ -16,7 +16,7 @@ function shTerraform(a) {
   var sub = a[0], dir = S.laptop.cwd, cli = {}, auto = false, rest = [];
   for (var i = 1; i < a.length; i++) { if (a[i] === "-auto-approve") auto = true; else if (a[i] === "-var" && a[i + 1]) { var kv = a[++i].split("="); cli[kv[0]] = kv.slice(1).join("="); } else if (/^-var=/.test(a[i])) { var kv2 = a[i].slice(5).split("="); cli[kv2[0]] = kv2.slice(1).join("="); } else rest.push(a[i]); }
   if (!sub) return { lines: ["Usage: terraform [global options] <subcommand> [args]", "", "  init, validate, plan, apply, destroy, output, state"] };
-  if (sub === "init") return { lines: tfInitCmd(dir) };
+  if (sub === "init") return { lines: tfInitCmd(dir, a.indexOf("-upgrade") >= 0) };
   if (sub === "validate") return { lines: tfValidateCmd(dir) };
   if (sub === "output") return { lines: tfOutputCmd(rest[0]) };
   if (sub === "state") return { lines: rest[0] === "list" ? tfStateList() : rest[0] === "show" ? tfStateShow(rest[1] || "") : ["Usage: terraform state <list|show>"] };

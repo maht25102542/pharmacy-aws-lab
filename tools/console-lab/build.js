@@ -28,7 +28,7 @@ Object.keys(LABFILES).filter((f) => /^ansible\/[a-z0-9_-]+\.yml$/.test(f)).forEa
   const doc = yaml.parse(LABFILES[f]) || [];
   ANSIBLE_PLAN[f.slice(8)] = doc.map((pl) => pl.import_playbook ? { import: pl.import_playbook } : { name: pl.name, hosts: pl.hosts, become: !!pl.become, serial: pl.serial || null, vars: pl.vars || {}, tasks: flatten(pl.tasks, null, []) });
 });
-const DATA = "var LABFILES = " + JSON.stringify(LABFILES) + ";\nvar ANSIBLE_PLAN = " + JSON.stringify(ANSIBLE_PLAN) + ";";
+const DATA = "var LABFILES = " + JSON.stringify(LABFILES).replace(/<\//g, "<\\/") + ";\nvar ANSIBLE_PLAN = " + JSON.stringify(ANSIBLE_PLAN).replace(/<\//g, "<\\/") + ";";
 const parts = [src("engine.js"), "// ---- generated data (build.js)\n" + DATA];
 const modDir = path.join(here, "src", "mod");
 fs.readdirSync(modDir).filter((f) => f.endsWith(".js")).sort().forEach((f) => parts.push("// ---- mod/" + f + "\n" + src("mod/" + f)));

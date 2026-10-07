@@ -205,6 +205,8 @@ var POLICIES = Object.keys(POLICY_DEF);
 var PUSH_ACTIONS = ["ecr:GetAuthorizationToken", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:BatchCheckLayerAvailability", "ecr:PutImage", "ecr:BatchGetImage"];
 var PULL_ACTIONS = ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"];
 var ITYPE_INFO = { "t3.micro": [2, 1], "t3.small": [2, 2], "t3.medium": [2, 4], "t3.large": [2, 8], "t4g.small": [2, 2], "c7i-flex.large": [2, 4], "m7i-flex.large": [2, 8], "m5.large": [2, 8] };
+var VCPU = { "t3.micro": 2, "t3.small": 2, "t3.medium": 2, "t3.large": 2, "t4g.small": 2, "c7i-flex.large": 2, "m7i-flex.large": 2, "m5.large": 2 }; // ponytail: จำนวน vCPU จากความจำ
+var VCPU_QUOTA = 5;
 var ITYPES = ["t3.micro", "t3.small", "t3.medium", "t3.large", "t4g.small", "c7i-flex.large", "m7i-flex.large", "m5.large"];
 var FREE = ["t3.micro", "t3.small", "t4g.micro", "t4g.small", "c7i-flex.large", "m7i-flex.large"];
 var AMIS = [["ami-ubuntu2404", "Ubuntu Server 24.04 LTS (HVM), SSD Volume Type"], ["ami-al2023", "Amazon Linux 2023 AMI"], ["ami-ubuntu2204", "Ubuntu Server 22.04 LTS (HVM), SSD Volume Type"]];
@@ -238,7 +240,7 @@ function mkVpc(o) {
   return v;
 }
 function fresh() {
-  S = { vpcs: [], subnets: [], igws: [], rtbs: [], sgs: [], keys: [], roles: [], repos: [], insts: [], tgs: [], albs: [], users: [], eips: [], policies: [], eipSeq: 0, myIp: MYIP0, newAcct: true, acct: "normal", pubSeq: 10, tf: { inited: false, state: {}, serial: 0, outputs: {} }, laptop: null };
+  S = { vpcs: [], subnets: [], faults: {}, igws: [], nats: [], rtbs: [], sgs: [], keys: [], roles: [], repos: [], insts: [], tgs: [], albs: [], users: [], eips: [], policies: [], eipSeq: 0, myIp: MYIP0, newAcct: true, acct: "normal", pubSeq: 10, tf: { inited: false, state: {}, serial: 0, outputs: {} }, laptop: null };
   var v = mkVpc({ cidr: "172.31.0.0/16", dns: true, isDefault: true });
   var g = { id: rid("igw"), name: "", vpcId: v.id }; S.igws.push(g);
   rtbMain(v.id).routes.push({ dest: "0.0.0.0/0", target: g.id });
@@ -250,6 +252,8 @@ function ensureState() {
   if (!S.laptop) labInit();
   if (!S.tf) S.tf = { inited: false, state: {}, serial: 0, outputs: {} };
   if (!S.acct) S.acct = "normal";
+  if (!S.nats) S.nats = [];
+  if (!S.faults) S.faults = {};
   ["users", "eips", "policies"].forEach(function (k) { if (!S[k]) S[k] = []; });
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
@@ -328,6 +332,7 @@ function egressOpen(sgIds) {
 var API = {};
 API.createVpc = function (o) {
   var er = {};
+  if (S.vpcs.length >= 5) return E("_", "VpcLimitExceeded: The maximum number of VPCs has been reached.");
   if (!parseCidr(o.cidr)) er.cidr = "CIDR ไม่ถูกต้อง (รูปแบบ 10.0.0.0/16)";
   else if (!canon(o.cidr)) er.cidr = "CIDR นี้มี bit ของ host ติดอยู่ ลองเปลี่ยนเป็น " + n2ip(parseCidr(o.cidr).base) + "/" + parseCidr(o.cidr).prefix;
   else if (parseCidr(o.cidr).prefix < 16 || parseCidr(o.cidr).prefix > 28) er.cidr = "ขนาดต้องอยู่ระหว่าง /16 ถึง /28";
@@ -337,14 +342,30 @@ API.createVpc = function (o) {
   return { res: v };
 };
 API.createVpcAndMore = function (o) {
-  var r = API.createVpc({ name: o.name ? o.name + "-vpc" : "", cidr: o.cidr, dns: true }); if (r.errors) return r;
-  var v = r.res, g = { id: rid("igw"), name: o.name ? o.name + "-igw" : "", vpcId: v.id }; S.igws.push(g);
-  var rt = { id: rid("rtb"), name: o.name ? o.name + "-rtb-public" : "", vpcId: v.id, main: false, routes: [{ dest: "0.0.0.0/0", target: g.id }], assoc: [] }; S.rtbs.push(rt);
-  var base = parseCidr(o.cidr).base, n = Math.max(0, Math.min(3, +o.publicCount || 0));
-  for (var i = 0; i < n; i++) {
-    var sn = { id: rid("subnet"), name: o.name ? o.name + "-subnet-public" + (i + 1) + "-" + AZS[i] : "", vpcId: v.id, az: AZS[i], cidr: n2ip(base + i * 4096) + "/20", autoIp: false };
-    S.subnets.push(sn); rt.assoc.push(sn.id);
+  var nAz = Math.max(1, Math.min(3, +o.azs || 2)), pub = +o.pub || 0, priv = +o.priv || 0, nat = o.nat || "none", er = {};
+  if (pub > nAz) er.pub = "จำนวน public subnet ต้องไม่เกินจำนวน AZ (" + nAz + ")";
+  if (priv > nAz) er.priv = "จำนวน private subnet ต้องไม่เกินจำนวน AZ (" + nAz + ")";
+  if (nat !== "none" && pub < 1) er.nat = "NAT gateway ต้องวางใน public subnet อย่างน้อย 1 อัน";
+  if (nat === "perAz" && pub < nAz) er.nat = "ตัวเลือก 1 per AZ ต้องมี public subnet ครบทุก AZ ที่เลือก";
+  var needEip = nat === "none" ? 0 : nat === "perAz" ? nAz : 1;
+  if (needEip && S.eips.length + needEip > 5) er.nat = "AddressLimitExceeded: The maximum number of addresses has been reached. (Elastic IP ใช้ " + S.eips.length + "/5 ต้องการเพิ่ม " + needEip + ")";
+  if (Object.keys(er).length) return { errors: er };
+  var nm = o.name || "", r = API.createVpc({ name: nm ? nm + "-vpc" : "", cidr: o.cidr, dns: true }); if (r.errors) return r;
+  var v = r.res; API.setDns(v.id, o.dnsHost !== false, o.dnsRes !== false);
+  var g = { id: rid("igw"), name: nm ? nm + "-igw" : "", vpcId: v.id }; S.igws.push(g);
+  var base = parseCidr(o.cidr).base, rtPub = null, pubSn = [], privSn = [];
+  if (pub) { rtPub = { id: rid("rtb"), name: nm ? nm + "-rtb-public" : "", vpcId: v.id, main: false, routes: [{ dest: "0.0.0.0/0", target: g.id }], assoc: [] }; S.rtbs.push(rtPub); }
+  for (var i = 0; i < pub; i++) { var sn = { id: rid("subnet"), name: nm ? nm + "-subnet-public" + (i + 1) + "-" + AZS[i] : "", vpcId: v.id, az: AZS[i], cidr: n2ip(base + i * 4096) + "/20", autoIp: false }; S.subnets.push(sn); rtPub.assoc.push(sn.id); pubSn.push(sn); }
+  var nats = [];
+  if (nat !== "none") for (var j = 0; j < (nat === "perAz" ? nAz : 1); j++) { var ea = API.allocEip(); if (ea.errors) return ea; var e = ea.res, nt = { id: rid("nat"), name: nm ? nm + "-nat-public" + (j + 1) + "-" + AZS[j] : "", vpcId: v.id, subnetId: pubSn[j].id, eipId: e.id, state: "available" }; S.nats.push(nt); nats.push(nt); }
+  for (var k = 0; k < priv; k++) {
+    var ps = { id: rid("subnet"), name: nm ? nm + "-subnet-private" + (k + 1) + "-" + AZS[k] : "", vpcId: v.id, az: AZS[k], cidr: n2ip(base + 32768 + k * 4096) + "/20", autoIp: false }; S.subnets.push(ps); privSn.push(ps);
+    var rt = { id: rid("rtb"), name: nm ? nm + "-rtb-private" + (k + 1) + "-" + AZS[k] : "", vpcId: v.id, main: false, routes: [], assoc: [ps.id] };
+    if (nats.length) rt.routes.push({ dest: "0.0.0.0/0", target: (nat === "perAz" ? nats[k] : nats[0]).id });
+    if (o.s3) rt.routes.push({ dest: "pl-s3 (S3 gateway endpoint)", target: "vpce-s3" });
+    S.rtbs.push(rt);
   }
+  if (o.s3) { v.s3ep = true; if (rtPub) rtPub.routes.push({ dest: "pl-s3 (S3 gateway endpoint)", target: "vpce-s3" }); }
   return { res: v };
 };
 API.setDns = function (id, hostnames, resolution) { var v = find(S.vpcs, id); if (!v) return E("_", "ไม่พบ VPC"); v.dnsHostnames = !!hostnames; v.dnsResolution = !!resolution; return { res: v }; };
@@ -368,7 +389,7 @@ API.createSubnet = function (o) {
   return { res: made };
 };
 API.setAutoIp = function (id, on) { var s = find(S.subnets, id); if (!s) return E("_", "ไม่พบ subnet"); s.autoIp = !!on; return { res: s }; };
-API.createIgw = function (o) { var g = { id: rid("igw"), name: o.name || "", vpcId: null }; S.igws.push(g); return { res: g }; };
+API.createIgw = function (o) { if (S.igws.length >= 5) return E("_", "InternetGatewayLimitExceeded: The maximum number of internet gateways has been reached."); var g = { id: rid("igw"), name: o.name || "", vpcId: null }; S.igws.push(g); return { res: g }; };
 API.attachIgw = function (igwId, vpcId) {
   var g = find(S.igws, igwId), v = find(S.vpcs, vpcId);
   if (!g) return E("_", "ไม่พบ internet gateway"); if (!v) return E("vpcId", "ต้องเลือก VPC");
@@ -406,7 +427,7 @@ API.createSg = function (o) {
   if (!nmv) er.name = "ต้องกรอกชื่อ"; else if (nmv.length > 255) er.name = "ชื่อยาวได้ไม่เกิน 255 ตัวอักษร"; else if (!SGCH.test(nmv)) er.name = "ชื่อมีอักขระที่ไม่อนุญาต (ใช้ได้: a-z A-Z 0-9 ช่องว่าง และ ._-:/()#,@[]+=&;{}!$*)"; else if (/^sg-/.test(nmv)) er.name = "ชื่อห้ามขึ้นต้นด้วย sg-"; else if (S.sgs.some(function (g) { return g.vpcId === o.vpcId && g.name.toLowerCase() === nmv.toLowerCase(); })) er.name = "มี security group ชื่อ " + nmv + " ใน VPC นี้แล้ว (ชื่อไม่แยกตัวพิมพ์ใหญ่เล็ก)";
   if (!o.desc) er.desc = "ต้องกรอก description"; else if (o.desc.length > 255 || !SGCH.test(o.desc)) er.desc = "description ยาวไม่เกิน 255 ตัว และใช้อักขระที่อนุญาตเท่านั้น";
   if (!v) er.vpcId = "ต้องเลือก VPC";
-  var n = normRules(o.rows || [], o.vpcId); if (n.errs.length) er.rules = n.errs.join(" · ");
+  var n = normRules(o.rows || [], o.vpcId); if (n.errs.length) er.rules = n.errs.join(" · "); else if (n.rules.length > 60) er.rules = "RulesPerSecurityGroupLimitExceeded: The maximum number of rules per security group has been reached. (default 60 ต่อทิศทาง)";
   if (Object.keys(er).length) return { errors: er };
   var g = { id: rid("sg"), name: o.name, desc: o.desc, vpcId: v.id, inbound: n.rules, outbound: [{ proto: "-1", from: 0, to: 65535, srcKind: "cidr", src: "0.0.0.0/0" }] };
   S.sgs.push(g); return { res: g };
@@ -461,7 +482,10 @@ API.launch = function (o) {
   }
   if (o.profile && !S.roles.some(function (r) { return r.profile === o.profile; })) er.profile = "ไม่พบ instance profile นี้";
   if (S.acct === "free" && FREE.indexOf(o.type) < 0) er.type = "InvalidParameterCombination: The specified instance type is not eligible for Free Tier. (Free plan จำลอง: ใช้ได้เฉพาะ " + FREE.join(", ") + ")";
-  var cnt = +o.count || 1; if (cnt < 1 || cnt > 20) er.count = "จำนวนเครื่องต้องอยู่ระหว่าง 1 ถึง 20";
+  var cnt = +o.count || 1;
+  if (sn && S.faults.azMissing && sn.az === AZS[1] && o.type === "t3.medium") er._az = "Unsupported: Your requested instance type (" + o.type + ") is not supported in your requested Availability Zone (" + sn.az + "). Please retry your request by not specifying an Availability Zone or choosing " + AZS.filter(function (z) { return z !== sn.az; }).join(", ") + ".";
+  var qe = vcpuCheck(cnt); if (qe) er._quota = qe;
+  if (cnt < 1 || cnt > 20) er.count = "จำนวนเครื่องต้องอยู่ระหว่าง 1 ถึง 20";
   var size = +o.diskSize; if (!(size >= 8 && size <= 16384)) er.diskSize = "ขนาดดิสก์ 8 ถึง 16384 GiB";
   var hop = +o.hop; if (!(hop >= 1 && hop <= 64)) er.hop = "hop limit ต้องอยู่ระหว่าง 1 ถึง 64";
   if (Object.keys(er).length) { if (o.newSg && !er.newSgName) { /* nothing created */ } return { errors: er }; }
@@ -543,9 +567,13 @@ function sessionCheck(inst) {
   var ok = steps.every(function (x) { return x.ok; });
   return { steps: steps, ok: ok, out: ok ? "Session started (Session Manager) ไม่ต้องเปิด port 22 และไม่ต้องมีกุญแจ" : "Your instance isn't connected to Session Manager (SSM Agent not online / ไม่มีสิทธิ์)" };
 }
+function natRoute(rt) {
+  if (!rt) return false;
+  return rt.routes.some(function (x) { var n = /^nat-/.test(x.target) ? find(S.nats, x.target) : null, ns = n && find(S.subnets, n.subnetId); return x.dest === "0.0.0.0/0" && n && n.state === "available" && ns && hasIgwRoute(subnetRtb(ns)); });
+}
 function internetOut(inst) {
   var sn = find(S.subnets, inst.subnetId), rt = sn ? subnetRtb(sn) : null;
-  return inst.state === "running" && !!inst.publicIp && hasIgwRoute(rt) && egressOpen(inst.sgIds);
+  return inst.state === "running" && egressOpen(inst.sgIds) && ((!!inst.publicIp && hasIgwRoute(rt)) || natRoute(rt));
 }
 function albHealth(alb) {
   var rows = [], azs = alb.subnetIds.map(function (id) { var x = find(S.subnets, id); return x && x.az; });
@@ -563,12 +591,18 @@ function albHealth(alb) {
   return rows;
 }
 function liveInsts(vpcId, subnetId) { return S.insts.filter(function (i) { return i.state !== "terminated" && (!vpcId || i.vpcId === vpcId) && (!subnetId || i.subnetId === subnetId); }); }
+// fault vcpuQuota: running vCPU + จำนวนเครื่องใหม่ ต้องไม่เกิน VCPU_QUOTA (ทุก type ใน ITYPES = 2 vCPU)
+function vcpuCheck(n) {
+  if (!S.faults.vcpuQuota) return "";
+  var run = liveInsts().filter(function (x) { return x.state === "running"; }).length * 2;
+  return run + n * 2 > VCPU_QUOTA ? "VcpuLimitExceeded: You have requested more vCPU capacity than your current vCPU limit of " + VCPU_QUOTA + " allows for the instance bucket that the specified instance type belongs to. Please visit http://aws.amazon.com/contact-us/ec2-request to request an adjustment to this limit." : "";
+}
 API.instState = function (id, act) {
   var i = find(S.insts, id); if (!i) return E("_", "ไม่พบเครื่อง");
   var e = i.eipId ? find(S.eips, i.eipId) : null;
   if (i.state === "terminated") return E("_", "เครื่องที่ terminate แล้วทำอะไรต่อไม่ได้");
   if (act === "stop") { if (i.state !== "running") return E("_", "หยุดได้เฉพาะเครื่องที่ running"); i.state = "stopped"; i.publicIp = e ? e.ip : ""; }
-  else if (act === "start") { if (i.state !== "stopped") return E("_", "start ได้เฉพาะเครื่องที่ stopped"); i.state = "running"; i.publicIp = e ? e.ip : (i.hadPub ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : ""); }
+  else if (act === "start") { if (i.state !== "stopped") return E("_", "start ได้เฉพาะเครื่องที่ stopped"); var q = vcpuCheck(1); if (q) return E("_", q); i.state = "running"; i.publicIp = e ? e.ip : (i.hadPub ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : ""); }
   else if (act === "reboot") { if (i.state !== "running") return E("_", "reboot ได้เฉพาะเครื่องที่ running"); }
   else if (act === "terminate") { i.state = "terminated"; i.publicIp = ""; if (e) { e.instId = null; i.eipId = null; } }
   else return E("_", "ไม่รู้จัก action");
@@ -592,7 +626,7 @@ API.setInstanceRole = function (id, profile, word) {
   if (i.profile && i.state !== "running") return E("profile", "การ replace role ทำได้เฉพาะเครื่องที่ running (ถ้ายังไม่มี role จะ attach ตอน stopped ได้)");
   i.profile = profile; return { res: i };
 };
-API.allocEip = function () { S.eipSeq = (S.eipSeq || 0) % 250 + 1; var e = { id: rid("eipalloc"), ip: "192.0.2." + S.eipSeq, instId: null }; S.eips.push(e); return { res: e }; };
+API.allocEip = function () { if (S.eips.length >= 5) return E("_", "AddressLimitExceeded: The maximum number of addresses has been reached."); S.eipSeq = (S.eipSeq || 0) % 250 + 1; var e = { id: rid("eipalloc"), ip: "192.0.2." + S.eipSeq, instId: null }; S.eips.push(e); return { res: e }; };
 API.assocEip = function (eipId, instId) {
   var e = find(S.eips, eipId), i = find(S.insts, instId);
   if (!e) return E("_", "ไม่พบ Elastic IP"); if (!i) return E("instId", "ต้องเลือกเครื่อง"); if (i.state === "terminated") return E("instId", "เครื่องถูก terminate แล้ว");
@@ -686,12 +720,17 @@ function delPlan(kind, id) {
     S.subnets.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("subnet " + (x.name || x.id)); });
     S.rtbs.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("route table " + (x.main ? "main " : "") + (x.name || x.id)); });
     S.igws.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("internet gateway " + (x.name || x.id)); });
+    S.nats.filter(function (x) { return x.vpcId === v.id && x.state !== "deleted"; }).forEach(function (x) { P.blockers.push("ต้องลบ NAT gateway " + (x.name || x.id) + " ก่อน"); });
     S.sgs.filter(function (x) { return x.vpcId === v.id; }).forEach(function (x) { P.removes.push("security group " + x.name); });
     P.note = "ลบ VPC ผ่าน console จะลบ subnet, route table, internet gateway, security group ให้ด้วย (ผ่าน CLI ต้องลบทีละชิ้นเอง)";
   } else if (kind === "igw" || kind === "igw-detach") {
     var g = find(S.igws, id); if (!g) return null;
     if (kind === "igw") { P.title = "Delete internet gateway (" + nm(g) + ")"; P.crumb = "VPC › Internet gateways › Delete"; P.word = "delete"; P.button = "Delete internet gateway"; P.done = "ลบ internet gateway แล้ว"; if (g.vpcId) P.blockers.push("ยัง attach กับ VPC อยู่ ต้อง Actions → Detach from VPC ก่อน"); }
     else { P.title = "Detach from VPC (" + nm(g) + ")"; P.crumb = "VPC › Internet gateways › Detach from VPC"; P.button = "Detach internet gateway"; P.done = "Detach แล้ว"; if (!g.vpcId) P.blockers.push("ไม่ได้ attach กับ VPC ใด"); else liveInsts(g.vpcId).filter(function (i) { return i.publicIp; }).forEach(function (i) { P.blockers.push("เครื่อง " + (i.name || i.id) + " ยังมี public IP " + i.publicIp + " (VPC ที่มีของที่ผูก public IP อยู่ detach ไม่ได้)"); }); }
+  } else if (kind === "nat") {
+    var nt0 = find(S.nats, id); if (!nt0) return null;
+    P.title = "Delete NAT gateway (" + (nt0.name || nt0.id) + ")"; P.crumb = "VPC › NAT gateways › Delete NAT gateway"; P.word = "delete"; P.button = "Delete"; P.done = "NAT gateway ถูกลบ (Elastic IP ยังถูกจองอยู่ ต้อง Release เอง)";
+    P.note = "route 0.0.0.0/0 ที่ชี้ NAT นี้จะกลายเป็น blackhole";
   } else if (kind === "sg") {
     var sg = find(S.sgs, id); if (!sg) return null;
     P.title = "Delete security group (" + sg.name + ")"; P.crumb = "VPC › Security groups › Delete security groups"; P.word = "Delete"; P.done = "ลบ security group แล้ว";
@@ -704,6 +743,7 @@ function delPlan(kind, id) {
     P.title = "Delete subnet (" + (sn.name || sn.id) + ")"; P.crumb = "VPC › Subnets › Delete subnet"; P.word = "delete"; P.button = "Delete"; P.done = "ลบ subnet แล้ว";
     liveInsts(sn.vpcId, sn.id).forEach(function (i) { P.blockers.push("ยังมีเครื่อง " + (i.name || i.id) + " ในซอยนี้"); });
     S.albs.filter(function (a) { return a.subnetIds.indexOf(sn.id) >= 0; }).forEach(function (a) { P.blockers.push("ยังถูกใช้โดย load balancer " + a.name); });
+    S.nats.filter(function (n) { return n.subnetId === sn.id; }).forEach(function (n) { P.blockers.push("ยังมี NAT gateway " + (n.name || n.id) + " ในซอยนี้ ต้องลบก่อน"); });
   } else if (kind === "key") {
     var k = find(S.keys, id); if (!k) return null;
     P.title = "Delete key pair (" + k.name + ")"; P.crumb = "EC2 › Key Pairs › Delete"; P.done = "ลบ key pair แล้ว";
@@ -731,6 +771,7 @@ API.del = function (kind, id, word) {
   if (P.blockers.length) return E("_", P.blockers.join(" · "));
   if (P.word && String(word || "").trim().toLowerCase() !== P.word.toLowerCase()) return E("confirm", "พิมพ์ " + P.word + " เพื่อยืนยัน");
   if (kind === "vpc") { S.subnets = S.subnets.filter(function (x) { return x.vpcId !== id; }); S.rtbs = S.rtbs.filter(function (x) { return x.vpcId !== id; }); S.igws = S.igws.filter(function (x) { return x.vpcId !== id; }); S.sgs = S.sgs.filter(function (x) { return x.vpcId !== id; }); S.vpcs = S.vpcs.filter(function (x) { return x.id !== id; }); }
+  else if (kind === "nat") { S.nats = S.nats.filter(function (x) { return x.id !== id; }); S.rtbs.forEach(function (r) { r.routes.forEach(function (x) { if (x.target === id) x.target = id + " (blackhole)"; }); }); }
   else if (kind === "igw") S.igws = S.igws.filter(function (x) { return x.id !== id; });
   else if (kind === "igw-detach") find(S.igws, id).vpcId = null;
   else if (kind === "sg") S.sgs = S.sgs.filter(function (x) { return x.id !== id; });
@@ -898,6 +939,9 @@ var RULES = [
   ["Ansible dynamic inventory: กรอง tag Project=pharmacy + running, กลุ่ม role_<Role>, ชื่อโฮสต์จาก tag Name, ansible_host = public IP (ตาม inventory/aws_ec2.yml ของ repo)", 1],
   ["Ansible ผลของแต่ละ task (changed/ok, UNREACHABLE จาก SG/route/key, ต้องมีทางออกเน็ตสำหรับ apt/curl/docker, ECR refresh ต้องมีสิทธิ์) เป็นกฎที่เขียนเองตามชื่อ task ไม่ใช่การรันจริง", 0],
   ["บัญชี suspended: ทุกคำสั่ง AWS CLI / Terraform / Ansible inventory ล้มเหลวด้วย AuthFailure (ข้อความจำลองจากความจำ)", 0],
+  ["Default quota ตามเอกสาร: Standard (A,C,D,H,I,M,R,T,Z) running On-Demand = 5 vCPU, Elastic IP 5/Region, VPC 5/Region, Internet gateway 5/Region, NAT gateway 5/AZ, SG rule 60/ทิศทาง, SG ต่อ ENI 5 (บัญชีจริงอาจสูงกว่าเพราะ EC2 ปรับให้อัตโนมัติ)", 1],
+  ["ข้อความ error ของ quota (VcpuLimitExceeded มี URL contact-us/ec2-request; AddressLimitExceeded, VpcLimitExceeded ฯลฯ) และ error ของ AZ/instance profile: รหัสและหลักการตรงเอกสาร/กระทู้ แต่ถ้อยคำเต็มจำลองจากความจำ", 0],
+  ["Free plan: ปิดบัญชีเมื่อครบ 6 เดือนหรือ credit หมด (เก็บข้อมูล 90 วัน), credit เริ่มต้น $100 + ทำกิจกรรมได้อีกสูงสุด $100; ไม่รวม Savings Plans/Reserved Instances/บางรายการ Marketplace ส่วน ALB/NAT/ECR ว่าใช้ได้ไหมเอกสารไม่ระบุ จึงไม่จำลองการบล็อก", 1],
   ["IAM access key: user ละ 2 ชุด, ลบต้อง Deactivate ก่อน, secret ดูได้ครั้งเดียว (Show / Download .csv file)", 1],
  ["IAM: ชื่อ use case ใน Create access key, กล่องยืนยันของ CLI, ขั้นตอนและชื่อช่องของ Create user", 0],
  ["IAM policy JSON ของ AmazonEC2ContainerRegistryPowerUser, ReadOnly และ AmazonSSMManagedInstanceCore ตรงเอกสาร; S3ReadOnly และ CloudWatchAgent ยังไม่ได้ตรวจเนื้อหา", 1],
@@ -1646,6 +1690,7 @@ var TF_PROV = {
       var r = S.roles.filter(function (x) { return x.name === a.role; })[0];
       if (a.role && !r) throw TfAwsError("adding IAM Role (" + a.role + ") to IAM Instance Profile (" + nm0 + ")", "IAM", "AddRoleToInstanceProfile", "NoSuchEntity", "The role with name " + a.role + " cannot be found.");
       if (r) r.profile = nm0;
+      S.tf.fresh = S.tf.fresh || {}; S.tf.fresh[nm0] = S.tf.serial;
       return { id: nm0, computed: { id: nm0, name: nm0, arn: arnOf("profile", nm0, nm0), role: a.role || "" }, sim: { role: r ? r.id : null, profile: nm0 } };
     },
     update: function () {},
@@ -1669,6 +1714,7 @@ var TF_PROV = {
       if (a.subnet_id && !sn) throw TfAwsError(label, "EC2", "RunInstances", "InvalidSubnetID.NotFound", "The subnet ID '" + a.subnet_id + "' does not exist");
       if (!AMIS.some(function (x) { return x[0] === a.ami; })) throw TfAwsError(label, "EC2", "RunInstances", "InvalidAMIID.NotFound", "The image id '[" + a.ami + "]' does not exist");
       if (a.key_name && !byName(S.keys, a.key_name)) throw TfAwsError(label, "EC2", "RunInstances", "InvalidKeyPair.NotFound", "The key pair '" + a.key_name + "' does not exist");
+      if (S.faults.eventual && a.iam_instance_profile && S.tf.fresh && S.tf.fresh[a.iam_instance_profile] === S.tf.serial && !(S.tf.hit || {})[a.iam_instance_profile]) { S.tf.hit = S.tf.hit || {}; S.tf.hit[a.iam_instance_profile] = 1; throw TfAwsError(label, "EC2", "RunInstances", "InvalidParameterValue", "Value (" + a.iam_instance_profile + ") for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name"); }
       if (a.iam_instance_profile && !S.roles.some(function (x) { return x.profile === a.iam_instance_profile; })) throw TfAwsError(label, "EC2", "RunInstances", "InvalidParameterValue", "Value (" + a.iam_instance_profile + ") for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name");
       var md = (a.metadata_options || [{}])[0], rb = (a.root_block_device || [{}])[0];
       var autoIp = a.associate_public_ip_address === undefined ? (sn && sn.autoIp ? "Enable" : "Disable") : (a.associate_public_ip_address ? "Enable" : "Disable");
@@ -1753,6 +1799,8 @@ function tfReadData(node, env, attrs) {
     var pats = []; (attrs.filter || []).forEach(function (f) { if (f.name === "name") pats = pats.concat(f.values || []); });
     var map = [["ubuntu-noble-24.04", "ami-ubuntu2404"], ["ubuntu-jammy-22.04", "ami-ubuntu2204"], ["al2023", "ami-al2023"]];
     var hit = null; map.forEach(function (m) { if (!hit && pats.some(function (p) { return String(p).indexOf(m[0]) >= 0 || (m[0] === "al2023" && /al2023/.test(p)); })) hit = m[1]; });
+    var own = {"ami-ubuntu2404": "099720109477", "ami-ubuntu2204": "099720109477", "ami-al2023": "137112412989"};
+    if (hit && (attrs.owners || []).length && (attrs.owners || []).indexOf(own[hit]) < 0 && (attrs.owners || []).indexOf(own[hit] === "137112412989" ? "amazon" : "x") < 0) hit = null;
     if (!hit) throw hclErr("Your query returned no results. Please change your search criteria and try again.", node.file, node.line);
     return { id: hit, name: AMIS.filter(function (a) { return a[0] === hit; })[0][1], owner_id: (attrs.owners || [])[0] || "" };
   }
@@ -1788,7 +1836,7 @@ function tfFmtError(summary, detail, where) {
 }
 function tfSrcLine(cfg, file, line) { var t = cfg && cfg.files[file]; return t ? (t.split("\n")[line - 1] || "").replace(/\s+$/, "") : ""; }
 function tfErrFrom(e, cfg, node, addr) {
-  if (e.tfAws) { var m = /^([^:]+?: operation error [^:]+: [^,]+, https response error StatusCode: \d+, RequestID: [0-9a-f-]+, api error [A-Za-z.]+)(: [\s\S]*)?$/.exec(e.message); return tfFmtError(m ? m[1].replace(/^(.*?): operation error/, "$1: operation error") : e.message, "", node ? { addr: addr, file: node.file, line: node.line, ctx: node.kind === "data" ? "in data \"" + node.type + "\" \"" + node.name + "\"" : "in resource \"" + node.type + "\" \"" + node.name + "\"", src: tfSrcLine(cfg, node.file, node.line) } : null).map(function (l, i) { return l; }); }
+  if (e.tfAws) { return tfFmtError(e.message, "", node ? { addr: addr, file: node.file, line: node.line, ctx: node.kind === "data" ? "in data \"" + node.type + "\" \"" + node.name + "\"" : "in resource \"" + node.type + "\" \"" + node.name + "\"", src: tfSrcLine(cfg, node.file, node.line) } : null).map(function (l, i) { return l; }); }
   var h = e.hcl || {}, msg = e.message, sm = msg, dt = "";
   var parts = msg.split("; "); if (parts.length > 1 && /^[A-Z]/.test(parts[0]) && parts[0].length < 60) { sm = parts[0]; dt = parts.slice(1).join("; "); }
   var file = h.file || (node && node.file), line = h.line || (node && node.line);
@@ -1898,9 +1946,11 @@ function tfExec(o) {
             if (act === "create" || act === "replace") {
               if (act === "replace") { out.push(addr + ": Destroying... [id=" + old.id + "]"); pr.del(old); delete st[addr]; out.push(addr + ": Destruction complete after 0s"); }
               out.push(addr + ": Creating...");
+              var slow = { aws_lb: 190, aws_instance: 30, aws_nat_gateway: 100 }[node.type]; // ponytail: ระยะเวลาจากความจำ ไม่ใช่ค่าที่ยืนยัน
+              for (var se = 10; slow && se < slow; se += se < 60 ? 10 : 30) out.push(addr + ": Still creating... [" + se + "s elapsed]");
               var made = pr.create({ attrs: attrs, tags: tags, node: node, key: it.key });
               st[addr] = { type: node.type, name: node.name, key: it.key, id: made.id, cfg: tfStripCanon(tfCanon(node.type, attrs, tags, made.id)), computed: made.computed, sim: made.sim || {}, deps: node.deps || [], file: node.file, line: node.line };
-              out.push(addr + ": Creation complete after " + (1 + Math.floor(Math.random() * 3)) + "s [id=" + made.id + "]");
+              out.push(addr + ": Creation complete after " + (slow || (1 + Math.floor(Math.random() * 3))) + "s [id=" + made.id + "]");
             } else if (act === "update") {
               out.push(addr + ": Modifying... [id=" + old.id + "]");
               pr.update(old, attrs, diffs.map(function (d) { return d.k; }));
@@ -1995,11 +2045,13 @@ function tfCounts(actions) { var a = 0, c = 0, d = 0; actions.forEach(function (
 // ---- mod/36-tf-cmd.js
 // ===== คำสั่ง terraform ที่เรียกจากเทอร์มินัล (ไม่มี DOM) =====
 function tfDir() { return S.laptop.cwd; }
-function tfInitCmd(dir) {
+function tfInitCmd(dir, upgrade) {
   var files = tfFilesIn(dir), out = [];
   if (!Object.keys(files).length) return ["Terraform initialized in an empty directory!", "", "The directory has no Terraform configuration files. You may begin working", "with Terraform immediately by creating Terraform configuration files."];
   var cfg = tfLoad(files); if (cfg.errors.length) return tfFmtErrors(cfg.errors, cfg);
   var req = ["aws", "local"].filter(function (p) { return Object.keys(cfg.res).some(function (a) { return cfg.res[a].type.indexOf(p === "aws" ? "aws_" : "local_") === 0; }) || Object.keys(cfg.data).some(function (a) { return cfg.data[a].type.indexOf("aws_") === 0 && p === "aws"; }); });
+  if (S.faults.providerLock && !upgrade) return ["Initializing the backend...", "", "Initializing provider plugins...", "- Reusing previous version of hashicorp/aws from the dependency lock file", "╷", "│ Error: Failed to query available provider packages", "│ ", "│ Could not retrieve the list of available versions for provider hashicorp/aws: locked provider registry.terraform.io/hashicorp/aws 4.67.0 does not match configured version constraint >= 5.0; must use terraform init -upgrade to allow selection of new versions", "╵"];
+  if (S.faults.providerLock && upgrade) delete S.faults.providerLock;
   out.push("Initializing the backend...", "", "Initializing provider plugins...");
   req.forEach(function (p) { out.push("- Finding hashicorp/" + p + " versions matching \"" + (p === "aws" ? ">= 5.0" : ">= 2.4") + "\"...", "- Installing hashicorp/" + p + " (จำลอง: ไม่ได้ดาวน์โหลดจริง)...", "- Installed hashicorp/" + p + " (signed by HashiCorp)"); });
   out.push("", "Terraform has created a lock file .terraform.lock.hcl to record the provider", "selections it made above. Include this file in your version control repository", "so that Terraform can guarantee to make the same selections by default when", "you run \"terraform init\" in the future.", "", "Terraform has been successfully initialized!", "", "You may now begin working with Terraform. Try running \"terraform plan\" to see", "any changes that are required for your infrastructure. All Terraform commands", "should now work.");
@@ -2025,14 +2077,19 @@ function tfPlanCmd(dir, cli, destroy) {
   res = tfExec({ prep: prep, mode: "plan", out: out });
   if (res.fail) return { lines: res.fail };
   if (res.failed) return { lines: tfErrFrom(res.failed.e, res.cfg, res.failed.node, res.failed.addr) };
-  return { lines: tfPlanText(res), res: res, prep: prep };
+  var lines = tfPlanText(res), creates = res.actions.filter(function (a) { return a.type === "aws_instance" && a.act === "create"; });
+  if (creates.length) {
+    var run = S.insts.filter(function (i) { return i.state === "running"; }).length * 2, add = creates.reduce(function (n, a) { return n + (VCPU[(a.attrs || {}).instance_type] || 2); }, 0), tot = run + add;
+    lines.push("", "Console Lab: vCPU ที่จะรันหลัง apply = " + tot + " (ใหม่ " + add + " + เดิม " + run + ")  เทียบ default quota " + VCPU_QUOTA + " ของ Running On-Demand Standard instances", tot > VCPU_QUOTA ? "  ⚠ เกิน default quota: บนบัญชีใหม่ apply จะล้มด้วย VcpuLimitExceeded ตรวจ Service Quotas → EC2 ก่อน แล้ว Request increase หรือลดจำนวนเครื่อง (k8s_node_count, db_count)" : "  OK ไม่เกิน default quota");
+  }
+  return { lines: lines, res: res, prep: prep };
 }
 function tfApplyCmd(plan) {
   var out = [];
   if (plan.destroy) {
     var acts = plan.acts.slice(); var r = tfApplyDestroys(acts, plan.prep.cfg, out); S.tf.serial++;
     if (r) { out.push.apply(out, tfErrFrom(r.e, plan.prep.cfg, r.node, r.addr)); return out; }
-    S.tf.outputs = {}; out.push("", "Destroy complete! Resources: " + acts.length + " destroyed."); return out;
+    S.tf.outputs = {}; S.tf.fresh = {}; S.tf.hit = {}; out.push("", "Destroy complete! Resources: " + acts.length + " destroyed."); return out;
   }
   var res = tfExec({ prep: plan.prep, mode: "apply", out: out });
   if (res.fail) return res.fail;
@@ -2263,7 +2320,7 @@ function shTerraform(a) {
   var sub = a[0], dir = S.laptop.cwd, cli = {}, auto = false, rest = [];
   for (var i = 1; i < a.length; i++) { if (a[i] === "-auto-approve") auto = true; else if (a[i] === "-var" && a[i + 1]) { var kv = a[++i].split("="); cli[kv[0]] = kv.slice(1).join("="); } else if (/^-var=/.test(a[i])) { var kv2 = a[i].slice(5).split("="); cli[kv2[0]] = kv2.slice(1).join("="); } else rest.push(a[i]); }
   if (!sub) return { lines: ["Usage: terraform [global options] <subcommand> [args]", "", "  init, validate, plan, apply, destroy, output, state"] };
-  if (sub === "init") return { lines: tfInitCmd(dir) };
+  if (sub === "init") return { lines: tfInitCmd(dir, a.indexOf("-upgrade") >= 0) };
   if (sub === "validate") return { lines: tfValidateCmd(dir) };
   if (sub === "output") return { lines: tfOutputCmd(rest[0]) };
   if (sub === "state") return { lines: rest[0] === "list" ? tfStateList() : rest[0] === "show" ? tfStateShow(rest[1] || "") : ["Usage: terraform state <list|show>"] };
@@ -2361,7 +2418,7 @@ function load() { try { var j = sessionStorage.getItem("console-lab-v1"); if (j)
 var PAGES = {}, LISTS = {};
 var NAV = {
   VPC: [["", [["vpc-dash", "VPC dashboard"]]],
-    ["Virtual private cloud", [["vpcs", "Your VPCs"], ["subnets", "Subnets"], ["rtbs", "Route tables"], ["igws", "Internet gateways"], [null, "Egress-only internet gateways"], [null, "Carrier gateways"], [null, "DHCP option sets"], [null, "Elastic IPs"], [null, "Managed prefix lists"], [null, "NAT gateways"], [null, "Peering connections"]]],
+    ["Virtual private cloud", [["vpcs", "Your VPCs"], ["subnets", "Subnets"], ["rtbs", "Route tables"], ["igws", "Internet gateways"], ["nats", "NAT gateways"], [null, "Egress-only internet gateways"], [null, "Carrier gateways"], [null, "DHCP option sets"], [null, "Elastic IPs"], [null, "Managed prefix lists"], [null, "NAT gateways"], [null, "Peering connections"]]],
     ["Security", [[null, "Network ACLs"], ["sgs", "Security groups"]]]],
   EC2: [["", [["ec2-dash", "Dashboard"], [null, "EC2 Global View"], [null, "Events"]]],
     ["Instances", [["insts", "Instances"], ["itypes", "Instance Types"], [null, "Launch Templates"], [null, "Spot Requests"], [null, "Savings Plans"], [null, "Reserved Instances"], [null, "Dedicated Hosts"], [null, "Capacity Reservations"]]],
@@ -2420,7 +2477,7 @@ function render() {
 }
 
 // ---- global search + region menu (header)
-var LK = { user: "users", policy: "policies", eip: "eips", vpc: "vpcs", subnet: "subnets", rtb: "rtbs", igw: "igws", sg: "sgs", key: "keys", role: "roles", repo: "repos", inst: "insts", tg: "tgs", alb: "albs" };
+var LK = { user: "users", policy: "policies", eip: "eips", vpc: "vpcs", subnet: "subnets", rtb: "rtbs", igw: "igws", nat: "nats", sg: "sgs", key: "keys", role: "roles", repo: "repos", inst: "insts", tg: "tgs", alb: "albs" };
 function searchHits(q) {
   q = q.toLowerCase(); var out = { nav: [], res: [] };
   Object.keys(NAV).forEach(function (sv) { NAV[sv].forEach(function (g) { g[1].forEach(function (it) { if (it[0] && it[1].toLowerCase().indexOf(q) >= 0) out.nav.push({ label: sv + " › " + it[1], page: it[0], svc: sv }); }); }); });
@@ -2675,16 +2732,22 @@ LISTS.vpcs = function () {
 };
 PAGES["vpc-create"] = function () {
   return formPage({ name: "vpc-create", crumb: "VPC › Your VPCs › Create VPC", title: "Create VPC", back: "vpcs",
-    init: function () { return { mode: "VPC only", name: "", cidr: "", ipv6: "No IPv6 CIDR block", tenancy: "Default", pub: 2 }; },
+    init: function () { return { mode: "VPC only", name: "", cidr: "", ipv6: "No IPv6 CIDR block", tenancy: "Default", azs: 2, pub: 2, priv: 2, nat: "none", s3: false, dnsHost: true, dnsRes: true }; },
     sections: function (V) { return [{ t: "VPC settings", f: [
       { id: "mode", type: "radio", label: "Resources to create", opts: function () { return [["VPC only", "VPC only"], ["VPC and more", "VPC and more"]]; }, hint: "VPC and more สร้าง subnet, internet gateway และ route table ให้ในครั้งเดียว" },
       { id: "name", type: "text", label: V.mode === "VPC only" ? "Name tag" : "Name tag auto-generation (Auto-generate: ใส่ชื่อนำหน้า)", ph: "pharmacy-vpc", hint: "ไม่บังคับ" },
       { id: "cidr", type: "text", label: "IPv4 CIDR block (IPv4 CIDR manual input)", ph: "10.0.0.0/16", req: true },
       { id: "ipv6", type: "radio", label: "IPv6 CIDR block", opts: function () { return [["No IPv6 CIDR block", "No IPv6 CIDR block"], ["Amazon-provided IPv6 CIDR block", "Amazon-provided IPv6 CIDR block", "ไม่จำลอง"]]; } },
       { id: "tenancy", type: "select", label: "Tenancy", opts: function () { return [["Default", "Default"], ["Dedicated", "Dedicated"]]; } },
-      { id: "pub", type: "select", label: "Number of public subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } }] }]; },
+      { id: "azs", type: "select", label: "Number of Availability Zones (AZs)", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "pub", type: "select", label: "Number of public subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "priv", type: "select", label: "Number of private subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "nat", type: "radio", label: "NAT gateways ($)", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [["none", "None"], ["1az", "In 1 AZ"], ["perAz", "1 per AZ"]]; }, hint: "NAT gateway คิดเงินรายชั่วโมง (ไม่ใส่ราคา เพราะยังไม่ได้ยืนยัน)" },
+      { id: "s3", type: "radio", label: "VPC endpoints", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[false, "None"], [true, "S3 Gateway"]]; } },
+      { id: "dnsHost", type: "check", label: "Enable DNS hostnames", show: function (V) { return V.mode === "VPC and more"; } },
+      { id: "dnsRes", type: "check", label: "Enable DNS resolution", show: function (V) { return V.mode === "VPC and more"; } }] }]; },
     submit: "Create VPC",
-    onSubmit: function (V) { var r = V.mode === "VPC only" ? API.createVpc({ name: V.name, cidr: V.cidr, dns: false }) : API.createVpcAndMore({ name: V.name, cidr: V.cidr, publicCount: V.pub }); if (r.errors) return r; UI.sel.vpcs = r.res.id; return { msg: "สร้าง VPC " + r.res.id + " แล้ว" + (V.mode === "VPC only" ? " (มี main route table และ default security group มาให้อัตโนมัติ)" : " พร้อมซอย internet gateway และ route table") }; } });
+    onSubmit: function (V) { var r = V.mode === "VPC only" ? API.createVpc({ name: V.name, cidr: V.cidr, dns: false }) : API.createVpcAndMore({ name: V.name, cidr: V.cidr, azs: V.azs, pub: V.pub, priv: V.priv, nat: V.nat, s3: V.s3 === true || V.s3 === "true", dnsHost: V.dnsHost, dnsRes: V.dnsRes }); if (r.errors) return r; UI.sel.vpcs = r.res.id; return { msg: "สร้าง VPC " + r.res.id + " แล้ว" + (V.mode === "VPC only" ? " (มี main route table และ default security group มาให้อัตโนมัติ)" : " พร้อมซอย internet gateway และ route table") }; } });
 };
 PAGES["vpc-dns"] = function () {
   var v = find(S.vpcs, UI.params.id);
@@ -2725,6 +2788,11 @@ PAGES["subnet-edit"] = function () {
 LISTS.igws = function () {
   return ({ key: "igws", kind: "igw", title: "Internet gateways", crumb: "VPC › Internet gateways", create: [{ label: "Create internet gateway", page: "igw-create" }], actions: [{ label: "Attach to VPC", page: "igw-attach", when: function (r) { return !r.vpcId; } }, { label: "Detach from VPC", page: "del", kind: "igw-detach", when: function (r) { return !!r.vpcId; } }, { label: "Delete internet gateway", page: "del", kind: "igw" }],
     detail: function (r) { return [["Internet gateway ID", r.id], ["State", r.vpcId ? "Attached" : "Detached"], ["VPC ID", r.vpcId ? vname(r.vpcId) : "-"]]; }, rows: function () { return S.igws; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Internet gateway ID", function (r) { return r.id; }], ["State", function (r) { return r.vpcId ? tagp("Attached", "ok") : tagp("Detached", "warn"); }], ["VPC ID", function (r) { return r.vpcId ? vname(r.vpcId) : "-"; }]] });
+};
+LISTS.nats = function () {
+  return ({ key: "nats", kind: "nat", title: "NAT gateways", crumb: "VPC › NAT gateways", create: [], actions: [{ label: "Delete NAT gateway", page: "del", kind: "nat" }],
+    detail: function (r) { return [["NAT gateway ID", r.id], ["State", r.state], ["VPC", vname(r.vpcId)], ["Subnet", r.subnetId], ["Elastic IP allocation ID", r.eipId]]; }, rows: function () { return S.nats; },
+    cols: [["Name", function (r) { return r.name || "-"; }], ["NAT gateway ID", function (r) { return r.id; }], ["State", function (r) { return tagp(r.state, "ok"); }], ["VPC", function (r) { return vname(r.vpcId); }], ["Subnet", function (r) { return r.subnetId; }]] });
 };
 PAGES["igw-create"] = function () {
   return formPage({ name: "igw-create", crumb: "VPC › Internet gateways › Create internet gateway", title: "Create internet gateway", back: "igws", init: function () { return { name: "" }; },
@@ -2888,7 +2956,17 @@ PAGES.launch = function () {
       { t: "Name and tags", f: [{ id: "name", type: "text", label: "Name", ph: "pharmacy-jenkins" }, { type: "custom", id: "tags", render: function (V) { return rowsEditor("Add additional tags", V.tags, [function (r) { return inp(r, "k", "Key เช่น Role"); }, function (r) { return inp(r, "v", "Value เช่น jenkins"); }], function () { return { k: "", v: "" }; }, "Add tag"); } }] },
       { t: "Application and OS Images (Amazon Machine Image)", f: [{ id: "ami", type: "select", label: "Quick Start", opts: function () { return AMIS; } }] },
       { t: "Instance type", f: [{ id: "type", type: "select", label: "Instance type", opts: function () { return ITYPES.map(function (t) { return [t, t + (FREE.indexOf(t) >= 0 ? "   Free tier eligible" : "")]; }); } }] },
-      { t: "Key pair (login)", f: [{ id: "keyName", type: "select", label: "Key pair name", opts: function () { return [["", "Proceed without a key pair (Not recommended)"]].concat(S.keys.map(function (k) { return [k.name, k.name]; })); } }] },
+      { t: "Key pair (login)", f: [{ id: "keyName", type: "select", label: "Key pair name", opts: function () { return [["", "Proceed without a key pair (not recommended)"]].concat(S.keys.map(function (k) { return [k.name, k.name]; })); } },
+        { type: "custom", id: "newkey", render: function (V, rr) {
+          var nk = V._nk, box = h("div", {});
+          if (!nk) { box.appendChild(h("a", { href: "#", text: "Create new key pair", onclick: function (e) { e.preventDefault(); V._nk = { name: "", type: "ED25519", fmt: "pem", err: "" }; rr(); } })); return box; }
+          var nm = h("input", { type: "text", value: nk.name, "aria-label": "New key pair name", oninput: function (e) { nk.name = e.target.value; } });
+          function rad(k, label, opts) { return h("div", { cls: "opt" }, [h("b", { text: label + "  " })].concat(opts.map(function (o) { return h("label", {}, [h("input", { type: "radio", name: "nk" + k, checked: nk[k] === o[0], onchange: function () { nk[k] = o[0]; } }), " " + o[1] + "  "]); }))); }
+          box.appendChild(h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("b", { text: "Create key pair" }), h("p", {}, ["Key pair name ", nm]), rad("type", "Key pair type", [["RSA", "RSA"], ["ED25519", "ED25519"]]), rad("fmt", "Private key file format", [["pem", ".pem"], ["ppk", ".ppk"]]),
+            nk.err ? h("p", { cls: "err", text: nk.err }) : null,
+            h("button", { type: "button", cls: "btn", text: "Cancel", onclick: function () { V._nk = null; rr(); } }), " ",
+            h("button", { type: "button", cls: "btn pri", text: "Create key pair", onclick: function () { var r = API.createKey({ name: nk.name, type: nk.type, fmt: nk.fmt }); if (r.errors) { nk.err = r.errors.name; rr(); return; } V.keyName = r.res.name; V._nk = null; flash("ok", "สร้าง key pair " + r.res.name + " แล้ว ไฟล์ " + r.res.file + " ถูกดาวน์โหลดอัตโนมัติ นี่คือโอกาสเดียวที่จะเก็บ private key (จำลอง) และเลือกให้ในฟอร์มแล้ว"); rr(); } })])]));
+          return box; } }] },
       { t: "Network settings", f: [
         { id: "vpcId", type: "select", label: "VPC", opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id) + " · " + v.cidr]; }); }, onchange: function (V) { V.subnetId = ""; V.sgIds = [defaultSg(V.vpcId).id]; } },
         { id: "subnetId", type: "select", label: "Subnet", opts: function (V) { return [["", "No preference"]].concat(S.subnets.filter(function (x) { return x.vpcId === V.vpcId; }).map(function (x) { return [x.id, nm(x) + " · " + x.az + " · " + x.cidr]; })); } },
@@ -3172,7 +3250,7 @@ PAGES["files"] = function () {
 // ---- lab panel
 function renderLab() {
   var lab = document.getElementById("lab"); lab.textContent = "";
-  var T = [["check", "ตรวจกับ Terraform"], ["hcl", "HCL ที่เทียบเท่า"], ["rules", "กฎที่จำลอง"], ["scen", "ตัวอย่างสำเร็จรูป"]];
+  var T = [["check", "ตรวจกับ Terraform"], ["hcl", "HCL ที่เทียบเท่า"], ["rules", "กฎที่จำลอง"], ["scen", "ตัวอย่างสำเร็จรูป"], ["fault", "ปัญหาโลกจริง"]];
   lab.appendChild(h("div", { cls: "tabs2", role: "tablist" }, T.map(function (t) { return h("button", { type: "button", text: t[1], "aria-current": String(UI.tab === t[0]), onclick: function () { UI.tab = t[0]; renderLab(); } }); })));
   var box = h("div", { cls: "card" }), cb = h("div", { cls: "cb" });
   if (UI.tab === "check") {
@@ -3186,6 +3264,14 @@ function renderLab() {
   } else if (UI.tab === "rules") {
     cb.appendChild(h("p", { text: "กฎที่หน้านี้ตรวจให้ แต่ละข้อบอกว่ายืนยันจากเอกสาร AWS แล้วหรือยัง" }));
     cb.appendChild(h("ul", { cls: "chk" }, RULES.map(function (r) { return h("li", {}, [h("span", { cls: "m" }, [h("span", { cls: "tag " + (r[1] ? "ok" : "warn"), text: r[1] ? "ตรงเอกสาร" : "ไม่ยืนยัน" })]), h("span", { text: r[0] })]); })));
+  } else if (UI.tab === "fault") {
+    var FL = [["vcpuQuota", "โควตา vCPU = 5 (default บัญชีใหม่ตามเอกสาร)", "ที่ vCPU เกิน 5 (เครื่องที่ 3 ที่ใช้ 2 vCPU) terraform apply ล้มด้วย VcpuLimitExceeded แก้: Service Quotas → Running On-Demand Standard instances → Request increase หรือใช้ cheap-mode (k8s_node_count=1, db_count=1)"],
+      ["azMissing", "instance type บาง AZ ไม่มี (t3.medium ใน AZ ที่ 2)", "RunInstances ล้มด้วย Unsupported แก้: เปลี่ยน instance type หรือเลือก AZ อื่น"],
+      ["providerLock", "lock file ล็อก provider aws เวอร์ชันเก่า (4.67.0)", "terraform init ล้ม แก้: terraform init -upgrade"],
+      ["eventual", "eventual consistency: instance profile ใหม่ยังไม่พร้อมตอน RunInstances", "apply ครั้งแรกล้มที่ aws_instance ที่ผูก profile แก้: รัน terraform apply ซ้ำ (state เก็บของที่สร้างแล้ว)"]];
+    cb.appendChild(h("p", { text: "เปิดปัญหาที่มักเจอบน AWS จริงแต่ปกติไม่เกิดในตัวจำลอง แล้วลองรัน terraform ใน Laptop › Terminal ข้อความ error ส่วนใหญ่จำลองจากความจำ ไม่ใช่ยืนยันจากของจริง" }));
+    cb.appendChild(h("ul", { cls: "chk" }, FL.map(function (f) { return h("li", {}, [h("label", {}, [h("input", { type: "checkbox", checked: !!S.faults[f[0]], onchange: function (e) { if (e.target.checked) S.faults[f[0]] = true; else delete S.faults[f[0]]; save(); } }), " ", h("b", { text: f[1] })]), h("small", { text: f[2] })]); })));
+    cb.appendChild(h("p", { cls: "sub", text: "ที่เกิดอยู่แล้วโดยไม่ต้องเปิด: AMI ไม่เจอถ้า owners/ชื่อ filter ไม่ตรง, โควตาตามเอกสาร (Elastic IP/VPC/IGW 5 ต่อ region, SG rule 60), Free plan ใช้ได้เฉพาะ instance type ในรายการ (เลือกเมนูบัญชีด้านบน), ALB/EC2/NAT แสดง Still creating... ตามเวลาโดยประมาณ" }));
   } else {
     var sc = [["full", "Lab ครบทั้งชุด", "สร้างทุกอย่างตามโค้ด Terraform ผ่านฟังก์ชันเดียวกับที่ฟอร์มใช้ ใช้ดูหน้า Instances, Connect, Load balancers และเทียบ HCL"],
       ["noassoc", "ลืมผูกซอยกับ route table", "ทุกอย่างครบ ยกเว้น Subnet associations ลอง Connect เครื่องไหนก็ได้ จะเจอ timeout ให้หาว่าติดที่ข้อไหน"],

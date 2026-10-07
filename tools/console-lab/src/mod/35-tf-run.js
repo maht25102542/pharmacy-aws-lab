@@ -17,7 +17,7 @@ function tfFmtError(summary, detail, where) {
 }
 function tfSrcLine(cfg, file, line) { var t = cfg && cfg.files[file]; return t ? (t.split("\n")[line - 1] || "").replace(/\s+$/, "") : ""; }
 function tfErrFrom(e, cfg, node, addr) {
-  if (e.tfAws) { var m = /^([^:]+?: operation error [^:]+: [^,]+, https response error StatusCode: \d+, RequestID: [0-9a-f-]+, api error [A-Za-z.]+)(: [\s\S]*)?$/.exec(e.message); return tfFmtError(m ? m[1].replace(/^(.*?): operation error/, "$1: operation error") : e.message, "", node ? { addr: addr, file: node.file, line: node.line, ctx: node.kind === "data" ? "in data \"" + node.type + "\" \"" + node.name + "\"" : "in resource \"" + node.type + "\" \"" + node.name + "\"", src: tfSrcLine(cfg, node.file, node.line) } : null).map(function (l, i) { return l; }); }
+  if (e.tfAws) { return tfFmtError(e.message, "", node ? { addr: addr, file: node.file, line: node.line, ctx: node.kind === "data" ? "in data \"" + node.type + "\" \"" + node.name + "\"" : "in resource \"" + node.type + "\" \"" + node.name + "\"", src: tfSrcLine(cfg, node.file, node.line) } : null).map(function (l, i) { return l; }); }
   var h = e.hcl || {}, msg = e.message, sm = msg, dt = "";
   var parts = msg.split("; "); if (parts.length > 1 && /^[A-Z]/.test(parts[0]) && parts[0].length < 60) { sm = parts[0]; dt = parts.slice(1).join("; "); }
   var file = h.file || (node && node.file), line = h.line || (node && node.line);
@@ -127,9 +127,11 @@ function tfExec(o) {
             if (act === "create" || act === "replace") {
               if (act === "replace") { out.push(addr + ": Destroying... [id=" + old.id + "]"); pr.del(old); delete st[addr]; out.push(addr + ": Destruction complete after 0s"); }
               out.push(addr + ": Creating...");
+              var slow = { aws_lb: 190, aws_instance: 30, aws_nat_gateway: 100 }[node.type]; // ponytail: ระยะเวลาจากความจำ ไม่ใช่ค่าที่ยืนยัน
+              for (var se = 10; slow && se < slow; se += se < 60 ? 10 : 30) out.push(addr + ": Still creating... [" + se + "s elapsed]");
               var made = pr.create({ attrs: attrs, tags: tags, node: node, key: it.key });
               st[addr] = { type: node.type, name: node.name, key: it.key, id: made.id, cfg: tfStripCanon(tfCanon(node.type, attrs, tags, made.id)), computed: made.computed, sim: made.sim || {}, deps: node.deps || [], file: node.file, line: node.line };
-              out.push(addr + ": Creation complete after " + (1 + Math.floor(Math.random() * 3)) + "s [id=" + made.id + "]");
+              out.push(addr + ": Creation complete after " + (slow || (1 + Math.floor(Math.random() * 3))) + "s [id=" + made.id + "]");
             } else if (act === "update") {
               out.push(addr + ": Modifying... [id=" + old.id + "]");
               pr.update(old, attrs, diffs.map(function (d) { return d.k; }));

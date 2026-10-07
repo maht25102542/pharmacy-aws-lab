@@ -18,7 +18,7 @@ function load() { try { var j = sessionStorage.getItem("console-lab-v1"); if (j)
 var PAGES = {}, LISTS = {};
 var NAV = {
   VPC: [["", [["vpc-dash", "VPC dashboard"]]],
-    ["Virtual private cloud", [["vpcs", "Your VPCs"], ["subnets", "Subnets"], ["rtbs", "Route tables"], ["igws", "Internet gateways"], [null, "Egress-only internet gateways"], [null, "Carrier gateways"], [null, "DHCP option sets"], [null, "Elastic IPs"], [null, "Managed prefix lists"], [null, "NAT gateways"], [null, "Peering connections"]]],
+    ["Virtual private cloud", [["vpcs", "Your VPCs"], ["subnets", "Subnets"], ["rtbs", "Route tables"], ["igws", "Internet gateways"], ["nats", "NAT gateways"], [null, "Egress-only internet gateways"], [null, "Carrier gateways"], [null, "DHCP option sets"], [null, "Elastic IPs"], [null, "Managed prefix lists"], [null, "NAT gateways"], [null, "Peering connections"]]],
     ["Security", [[null, "Network ACLs"], ["sgs", "Security groups"]]]],
   EC2: [["", [["ec2-dash", "Dashboard"], [null, "EC2 Global View"], [null, "Events"]]],
     ["Instances", [["insts", "Instances"], ["itypes", "Instance Types"], [null, "Launch Templates"], [null, "Spot Requests"], [null, "Savings Plans"], [null, "Reserved Instances"], [null, "Dedicated Hosts"], [null, "Capacity Reservations"]]],
@@ -77,7 +77,7 @@ function render() {
 }
 
 // ---- global search + region menu (header)
-var LK = { user: "users", policy: "policies", eip: "eips", vpc: "vpcs", subnet: "subnets", rtb: "rtbs", igw: "igws", sg: "sgs", key: "keys", role: "roles", repo: "repos", inst: "insts", tg: "tgs", alb: "albs" };
+var LK = { user: "users", policy: "policies", eip: "eips", vpc: "vpcs", subnet: "subnets", rtb: "rtbs", igw: "igws", nat: "nats", sg: "sgs", key: "keys", role: "roles", repo: "repos", inst: "insts", tg: "tgs", alb: "albs" };
 function searchHits(q) {
   q = q.toLowerCase(); var out = { nav: [], res: [] };
   Object.keys(NAV).forEach(function (sv) { NAV[sv].forEach(function (g) { g[1].forEach(function (it) { if (it[0] && it[1].toLowerCase().indexOf(q) >= 0) out.nav.push({ label: sv + " › " + it[1], page: it[0], svc: sv }); }); }); });
@@ -332,16 +332,22 @@ LISTS.vpcs = function () {
 };
 PAGES["vpc-create"] = function () {
   return formPage({ name: "vpc-create", crumb: "VPC › Your VPCs › Create VPC", title: "Create VPC", back: "vpcs",
-    init: function () { return { mode: "VPC only", name: "", cidr: "", ipv6: "No IPv6 CIDR block", tenancy: "Default", pub: 2 }; },
+    init: function () { return { mode: "VPC only", name: "", cidr: "", ipv6: "No IPv6 CIDR block", tenancy: "Default", azs: 2, pub: 2, priv: 2, nat: "none", s3: false, dnsHost: true, dnsRes: true }; },
     sections: function (V) { return [{ t: "VPC settings", f: [
       { id: "mode", type: "radio", label: "Resources to create", opts: function () { return [["VPC only", "VPC only"], ["VPC and more", "VPC and more"]]; }, hint: "VPC and more สร้าง subnet, internet gateway และ route table ให้ในครั้งเดียว" },
       { id: "name", type: "text", label: V.mode === "VPC only" ? "Name tag" : "Name tag auto-generation (Auto-generate: ใส่ชื่อนำหน้า)", ph: "pharmacy-vpc", hint: "ไม่บังคับ" },
       { id: "cidr", type: "text", label: "IPv4 CIDR block (IPv4 CIDR manual input)", ph: "10.0.0.0/16", req: true },
       { id: "ipv6", type: "radio", label: "IPv6 CIDR block", opts: function () { return [["No IPv6 CIDR block", "No IPv6 CIDR block"], ["Amazon-provided IPv6 CIDR block", "Amazon-provided IPv6 CIDR block", "ไม่จำลอง"]]; } },
       { id: "tenancy", type: "select", label: "Tenancy", opts: function () { return [["Default", "Default"], ["Dedicated", "Dedicated"]]; } },
-      { id: "pub", type: "select", label: "Number of public subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } }] }]; },
+      { id: "azs", type: "select", label: "Number of Availability Zones (AZs)", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "pub", type: "select", label: "Number of public subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "priv", type: "select", label: "Number of private subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "nat", type: "radio", label: "NAT gateways ($)", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [["none", "None"], ["1az", "In 1 AZ"], ["perAz", "1 per AZ"]]; }, hint: "NAT gateway คิดเงินรายชั่วโมง (ไม่ใส่ราคา เพราะยังไม่ได้ยืนยัน)" },
+      { id: "s3", type: "radio", label: "VPC endpoints", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[false, "None"], [true, "S3 Gateway"]]; } },
+      { id: "dnsHost", type: "check", label: "Enable DNS hostnames", show: function (V) { return V.mode === "VPC and more"; } },
+      { id: "dnsRes", type: "check", label: "Enable DNS resolution", show: function (V) { return V.mode === "VPC and more"; } }] }]; },
     submit: "Create VPC",
-    onSubmit: function (V) { var r = V.mode === "VPC only" ? API.createVpc({ name: V.name, cidr: V.cidr, dns: false }) : API.createVpcAndMore({ name: V.name, cidr: V.cidr, publicCount: V.pub }); if (r.errors) return r; UI.sel.vpcs = r.res.id; return { msg: "สร้าง VPC " + r.res.id + " แล้ว" + (V.mode === "VPC only" ? " (มี main route table และ default security group มาให้อัตโนมัติ)" : " พร้อมซอย internet gateway และ route table") }; } });
+    onSubmit: function (V) { var r = V.mode === "VPC only" ? API.createVpc({ name: V.name, cidr: V.cidr, dns: false }) : API.createVpcAndMore({ name: V.name, cidr: V.cidr, azs: V.azs, pub: V.pub, priv: V.priv, nat: V.nat, s3: V.s3 === true || V.s3 === "true", dnsHost: V.dnsHost, dnsRes: V.dnsRes }); if (r.errors) return r; UI.sel.vpcs = r.res.id; return { msg: "สร้าง VPC " + r.res.id + " แล้ว" + (V.mode === "VPC only" ? " (มี main route table และ default security group มาให้อัตโนมัติ)" : " พร้อมซอย internet gateway และ route table") }; } });
 };
 PAGES["vpc-dns"] = function () {
   var v = find(S.vpcs, UI.params.id);
@@ -382,6 +388,11 @@ PAGES["subnet-edit"] = function () {
 LISTS.igws = function () {
   return ({ key: "igws", kind: "igw", title: "Internet gateways", crumb: "VPC › Internet gateways", create: [{ label: "Create internet gateway", page: "igw-create" }], actions: [{ label: "Attach to VPC", page: "igw-attach", when: function (r) { return !r.vpcId; } }, { label: "Detach from VPC", page: "del", kind: "igw-detach", when: function (r) { return !!r.vpcId; } }, { label: "Delete internet gateway", page: "del", kind: "igw" }],
     detail: function (r) { return [["Internet gateway ID", r.id], ["State", r.vpcId ? "Attached" : "Detached"], ["VPC ID", r.vpcId ? vname(r.vpcId) : "-"]]; }, rows: function () { return S.igws; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Internet gateway ID", function (r) { return r.id; }], ["State", function (r) { return r.vpcId ? tagp("Attached", "ok") : tagp("Detached", "warn"); }], ["VPC ID", function (r) { return r.vpcId ? vname(r.vpcId) : "-"; }]] });
+};
+LISTS.nats = function () {
+  return ({ key: "nats", kind: "nat", title: "NAT gateways", crumb: "VPC › NAT gateways", create: [], actions: [{ label: "Delete NAT gateway", page: "del", kind: "nat" }],
+    detail: function (r) { return [["NAT gateway ID", r.id], ["State", r.state], ["VPC", vname(r.vpcId)], ["Subnet", r.subnetId], ["Elastic IP allocation ID", r.eipId]]; }, rows: function () { return S.nats; },
+    cols: [["Name", function (r) { return r.name || "-"; }], ["NAT gateway ID", function (r) { return r.id; }], ["State", function (r) { return tagp(r.state, "ok"); }], ["VPC", function (r) { return vname(r.vpcId); }], ["Subnet", function (r) { return r.subnetId; }]] });
 };
 PAGES["igw-create"] = function () {
   return formPage({ name: "igw-create", crumb: "VPC › Internet gateways › Create internet gateway", title: "Create internet gateway", back: "igws", init: function () { return { name: "" }; },
@@ -545,7 +556,17 @@ PAGES.launch = function () {
       { t: "Name and tags", f: [{ id: "name", type: "text", label: "Name", ph: "pharmacy-jenkins" }, { type: "custom", id: "tags", render: function (V) { return rowsEditor("Add additional tags", V.tags, [function (r) { return inp(r, "k", "Key เช่น Role"); }, function (r) { return inp(r, "v", "Value เช่น jenkins"); }], function () { return { k: "", v: "" }; }, "Add tag"); } }] },
       { t: "Application and OS Images (Amazon Machine Image)", f: [{ id: "ami", type: "select", label: "Quick Start", opts: function () { return AMIS; } }] },
       { t: "Instance type", f: [{ id: "type", type: "select", label: "Instance type", opts: function () { return ITYPES.map(function (t) { return [t, t + (FREE.indexOf(t) >= 0 ? "   Free tier eligible" : "")]; }); } }] },
-      { t: "Key pair (login)", f: [{ id: "keyName", type: "select", label: "Key pair name", opts: function () { return [["", "Proceed without a key pair (Not recommended)"]].concat(S.keys.map(function (k) { return [k.name, k.name]; })); } }] },
+      { t: "Key pair (login)", f: [{ id: "keyName", type: "select", label: "Key pair name", opts: function () { return [["", "Proceed without a key pair (not recommended)"]].concat(S.keys.map(function (k) { return [k.name, k.name]; })); } },
+        { type: "custom", id: "newkey", render: function (V, rr) {
+          var nk = V._nk, box = h("div", {});
+          if (!nk) { box.appendChild(h("a", { href: "#", text: "Create new key pair", onclick: function (e) { e.preventDefault(); V._nk = { name: "", type: "ED25519", fmt: "pem", err: "" }; rr(); } })); return box; }
+          var nm = h("input", { type: "text", value: nk.name, "aria-label": "New key pair name", oninput: function (e) { nk.name = e.target.value; } });
+          function rad(k, label, opts) { return h("div", { cls: "opt" }, [h("b", { text: label + "  " })].concat(opts.map(function (o) { return h("label", {}, [h("input", { type: "radio", name: "nk" + k, checked: nk[k] === o[0], onchange: function () { nk[k] = o[0]; } }), " " + o[1] + "  "]); }))); }
+          box.appendChild(h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("b", { text: "Create key pair" }), h("p", {}, ["Key pair name ", nm]), rad("type", "Key pair type", [["RSA", "RSA"], ["ED25519", "ED25519"]]), rad("fmt", "Private key file format", [["pem", ".pem"], ["ppk", ".ppk"]]),
+            nk.err ? h("p", { cls: "err", text: nk.err }) : null,
+            h("button", { type: "button", cls: "btn", text: "Cancel", onclick: function () { V._nk = null; rr(); } }), " ",
+            h("button", { type: "button", cls: "btn pri", text: "Create key pair", onclick: function () { var r = API.createKey({ name: nk.name, type: nk.type, fmt: nk.fmt }); if (r.errors) { nk.err = r.errors.name; rr(); return; } V.keyName = r.res.name; V._nk = null; flash("ok", "สร้าง key pair " + r.res.name + " แล้ว ไฟล์ " + r.res.file + " ถูกดาวน์โหลดอัตโนมัติ นี่คือโอกาสเดียวที่จะเก็บ private key (จำลอง) และเลือกให้ในฟอร์มแล้ว"); rr(); } })])]));
+          return box; } }] },
       { t: "Network settings", f: [
         { id: "vpcId", type: "select", label: "VPC", opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id) + " · " + v.cidr]; }); }, onchange: function (V) { V.subnetId = ""; V.sgIds = [defaultSg(V.vpcId).id]; } },
         { id: "subnetId", type: "select", label: "Subnet", opts: function (V) { return [["", "No preference"]].concat(S.subnets.filter(function (x) { return x.vpcId === V.vpcId; }).map(function (x) { return [x.id, nm(x) + " · " + x.az + " · " + x.cidr]; })); } },
@@ -829,7 +850,7 @@ PAGES["files"] = function () {
 // ---- lab panel
 function renderLab() {
   var lab = document.getElementById("lab"); lab.textContent = "";
-  var T = [["check", "ตรวจกับ Terraform"], ["hcl", "HCL ที่เทียบเท่า"], ["rules", "กฎที่จำลอง"], ["scen", "ตัวอย่างสำเร็จรูป"]];
+  var T = [["check", "ตรวจกับ Terraform"], ["hcl", "HCL ที่เทียบเท่า"], ["rules", "กฎที่จำลอง"], ["scen", "ตัวอย่างสำเร็จรูป"], ["fault", "ปัญหาโลกจริง"]];
   lab.appendChild(h("div", { cls: "tabs2", role: "tablist" }, T.map(function (t) { return h("button", { type: "button", text: t[1], "aria-current": String(UI.tab === t[0]), onclick: function () { UI.tab = t[0]; renderLab(); } }); })));
   var box = h("div", { cls: "card" }), cb = h("div", { cls: "cb" });
   if (UI.tab === "check") {
@@ -843,6 +864,14 @@ function renderLab() {
   } else if (UI.tab === "rules") {
     cb.appendChild(h("p", { text: "กฎที่หน้านี้ตรวจให้ แต่ละข้อบอกว่ายืนยันจากเอกสาร AWS แล้วหรือยัง" }));
     cb.appendChild(h("ul", { cls: "chk" }, RULES.map(function (r) { return h("li", {}, [h("span", { cls: "m" }, [h("span", { cls: "tag " + (r[1] ? "ok" : "warn"), text: r[1] ? "ตรงเอกสาร" : "ไม่ยืนยัน" })]), h("span", { text: r[0] })]); })));
+  } else if (UI.tab === "fault") {
+    var FL = [["vcpuQuota", "โควตา vCPU = 5 (default บัญชีใหม่ตามเอกสาร)", "ที่ vCPU เกิน 5 (เครื่องที่ 3 ที่ใช้ 2 vCPU) terraform apply ล้มด้วย VcpuLimitExceeded แก้: Service Quotas → Running On-Demand Standard instances → Request increase หรือใช้ cheap-mode (k8s_node_count=1, db_count=1)"],
+      ["azMissing", "instance type บาง AZ ไม่มี (t3.medium ใน AZ ที่ 2)", "RunInstances ล้มด้วย Unsupported แก้: เปลี่ยน instance type หรือเลือก AZ อื่น"],
+      ["providerLock", "lock file ล็อก provider aws เวอร์ชันเก่า (4.67.0)", "terraform init ล้ม แก้: terraform init -upgrade"],
+      ["eventual", "eventual consistency: instance profile ใหม่ยังไม่พร้อมตอน RunInstances", "apply ครั้งแรกล้มที่ aws_instance ที่ผูก profile แก้: รัน terraform apply ซ้ำ (state เก็บของที่สร้างแล้ว)"]];
+    cb.appendChild(h("p", { text: "เปิดปัญหาที่มักเจอบน AWS จริงแต่ปกติไม่เกิดในตัวจำลอง แล้วลองรัน terraform ใน Laptop › Terminal ข้อความ error ส่วนใหญ่จำลองจากความจำ ไม่ใช่ยืนยันจากของจริง" }));
+    cb.appendChild(h("ul", { cls: "chk" }, FL.map(function (f) { return h("li", {}, [h("label", {}, [h("input", { type: "checkbox", checked: !!S.faults[f[0]], onchange: function (e) { if (e.target.checked) S.faults[f[0]] = true; else delete S.faults[f[0]]; save(); } }), " ", h("b", { text: f[1] })]), h("small", { text: f[2] })]); })));
+    cb.appendChild(h("p", { cls: "sub", text: "ที่เกิดอยู่แล้วโดยไม่ต้องเปิด: AMI ไม่เจอถ้า owners/ชื่อ filter ไม่ตรง, โควตาตามเอกสาร (Elastic IP/VPC/IGW 5 ต่อ region, SG rule 60), Free plan ใช้ได้เฉพาะ instance type ในรายการ (เลือกเมนูบัญชีด้านบน), ALB/EC2/NAT แสดง Still creating... ตามเวลาโดยประมาณ" }));
   } else {
     var sc = [["full", "Lab ครบทั้งชุด", "สร้างทุกอย่างตามโค้ด Terraform ผ่านฟังก์ชันเดียวกับที่ฟอร์มใช้ ใช้ดูหน้า Instances, Connect, Load balancers และเทียบ HCL"],
       ["noassoc", "ลืมผูกซอยกับ route table", "ทุกอย่างครบ ยกเว้น Subnet associations ลอง Connect เครื่องไหนก็ได้ จะเจอ timeout ให้หาว่าติดที่ข้อไหน"],
