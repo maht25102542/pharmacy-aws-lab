@@ -12,6 +12,7 @@ This directory is not one deployable unit. Each top-level folder maps to a diffe
 
 - `terraform/`, `ansible/`: run from the laptop.
 - `vm-*/`: files that Ansible copies onto the VM of that name (`vm-jenkins`, `vm-sonarqube`, `vm-k8s`, `vm-db`; `vm-k8s` goes to both `pharmacy-k8s-1` and `pharmacy-dev`). Not runnable locally. `*.j2` files are Ansible templates.
+- `tools/console-lab/` (Console Lab: AWS + Terraform + Ansible simulator; `node build.js` then `node test.js`): single-file browser simulator of the AWS console (not deployed anywhere, calls no AWS). `node tools/console-lab/test.js` checks its engine. Its `checks()`/`buildLab()` hardcode this lab's resource names, so renaming resources in `terraform/` means updating them.
 - `repo-app/`: becomes the GitHub repo `pharmacy-app` (Flask backend, nginx frontend, `Jenkinsfile`).
 - `repo-manifests/`: becomes the GitHub repo `pharmacy-manifests`. Jenkins rewrites the `image:` line in `{dev,prd}/{frontend,backend}/deployment.yaml` via `sed`; ArgoCD apps defined in `argocd-apps/apps.yaml`. Don't change the `image:` line format without updating the Jenkinsfile's `Update manifest` stage.
 
@@ -24,7 +25,7 @@ terraform destroy            # always when done; 9 VMs + ALB bill hourly
 
 # config (ansible/): inventory is dynamic (amazon.aws.aws_ec2), needs pip install ansible boto3 botocore
 ansible-inventory --graph    # verify all groups present
-ansible-playbook site.yml    # db -> k8s (prd cluster, dev cluster, register dev in ArgoCD) -> sonarqube -> jenkins (order matters)
+ansible-playbook site.yml    # db -> k8s (prd cluster, dev cluster, register dev in ArgoCD) -> sonarqube -> jenkins (order is by layer; IPs come from the inventory, so playbooks do not depend on each other)
 ansible-playbook jenkins.yml # one role only
 ```
 
