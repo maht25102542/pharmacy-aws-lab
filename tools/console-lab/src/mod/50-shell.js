@@ -61,9 +61,15 @@ function shSsh(a) {
   if (!inst) return { lines: ["ssh: connect to host " + host + " port 22: Connection timed out"] };
   var k = ansHeldKey(key || "~/.ssh/id_ed25519"); if (k.missing) return { lines: ["Warning: Identity file " + (key || "~/.ssh/id_ed25519") + " not accessible: No such file or directory.", "ubuntu@" + host + ": Permission denied (publickey)."] };
   if (inst.publicIp !== host) return { lines: ["ssh: connect to host " + host + " port 22: Connection timed out  (IP ส่วนตัวเข้าจาก laptop ไม่ได้)"] };
-  return { lines: [sshCheck(inst, k.keyName).out] };
+  var chk = sshCheck(inst, k.keyName);
+  if (chk.kind !== "ok") return { lines: [chk.out] };
+  function login() { S.laptop.remote = inst.id; S.laptop.rcwd = "~"; return { lines: ["Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0-aws x86_64)  (จำลอง)", "", "ubuntu@" + rmHost(inst) + ": พิมพ์ help ดูคำสั่งที่จำลอง, exit เพื่อออก"] }; }
+  S.laptop.known = S.laptop.known || [];
+  if (S.laptop.known.indexOf(inst.publicIp) < 0) return { lines: ["The authenticity of host '" + inst.publicIp + " (" + inst.publicIp + ")' can't be established.", "ED25519 key fingerprint is SHA256:" + hash32(inst.id) + hash32(inst.publicIp) + "LabFingerprintExample0000000000.", "This key is not known by any other names."], ask: { label: "Are you sure you want to continue connecting (yes/no/[fingerprint])? ", done: function (x) { if (x !== "yes") return { lines: ["Host key verification failed."] }; S.laptop.known.push(inst.publicIp); var r = login(); r.lines.unshift("Warning: Permanently added '" + inst.publicIp + "' (ED25519) to the list of known hosts."); return r; } } };
+  return login();
 }
 function shRun(line) {
+  var ri = rmInst(); if (ri) return remoteRun(ri, line);
   var a = shTok(line); if (!a.length) return { lines: [] };
   var c = a.shift(), L = S.laptop;
   if (c === "help") return { lines: SH_HELP };

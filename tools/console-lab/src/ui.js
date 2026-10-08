@@ -18,7 +18,7 @@ function load() { try { var j = sessionStorage.getItem("console-lab-v1"); if (j)
 var PAGES = {}, LISTS = {};
 var NAV = {
   VPC: [["", [["vpc-dash", "VPC dashboard"]]],
-    ["Virtual private cloud", [["vpcs", "Your VPCs"], ["subnets", "Subnets"], ["rtbs", "Route tables"], ["igws", "Internet gateways"], ["nats", "NAT gateways"], [null, "Egress-only internet gateways"], [null, "Carrier gateways"], [null, "DHCP option sets"], [null, "Elastic IPs"], [null, "Managed prefix lists"], [null, "NAT gateways"], [null, "Peering connections"]]],
+    ["Virtual private cloud", [["vpcs", "Your VPCs"], ["subnets", "Subnets"], ["rtbs", "Route tables"], ["igws", "Internet gateways"], ["nats", "NAT gateways"], [null, "Egress-only internet gateways"], [null, "Carrier gateways"], [null, "DHCP option sets"], [null, "Elastic IPs"], [null, "Managed prefix lists"], [null, "Peering connections"]]],
     ["Security", [[null, "Network ACLs"], ["sgs", "Security groups"]]]],
   EC2: [["", [["ec2-dash", "Dashboard"], [null, "EC2 Global View"], [null, "Events"]]],
     ["Instances", [["insts", "Instances"], ["itypes", "Instance Types"], [null, "Launch Templates"], [null, "Spot Requests"], [null, "Savings Plans"], [null, "Reserved Instances"], [null, "Dedicated Hosts"], [null, "Capacity Reservations"]]],
@@ -28,10 +28,11 @@ var NAV = {
     ["Load Balancing", [["albs", "Load Balancers"], ["tgs", "Target Groups"], [null, "Trust Stores"]]],
     ["Auto Scaling", [[null, "Auto Scaling Groups"]]]],
   IAM: [["", [[null, "Dashboard"]]], ["Access management", [[null, "User groups"], ["users", "Users"], ["roles", "Roles"], ["policies", "Policies"], [null, "Identity providers"], [null, "Account settings"]]]],
-  Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"]]]],
-  ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]]
+  Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
+  ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
+  Lab: [["เครื่องมือของตัวจำลอง", [["lab-check", "ตรวจกับ Terraform"], ["lab-hcl", "HCL ที่เทียบเท่า"], ["lab-rules", "กฎที่จำลอง"], ["lab-scen", "ตัวอย่างสำเร็จรูป"]]]]
 };
-var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term" };
+var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Lab: "lab-check" };
 UI = { svc: "VPC", page: "vpc-dash", params: {}, sel: {}, filter: {}, dtab: {}, form: null, menu: false, banner: null, tab: "check" };
 
 function navHas(svc, page) { return NAV[svc].some(function (g) { return g[1].some(function (p) { return p[0] === page; }); }); }
@@ -72,7 +73,6 @@ function render() {
   var m = document.getElementById("main"); m.textContent = "";
   if (UI.banner) { m.appendChild(h("div", { cls: "alert " + UI.banner.kind, text: UI.banner.msg, role: "status" })); UI.banner = null; }
   var P = PAGES[UI.page]; m.appendChild(P ? P() : h("p", { text: "ไม่พบหน้า" }));
-  renderLab();
   window.scrollTo(0, y);
 }
 
@@ -284,12 +284,47 @@ function formPage(o) {
   } else { card.appendChild(bar); wrap.appendChild(card); }
   return wrap;
 }
+
+// ---- ช่องกรอกแบบ dropdown ตัวอย่าง + "ไม่ระบุ (พิมพ์เอง)"
+var CUSTOM = "__custom__";
+var EXF = {
+  "vpc-create.name": ["pharmacy-vpc", "pharmacy"], "vpc-create.cidr": ["10.0.0.0/16", "172.16.0.0/16", "192.168.0.0/16"],
+  "subnet-create.name": ["pharmacy-public-1", "pharmacy-public-2", "pharmacy-private-1"], "subnet-create.cidr": ["10.0.1.0/24", "10.0.2.0/24", "10.0.128.0/20"],
+  "subnet-edit.name": ["pharmacy-public-1", "pharmacy-private-1"],
+  "igw-create.name": ["pharmacy-igw"], "rtb-create.name": ["pharmacy-public", "pharmacy-private"], "rtb-routes.dest": ["0.0.0.0/0", "10.0.0.0/16"],
+  "sg-create.name": ["pharmacy-base", "pharmacy-alb", "pharmacy-jenkins", "pharmacy-sonarqube", "pharmacy-k8s", "pharmacy-db"],
+  "sg-create.desc": ["pharmacy base", "pharmacy alb", "pharmacy jenkins", "pharmacy sonarqube", "pharmacy k8s", "pharmacy db"],
+  "*.src": ["203.0.113.0/24", "10.0.0.0/16", "172.31.0.0/16"], "*.port": ["22", "80", "8080", "9000", "30080", "30080-30081", "30443", "3306"],
+  "key-import.name": ["pharmacy-admin", "pharmacy-admin-manual"], "key-create.name": ["pharmacy-admin", "pharmacy-admin-manual"],
+  "role-create.name": ["pharmacy-jenkins", "pharmacy-k8s"], "role-create.desc": ["Jenkins push image to ECR", "k8s pull image from ECR"], "role-create.q": ["ECR", "SSM", "AdministratorAccess"],
+  "repo-create.name": ["pharmacy/frontend", "pharmacy/backend"],
+  "launch.name": ["pharmacy-jenkins", "pharmacy-sonarqube", "pharmacy-k8s-1", "pharmacy-dev", "pharmacy-db-1"], "launch.nsName": ["pharmacy-base", "pharmacy-jenkins", "pharmacy-k8s", "pharmacy-db"],
+  "launch.nsDesc": ["pharmacy base", "pharmacy jenkins", "pharmacy k8s", "pharmacy db"], "launch.diskSize": ["8", "20", "30", "50"], "launch.hop": ["1", "2"],
+  "tg-create.name": ["pharmacy-prd", "pharmacy-dev"], "tg-create.hcPath": ["/", "/healthz", "/api/health"], "alb-create.name": ["pharmacy-alb"],
+  "user-create.name": ["terraform-admin", "pharmacy-ci"], "user-create.desc": ["aws configure บนเครื่องเรา", "terraform CLI"], "ak-create-.desc": ["aws configure บนเครื่องเรา", "terraform CLI"],
+  "eip-alloc.bg": [REGION], "*.k": ["Name", "Role", "Env", "Project"], "*.v": ["pharmacy", "jenkins", "sonarqube", "k8s_server", "k8s_agent", "k8s_dev", "db", "prd", "dev"],
+  "*.tag": ["v1.0.0", "v1.1.0", "dev-1"], "*.dest": ["0.0.0.0/0", "10.0.0.0/16"], "*.cidr": ["10.0.1.0/24", "10.0.2.0/24"], "*.nk": ["pharmacy-admin", "pharmacy-admin-manual"]
+};
+function exFor(id) { var fn = UI.form ? UI.form.name : ""; var hit = EXF[fn + "." + id] || EXF["*." + id]; if (!hit && fn.slice(-1) === "-") hit = null; if (!hit) Object.keys(EXF).some(function (k) { if (k.indexOf(".") > 0 && k.slice(-id.length - 1) === "." + id && k.charAt(k.length - id.length - 2) === "-" && fn.indexOf(k.slice(0, k.length - id.length - 1)) === 0) { hit = EXF[k]; return true; } }); return hit ? hit.map(function (x) { return [x, x]; }) : null; }
+// ex: [[val,label]]; get/set ค่า; flag = object+key ที่จำว่าเลือก "พิมพ์เอง" ไว้
+function exPick(ex, get, set, flag, fk, ph, aria, area) {
+  var cur = get() == null ? "" : String(get()), has = ex.some(function (e) { return e[0] === cur; }), custom = flag[fk] || (cur !== "" && !has);
+  var opts = [];
+  if (!custom && cur === "") opts.push(["", "— เลือกตัวอย่าง —"]);
+  ex.forEach(function (e) { opts.push(e); }); opts.push([CUSTOM, "ไม่ระบุ — พิมพ์เอง"]);
+  var s = h("select", { "aria-label": aria, onchange: function (e) { var v = e.target.value; if (v === CUSTOM) { flag[fk] = true; if (has) set(""); } else { flag[fk] = false; set(v); } render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: (custom ? o[0] === CUSTOM : String(o[0]) === cur) ? "selected" : null }); }));
+  var box = h("div", {}, [s]);
+  if (custom) { var t = h(area ? "textarea" : "input", { style: "width:100%;margin-top:6px", placeholder: ph || "", "aria-label": aria + " (พิมพ์เอง)", oninput: function (e) { set(e.target.value); } }); if (area) t.value = cur; else t.value = cur; box.appendChild(t); }
+  return box;
+}
 function field(f, V, F) {
   var err = F.errors[f.id], box = h("div", { cls: "f" + (err ? " bad" : "") });
   if (f.type === "custom") { box.appendChild(f.render(V, function () { render(); })); return box; }
   if (f.label) box.appendChild(h("label", { cls: "l", text: f.label + (f.req ? " *" : ""), "for": "f-" + f.id }));
   var opts = f.opts ? f.opts(V) : [];
-  if (f.type === "text") box.appendChild(h("input", { type: "text", id: "f-" + f.id, value: V[f.id] == null ? "" : V[f.id], placeholder: f.ph || "", oninput: function (e) { V[f.id] = e.target.value; } }));
+  var exs = (f.type === "text" || f.type === "area") && !f.noex ? (f.ex ? f.ex.map(function (x) { return [x, x]; }) : exFor(f.id)) : null;
+  if (exs) box.appendChild(exPick(exs, function () { return V[f.id]; }, function (v) { V[f.id] = v; }, V, "_c_" + f.id, f.ph, f.label || f.id, f.type === "area"));
+  else if (f.type === "text") box.appendChild(h("input", { type: "text", id: "f-" + f.id, value: V[f.id] == null ? "" : V[f.id], placeholder: f.ph || "", oninput: function (e) { V[f.id] = e.target.value; } }));
   else if (f.type === "area") box.appendChild(h("textarea", { id: "f-" + f.id, value: V[f.id] || "", placeholder: f.ph || "", oninput: function (e) { V[f.id] = e.target.value; } }));
   else if (f.type === "select") box.appendChild(h("select", { id: "f-" + f.id, onchange: function (e) { V[f.id] = e.target.value; if (f.onchange) f.onchange(V); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(V[f.id]) ? "selected" : null }); })));
   else if (f.type === "radio") opts.forEach(function (o) { box.appendChild(h("label", { cls: "opt" }, [h("input", { type: "radio", name: "f-" + f.id, checked: V[f.id] === o[0], disabled: !!o[2], onchange: function () { V[f.id] = o[0]; if (f.onchange) f.onchange(V); render(); } }), h("span", {}, [o[1], o[2] ? h("small", { text: "  (" + o[2] + ")" }) : null])])); });
@@ -309,7 +344,9 @@ function rowsEditor(label, arr, cols, blank, addText) {
   box.appendChild(h("button", { cls: "btn", type: "button", text: addText, onclick: function () { arr.push(blank()); render(); } }));
   return box;
 }
-function inp(r, k, ph, rerender) { return h("input", { type: "text", value: r[k] == null ? "" : r[k], placeholder: ph || "", "aria-label": ph || k, oninput: function (e) { r[k] = e.target.value; } }); }
+function inp(r, k, ph, rerender) {
+  var exs = exFor(k); if (exs) return exPick(exs, function () { return r[k]; }, function (v) { r[k] = v; }, r, "_c_" + k, ph, ph || k, false);
+  return h("input", { type: "text", value: r[k] == null ? "" : r[k], placeholder: ph || "", "aria-label": ph || k, oninput: function (e) { r[k] = e.target.value; } }); }
 function sel(r, k, opts, label) { return h("select", { "aria-label": label || k, onchange: function (e) { r[k] = e.target.value; render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(r[k]) ? "selected" : null }); })); }
 function sgOpts(vpcId, blank) { var a = S.sgs.filter(function (g) { return !vpcId || g.vpcId === vpcId; }).map(function (g) { return [g.id, g.name + " (" + g.id.slice(0, 11) + ")"]; }); return blank ? [["", "เลือก security group"]].concat(a) : a; }
 function ruleCols(vpcId, selfId) {
@@ -456,7 +493,7 @@ LISTS.keys = function () {
 };
 PAGES["key-import"] = function () {
   return formPage({ name: "key-import", crumb: "EC2 › Key Pairs › Import key pair", title: "Import key pair", back: "keys", init: function () { return { name: "", pub: "" }; },
-    sections: function () { return [{ t: "", f: [{ id: "name", type: "text", label: "Name", req: true, ph: "pharmacy-admin" }, { id: "pub", type: "area", label: "Public key contents", req: true, ph: "ssh-ed25519 AAAA... you@laptop", hint: "วางเนื้อไฟล์ .pub หรือกด Browse เลือกไฟล์ (หน้านี้จำลองเฉพาะช่องวาง)" }] }]; },
+    sections: function () { return [{ t: "", f: [{ id: "name", type: "text", label: "Name", req: true, ph: "pharmacy-admin" }, { id: "pub", type: "area", ex: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILabLaptopKeyExample0000000000000000000000000 swd@laptop"], label: "Public key contents", req: true, ph: "ssh-ed25519 AAAA... you@laptop", hint: "วางเนื้อไฟล์ .pub หรือกด Browse เลือกไฟล์ (หน้านี้จำลองเฉพาะช่องวาง)" }] }]; },
     submit: "Import key pair", onSubmit: function (V) { var r = API.importKey(V); return r.errors ? r : { msg: "Import key pair " + V.name + " แล้ว" }; } });
 };
 PAGES["key-create"] = function () {
@@ -560,7 +597,7 @@ PAGES.launch = function () {
         { type: "custom", id: "newkey", render: function (V, rr) {
           var nk = V._nk, box = h("div", {});
           if (!nk) { box.appendChild(h("a", { href: "#", text: "Create new key pair", onclick: function (e) { e.preventDefault(); V._nk = { name: "", type: "ED25519", fmt: "pem", err: "" }; rr(); } })); return box; }
-          var nm = h("input", { type: "text", value: nk.name, "aria-label": "New key pair name", oninput: function (e) { nk.name = e.target.value; } });
+          var nm = exPick([["pharmacy-admin", "pharmacy-admin"], ["pharmacy-admin-manual", "pharmacy-admin-manual"]], function () { return nk.name; }, function (v) { nk.name = v; }, nk, "_c", "ชื่อ key pair", "New key pair name", false);
           function rad(k, label, opts) { return h("div", { cls: "opt" }, [h("b", { text: label + "  " })].concat(opts.map(function (o) { return h("label", {}, [h("input", { type: "radio", name: "nk" + k, checked: nk[k] === o[0], onchange: function () { nk[k] = o[0]; } }), " " + o[1] + "  "]); }))); }
           box.appendChild(h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("b", { text: "Create key pair" }), h("p", {}, ["Key pair name ", nm]), rad("type", "Key pair type", [["RSA", "RSA"], ["ED25519", "ED25519"]]), rad("fmt", "Private key file format", [["pem", ".pem"], ["ppk", ".ppk"]]),
             nk.err ? h("p", { cls: "err", text: nk.err }) : null,
@@ -811,7 +848,7 @@ PAGES.del = function () {
 
 // ---- Laptop: terminal + files
 var TERM = { lines: ["Console Lab terminal (จำลอง) พิมพ์ help ดูคำสั่ง", "ลองตามลำดับ: aws configure → cd ~/Desktop/work/pharmacy-aws-lab/terraform → terraform init → terraform apply → cd ../ansible → ansible-inventory --graph → ansible-playbook site.yml", ""], hist: [], hi: 0, ask: null };
-function termPrompt() { return "swd@laptop:" + S.laptop.cwd.replace(HOME, "~") + "$ "; }
+function termPrompt() { var ri = rmInst(); if (ri) return rmPrompt(ri); return "swd@laptop:" + S.laptop.cwd.replace(HOME, "~") + "$ "; }
 function termRun(raw) {
   var out = document.getElementById("termout"), r;
   if (TERM.ask) { var a = TERM.ask; TERM.ask = null; TERM.lines.push(a.label + (a.secret ? "" : raw)); r = a.done(raw); }
@@ -820,7 +857,7 @@ function termRun(raw) {
   r.lines.forEach(function (l) { TERM.lines.push.apply(TERM.lines, String(l).split("\n")); });
   if (r.ask) { TERM.ask = r.ask; }
   if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go("files", {}, "Laptop"); return; }
-  save(); renderLab(); termDraw();
+  save(); termDraw();
 }
 function termDraw() {
   var out = document.getElementById("termout"), lab = document.getElementById("termlab"), inp = document.getElementById("terminp"); if (!out) return;
@@ -847,31 +884,39 @@ PAGES["files"] = function () {
       cur ? h("p", {}, [h("button", { type: "button", cls: "btn pri", text: "Save", disabled: ro, onclick: function () { fsWrite(cur, ta.value); flash("ok", "บันทึก " + cur.replace(HOME, "~") + " แล้ว"); go("files", {}, "Laptop"); } }), ro ? h("small", { text: "  ไฟล์นี้จัดการผ่านคำสั่ง (ssh-keygen / aws configure / terraform) ไม่แก้ตรง ๆ" }) : null]) : null])])]);
 };
 
+PAGES["faults"] = function () {
+  var FL = [["vcpuQuota", "โควตา vCPU = 5", "default ของบัญชีใหม่ตามเอกสาร", "เมื่อ vCPU ที่รันเกิน 5 (เครื่องที่ 3 ที่ใช้ 2 vCPU) terraform apply ล้มด้วย VcpuLimitExceeded", "Service Quotas → Running On-Demand Standard instances → Request increase หรือใช้ cheap-mode (k8s_node_count=1, db_count=1)"],
+    ["azMissing", "instance type บาง AZ ไม่มี", "t3.medium ใน AZ ที่ 2", "RunInstances ล้มด้วย Unsupported", "เปลี่ยน instance type หรือเลือก AZ อื่น"],
+    ["providerLock", "lock file ล็อก provider aws เวอร์ชันเก่า", "4.67.0 แต่ config ต้องการ >= 5.0", "terraform init ล้ม", "terraform init -upgrade"],
+    ["eventual", "eventual consistency", "instance profile ใหม่ยังไม่พร้อมตอน RunInstances", "apply ครั้งแรกล้มที่ aws_instance ที่ผูก profile", "รัน terraform apply ซ้ำ (state เก็บของที่สร้างแล้ว)"]];
+  var box = h("div", {}, [crumbEl("Laptop › ปัญหาโลกจริง"), h("h1", { text: "ปัญหาโลกจริง (จำลอง)" }),
+    h("p", { cls: "sub", text: "เปิดปัญหาที่มักเจอบน AWS จริงแต่ปกติไม่เกิดในตัวจำลอง แล้วลองรัน terraform ใน Laptop › Terminal ข้อความ error ส่วนใหญ่จำลองจากความจำ ไม่ใช่ยืนยันจากของจริง" })]);
+  FL.forEach(function (f) {
+    var on = !!S.faults[f[0]];
+    box.appendChild(h("div", { cls: "card", style: "margin:10px 0" }, [h("div", { cls: "cb" }, [
+      h("label", { style: "display:flex;gap:8px;align-items:center;font-weight:600" }, [h("input", { type: "checkbox", checked: on, onchange: function (e) { if (e.target.checked) S.faults[f[0]] = true; else delete S.faults[f[0]]; save(); render(); } }), f[1], h("span", { cls: "tag " + (on ? "warn" : "ok"), text: on ? "เปิดอยู่" : "ปิด" })]),
+      h("div", { cls: "sub", text: f[2] }),
+      h("p", {}, [h("b", { text: "จะเกิด: " }), f[3]]),
+      h("p", {}, [h("b", { text: "วิธีแก้: " }), f[4]])])]));
+  });
+  box.appendChild(h("p", { cls: "sub", text: "ที่เกิดอยู่แล้วโดยไม่ต้องเปิด: AMI ไม่เจอถ้า owners/ชื่อ filter ไม่ตรง, โควตาตามเอกสาร (Elastic IP/VPC/IGW 5 ต่อ region, SG rule 60), Free plan ใช้ได้เฉพาะ instance type ในรายการ (เมนูบัญชีด้านบน), ALB/EC2/NAT แสดง Still creating... ตามเวลาโดยประมาณ" }));
+  return box;
+};
+
 // ---- lab panel
-function renderLab() {
-  var lab = document.getElementById("lab"); lab.textContent = "";
-  var T = [["check", "ตรวจกับ Terraform"], ["hcl", "HCL ที่เทียบเท่า"], ["rules", "กฎที่จำลอง"], ["scen", "ตัวอย่างสำเร็จรูป"], ["fault", "ปัญหาโลกจริง"]];
-  lab.appendChild(h("div", { cls: "tabs2", role: "tablist" }, T.map(function (t) { return h("button", { type: "button", text: t[1], "aria-current": String(UI.tab === t[0]), onclick: function () { UI.tab = t[0]; renderLab(); } }); })));
-  var box = h("div", { cls: "card" }), cb = h("div", { cls: "cb" });
-  if (UI.tab === "check") {
+function labBody(tab) {
+  var cb = h("div", { cls: "cb" });
+  if (tab === "check") {
     var c = checks(), n = c.filter(function (x) { return x.ok; }).length;
     cb.appendChild(h("p", { text: "สิ่งที่คุณกดมาตรงกับที่โค้ด Terraform ของ lab สร้างแล้ว " + n + " จาก " + c.length + " ข้อ" }));
     cb.appendChild(h("div", { cls: "prog" }, [h("i", { style: "width:" + Math.round(100 * n / c.length) + "%" })]));
     cb.appendChild(h("ul", { cls: "chk" }, c.map(function (x) { return h("li", { cls: x.ok ? "ok" : "no" }, [h("span", { cls: "m", text: x.ok ? "✓" : "✗" }), h("span", {}, [x.label, x.hint && !x.ok ? h("small", { text: "วิธี: " + x.hint }) : null])]); })));
-  } else if (UI.tab === "hcl") {
+  } else if (tab === "hcl") {
     cb.appendChild(h("p", { text: "สิ่งที่คุณกดไป แปลงเป็นโค้ด Terraform ตรง ๆ (ไม่ได้ย่อด้วย count/for_each เหมือนใน repo จริง จึงยาวกว่า) ใช้เทียบว่าแต่ละคลิกกลายเป็นบรรทัดไหน" }));
     cb.appendChild(h("pre", { cls: "hcl", text: hcl() }));
-  } else if (UI.tab === "rules") {
+  } else if (tab === "rules") {
     cb.appendChild(h("p", { text: "กฎที่หน้านี้ตรวจให้ แต่ละข้อบอกว่ายืนยันจากเอกสาร AWS แล้วหรือยัง" }));
     cb.appendChild(h("ul", { cls: "chk" }, RULES.map(function (r) { return h("li", {}, [h("span", { cls: "m" }, [h("span", { cls: "tag " + (r[1] ? "ok" : "warn"), text: r[1] ? "ตรงเอกสาร" : "ไม่ยืนยัน" })]), h("span", { text: r[0] })]); })));
-  } else if (UI.tab === "fault") {
-    var FL = [["vcpuQuota", "โควตา vCPU = 5 (default บัญชีใหม่ตามเอกสาร)", "ที่ vCPU เกิน 5 (เครื่องที่ 3 ที่ใช้ 2 vCPU) terraform apply ล้มด้วย VcpuLimitExceeded แก้: Service Quotas → Running On-Demand Standard instances → Request increase หรือใช้ cheap-mode (k8s_node_count=1, db_count=1)"],
-      ["azMissing", "instance type บาง AZ ไม่มี (t3.medium ใน AZ ที่ 2)", "RunInstances ล้มด้วย Unsupported แก้: เปลี่ยน instance type หรือเลือก AZ อื่น"],
-      ["providerLock", "lock file ล็อก provider aws เวอร์ชันเก่า (4.67.0)", "terraform init ล้ม แก้: terraform init -upgrade"],
-      ["eventual", "eventual consistency: instance profile ใหม่ยังไม่พร้อมตอน RunInstances", "apply ครั้งแรกล้มที่ aws_instance ที่ผูก profile แก้: รัน terraform apply ซ้ำ (state เก็บของที่สร้างแล้ว)"]];
-    cb.appendChild(h("p", { text: "เปิดปัญหาที่มักเจอบน AWS จริงแต่ปกติไม่เกิดในตัวจำลอง แล้วลองรัน terraform ใน Laptop › Terminal ข้อความ error ส่วนใหญ่จำลองจากความจำ ไม่ใช่ยืนยันจากของจริง" }));
-    cb.appendChild(h("ul", { cls: "chk" }, FL.map(function (f) { return h("li", {}, [h("label", {}, [h("input", { type: "checkbox", checked: !!S.faults[f[0]], onchange: function (e) { if (e.target.checked) S.faults[f[0]] = true; else delete S.faults[f[0]]; save(); } }), " ", h("b", { text: f[1] })]), h("small", { text: f[2] })]); })));
-    cb.appendChild(h("p", { cls: "sub", text: "ที่เกิดอยู่แล้วโดยไม่ต้องเปิด: AMI ไม่เจอถ้า owners/ชื่อ filter ไม่ตรง, โควตาตามเอกสาร (Elastic IP/VPC/IGW 5 ต่อ region, SG rule 60), Free plan ใช้ได้เฉพาะ instance type ในรายการ (เลือกเมนูบัญชีด้านบน), ALB/EC2/NAT แสดง Still creating... ตามเวลาโดยประมาณ" }));
   } else {
     var sc = [["full", "Lab ครบทั้งชุด", "สร้างทุกอย่างตามโค้ด Terraform ผ่านฟังก์ชันเดียวกับที่ฟอร์มใช้ ใช้ดูหน้า Instances, Connect, Load balancers และเทียบ HCL"],
       ["noassoc", "ลืมผูกซอยกับ route table", "ทุกอย่างครบ ยกเว้น Subnet associations ลอง Connect เครื่องไหนก็ได้ จะเจอ timeout ให้หาว่าติดที่ข้อไหน"],
@@ -879,8 +924,12 @@ function renderLab() {
       ["wrongip", "SG เปิด SSH ให้ IP ผิด", "ลอง Connect ดูว่าเจออะไร เทียบกับเมื่อแก้ My IP ด้านบนให้เป็น 203.0.113.99 (IP ที่กฎอนุญาต)"]];
     cb.appendChild(h("div", { cls: "scen" }, sc.map(function (s) { return h("div", {}, [h("p", {}, [h("b", { text: s[1] }), h("br"), s[2]]), h("button", { cls: "btn pri", type: "button", text: "โหลด", onclick: function () { try { buildLab(s[0]); UI.sel = {}; UI.form = null; flash("ok", "โหลด '" + s[1] + "' แล้ว ไปดูที่ EC2 › Instances"); go("insts", {}, "EC2"); } catch (e) { flash("bad", "โหลดไม่สำเร็จ: " + e.message); render(); } } })]); })));
   }
-  box.appendChild(cb); lab.appendChild(box);
+  return cb;
 }
+
+[["lab-check", "check", "ตรวจกับ Terraform"], ["lab-hcl", "hcl", "HCL ที่เทียบเท่า"], ["lab-rules", "rules", "กฎที่จำลอง"], ["lab-scen", "scen", "ตัวอย่างสำเร็จรูป"]].forEach(function (t) {
+  PAGES[t[0]] = function () { return h("div", {}, [crumbEl("Lab › " + t[2]), h("h1", { text: t[2] }), h("div", { cls: "card" }, [labBody(t[1])])]); };
+});
 
 // ---- top bar controls
 document.getElementById("myip").addEventListener("change", function (e) { var v = e.target.value.trim(); if (ip2n(v) === null) { flash("bad", "My IP ไม่ถูกต้อง"); e.target.value = S.myIp; } else S.myIp = v; render(); });

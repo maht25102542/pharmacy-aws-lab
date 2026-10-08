@@ -33,5 +33,7 @@ const parts = [src("engine.js"), "// ---- generated data (build.js)\n" + DATA];
 const modDir = path.join(here, "src", "mod");
 fs.readdirSync(modDir).filter((f) => f.endsWith(".js")).sort().forEach((f) => parts.push("// ---- mod/" + f + "\n" + src("mod/" + f)));
 const html = src("template.html").replace("/*SCRIPT*/", () => parts.join("\n") + "\n//==UI==\n" + src("ui.js"));
+const script = html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
+if (/<\/script/i.test(script)) throw new Error("build: </script> inside script source (split it, e.g. \"</scr\" + \"ipt>\")");
 fs.writeFileSync(path.join(here, "index.html"), html);
 console.log("built index.html", html.length, "bytes");

@@ -256,4 +256,22 @@ L.fresh(); L.S.faults.vcpuQuota = true;
 const qv = L.S.vpcs[0], qs = L.S.subnets.find(x => x.vpcId === qv.id), qmk = () => L.API.launch({ name: "a", ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: qv.id, subnetId: qs.id, autoIp: "Enable", sgIds: [], diskSize: 8, diskType: "gp3", tokens: "required", hop: 2, count: 1 });
 const qa = qmk(), qb = qmk(); L.API.instState(qa.res[0].id, "stop"); qmk();
 assert(L.API.instState(qa.res[0].id, "start").errors, "start ต้องเช็ก vCPU quota");
+// ---- recap: ok รวม changed, loop หัว TASK เดียว
+L.fresh(); const ru = L.API.createUser({ name: "tf-admin", policies: ["AdministratorAccess"] }).res, rk = L.API.createAccessKey(ru.id, "CLI", "");
+function sh2(line, ans) { let r = L.shRun(line), out = r.lines.slice(); ans = (ans || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(ans.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+sh2("aws configure", [rk.res.id, rk.secret, "ap-southeast-1", "json"]); sh2("cd ~/Desktop/work/pharmacy-aws-lab/terraform"); sh2("terraform init"); sh2("terraform apply -auto-approve -var my_ip=198.51.100.7/32"); sh2("cd ../ansible");
+const pb = sh2("ansible-playbook site.yml");
+assert((pb.match(/TASK \[Copy systemd units/g) || []).length === 1, "loop ต้องมีหัว TASK เดียว");
+pb.split("\n").filter(l => /: ok=\d+/.test(l)).forEach(l => { const m = /ok=(\d+)\s+changed=(\d+)/.exec(l); assert(+m[1] >= +m[2], "ok ต้องรวม changed: " + l); });
+// ---- shell ภายใน VM
+const jIp = L.S.insts.find(i => i.name === "pharmacy-jenkins").publicIp, dbIp = L.S.insts.find(i => i.name === "pharmacy-db-1").publicIp, kIp = L.S.insts.find(i => i.name === "pharmacy-k8s-1").publicIp;
+assert(/authenticity of host/.test(sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + jIp, ["no"])) , "ssh ครั้งแรกต้องถาม fingerprint");
+sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + jIp, ["yes"]); assert(L.S.laptop.remote, "ssh สำเร็จต้องเข้า shell");
+assert(/permission denied.*Docker daemon/.test(sh2("docker ps")), "ไม่ใช่ sudo ต้อง permission denied");
+const dps = sh2("sudo docker ps"); assert(/jenkins/.test(dps) && /8080->8080/.test(dps), "docker ps ต้องเห็น jenkins: " + dps);
+assert(/Permission denied/.test(sh2("cat /opt/jenkins/.env")) && /ECR_REGISTRY=000000000000/.test(sh2("sudo cat /opt/jenkins/.env")), ".env 0600");
+assert(/Authentication required/.test(sh2("curl -s localhost:8080")), "curl jenkins");
+assert(/active \(running\)/.test(sh2("systemctl status docker")), "docker active"); sh2("exit"); assert(!L.S.laptop.remote, "exit ออกจาก shell");
+sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + kIp, ["yes"]); assert(/control-plane/.test(sh2("k3s kubectl get nodes")) && (sh2("k3s kubectl get nodes").match(/Ready/g) || []).length === 3, "k8s-1 เห็น 3 nodes"); sh2("exit");
+sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\"")), "galera 3 nodes"); sh2("exit");
 console.log("ok");

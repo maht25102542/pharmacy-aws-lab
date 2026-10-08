@@ -92,8 +92,8 @@ function ansExpand(file, out, seen) {
 function ansStars(s) { return s + " " + new Array(Math.max(3, 79 - s.length)).join("*"); }
 
 // คืน {st, msg}; st: ok|changed|skipping|failed|unreachable
-function ansTask(inst, play, task, inv, vars, run) {
-  var vm = ansVm(inst), key = play.file + ":" + play.idx + ":" + task.name, once = !!vm.done[key], n = task.name;
+function ansTask(inst, play, task, inv, vars, item) {
+  var vm = ansVm(inst), key = play.file + ":" + play.idx + ":" + task.name + (item ? "#" + item : ""), once = !!vm.done[key], n = task.name;
   var role = ansTag(inst, "Role"), isDev = role === "k8s_dev", g = inv.groups;
   function fail(msg) { return { st: "failed", msg: msg }; }
   function undef(v) { return fail("The task includes an option with an undefined variable. The error was: " + v); }
@@ -162,20 +162,25 @@ function ansPlaybook(file, opt) {
     var batches = []; if (p.serial) for (var b = 0; b < hs.length; b += +p.serial) batches.push(hs.slice(b, b + +p.serial)); else batches.push(hs);
     batches.forEach(function (bt) {
       var alive = bt.filter(function (i) { return !dead[i.name]; });
-      function task(title, fn, item) {
+      function task(title, fn, items) {
         o.push("", ansStars("TASK [" + title + "]"));
         alive.slice().forEach(function (i) {
-          var r = fn(i), s = S_(i), tail = item ? " => (item=" + item + ")" : "";
-          if (r.st === "unreachable") { s.unreachable++; dead[i.name] = 1; alive.splice(alive.indexOf(i), 1); o.push("fatal: [" + i.name + "]: UNREACHABLE! => {" + ansUnreach(i.name, r.msg) + "}"); }
-          else if (r.st === "failed") { s.failed++; dead[i.name] = 1; alive.splice(alive.indexOf(i), 1); o.push("fatal: [" + i.name + "]: FAILED! => {\"changed\": false, \"msg\": \"" + r.msg.replace(/"/g, "'") + "\"}"); }
-          else if (r.st === "skipping") { s.skipped++; o.push("skipping: [" + i.name + "]"); }
-          else { s[r.st]++; o.push(r.st + ": [" + i.name + "]" + tail); }
+          var st = S_(i), r, lines = [];
+          if (items) { // loop: หัวเดียว หลายบรรทัด (item=...) นับผลรวมต่อเครื่อง 1 ครั้ง
+            var rs = items.map(function (it) { return { it: it, r: fn(i, it) }; }), bad = rs.filter(function (x) { return x.r.st === "failed" || x.r.st === "unreachable"; })[0];
+            rs.forEach(function (x) { if (x.r.st === "ok" || x.r.st === "changed") lines.push(x.r.st + ": [" + i.name + "] => (item=" + x.it + ")"); });
+            r = bad ? bad.r : { st: rs.some(function (x) { return x.r.st === "changed"; }) ? "changed" : "ok" };
+          } else r = fn(i);
+          if (r.st === "unreachable") { st.unreachable++; dead[i.name] = 1; alive.splice(alive.indexOf(i), 1); o.push("fatal: [" + i.name + "]: UNREACHABLE! => {" + ansUnreach(i.name, r.msg) + "}"); }
+          else if (r.st === "failed") { st.failed++; dead[i.name] = 1; alive.splice(alive.indexOf(i), 1); o.push.apply(o, lines); o.push("fatal: [" + i.name + "]: FAILED! => {\"changed\": false, \"msg\": \"" + r.msg.replace(/"/g, "'") + "\"}"); }
+          else if (r.st === "skipping") { st.skipped++; o.push("skipping: [" + i.name + "]"); }
+          else { st.ok++; if (r.st === "changed") st.changed++; if (items) o.push.apply(o, lines); else o.push(r.st + ": [" + i.name + "]"); }
         });
       }
       task("Gathering Facts", function (i) { var c = ansConnect(i); return c.ok ? { st: "ok" } : { st: "unreachable", msg: c.msg }; });
       p.tasks.forEach(function (t) {
         if (!alive.length) return;
-        if (t.loop) { t.loop.forEach(function (it) { task(t.name, function (i) { return ansTask(i, pl, t, inv, vars); }, it); }); return; }
+        if (t.loop) { task(t.name, function (i, it) { return ansTask(i, pl, t, inv, vars, it); }, t.loop); return; }
         task(t.name, function (i) { return ansTask(i, pl, t, inv, vars); });
       });
     });
