@@ -285,7 +285,7 @@ API.launch = function (o) {
   if (!sn) er.subnetId = "VPC นี้ยังไม่มี subnet ให้วางเครื่อง"; else if (sn.vpcId !== v.id) er.subnetId = "subnet นี้ไม่อยู่ใน VPC ที่เลือก";
   var sgIds = (o.sgIds || []).slice();
   if (o.newSg) {
-    var nsRows = []; if (o.newSg.ssh !== false) nsRows.push({ type: "SSH", srcKind: o.newSg.src || "Anywhere-IPv4" }); if (o.newSg.https) nsRows.push({ type: "HTTPS", srcKind: "Anywhere-IPv4" }); if (o.newSg.http) nsRows.push({ type: "HTTP", srcKind: "Anywhere-IPv4" });
+    var nsRows = []; if (o.newSg.ssh !== false) nsRows.push(/^(Anywhere-IPv4|My IP)$/.test(o.newSg.src || "Anywhere-IPv4") ? { type: "SSH", srcKind: o.newSg.src || "Anywhere-IPv4" } : { type: "SSH", srcKind: "Custom", src: o.newSg.src }); if (o.newSg.https) nsRows.push({ type: "HTTPS", srcKind: "Anywhere-IPv4" }); if (o.newSg.http) nsRows.push({ type: "HTTP", srcKind: "Anywhere-IPv4" });
     var r = API.createSg({ name: o.newSg.name, desc: o.newSg.desc, vpcId: v.id, rows: nsRows });
     if (r.errors) { er.newSgName = r.errors.name || r.errors.desc || "สร้าง security group ไม่สำเร็จ"; } else sgIds = [r.res.id];
   } else {
@@ -769,7 +769,8 @@ var RULES = [
   ["Ansible ผลของแต่ละ task (changed/ok, UNREACHABLE จาก SG/route/key, ต้องมีทางออกเน็ตสำหรับ apt/curl/docker, ECR refresh ต้องมีสิทธิ์) เป็นกฎที่เขียนเองตามชื่อ task ไม่ใช่การรันจริง", 0],
   ["บัญชี suspended: ทุกคำสั่ง AWS CLI / Terraform / Ansible inventory ล้มเหลวด้วย AuthFailure (ข้อความจำลองจากความจำ)", 0],
   ["หน้าตา AWS console ที่เทียบกับ screenshot จริง (ปี 2025 จากเอกสาร/บทความ): แถบบนสีกรมท่าพร้อม logo/Services/Search [Alt+S]/region/account, เมนูซ้ายหัวข้อมี ▼, ปุ่มหลักสีส้มทรงแคปซูล, หน้า EC2 dashboard (Launch instance / Service health / Account attributes), Create VPC (Resources to create, Name tag auto-generation, Preview, NAT gateways, VPC endpoints, DNS options), Launch instance (Info, Network settings + Edit, Firewall การ์ด, launch-wizard-N, คำเตือน 0.0.0.0/0, Summary + Launch instance)", 1],
-  ["หน้า AWS อื่น (รายการ Instances, Security groups, Route tables, IAM, ECR, Elastic IPs ฯลฯ): โครงและข้อความจำลองจากความจำ ยังไม่ได้เทียบกับ screenshot จริง; ไอคอน/ฟอนต์/สีละเอียดไม่ตรง; NAT gateway แบบ Regional (ใหม่ปี 2025) ยังไม่จำลอง", 0],
+  ["หน้าที่เทียบกับ screenshot จริงปี 2023 (KodeKloud) แล้ว: รายการ+รายละเอียด Route tables (คอลัมน์, แท็บ Routes/Subnet associations, Edit routes), Internet gateways, NAT gateways (Pending→Available, แท็บ Secondary IPv4), Subnets, Load balancers (หน้า Compare and select type, Create ALB + Summary, รายละเอียด), Target groups, IAM Create role 3 ขั้น (Select trusted entity → Add permissions → Name, review, and create); คอลัมน์ Created/Owner/ENI/ARN เป็นค่าจำลอง", 1],
+  ["หน้า AWS อื่นที่ยังไม่ได้เทียบกับ screenshot จริง: Key pairs, Elastic IPs (รายการ), IAM Users/Policies, ECR; ไอคอน/ฟอนต์/สีละเอียดไม่ตรง; หน้า Create target group ขั้น Register targets ยังเป็นรายการติ๊กแบบย่อ; NAT gateway แบบ Regional (ใหม่ปี 2025) ยังไม่จำลอง", 0],
     ["ArgoCD: รหัส admin เริ่มต้นอยู่ใน secret argocd-initial-admin-secret (หรือ argocd admin initial-password -n argocd), login ด้วย argocd login <server> --insecure, app ใหม่เป็น OutOfSync/Missing จนกว่าจะ Sync, UI: กด Sync แล้ว Synchronize ในแผง", 1],
   ["SonarQube: admin/admin เป็นค่าเริ่มต้น, token สร้างที่ My account › Security (ประเภท User / Project analysis / Global analysis) และดูได้ครั้งเดียว", 1],
   ["SonarQube: บังคับเปลี่ยนรหัสผ่านตอน login ครั้งแรก, นโยบายรหัสผ่านยาว ≥ 12 ตัว, ป้ายปุ่มและชื่อช่องในฟอร์ม token", 0],

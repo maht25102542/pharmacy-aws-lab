@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -375,4 +375,12 @@ sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + dbIp, ["yes"]); assert(/wsrep_cluster_s
   assert.strictEqual(L.shRun("grep -rn YOUR_GITHUB_USER ansible repo-manifests").lines.length, 0, "ไม่เหลือ placeholder");
   assert(/github_user: .?me/.test(L.shRun("cat ansible/group_vars/all/main.yml").lines.join("\n")), "ค่าใหม่ถูกเขียน");
   assert(/command not found|จำลองเฉพาะ/.test(L.shRun("sed 'p' x").lines[0]), "sed แบบอื่นบอกชัด"); }
+// ---- ข้อมูล instance types จริง (AWS pricing, Singapore Linux)
+{ const t3 = L.ITYPE_ALL.find(x => x[0] === "t3.micro"); assert(L.ITYPE_ALL.length > 800 && t3[1] === 2 && t3[2] === 1 && t3[5] === 0.0132, "t3.micro: 2 vCPU 1 GiB 0.0132 USD/h");
+  L.ITYPES.forEach(n => assert(L.ITYPE_ALL.some(x => x[0] === n), "ตัวที่ launch ได้ต้องมีในรายการจริง: " + n)); }
+// ---- launch wizard: SSH source แบบ Custom
+{ L.fresh(); const dv = L.S.vpcs[0], sn0 = L.S.subnets.find(x => x.vpcId === dv.id);
+  const r = L.API.launch({ name: "c", ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: sn0.id, autoIp: "Enable", sgIds: [], newSg: { name: "launch-wizard-9", desc: "d", src: "203.0.113.0/24", ssh: true }, diskSize: 8, diskType: "gp3", tokens: "required", hop: 2, count: 1 });
+  assert(!r.errors, JSON.stringify(r.errors)); const g = L.S.sgs.find(x => x.name === "launch-wizard-9"); assert(g.inbound.some(x => x.from === 22 && x.src === "203.0.113.0/24"), "SSH จาก CIDR ที่ระบุ");
+  const bad = L.API.launch({ name: "c2", ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: sn0.id, autoIp: "Enable", sgIds: [], newSg: { name: "launch-wizard-10", desc: "d", src: "xyz", ssh: true }, diskSize: 8, diskType: "gp3", tokens: "required", hop: 2, count: 1 }); assert(bad.errors, "CIDR ผิดต้องไม่ผ่าน"); }
 console.log("ok");
