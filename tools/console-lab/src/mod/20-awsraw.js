@@ -30,7 +30,7 @@ API.createAlbRaw = function (o) {
   if (Object.keys(azs).length < 2) er.subnets = "ValidationError: At least two subnets in two different Availability Zones must be specified";
   if (!o.internal && v && !vpcIgw(v.id)) er.vpc = "InvalidSubnet: VPC " + v.id + " has no internet gateway";
   if (Object.keys(er).length) return { errors: er };
-  var a = { id: rid("alb"), name: o.name, scheme: o.internal ? "Internal" : "Internet-facing", vpcId: sns[0].vpcId, subnetIds: sns.map(function (x) { return x.id; }), sgIds: (o.sgIds || []).slice(), listeners: [], dns: o.name + "-" + String(Math.floor(Math.random() * 9e8 + 1e8)) + "." + REGION + ".elb.lab.invalid" };
+  var a = { id: rid("alb"), name: o.name, scheme: o.internal ? "Internal" : "Internet-facing", vpcId: sns[0].vpcId, subnetIds: sns.map(function (x) { return x.id; }), sgIds: (o.sgIds || []).slice(), listeners: [], dns: o.name + "-" + String(Math.floor(Math.random() * 9e8 + 1e8)) + "." + REGION + ".elb.lab.invalid", born: Date.now() };
   S.albs.push(a); return { res: a };
 };
 function tfSgFlat(blocks, selfId) {

@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -274,4 +274,105 @@ assert(/Authentication required/.test(sh2("curl -s localhost:8080")), "curl jenk
 assert(/active \(running\)/.test(sh2("systemctl status docker")), "docker active"); sh2("exit"); assert(!L.S.laptop.remote, "exit ออกจาก shell");
 sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + kIp, ["yes"]); assert(/control-plane/.test(sh2("k3s kubectl get nodes")) && (sh2("k3s kubectl get nodes").match(/Ready/g) || []).length === 3, "k8s-1 เห็น 3 nodes"); sh2("exit");
 sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\"")), "galera 3 nodes"); sh2("exit");
+// drift ของ SG ต้องไม่โชว์ key ภายใน
+{ L.fresh(); const du = L.API.createUser({ name: "d", policies: ["AdministratorAccess"] }).res, dk = L.API.createAccessKey(du.id, "CLI", "");
+  sh2("aws configure", [dk.res.id, dk.secret, "ap-southeast-1", "json"]); sh2("cd ~/Desktop/work/pharmacy-aws-lab/terraform"); sh2("terraform init"); sh2("terraform apply -auto-approve -var my_ip=198.51.100.7/32");
+  L.S.sgs.find(x => x.name === "pharmacy-base").inbound = []; const dp = sh2("terraform plan -var my_ip=198.51.100.7/32");
+  assert(!/__ingress|\|cidr\|/.test(dp) && /- cidr_blocks = \["198\.51\.100\.7\/32"\]/.test(dp) && /resource "aws_security_group" "base"/.test(dp), "drift ต้องอ่านง่าย: " + dp.slice(0, 600)); }
+// ---- โหมดเวลาเหมือนจริง
+{ const tp = L.timingPlan(["TASK [Install Docker] *****", "changed: [a]", "changed: [b]", "TASK [Install Docker] *****", "ok: [a]", "x: Creating...", "x: Still creating... [10s elapsed]", "x: Still creating... [20s elapsed]", "x: Creation complete after 30s [id=1]"]);
+  assert.deepStrictEqual(tp, [0, 60000, 300, 0, 1000, 0, 10000, 10000, 10000], "timingPlan: " + JSON.stringify(tp));
+  L.fresh(); const tu = L.API.createUser({ name: "t", policies: ["AdministratorAccess"] }).res, tk = L.API.createAccessKey(tu.id, "CLI", "");
+  sh2("aws configure", [tk.res.id, tk.secret, "ap-southeast-1", "json"]); sh2("cd ~/Desktop/work/pharmacy-aws-lab/terraform"); sh2("terraform init"); const tfo = sh2("terraform apply -auto-approve -var my_ip=198.51.100.7/32"); sh2("cd ../ansible");
+  const tfTot = L.timingPlan(tfo.split("\n")).reduce((a, b) => a + b, 0); assert(tfTot > 100000, "terraform apply ควรหลายนาที: " + tfTot / 1000);
+  const full = sh2("ansible-playbook site.yml"); const tot = L.timingPlan(full.split("\n")).reduce((a, b) => a + b, 0);
+  assert(tot > 300000 && tot < 3000000, "site.yml รอบแรกควรใช้หลายนาที: " + tot / 1000 + "s"); }
+// terraform output/state ต้องรันในโฟลเดอร์ terraform
+{ sh2("cd ~/Desktop/work/pharmacy-aws-lab/ansible"); assert(/No outputs found/.test(sh2("terraform output vm_list")) && /No state file was found/.test(sh2("terraform state list")), "นอกโฟลเดอร์ terraform ต้องไม่เจอ state");
+  sh2("cd ../terraform"); assert(/pharmacy-jenkins/.test(sh2("terraform output vm_list")), "ในโฟลเดอร์ terraform ต้องเห็น output"); }
+// ---- deployment lab: GitHub → Jenkins (wizard) → SonarQube → ECR → ArgoCD → ALB
+{ L.fresh(); const wu = L.API.createUser({ name: "w", policies: ["AdministratorAccess"] }).res, wk = L.API.createAccessKey(wu.id, "CLI", "");
+  sh2("aws configure", [wk.res.id, wk.secret, "ap-southeast-1", "json"]); sh2("cd ~/Desktop/work/pharmacy-aws-lab/terraform"); sh2("terraform init"); sh2("terraform apply -auto-approve -var my_ip=198.51.100.7/32");
+  const jIp0 = L.S.insts.find(i => i.name === "pharmacy-jenkins").publicIp, kIp1 = L.S.insts.find(i => i.name === "pharmacy-k8s-1").publicIp;
+  assert(L.webOpen("http://" + jIp0 + ":8080").err === "ERR_CONNECTION_REFUSED", "ยังไม่ได้รัน ansible → refused");
+  sh2("cd ../ansible"); sh2("ansible-playbook site.yml");
+  assert(L.webOpen("http://" + jIp0 + ":8080").site === "jenkins" && L.webOpen("http://" + kIp1 + ":30443").site === "argocd" && L.webOpen("http://" + L.S.insts.find(i => i.name === "pharmacy-sonarqube").publicIp + ":9000").site === "sonarqube", "เปิด 3 เว็บได้หลัง ansible");
+  const jsg = L.S.sgs.find(x => x.name === "pharmacy-jenkins"), keepIn = jsg.inbound.slice(); jsg.inbound = [];
+  assert(L.webOpen("http://" + jIp0 + ":8080").err === "ERR_CONNECTION_TIMED_OUT", "ไม่มี SG rule → timeout"); jsg.inbound = keepIn;
+  // GitHub: แก้ user แล้ว push ทั้งสอง repo
+  const mainYml = L.REPO + "/ansible/group_vars/all/main.yml"; L.fsWrite(mainYml, L.fsRead(mainYml).replace("YOUR_GITHUB_USER", "me"));
+  const appsYml = L.REPO + "/repo-manifests/argocd-apps/apps.yaml"; 
+  sh2("cd ~/Desktop/work/pharmacy-aws-lab/repo-manifests"); assert(/not a git repository/.test(sh2("git add .")), "ต้อง git init ก่อน");
+  ["git init -b main", "git add .", "git commit -m initial", "git remote add origin https://github.com/me/pharmacy-manifests.git", "git push -u origin main"].forEach(c => sh2(c)); // apps.yaml ยังเป็น placeholder
+  sh2("cd ../repo-app"); ["git init -b main", "git add .", "git commit -m initial", "git remote add origin https://github.com/me/pharmacy-app.git", "git push -u origin main", "git tag v1.0.0"].forEach(c => sh2(c));
+  assert(L.S.gh.repos["pharmacy-manifests"].user === "me" && L.S.gh.repos["pharmacy-app"].tags.length === 0, "push แล้ว แต่ tag ยังไม่ push"); sh2("git push origin v1.0.0");
+  // Jenkins wizard
+  assert(L.jkSetup() === "unlock" && !L.jkUnlock("wrong") && L.jkUnlock(L.jkPwdOf(L.jkInst())), "unlock"); L.jkCustomize();
+  assert(L.jkCreateAdmin({ user: "admin", pass: "a", pass2: "b", full: "A", email: "a@b.c" }).errors.pass2, "รหัสไม่ตรง"); assert(L.jkCreateAdmin({ user: "admin", pass: "pw1", pass2: "pw1", full: "Admin", email: "a@b.c" }).res, "สร้าง admin"); L.jkSetUrl(); L.jkStart(); L.jkSignOut(); assert(!L.jkSignIn("admin", "x") && L.jkSignIn("admin", "pw1"), "sign in");
+  // SonarQube
+  assert(L.sqLogin("admin", "admin").mustChange && L.sqChangePw("admin", "short", "short").errors.nw && L.sqChangePw("admin", "LongEnoughPw123", "LongEnoughPw123").res, "sonar เปลี่ยนรหัส"); const tok = L.sqGenToken({ name: "jenkins" }).res;
+  L.jkAddCred({ id: "sonar-token", kind: "secret", secret: tok }); L.jkAddCred({ id: "github-token", kind: "userpass", user: "me", pass: "ghp_x" });
+  const k1i = L.S.insts.find(i => i.name === "pharmacy-k8s-1"); L.jkAddCred({ id: "argocd-admin", kind: "userpass", user: "admin", pass: L.argoPwdOf(k1i) });
+  // job: repo ยังไม่ push ใต้ user อื่น → fail
+  const badJob = L.jkCreateJob({ name: "pharmacy-app", repo: "https://github.com/YOUR_GITHUB_USER/pharmacy-app.git", cred: "github-token", branch: "*/main", script: "Jenkinsfile" }); assert(badJob.res, "สร้าง job");
+  const logOf = (b) => b.log.join("\n"); const b0 = L.jkBuildNow(); assert(/Repository not found/.test(logOf(b0)) && b0.result === "FAILURE", "clone ล้ม (URL placeholder)");
+  L.jkCreateJob({ name: "pharmacy-app", repo: "https://github.com/me/pharmacy-app.git", cred: "github-token", branch: "*/main", script: "Jenkinsfile" });
+  const b1 = L.jkBuildNow(); assert(b1 && /ยังไม่ได้เลือก VERSION/.test(logOf(b1)) && L.S.jk.job.paramsKnown, "build แรกล้ม VERSION ว่าง (quirk)"); assert(L.jkBuildNow() === null, "หลังรอบแรกไม่มี Build Now");
+  const P = (o) => Object.assign({ TARGET_ENV: "dev", SERVICE: "backend", VERSION: "v1.0.0", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "t" }, o);
+  const run = (o) => L.jkNew(P(o));
+  assert(/Couldn't find any revision/.test(logOf(run({ VERSION: "v9.9.9" }))), "tag ไม่มีบน GitHub");
+  // ก่อน apply apps: Jenkins ส่วน sonar ใช้ได้ แล้ว manifest push ต้องผ่าน
+  sh2("cd ~/Desktop/work/pharmacy-aws-lab/ansible"); assert(/Repository not found/.test(logOf(run({}))), ".env ยังเก่า"); sh2("ansible-playbook jenkins.yml");
+  const ok1 = run({}); assert(ok1.result === "SUCCESS" && /pharmacy\/backend:v1\.0\.0/.test(L.S.gh.repos["pharmacy-manifests"].files["dev/backend/deployment.yaml"]) && L.S.sq.projects.length === 1, "build dev backend ผ่าน: " + logOf(ok1).slice(-600));
+  const badTok = L.jkCred("sonar-token"), goodH = badTok.h; badTok.h = "x"; assert(/Not authorized/.test(logOf(run({}))), "token sonar ผิด"); badTok.h = goodH;
+  assert(run({ TARGET_ENV: "prd", VERSION: "dev-1" }).result === "FAILURE", "prd ต้องเป็น vN.N.N");
+  const prd = run({ TARGET_ENV: "prd" }); assert(prd.state === "waiting", "prd รอ confirm"); L.jkInput(prd.id, true); assert(prd.result === "SUCCESS", "prd ผ่านหลังยืนยัน"); const pa = run({ TARGET_ENV: "prd", SERVICE: "frontend" }); L.jkInput(pa.id, false); assert(pa.result === "ABORTED", "abort");
+  // ArgoCD: ยังไม่ apply apps → sync ไม่ได้
+  assert(/not found/.test(logOf(run({ AUTO_SYNC: true }))), "ยังไม่มี app ใน ArgoCD");
+  sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + kIp1, ["yes"]);
+  assert(L.argoPwdOf(k1i) === sh2("k3s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"), "อ่านรหัส ArgoCD");
+  assert(/404 Not Found/.test(sh2("k3s kubectl apply -f https://raw.githubusercontent.com/me/pharmacy-manifests/main/argocd-apps/apps.yaml")) === false, "apps.yaml ถูก push แล้ว (แต่ยังเป็น placeholder)");
+  let st0 = L.argoStatus("pharmacy-backend-dev"); assert(st0.sync === "Unknown" && /Repository not found/.test(st0.msg), "apps.yaml ยังเป็น YOUR_GITHUB_USER → ComparisonError");
+  sh2("exit");
+  // แก้ apps.yaml แล้ว push: remote มี commit ของ Jenkins → ต้อง pull ก่อน
+  L.fsWrite(appsYml, L.fsRead(appsYml).replace(/YOUR_GITHUB_USER/g, "me")); sh2("cd ~/Desktop/work/pharmacy-aws-lab/repo-manifests"); sh2("git add ."); sh2("git commit -m fix-user");
+  assert(/rejected/.test(sh2("git push")), "remote เดินหน้าแล้ว ต้องถูกปฏิเสธ"); assert(/Fast-forward/.test(sh2("git pull")), "pull"); assert(/pharmacy\/backend:v1\.0\.0/.test(L.fsRead(L.REPO + "/repo-manifests/dev/backend/deployment.yaml")), "pull เอา commit ของ Jenkins มา"); sh2("git add ."); sh2("git commit -m fix-user"); assert(!/rejected/.test(sh2("git push")), "push หลัง pull ผ่าน");
+  sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + kIp1, ["yes"]); const ap = sh2("k3s kubectl apply -f https://raw.githubusercontent.com/me/pharmacy-manifests/main/argocd-apps/apps.yaml"); assert((ap.match(/configured|created/g) || []).length === 4, "ได้ 4 apps: " + ap);
+  assert(L.argoStatus("pharmacy-backend-dev").health === "Healthy" && L.argoStatus("pharmacy-backend-dev").sync === "Synced", "dev auto-sync: " + JSON.stringify(L.argoStatus("pharmacy-backend-dev")));
+  assert(L.argoStatus("pharmacy-frontend-dev").health === "Degraded" && /InvalidImageName/.test(L.argoStatus("pharmacy-frontend-dev").msg), "frontend dev ยังเป็น placeholder");
+  assert(L.argoStatus("pharmacy-backend-prd").sync === "OutOfSync" && L.argoStatus("pharmacy-backend-prd").health === "Missing", "prd ไม่ auto: ยังไม่ sync");
+  assert(/pharmacy-backend-dev\s+Synced\s+Healthy/.test(sh2("k3s kubectl get applications -n argocd")), "kubectl get applications"); sh2("exit");
+  sh2("cd ~/Desktop/work/pharmacy-aws-lab/ansible");
+  assert(run({ SERVICE: "frontend" }).result === "SUCCESS" && L.argoStatus("pharmacy-frontend-dev").health === "Healthy", "deploy frontend dev (dev auto)");
+  const albDns = L.S.albs[0].dns; assert(L.webOpen("http://" + albDns + ":8080").site === "app", "ALB dev healthy หลัง frontend ขึ้น"); assert(L.webOpen("http://" + albDns).site === "alb503", "ALB prd ยัง 503");
+  const sp = run({ TARGET_ENV: "prd", AUTO_SYNC: true }); L.jkInput(sp.id, true); assert(sp.result === "SUCCESS" && L.argoStatus("pharmacy-backend-prd").health === "Healthy", "prd backend AUTO_SYNC: " + logOf(sp).slice(-400));
+  const spf = run({ TARGET_ENV: "prd", SERVICE: "frontend", AUTO_SYNC: true }); L.jkInput(spf.id, true); assert(spf.result === "SUCCESS" && L.webOpen("http://" + albDns).site === "app", "prd frontend แล้ว ALB prd healthy");
+  L.S.roles.find(r => r.name === "pharmacy-k8s").policies = []; assert(L.argoStatus("pharmacy-backend-dev").health === "Degraded" && /ImagePullBackOff/.test(L.argoStatus("pharmacy-backend-dev").msg), "role k8s ไม่มี ECR → ImagePullBackOff"); }
+// ---- โหมดเวลาเหมือนจริงของ Jenkins: build เดินทีละ stage
+{ L.S.speed = "real"; L.S.roles.find(r => r.name === "pharmacy-k8s").policies = ["AmazonEC2ContainerRegistryReadOnly"];
+  const rb = L.jkNew({ TARGET_ENV: "dev", SERVICE: "backend", VERSION: "v1.0.0", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" });
+  assert(rb.state === "running" && rb.stages.find(s => s.name === "Validate").st === "running" && rb.stages.find(s => s.name === "SonarQube scan").st === "pending", "real: เริ่มที่ Validate กำลังรัน");
+  const before = L.S.gh.repos["pharmacy-manifests"].files["dev/backend/deployment.yaml"]; let guard = 0;
+  while (rb.state === "running" && guard++ < 20) { assert(L.jkNextDelay(rb) >= 1, "delay ต่อ stage"); L.jkAdvance(rb, true); if (rb.stages.find(s => s.name === "Update manifest").st !== "success") assert(L.S.gh.repos["pharmacy-manifests"].files["dev/backend/deployment.yaml"] === before || rb.result, "manifest ยังไม่ถูก push ก่อนถึง stage นั้น"); }
+  assert(rb.result === "SUCCESS" && guard > 3, "real: จบ SUCCESS หลายก้าว (" + guard + ")"); L.S.speed = "instant"; }
+// ---- เวลาของ instance (โหมดเวลาเหมือนจริง)
+{ L.fresh(); L.S.speed = "real"; const dv = L.S.vpcs[0], sn0 = L.S.subnets.find(x => x.vpcId === dv.id), li = L.API.launch({ name: "t", ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: sn0.id, autoIp: "Enable", sgIds: [], diskSize: 8, diskType: "gp3", tokens: "required", hop: 2, count: 1 }).res[0], t0 = li.born;
+  assert.strictEqual(L.instPhase(li, t0 + 3000).state, "pending", "3s แรก pending");
+  const p2 = L.instPhase(li, t0 + 30000); assert(p2.state === "running" && p2.check === "Initializing" && !p2.booted, "30s: running + Initializing + ยังไม่บูต");
+  assert(L.instPhase(li, t0 + 60000).booted && L.instPhase(li, t0 + 60000).check === "Initializing", "60s: บูตแล้วแต่ check ยัง Initializing");
+  assert.strictEqual(L.instPhase(li, t0 + 130000).check, "2/2 checks passed", "2 นาที: ผ่าน");
+  L.S.speed = "instant"; assert.strictEqual(L.instPhase(li).state, "running", "โหมดทันที: running ทันที"); L.S.speed = "real"; li.born = Date.now() - 20000; assert(/Connection refused/.test(L.sshCheck(li, "").out) || /Connection timed out/.test(L.sshCheck(li, "").out), "บูตไม่เสร็จ ssh ไม่ได้");
+  L.API.instState(li.id, "stop"); assert.strictEqual(L.instPhase(li, Date.now() + 1000).state, "stopping", "stop: stopping"); assert.strictEqual(L.instPhase(li, Date.now() + 60000).state, "stopped", "แล้ว stopped"); L.S.speed = "instant"; }
+// ---- เวลาของ NAT / ALB (โหมดเวลาเหมือนจริง)
+{ L.fresh(); L.S.speed = "real"; const v = L.S.vpcs[0], nt = { id: "nat-x", state: "available", born: Date.now() };
+  assert.strictEqual(L.natPhase(nt), "pending", "NAT ใหม่ pending"); nt.born = Date.now() - 61000; assert.strictEqual(L.natPhase(nt), "available", "หลัง ~1 นาที available");
+  const a = { id: "alb-x", born: Date.now() }; assert.strictEqual(L.albPhase(a), "provisioning", "ALB ใหม่ provisioning"); a.born = Date.now() - 181000; assert.strictEqual(L.albPhase(a), "active", "หลัง ~3 นาที active");
+  L.S.speed = "instant"; a.born = Date.now(); nt.born = Date.now(); assert(L.albPhase(a) === "active" && L.natPhase(nt) === "available", "โหมดทันที: พร้อมเลย"); }
+// ---- sed / grep บน laptop
+{ L.fresh(); L.shRun("cd ~/Desktop/work/pharmacy-aws-lab");
+  assert(L.shRun("grep -rn YOUR_GITHUB_USER ansible repo-manifests/argocd-apps").lines.length >= 2, "grep เจอ placeholder");
+  assert.deepStrictEqual(L.shRun("sed -i 's/YOUR_GITHUB_USER/me/g' ansible/group_vars/all/main.yml repo-manifests/argocd-apps/apps.yaml").lines, [], "sed -i เงียบ");
+  assert.strictEqual(L.shRun("grep -rn YOUR_GITHUB_USER ansible repo-manifests").lines.length, 0, "ไม่เหลือ placeholder");
+  assert(/github_user: .?me/.test(L.shRun("cat ansible/group_vars/all/main.yml").lines.join("\n")), "ค่าใหม่ถูกเขียน");
+  assert(/command not found|จำลองเฉพาะ/.test(L.shRun("sed 'p' x").lines[0]), "sed แบบอื่นบอกชัด"); }
 console.log("ok");

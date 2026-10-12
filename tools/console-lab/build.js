@@ -12,7 +12,7 @@ function walk(rel) {
     else if (!/\.(tfstate|backup)$|^terraform\.tfvars$|^\.terraform\.lock\.hcl$|^terraform\.yml$/.test(e.name)) LABFILES[r] = fs.readFileSync(path.join(root, r), "utf8");
   });
 }
-["terraform", "ansible"].concat(fs.readdirSync(root).filter((d) => /^vm-/.test(d))).forEach(walk);
+["terraform", "ansible", "repo-app", "repo-manifests"].concat(fs.readdirSync(root).filter((d) => /^vm-/.test(d))).forEach(walk);
 const RESERVED = ["name", "when", "register", "loop", "block", "args", "until", "retries", "delay", "changed_when", "vars", "become", "tags", "ignore_errors"];
 function flatten(tasks, inherit, out) {
   (tasks || []).forEach((t) => {

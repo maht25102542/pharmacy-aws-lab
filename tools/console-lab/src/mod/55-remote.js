@@ -8,7 +8,7 @@ function rmRole(i) { return ansTag(i, "Role"); }
 function rmFirst(role) { return S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === role; })[0]; }
 function rmEnv() {
   var v = ansVars(), sq = rmFirst("sonarqube"), k8 = rmFirst("k8s_server");
-  return "AWS_DEFAULT_REGION=" + (v.aws_region || "") + "\nECR_REGISTRY=" + (v.ecr_registry || "") + "\nSONAR_HOST_URL=http://" + (sq ? sq.privateIp : "") + ":9000\nARGOCD_SERVER=" + (k8 ? k8.privateIp : "") + ":30443\nMANIFESTS_REPO=github.com/YOUR_GITHUB_USER/pharmacy-manifests.git\n";
+  return "AWS_DEFAULT_REGION=" + (v.aws_region || "") + "\nECR_REGISTRY=" + (v.ecr_registry || "") + "\nSONAR_HOST_URL=http://" + (sq ? sq.privateIp : "") + ":9000\nARGOCD_SERVER=" + (k8 ? k8.privateIp : "") + ":30443\nMANIFESTS_REPO=github.com/" + (v.github_user || "YOUR_GITHUB_USER") + "/pharmacy-manifests.git\n";
 }
 function rmServices(i) {
   var r = rmRole(i), s = {};
@@ -22,7 +22,7 @@ function rmServices(i) {
 function rmRunning(i, name) { return name === "mariadb" ? !!ansVm(i).f.cluster : true; }
 function rmDocker(i) {
   var r = rmRole(i);
-  if (r === "jenkins" && rmHas(i, "Build and start Jenkins")) return [["a1b2c3d4e5f6", "opt-jenkins-jenkins", '"/usr/bin/tini -- /usr/local/bin/jenkins.sh"', "0.0.0.0:8080->8080/tcp, 50000/tcp", "jenkins"]];
+  if (r === "jenkins" && rmHas(i, "Build and start Jenkins")) return [["a1b2c3d4e5f6", "jenkins-jenkins", '"/usr/bin/tini -- /usr/local/bin/jenkins.sh"', "0.0.0.0:8080->8080/tcp, 50000/tcp", "jenkins"]];
   if (r === "sonarqube" && rmHas(i, "Start SonarQube")) return [["b2c3d4e5f6a1", "sonarqube:community", '"/opt/sonarqube/docker/entrypoint.sh"', "0.0.0.0:9000->9000/tcp", "sonarqube"], ["c3d4e5f6a1b2", "postgres:16", '"docker-entrypoint.sh postgres"', "5432/tcp", "sonarqube-db"]];
   return [];
 }
@@ -30,7 +30,7 @@ function rmTable(head, rows) { var w = head.map(function (h0, c) { return Math.m
 function rmPath(p) { var c = S.laptop.rcwd || "~"; if (!p) return c === "~" ? "/home/ubuntu" : c; if (p === "~") return "/home/ubuntu"; if (p[0] === "/") return p.replace(/\/+$/, "") || "/"; var b = c === "~" ? "/home/ubuntu" : c; return normPath(b + "/" + p); }
 function rmCat(i, p, sudo) {
   var r = rmRole(i);
-  if (p === "/opt/jenkins/.env" && r === "jenkins" && rmHas(i, "Write /opt/jenkins/.env (ค่าที่ pipeline อ่านเป็นตัวแปรสภาพแวดล้อม)")) return sudo ? rmEnv().split("\n").slice(0, -1) : ["cat: /opt/jenkins/.env: Permission denied  (ไฟล์ mode 0600 เจ้าของ root ลอง sudo cat)"];
+  if (p === "/opt/jenkins/.env" && r === "jenkins" && rmHas(i, "Write /opt/jenkins/.env (ค่าที่ pipeline อ่านเป็นตัวแปรสภาพแวดล้อม)")) return sudo ? (ansVm(i).f.env || rmEnv()).split("\n").slice(0, -1) : ["cat: /opt/jenkins/.env: Permission denied  (ไฟล์ mode 0600 เจ้าของ root ลอง sudo cat)"];
   if (p === "/opt/jenkins/docker-compose.yml" && r === "jenkins" && rmHas(i, "Copy Jenkins files to /opt/jenkins")) return LABFILES["vm-jenkins/docker-compose.yml"].split("\n");
   if (p === "/opt/sonarqube/docker-compose.yml" && r === "sonarqube" && rmHas(i, "Copy SonarQube files to /opt/sonarqube")) return LABFILES["vm-sonarqube/docker-compose.yml"].split("\n");
   if (p === "/etc/default/ecr-refresh" && /^k8s_(server|dev)$/.test(r) && rmHas(i, "Write /etc/default/ecr-refresh")) return ["ECR_REGISTRY=" + (ansVars().ecr_registry || ""), "NAMESPACES=" + (r === "k8s_dev" ? "dev" : "prd"), "AWS_DEFAULT_REGION=" + (ansVars().aws_region || "")];
@@ -47,6 +47,7 @@ function rmLs(i, p, all) {
   f = f.filter(function (x) { return all || x[0] !== "."; }).sort(); return f.length ? [f.join("  ")] : [];
 }
 function remoteRun(i, line) {
+  if (/argocd-initial-admin-secret/.test(line) && /(kubectl|k3s)/.test(line)) { if (rmRole(i) !== "k8s_server" || !rmHas(i, "Install ArgoCD")) return { lines: ["Error from server (NotFound): namespaces \"argocd\" not found"] }; return { lines: [/base64\s+-d/.test(line) ? argoPwdOf(i) : "(base64)"] }; }
   var a = shTok(line); if (!a.length) return { lines: [] };
   var sudo = false; if (a[0] === "sudo") { sudo = true; a.shift(); } var c = a.shift() || "", r = rmRole(i);
   if (c === "exit" || c === "logout") { S.laptop.remote = null; S.laptop.rcwd = "~"; return { lines: ["logout", "Connection to " + i.publicIp + " closed."] }; }
@@ -67,6 +68,7 @@ function remoteRun(i, line) {
     return { lines: ["● " + unit + " - " + sv[nm], "     Loaded: loaded (/etc/systemd/system/" + unit + "; enabled; preset: enabled)", run ? "     Active: active (running) since Tue 2026-10-07 09:12:41 UTC; 3min ago" : "     Active: inactive (dead)"] };
   }
   if (c === "docker") {
+    if (a[0] === "exec") { if (!sudo) return { lines: ["permission denied while trying to connect to the Docker daemon socket  (ลอง sudo)"] }; if (a[1] === "jenkins" && rmDocker(i).length && /initialAdminPassword/.test(a.join(" "))) return { lines: [jkPwdOf(i)] }; return { lines: ["docker exec: จำลองเฉพาะ sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword"] }; }
     if (!sudo && /^(ps|images)$/.test(a[0] || "")) { if (!rmServices(i).docker) return { lines: ["Command 'docker' not found, but can be installed with: sudo snap install docker"] }; return { lines: ["permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock  (user ubuntu ไม่ได้อยู่ในกลุ่ม docker ลอง sudo docker ps)"] }; }
     if (a[0] !== "ps") return { lines: ["docker: จำลองเฉพาะ docker ps"] };
     if (!rmServices(i).docker) return { lines: ["Command 'docker' not found, but can be installed with: sudo snap install docker"] };
@@ -82,6 +84,8 @@ function remoteRun(i, line) {
   if (c === "k3s" || c === "kubectl") {
     if (c === "k3s") a.shift(); if (!rmServices(i).k3s && !rmServices(i)["k3s-agent"]) return { lines: ["Command '" + c + "' not found"] };
     if (r === "k8s_agent") return { lines: ["WARN[0000] Unable to read /etc/rancher/k3s/k3s.yaml  (agent ไม่มี kubeconfig ต้องรันบน server)"] };
+    if (a[0] === "apply" && a[1] === "-f") { if (r !== "k8s_server" || !rmHas(i, "Install ArgoCD")) return { lines: ["error: resource mapping not found: no matches for kind \"Application\" in version \"argoproj.io/v1alpha1\""] }; return { lines: argoApply(a[2]) }; }
+    if (/^get (applications?|app)$/.test(a.slice(0, 2).join(" "))) { var names = Object.keys(S.argo.apps); return { lines: names.length ? rmTable(["NAME", "SYNC STATUS", "HEALTH STATUS"], names.map(function (n) { var st = argoStatus(n); return [n, st.sync, st.health]; })) : ["No resources found in argocd namespace."] }; }
     var sub = a.slice(0, 2).join(" ");
     if (sub === "get nodes") { var nodes = [i].concat(r === "k8s_server" ? S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_agent" && rmHas(x, "Install k3s agent and join the cluster"); }) : []); return { lines: rmTable(["NAME", "STATUS", "ROLES", "AGE", "VERSION"], nodes.map(function (n) { return [rmHost(n), "Ready", n === i ? "control-plane,master" : "<none>", "4m", "v1.31.4+k3s1"]; })) }; }
     if (sub === "get ns" || sub === "get namespaces") return { lines: rmTable(["NAME", "STATUS", "AGE"], ["default", "kube-system", "kube-public", "kube-node-lease"].concat(r === "k8s_dev" ? ["dev"] : ["prd", "argocd"]).map(function (n) { return [n, "Active", "4m"]; })) };

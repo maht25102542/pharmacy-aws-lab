@@ -30,9 +30,10 @@ var NAV = {
   IAM: [["", [[null, "Dashboard"]]], ["Access management", [[null, "User groups"], ["users", "Users"], ["roles", "Roles"], ["policies", "Policies"], [null, "Identity providers"], [null, "Account settings"]]]],
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
+  Browser: [["", [["browser", "Browser"]]]],
   Lab: [["เครื่องมือของตัวจำลอง", [["lab-check", "ตรวจกับ Terraform"], ["lab-hcl", "HCL ที่เทียบเท่า"], ["lab-rules", "กฎที่จำลอง"], ["lab-scen", "ตัวอย่างสำเร็จรูป"]]]]
 };
-var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Lab: "lab-check" };
+var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
 UI = { svc: "VPC", page: "vpc-dash", params: {}, sel: {}, filter: {}, dtab: {}, form: null, menu: false, banner: null, tab: "check" };
 
 function navHas(svc, page) { return NAV[svc].some(function (g) { return g[1].some(function (p) { return p[0] === page; }); }); }
@@ -43,10 +44,17 @@ function go(page, params, svc) {
   render();
 }
 function flash(kind, msg) { UI.banner = { kind: kind, msg: msg }; }
+
+// ---- ไอคอน SVG (วาดเอง เส้นง่ายๆ ไม่ใช้ asset ของ AWS) ใช้ innerHTML กับสตริงตายตัวเท่านั้น
+var ICONS = {
+  refresh: '<path d="M13.2 8a5.2 5.2 0 1 1-1.6-3.7M13.4 2.2v3h-3"/>', check: '<circle cx="8" cy="8" r="6.3"/><path d="M5.2 8.2l2 2 3.7-4"/>', pause: '<circle cx="8" cy="8" r="6.3"/><path d="M6.4 5.6v4.8M9.6 5.6v4.8"/>', minus: '<circle cx="8" cy="8" r="6.3"/><path d="M5 8h6"/>', clock: '<circle cx="8" cy="8" r="6.3"/><path d="M8 4.6V8l2.4 1.6"/>',
+  copy: '<rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.5v-1h-8v8h1"/>', ext: '<path d="M9.5 2.5h4v4M13.5 2.5L7.5 8.5M12 9v3.5H3.5V4H7"/>', chevR: '<path d="M6 3.5L10.5 8 6 12.5"/>', chevL: '<path d="M10 3.5L5.5 8l4.5 4.5"/>', info: '<circle cx="8" cy="8" r="6.3"/><path d="M8 7.2v3.6M8 5v.1"/>', warn: '<path d="M8 2.2L14.2 13H1.8z"/><path d="M8 6.6v3M8 11.2v.1"/>', search: '<circle cx="6.8" cy="6.8" r="4.4"/><path d="M10.2 10.2L14 14"/>'
+};
+function icoEl(name, size, color) { var s = document.createElement("span"); s.className = "ico"; s.style.color = color || ""; s.innerHTML = '<svg width="' + (size || 16) + '" height="' + (size || 16) + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || "") + "</svg>"; return s; }
 function crumbEl(text) {
   var parts = String(text).split(" › "), box = h("div", { cls: "crumb" });
   parts.forEach(function (p, i) {
-    if (i) box.appendChild(document.createTextNode(" › "));
+    if (i) box.appendChild(h("span", { cls: "cs", style: "margin:0 6px" }, [icoEl("chevR", 12)]));
     var tgt = null;
     if (i < parts.length - 1) {
       if (NAV[p]) tgt = [NAVHOME[p], p];
@@ -58,11 +66,11 @@ function crumbEl(text) {
 }
 
 function render() {
-  var y = window.scrollY; save();
-  document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal";
+  var y = window.scrollY; save(); document.body.setAttribute("data-svc", UI.svc);
+  document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal"; document.getElementById("speedsel").value = S.speed || "instant";
   var sv = document.getElementById("svc"); sv.textContent = "";
   Object.keys(NAV).forEach(function (k) { sv.appendChild(h("button", { type: "button", text: k, "aria-current": String(k === UI.svc), onclick: function () { go(NAVHOME[k], {}, k); } })); });
-  var nv = document.getElementById("nav"); nv.textContent = "";
+  var nv = document.getElementById("nav"); nv.textContent = ""; var NT = { EC2: "EC2", IAM: "Identity and Access Management (IAM)", ECR: "Amazon Elastic Container Registry" }; if (NT[UI.svc]) nv.appendChild(h("div", { cls: "navtitle" }, [NT[UI.svc], icoEl("chevL", 14)]));
   NAV[UI.svc].forEach(function (g) {
     if (g[0]) nv.appendChild(h("div", { cls: "grp", text: g[0] }));
     g[1].forEach(function (p) {
@@ -71,9 +79,9 @@ function render() {
     });
   });
   var m = document.getElementById("main"); m.textContent = "";
-  if (UI.banner) { m.appendChild(h("div", { cls: "alert " + UI.banner.kind, text: UI.banner.msg, role: "status" })); UI.banner = null; }
+  if (UI.banner) { var awsSvc = /^(VPC|EC2|IAM|ECR)$/.test(UI.svc); m.appendChild(UI.banner.kind === "ok" && awsSvc ? h("div", { cls: "sb", role: "status" }, [icoEl("check", 18), UI.banner.msg]) : h("div", { cls: "alert " + UI.banner.kind, text: UI.banner.msg, role: "status" })); UI.banner = null; }
   var P = PAGES[UI.page]; m.appendChild(P ? P() : h("p", { text: "ไม่พบหน้า" }));
-  window.scrollTo(0, y);
+  window.scrollTo(0, y); wbTick(); instTick();
 }
 
 // ---- global search + region menu (header)
@@ -106,28 +114,29 @@ function actionMenu(acts, sel, from) {
   var out = [];
   if (!acts || !acts.length) return out;
   var items = sel ? acts.filter(function (a) { return !a.when || a.when(sel); }) : [];
-  out.push(h("button", { cls: "btn", type: "button", text: "Actions ▾", disabled: !sel || !items.length, onclick: function () { UI.menu = !UI.menu; render(); } }));
-  if (UI.menu && sel) out.push(h("div", { cls: "menu" }, items.map(function (a) {
-    return h("button", { type: "button", text: a.label, onclick: function () {
-      if (a.run) { var x = a.run(sel); UI.menu = false; flash(x.errors ? "bad" : "ok", x.errors ? Object.keys(x.errors).map(function (k) { return x.errors[k]; }).join(" · ") : a.msg); render(); }
-      else go(a.page, { id: sel.id, from: from, kind: a.kind });
-    } });
-  })));
+  function runAct(a) { if (a.run) { var x = a.run(sel); UI.menu = false; flash(x.errors ? "bad" : "ok", x.errors ? Object.keys(x.errors).map(function (k) { return x.errors[k]; }).join(" · ") : a.msg); render(); } else go(a.page, { id: sel.id, from: from, kind: a.kind }); }
+  items.filter(function (a) { return a.btn; }).forEach(function (a) { out.push(h("button", { cls: "btn", type: "button", text: a.label, onclick: function () { runAct(a); } })); });
+  if (sel && !items.length) return out;
+  var groups = []; acts.forEach(function (a) { if (!a.btn) { var g = a.grp || "Actions"; if (groups.indexOf(g) < 0) groups.push(g); } });
+  groups.forEach(function (g) {
+    var gi = items.filter(function (a) { return !a.btn && (a.grp || "Actions") === g; });
+    out.push(h("button", { cls: "btn", type: "button", text: g + " ▾", disabled: !sel || !gi.length, onclick: function () { UI.menu = UI.menu === g ? false : g; render(); } }));
+    if (UI.menu === g && sel) out.push(h("div", { cls: "menu" }, gi.map(function (a) { return h("button", { type: "button", text: a.label, onclick: function () { runAct(a); } }); })));
+  });
   return out;
 }
 function listPage(o) {
   var all = o.rows(), selId = UI.sel[o.key], sel = all.filter(function (r) { return r.id === selId; })[0];
   var wrap = h("div");
   wrap.appendChild(crumbEl(o.crumb));
-  var acts = h("div", { cls: "sp" }, actionMenu(o.actions, sel, o.key));
-  (o.create || []).forEach(function (c) { acts.appendChild(h("button", { cls: "btn pri", type: "button", text: c.label, onclick: function () { go(c.page, { from: o.key }); } })); });
-  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", { text: o.title + " (" + (sel ? 1 : 0) + "/" + all.length + ")" }), acts]));
+  var tools = h("div", { cls: "sp", style: "display:flex;gap:8px;flex-wrap:wrap;position:relative" }, [h("button", { cls: "btn", type: "button", title: "Refresh", "aria-label": "Refresh", style: "padding:3px 10px", onclick: function () { render(); } }, [icoEl("refresh", 16)])].concat(actionMenu(o.actions, sel, o.key)));
+  (o.create || []).forEach(function (c) { tools.appendChild(h("button", { cls: "btn pri", type: "button", text: c.label, onclick: function () { go(c.page, { from: o.key }); } })); });
   var tbody = h("tbody");
   function pick(r) { UI.sel[o.key] = r.id === UI.sel[o.key] ? null : r.id; UI.menu = false; render(); }
   function fill() {
     var q = (UI.filter[o.key] || "").toLowerCase(); tbody.textContent = "";
     var rows = q ? all.filter(function (r) { return (r.id + " " + o.cols.map(function (c) { var v = c[1](r); return typeof v === "string" ? v : (v && v.textContent) || ""; }).join(" ")).toLowerCase().indexOf(q) >= 0; }) : all;
-    if (!rows.length) { tbody.appendChild(h("tr", {}, [h("td", { cls: "empty", colspan: String(o.cols.length + 1), text: all.length ? "ไม่มีรายการที่ตรงกับตัวกรอง" : (o.empty || "ยังไม่มีรายการ") })])); return; }
+    if (!rows.length) { tbody.appendChild(h("tr", {}, [h("td", { cls: "empty", colspan: String(o.cols.length + 1), text: all.length ? "No matches. We can’t find a match." : (o.empty || "No resources to display") })])); return; }
     rows.forEach(function (r) {
       var cells = [h("td", {}, [h("input", { type: "checkbox", checked: r.id === selId, "aria-label": "เลือก " + nm(r), onclick: function (e) { e.stopPropagation(); }, onchange: function () { pick(r); } })])];
       o.cols.forEach(function (c, i) {
@@ -139,15 +148,16 @@ function listPage(o) {
     });
   }
   fill();
-  wrap.appendChild(h("div", { cls: "finder" }, [h("input", { type: "search", placeholder: "Find " + o.title.toLowerCase() + " by attribute or tag", value: UI.filter[o.key] || "", "aria-label": "Filter " + o.title, oninput: function (e) { UI.filter[o.key] = e.target.value; fill(); } })]));
-  wrap.appendChild(h("div", { cls: "card" }, [h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "" })].concat(o.cols.map(function (c) { return h("th", { text: c[0] }); })))]), tbody])])]));
+  var head = h("div", { cls: "ch", style: "display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px" }, [h("div", { style: "flex:1;min-width:200px" }, [h("h2", { style: "margin:0;font-size:1.15rem" }, [o.title + " (" + (sel ? "1/" : "") + all.length + ")", h("a", { href: "#", cls: "infolink", text: "Info", onclick: function (e) { e.preventDefault(); } })]), o.desc ? h("div", { cls: "sub", style: "font-weight:400;margin-top:2px", text: o.desc }) : null]), tools]);
+  var finder = h("div", { style: "display:flex;gap:12px;align-items:center;padding:0 16px 10px" }, [h("div", { cls: "finder", style: "flex:1;margin:0;position:relative" }, [h("input", { type: "search", placeholder: "Find " + o.title.toLowerCase() + " by attribute or tag", value: UI.filter[o.key] || "", "aria-label": "Filter " + o.title, oninput: function (e) { UI.filter[o.key] = e.target.value; fill(); } })]), h("span", { cls: "sub", style: "white-space:nowrap", text: "‹  1  ›   ⚙" })]);
+  wrap.appendChild(h("div", { cls: "card" }, [head, finder, h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "" })].concat(o.cols.map(function (c, i) { return h("th", { text: c[0] + (i === 0 ? " ▲" : "") }); })))]), tbody])])]));
   if (sel && o.kind) wrap.appendChild(h("div", { cls: "card" }, [detailView(o.kind, sel, UI.dtab[o.key], function (t) { UI.dtab[o.key] = t; render(); })]));
   else if (all.length) wrap.appendChild(h("p", { cls: "hint", text: "ติ๊กแถวเพื่อดูรายละเอียดด้านล่างและใช้เมนู Actions · กดชื่อหรือ ID เพื่อเปิดหน้ารายละเอียดเต็ม" }));
   return wrap;
 }
 
 // ---- resource detail: tabs shared by the bottom panel and the full detail page
-function kvDom(list) { var dl = h("dl", { cls: "kv" }); list.forEach(function (kv) { dl.appendChild(h("dt", { text: kv[0] })); dl.appendChild(h("dd", {}, kv[1])); }); return dl; }
+function kvDom(list) { var dl = h("dl", { cls: "kv kvg" }); list.forEach(function (kv) { dl.appendChild(h("div", {}, [h("dt", { text: kv[0] }), h("dd", {}, kv[1])])); }); return dl; }
 function tbl(head, rows, empty) {
   if (!rows.length) return h("p", { cls: "hint", text: empty || "ไม่มีรายการ" });
   return h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, head.map(function (x) { return h("th", { text: x }); }))]), h("tbody", {}, rows.map(function (r) { return h("tr", { style: "cursor:default" }, r.map(function (c) { return h("td", {}, [c]); })); }))])]);
@@ -158,6 +168,7 @@ function tagsTab(r) { var t = (r.name ? [["Name", r.name]] : []).concat((r.tags 
 function ruleType(r) { if (r.proto === "-1") return "All traffic"; var m = { 22: "SSH", 80: "HTTP", 443: "HTTPS", 3306: "MYSQL/Aurora" }; return r.from === r.to && m[r.from] ? m[r.from] : "Custom TCP"; }
 function srcText(r) { return r.srcKind === "sg" ? nm(find(S.sgs, r.src)) + " (" + r.src.slice(0, 11) + ")" : r.src; }
 function ruleRows(list) { return list.map(function (r) { return [ruleType(r), r.proto === "-1" ? "All" : "TCP", r.proto === "-1" ? "All" : (r.from === r.to ? String(r.from) : r.from + " - " + r.to), srcText(r)]; }); }
+function stateIcon(st, r) { if (r) st = instPhase(r).state; var T = { pending: ["clock", "#5f6b7a", "Pending"], stopping: ["clock", "#5f6b7a", "Stopping"], "shutting-down": ["clock", "#5f6b7a", "Shutting-down"], running: ["check", "#1d8102", "Running"], stopped: ["pause", "#5f6b7a", "Stopped"], terminated: ["minus", "#5f6b7a", "Terminated"] }[st]; return h("span", { style: "color:" + T[1] + ";white-space:nowrap;display:inline-flex;gap:6px;align-items:center" }, [icoEl(T[0], 15), T[2]]); }
 function stateTag(st) { var T = { running: ["Running", "ok"], stopped: ["Stopped", "warn"], terminated: ["Terminated", "bad"] }; return tagp(T[st][0], T[st][1]); }
 function vpcMap(r) {
   var sn = S.subnets.filter(function (x) { return x.vpcId === r.id; }), rt = S.rtbs.filter(function (x) { return x.vpcId === r.id; }), ig = vpcIgw(r.id);
@@ -175,7 +186,8 @@ function rtbAssoc(r) {
   return h("div", {}, [h("h4", { text: "Explicit subnet associations" }), tbl(["Name", "Subnet ID", "IPv4 CIDR"], ex.map(function (x) { return [x.name || "-", x.id, x.cidr]; }), "ไม่มี"), h("h4", { text: "Subnets without explicit associations" }), tbl(["Name", "Subnet ID", "IPv4 CIDR"], imp.map(function (x) { return [x.name || "-", x.id, x.cidr]; }), "ไม่มี"), h("p", { cls: "hint", text: "ซอยที่ไม่ได้ผูกกับ route table ใดจะใช้ main route table ของ VPC โดยอัตโนมัติ" })]);
 }
 function subRoute(r) { var rt = subnetRtb(r); return h("div", {}, [h("p", { text: "Route table: " + (rt.main ? "main (" + rt.id + ")" : nm(rt)) }), rtbRoutes(rt)]); }
-function sgRules(kind) { return function (r) { return tbl(["Type", "Protocol", "Port range", kind === "in" ? "Source" : "Destination"], ruleRows(kind === "in" ? r.inbound : r.outbound), "ไม่มีกฎ (ปิดทุกอย่าง)"); }; }
+function sgrId(g, i, k) { return "sgr-0" + hash32(g.id + k + i) + hash32(k + g.id + i) + hash32(i + g.id).slice(0, 3); }
+function sgRules(kind) { return function (r) { var list = kind === "in" ? r.inbound : r.outbound; if (kind === "out" && !list.length) list = [{ proto: "-1", from: 0, to: 65535, srcKind: "cidr", src: "0.0.0.0/0" }]; var rows = ruleRows(list).map(function (x, i) { return ["–", sgrId(r, i, kind), "IPv4", x[0], x[1], x[2], x[3]]; }); return h("div", {}, [h("div", { style: "display:flex;gap:8px;align-items:center;margin-bottom:8px" }, [h("b", { text: (kind === "in" ? "Inbound rules" : "Outbound rules") + " (" + rows.length + ")" }), h("span", { style: "margin-left:auto;display:flex;gap:8px" }, [h("button", { cls: "btn", type: "button", text: "Manage tags" }), h("button", { cls: "btn", type: "button", text: kind === "in" ? "Edit inbound rules" : "Edit outbound rules", onclick: function () { if (kind === "in") go("sg-inbound", { id: r.id, from: "sgs" }); } })])]), tbl(["Name", "Security group rule ID", "IP version", "Type", "Protocol", "Port range", kind === "in" ? "Source" : "Destination"], rows, "ไม่มีกฎ (ปิดทุกอย่าง)")]); }; }
 function instSec(r) { return h("div", {}, [kvDom([["IAM Role", r.profile || "-"], ["Key pair assigned at launch", r.keyName || "-"]]), r.sgIds.map(function (id) { var g = find(S.sgs, id); return g ? h("div", {}, [h("h4", { text: "Security group: " + g.name }), tbl(["Type", "Protocol", "Port range", "Source"], ruleRows(g.inbound), "ไม่มีกฎขาเข้า")]) : null; })]); }
 function instNet(r) { var v = find(S.vpcs, r.vpcId); var dns = v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "-"; return kvDom([["VPC ID", vname(r.vpcId)], ["Subnet ID", nm(find(S.subnets, r.subnetId))], ["Availability Zone", r.az], ["Private IPv4 addresses", r.privateIp], ["Public IPv4 address", r.publicIp || "-"], ["Public IPv4 DNS", dns], ["Auto-assigned public IP at launch", r.hadPub ? "Yes" : "No"]]); }
 function instSto(r) { return tbl(["Volume", "Device", "Size", "Type", "Delete on termination"], [["root volume", "/dev/sda1", r.disk.size + " GiB", r.disk.type, "Yes"]]); }
@@ -185,7 +197,7 @@ function tgHealth(r) {
     var i = find(S.insts, x.instId), st, code;
     if (!lb) { st = "unused"; code = "Target.NotInUse: Target group is not configured to receive traffic from the load balancer"; }
     else { var row = albHealth(lb).filter(function (q) { return q.t && q.t.id === r.id && q.inst && q.inst.id === x.instId; })[0]; st = row ? row.state : "unused"; code = row ? row.why : ""; }
-    return [x.instId, i ? (i.name || "-") : "-", String(x.port), i ? i.az : "-", tagp(st, st === "healthy" ? "ok" : (st === "unused" ? "warn" : "bad")), code || "-"];
+    return [x.instId, i ? (i.name || "-") : "-", String(x.port), i ? i.az : "-", tagp(st, st === "healthy" ? "ok" : (st === "unused" || st === "initial" ? "warn" : "bad")), code || "-"];
   });
 }
 function tgTargets(r) { return h("div", {}, [summ("tg", r), h("h4", { text: "Registered targets (" + r.targets.length + ")" }), tbl(["Instance ID", "Name", "Port", "Zone", "Health status", "Health status details"], tgHealth(r), "ยังไม่มี target กด Actions → Register targets"), h("p", { cls: "hint", text: "จำลองว่าแอปตอบ 200 ที่ health check path" })]); }
@@ -229,8 +241,8 @@ DET.user = [["perm", "Permissions", function (u) { return h("div", {}, [tbl(["Po
 DET.policy = [["perm", "Permissions", function (r) { return h("div", {}, [kvDom([["Description", r.desc]]), polJson(r.name)]); }], ["used", "Entities attached", function (r) { return tbl(["Type", "Name"], usedBy(r.name), "ยังไม่ได้แนบกับอะไร"); }], ["ver", "Policy versions", null]];
 DET.eip = [["details", "Details", det("eip")]];
 DET.repo = [["images", "Images", function (r) { return h("div", {}, [kvDom([["URI", r.uri], ["Tag immutability", r.mutable ? "Mutable" : "Immutable"]]), h("h4", { text: "Images (" + r.images.length + ")" }), tbl(["Image tag", "Digest", "Pushed by"], r.images.map(function (x) { return [x.tag, x.digest.slice(0, 19) + "…", x.by]; }), "ยังไม่มี image กด Actions → Docker push / pull เพื่อจำลองการ push"), h("p", { cls: "hint", text: "Actions → View push commands ดูคำสั่งจริง · ใน lab นี้ Jenkins เป็นคน push และ k8s เป็นคน pull" })]); }], ["details", "Details", det("repo")]];
-function detailView(kind, r, tab, setTab) {
-  var cfg = DET[kind], cur = cfg.filter(function (t) { return t[0] === tab; })[0] || cfg[0], box = h("div");
+function detailView(kind, r, tab, setTab, skipDetails) {
+  var cfg = DET[kind].filter(function (t) { return !(skipDetails && t[0] === "details"); }), cur = cfg.filter(function (t) { return t[0] === tab; })[0] || cfg[0], box = h("div");
   box.appendChild(h("div", { cls: "dtabs", role: "tablist" }, cfg.map(function (t) { return h("button", { type: "button", role: "tab", text: t[1], cls: t[2] ? "" : "off", "aria-selected": String(t === cur), onclick: function () { setTab(t[0]); } }); })));
   box.appendChild(h("div", { cls: "dbody" }, [cur[2] ? cur[2](r) : h("p", { cls: "hint", text: "แท็บนี้มีใน console จริงแต่ยังไม่ได้จำลอง" })]));
   return box;
@@ -242,9 +254,10 @@ PAGES.detail = function () {
   wrap.appendChild(crumbEl(cfg.crumb + " › " + (r.name || r.id)));
   var bar = h("div", { cls: "sp" }, actionMenu(cfg.actions, r, LK[kind]));
   if (kind === "inst" && r.state !== "terminated") bar.appendChild(h("button", { cls: "btn pri", type: "button", text: "Connect", onclick: function () { go("ssh", { id: r.id, from: "insts" }); } }));
-  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", { text: (r.name || r.id) }), bar]));
-  wrap.appendChild(h("div", { cls: "hint", text: r.id }));
-  wrap.appendChild(h("div", { cls: "card" }, [detailView(kind, r, tab, function (t) { UI.params.tab = t; render(); })]));
+  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", { text: (kind === "inst" ? r.id + (r.name ? " (" + r.name + ")" : "") : r.name ? r.id + " / " + r.name : r.id) }), bar]));
+  var split = /^(vpc|subnet|rtb|igw|sg)$/.test(kind);
+  if (split) wrap.appendChild(h("div", { cls: "card" }, [h("div", { cls: "ch" }, ["Details", h("a", { href: "#", cls: "infolink", text: "Info", onclick: function (e) { e.preventDefault(); } })]), h("div", { cls: "cb" }, [summ(kind, r)])]));
+  wrap.appendChild(h("div", { cls: "card" }, [detailView(kind, r, tab, function (t) { UI.params.tab = t; render(); }, split)]));
   return wrap;
 };
 
@@ -256,21 +269,25 @@ function formPage(o) {
   if (!UI.form || UI.form.name !== o.name) { UI.form = { name: o.name, v: o.init(), errors: {}, step: 0 }; }
   var F = UI.form, V = F.v, wrap = h("div");
   wrap.appendChild(crumbEl(o.crumb));
-  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", { text: o.title })]));
+  var secs = o.sections(V), wiz = !!o.steps || !!o.cards, stepNames = {};
+  secs.forEach(function (s) { if (s.step != null) stepNames[s.step] = String(s.t || "").replace(/^Step \d+:\s*/, "").replace(/\s*\(.*\)$/, ""); });
+  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", {}, [wiz && o.steps && stepNames[F.step] ? stepNames[F.step] : o.title, o.cards ? h("a", { href: "#", cls: "infolink", text: "Info", onclick: function (e) { e.preventDefault(); } }) : null])]));
+  if (o.lead) wrap.appendChild(h("p", { text: o.lead }));
   if (o.info) wrap.appendChild(h("div", { cls: "alert info", text: o.info }));
   if (o.warn && o.warn(V)) wrap.appendChild(h("div", { cls: "alert warn", text: o.warn(V) }));
   var keys = Object.keys(F.errors);
   if (keys.length) wrap.appendChild(h("div", { cls: "alert bad", role: "alert" }, [h("b", { text: "ตรวจพบ " + keys.length + " ข้อที่ต้องแก้" }), h("ul", {}, keys.map(function (k) { return h("li", { text: F.errors[k] }); }))]));
-  var card = h("div", { cls: "card" });
-  o.sections(V).forEach(function (sec) {
+  var card = h("div", { cls: wiz ? "" : "card" });
+  secs.forEach(function (sec) {
     if (sec.step != null && sec.step !== F.step) return;
-    var s = h("div", { cls: "sec" }); if (sec.t) s.appendChild(h("h2", { text: sec.t }));
-    sec.f.forEach(function (f) { if (f && (!f.show || f.show(V))) s.appendChild(field(f, V, F)); });
-    card.appendChild(s);
+    var s = h("div", { cls: wiz ? "card" : "sec" }), heading = wiz ? sec.ct : sec.t, body = wiz ? h("div", { cls: "cb" }) : s;
+    if (heading) (wiz ? s : body).appendChild(wiz ? h("div", { cls: "ch" }, [heading]) : h("h2", {}, [heading, o.sectionInfo ? h("a", { href: "#", cls: "infolink", text: "Info", onclick: function (e) { e.preventDefault(); } }) : null]));
+    sec.f.forEach(function (f) { if (f && (!f.show || f.show(V))) body.appendChild(field(f, V, F)); });
+    if (wiz) s.appendChild(body); card.appendChild(s);
   });
   var last = !o.steps || F.step === o.steps - 1;
-  var bar = h("div", { cls: "actions" });
-  bar.appendChild(h("button", { cls: "btn", type: "button", text: "Cancel", onclick: function () { go(o.back || UI.params.from || NAVHOME[UI.svc]); } }));
+  var bar = h("div", { cls: "actions", style: wiz ? "justify-content:flex-end;background:transparent;border:0" : "" });
+  bar.appendChild(wiz ? h("a", { href: "#", style: "align-self:center;margin-right:10px;color:#0972d3;font-weight:700;text-decoration:none", text: "Cancel", onclick: function (e) { e.preventDefault(); go(o.back || UI.params.from || NAVHOME[UI.svc]); } }) : h("button", { cls: "btn", type: "button", text: "Cancel", onclick: function () { go(o.back || UI.params.from || NAVHOME[UI.svc]); } }));
   if (o.steps && F.step > 0) bar.appendChild(h("button", { cls: "btn", type: "button", text: "Previous", onclick: function () { F.step--; render(); } }));
   bar.appendChild(h("button", { cls: "btn pri", type: "button", text: last ? o.submit : "Next", onclick: function () {
     if (!last) { F.step++; F.errors = {}; render(); return; }
@@ -278,9 +295,14 @@ function formPage(o) {
     if (r && r.errors) { F.errors = r.errors; render(); return; }
     flash("ok", (r && r.msg) || "สร้างสำเร็จ"); var next = (r && r.next) || o.back || UI.params.from || NAVHOME[UI.svc]; go(next, (r && r.nextParams) || {});
   } }));
-  if (o.summary) {
+  if (o.preview) { card.appendChild(bar); wrap.appendChild(h("div", { cls: "split", style: "grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)" }, [card, h("div", { cls: "card side" }, [h("div", { cls: "ch" }, ["Preview"]), h("div", { cls: "cb" }, [o.preview(V)])])])); }
+  else if (o.summary) {
     var side = h("div", { cls: "card side" }, [h("div", { cls: "ch", text: "Summary" }), h("div", { cls: "cb" }, [o.summary(V)]), bar]);
     wrap.appendChild(h("div", { cls: "split" }, [card, side]));
+  } else if (wiz && !o.steps) { card.appendChild(bar); wrap.appendChild(card); }
+  else if (wiz) {
+    var nav = h("div", { style: "width:200px;flex:none;font-size:.88rem" }, Object.keys(stepNames).map(function (k) { var on = +k === F.step; return h("div", { style: "padding:8px 0;border-bottom:1px solid #e9ebed" }, [h("div", { cls: "sub", style: "font-size:.75rem", text: "Step " + (+k + 1) }), h("div", { style: on ? "font-weight:700" : "color:#0972d3", text: stepNames[k] })]); }));
+    card.appendChild(bar); wrap.appendChild(h("div", { style: "display:flex;gap:24px;align-items:flex-start" }, [nav, h("div", { style: "flex:1;min-width:0" }, [card])]));
   } else { card.appendChild(bar); wrap.appendChild(card); }
   return wrap;
 }
@@ -307,23 +329,26 @@ var EXF = {
 };
 function exFor(id) { var fn = UI.form ? UI.form.name : ""; var hit = EXF[fn + "." + id] || EXF["*." + id]; if (!hit && fn.slice(-1) === "-") hit = null; if (!hit) Object.keys(EXF).some(function (k) { if (k.indexOf(".") > 0 && k.slice(-id.length - 1) === "." + id && k.charAt(k.length - id.length - 2) === "-" && fn.indexOf(k.slice(0, k.length - id.length - 1)) === 0) { hit = EXF[k]; return true; } }); return hit ? hit.map(function (x) { return [x, x]; }) : null; }
 // ex: [[val,label]]; get/set ค่า; flag = object+key ที่จำว่าเลือก "พิมพ์เอง" ไว้
-function exPick(ex, get, set, flag, fk, ph, aria, area) {
+function exPick(ex, get, set, flag, fk, ph, aria, area, type, id) {
   var cur = get() == null ? "" : String(get()), has = ex.some(function (e) { return e[0] === cur; }), custom = flag[fk] || (cur !== "" && !has);
   var opts = [];
   if (!custom && cur === "") opts.push(["", "— เลือกตัวอย่าง —"]);
   ex.forEach(function (e) { opts.push(e); }); opts.push([CUSTOM, "ไม่ระบุ — พิมพ์เอง"]);
   var s = h("select", { "aria-label": aria, onchange: function (e) { var v = e.target.value; if (v === CUSTOM) { flag[fk] = true; if (has) set(""); } else { flag[fk] = false; set(v); } render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: (custom ? o[0] === CUSTOM : String(o[0]) === cur) ? "selected" : null }); }));
   var box = h("div", {}, [s]);
-  if (custom) { var t = h(area ? "textarea" : "input", { style: "width:100%;margin-top:6px", placeholder: ph || "", "aria-label": aria + " (พิมพ์เอง)", oninput: function (e) { set(e.target.value); } }); if (area) t.value = cur; else t.value = cur; box.appendChild(t); }
+  if (custom) { var t = h(area ? "textarea" : "input", { style: "width:100%;margin-top:6px", placeholder: ph || "", type: area ? null : (type || "text"), id: id || null, "aria-label": aria + " (พิมพ์เอง)", oninput: function (e) { set(e.target.value); } }); if (area) t.value = cur; else t.value = cur; box.appendChild(t); }
   return box;
 }
 function field(f, V, F) {
   var err = F.errors[f.id], box = h("div", { cls: "f" + (err ? " bad" : "") });
   if (f.type === "custom") { box.appendChild(f.render(V, function () { render(); })); return box; }
-  if (f.label) box.appendChild(h("label", { cls: "l", text: f.label + (f.req ? " *" : ""), "for": "f-" + f.id }));
+  if (f.label) box.appendChild(h("label", { cls: "l", "for": "f-" + f.id }, [f.label + (f.req ? " *" : ""), f.info ? h("a", { href: "#", cls: "infolink", text: "Info", onclick: function (e) { e.preventDefault(); } }) : null]));
+  if (f.desc) box.appendChild(h("div", { cls: "hint", style: "margin:-2px 0 6px", text: f.desc }));
   var opts = f.opts ? f.opts(V) : [];
   var exs = (f.type === "text" || f.type === "area") && !f.noex ? (f.ex ? f.ex.map(function (x) { return [x, x]; }) : exFor(f.id)) : null;
-  if (exs) box.appendChild(exPick(exs, function () { return V[f.id]; }, function (v) { V[f.id] = v; }, V, "_c_" + f.id, f.ph, f.label || f.id, f.type === "area"));
+  if (f.type === "rcards") box.appendChild(h("div", { cls: "rcards", style: f.stack ? "flex-direction:column;gap:8px" : "" }, opts.map(function (o) { return h("div", { cls: "rcard" + (V[f.id] === o[0] ? " on" : ""), onclick: function () { V[f.id] = o[0]; if (f.onchange) f.onchange(V); render(); } }, [h("span", { style: "flex:none;width:14px;height:14px;border-radius:50%;border:2px solid " + (V[f.id] === o[0] ? "#0972d3;background:radial-gradient(#0972d3 45%,#fff 50%)" : "#879596"), text: "" }), h("div", {}, [h("div", { text: o[1] }), o[2] ? h("div", { cls: "sub", style: "font-size:.8rem", text: o[2] }) : null])]); })));
+  else if (f.type === "seg") box.appendChild(h("div", { cls: "seg" }, opts.map(function (o) { return h("button", { type: "button", cls: String(V[f.id]) === String(o[0]) ? "on" : "", text: o[1], onclick: function () { V[f.id] = o[0]; if (f.onchange) f.onchange(V); render(); } }); })));
+  else if (exs) box.appendChild(exPick(exs, function () { return V[f.id]; }, function (v) { V[f.id] = v; }, V, "_c_" + f.id, f.ph, f.label || f.id, f.type === "area"));
   else if (f.type === "text") box.appendChild(h("input", { type: "text", id: "f-" + f.id, value: V[f.id] == null ? "" : V[f.id], placeholder: f.ph || "", oninput: function (e) { V[f.id] = e.target.value; } }));
   else if (f.type === "area") box.appendChild(h("textarea", { id: "f-" + f.id, value: V[f.id] || "", placeholder: f.ph || "", oninput: function (e) { V[f.id] = e.target.value; } }));
   else if (f.type === "select") box.appendChild(h("select", { id: "f-" + f.id, onchange: function (e) { V[f.id] = e.target.value; if (f.onchange) f.onchange(V); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(V[f.id]) ? "selected" : null }); })));
@@ -367,24 +392,38 @@ LISTS.vpcs = function () {
     rows: function () { return S.vpcs; }, cols: [["Name", function (r) { return r.name || "-"; }], ["VPC ID", function (r) { return r.id; }], ["IPv4 CIDR", function (r) { return r.cidr; }], ["Default VPC", function (r) { return r.isDefault ? "Yes" : "No"; }], ["DNS hostnames", function (r) { return r.dnsHostnames ? "Enabled" : "Disabled"; }]],
     detail: function (r) { var g = vpcIgw(r.id), m = rtbMain(r.id); return [["VPC ID", r.id], ["DNS hostnames", r.dnsHostnames ? "Enabled" : "Disabled"], ["DNS resolution", r.dnsResolution ? "Enabled" : "Disabled"], ["Main route table", m ? m.id : "-"], ["Internet gateway", g ? (g.name || g.id) : "ไม่มี"], ["Subnets", String(S.subnets.filter(function (s) { return s.vpcId === r.id; }).length)], ["Default security group", (defaultSg(r.id) || {}).id || "-"]]; } });
 };
+function vpcPreview(V) {
+  var p = (V.name || "project").trim() || "project", more = V.mode === "VPC and more", nAz = +V.azs || 2, pub = +V.pub || 0, priv = +V.priv || 0, azs = AZS.slice(0, nAz);
+  function box(t, s, kids) { return h("div", { style: "background:var(--surface);border-radius:8px;padding:12px;min-width:170px;flex:1" }, [h("b", { text: t }), s ? h("div", { cls: "sub", text: s }) : null].concat(kids)); }
+  function chip(n, c) { return h("div", { style: "background:var(--code-bg);border-radius:4px;padding:6px 8px;margin:6px 0;font-size:.78rem;word-break:break-all;" + (c ? "border-left:4px solid " + c : "") , text: n }); }
+  var cols = [box("VPC", "Your AWS virtual network", [h("a", { href: "#", cls: "infolink", text: "Show details", onclick: function (e) { e.preventDefault(); } }), chip(p + "-vpc")])];
+  if (more) {
+    var sn = azs.map(function (z, i) { var rows = []; if (i < pub) rows.push(chip(p + "-subnet-public" + (i + 1) + "-" + z, "#1d8102")); if (i < priv) rows.push(chip(p + "-subnet-private" + (i + 1) + "-" + z, "#0972d3")); return rows.length ? h("div", {}, [h("b", { style: "font-size:.82rem", text: z })].concat(rows)) : null; }).filter(Boolean);
+    var rt = []; if (pub) rt.push(chip(p + "-rtb-public")); azs.forEach(function (z, i) { if (i < priv) rt.push(chip(p + "-rtb-private" + (i + 1) + "-" + z)); });
+    var nets = []; if (pub) nets.push(chip(p + "-igw")); if (V.nat === "1az" && pub) nets.push(chip(p + "-nat-public1-" + azs[0])); if (V.nat === "perAz") azs.slice(0, pub).forEach(function (z, i) { nets.push(chip(p + "-nat-public" + (i + 1) + "-" + z)); }); if (V.s3 === true || V.s3 === "true") nets.push(chip(p + "-vpce-s3"));
+    cols.push(box("Subnets (" + (Math.min(pub, nAz) + Math.min(priv, nAz)) + ")", "Subnets within this VPC", sn), box("Route tables (" + rt.length + ")", "Route network traffic to resources", rt), box("Network connections (" + nets.length + ")", "Connections to other networks", nets));
+  }
+  return h("div", { style: "background:var(--bg);border-radius:8px;padding:10px;display:flex;gap:10px;overflow-x:auto" }, cols);
+}
 PAGES["vpc-create"] = function () {
   return formPage({ name: "vpc-create", crumb: "VPC › Your VPCs › Create VPC", title: "Create VPC", back: "vpcs",
     init: function () { return { mode: "VPC only", name: "", cidr: "", ipv6: "No IPv6 CIDR block", tenancy: "Default", azs: 2, pub: 2, priv: 2, nat: "none", s3: false, dnsHost: true, dnsRes: true }; },
-    sections: function (V) { return [{ t: "VPC settings", f: [
-      { id: "mode", type: "radio", label: "Resources to create", opts: function () { return [["VPC only", "VPC only"], ["VPC and more", "VPC and more"]]; }, hint: "VPC and more สร้าง subnet, internet gateway และ route table ให้ในครั้งเดียว" },
-      { id: "name", type: "text", label: V.mode === "VPC only" ? "Name tag" : "Name tag auto-generation (Auto-generate: ใส่ชื่อนำหน้า)", ph: "pharmacy-vpc", hint: "ไม่บังคับ" },
-      { id: "cidr", type: "text", label: "IPv4 CIDR block (IPv4 CIDR manual input)", ph: "10.0.0.0/16", req: true },
-      { id: "ipv6", type: "radio", label: "IPv6 CIDR block", opts: function () { return [["No IPv6 CIDR block", "No IPv6 CIDR block"], ["Amazon-provided IPv6 CIDR block", "Amazon-provided IPv6 CIDR block", "ไม่จำลอง"]]; } },
-      { id: "tenancy", type: "select", label: "Tenancy", opts: function () { return [["Default", "Default"], ["Dedicated", "Dedicated"]]; } },
-      { id: "azs", type: "select", label: "Number of Availability Zones (AZs)", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[1, "1"], [2, "2"], [3, "3"]]; } },
-      { id: "pub", type: "select", label: "Number of public subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
-      { id: "priv", type: "select", label: "Number of private subnets", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
-      { id: "nat", type: "radio", label: "NAT gateways ($)", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [["none", "None"], ["1az", "In 1 AZ"], ["perAz", "1 per AZ"]]; }, hint: "NAT gateway คิดเงินรายชั่วโมง (ไม่ใส่ราคา เพราะยังไม่ได้ยืนยัน)" },
-      { id: "s3", type: "radio", label: "VPC endpoints", show: function (V) { return V.mode === "VPC and more"; }, opts: function () { return [[false, "None"], [true, "S3 Gateway"]]; } },
-      { id: "dnsHost", type: "check", label: "Enable DNS hostnames", show: function (V) { return V.mode === "VPC and more"; } },
-      { id: "dnsRes", type: "check", label: "Enable DNS resolution", show: function (V) { return V.mode === "VPC and more"; } }] }]; },
+    preview: function (V) { return vpcPreview(V); },
+    sections: function (V) { var more = function (V) { return V.mode === "VPC and more"; }; return [{ t: "VPC settings", f: [
+      { id: "mode", type: "rcards", label: "Resources to create", info: 1, desc: "Create only the VPC resource or the VPC and other networking resources.", opts: function () { return [["VPC only", "VPC only"], ["VPC and more", "VPC and more"]]; } },
+      { id: "name", type: "text", label: V.mode === "VPC only" ? "Name tag - optional" : "Name tag auto-generation", info: 1, desc: V.mode === "VPC only" ? "Creates a tag with a key of 'Name' and a value that you specify." : "Enter a value for the Name tag. This value will be used to auto-generate Name tags for all resources in the VPC.", ph: "pharmacy" },
+      { id: "cidr", type: "text", label: "IPv4 CIDR block", info: 1, desc: "Determine the starting IP and the size of your VPC using CIDR notation.", ph: "10.0.0.0/16", req: true, hint: "CIDR block size must be between /16 and /28." },
+      { id: "ipv6", type: "radio", label: "IPv6 CIDR block", info: 1, opts: function () { return [["No IPv6 CIDR block", "No IPv6 CIDR block"], ["Amazon-provided IPv6 CIDR block", "Amazon-provided IPv6 CIDR block", "ไม่จำลอง"]]; } },
+      { id: "tenancy", type: "select", label: "Tenancy", info: 1, opts: function () { return [["Default", "Default"], ["Dedicated", "Dedicated"]]; } },
+      { id: "azs", type: "select", label: "Number of Availability Zones (AZs)", info: 1, desc: "Choose the number of AZs in which to provision subnets. We recommend at least two AZs for high availability.", show: more, opts: function () { return [[1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "pub", type: "select", label: "Number of public subnets", info: 1, desc: "The number of public subnets to add to your VPC. Use public subnets for web applications that need to be publicly accessible over the internet.", show: more, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "priv", type: "select", label: "Number of private subnets", info: 1, desc: "The number of private subnets to add to your VPC. Use private subnets to secure backend resources that don't need public access.", show: more, opts: function () { return [[0, "0"], [1, "1"], [2, "2"], [3, "3"]]; } },
+      { id: "nat", type: "seg", label: "NAT gateways ($)", info: 1, desc: "Choose the number of Availability Zones (AZs) in which to create NAT gateways. Note that there is a charge for each NAT gateway. (หน้าจริงปี 2025 มีตัวเลือก Regional - new เพิ่ม ยังไม่จำลอง)", show: more, opts: function () { return [["none", "None"], ["1az", "In 1 AZ"], ["perAz", "1 per AZ"]]; } },
+      { id: "s3", type: "seg", label: "VPC endpoints", info: 1, desc: "Endpoints can help reduce NAT gateway charges and improve security by accessing S3 directly from the VPC. By default, full access policy is used. You can customize this policy at any time.", show: more, opts: function () { return [[false, "None"], [true, "S3 Gateway"]]; } },
+      { id: "dnsHost", type: "check", label: "DNS options", info: 1, text: "Enable DNS hostnames", show: more },
+      { id: "dnsRes", type: "check", text: "Enable DNS resolution", show: more }] }]; },
     submit: "Create VPC",
-    onSubmit: function (V) { var r = V.mode === "VPC only" ? API.createVpc({ name: V.name, cidr: V.cidr, dns: false }) : API.createVpcAndMore({ name: V.name, cidr: V.cidr, azs: V.azs, pub: V.pub, priv: V.priv, nat: V.nat, s3: V.s3 === true || V.s3 === "true", dnsHost: V.dnsHost, dnsRes: V.dnsRes }); if (r.errors) return r; UI.sel.vpcs = r.res.id; return { msg: "สร้าง VPC " + r.res.id + " แล้ว" + (V.mode === "VPC only" ? " (มี main route table และ default security group มาให้อัตโนมัติ)" : " พร้อมซอย internet gateway และ route table") }; } });
+    onSubmit: function (V) { var r = V.mode === "VPC only" ? API.createVpc({ name: V.name, cidr: V.cidr, dns: false }) : API.createVpcAndMore({ name: V.name, cidr: V.cidr, azs: V.azs, pub: V.pub, priv: V.priv, nat: V.nat, s3: V.s3 === true || V.s3 === "true", dnsHost: V.dnsHost, dnsRes: V.dnsRes }); if (r.errors) return r; UI.sel.vpcs = r.res.id; return { msg: "สร้าง VPC " + (r.res.name || r.res.id) + " แล้ว" }; } });
 };
 PAGES["vpc-dns"] = function () {
   var v = find(S.vpcs, UI.params.id);
@@ -428,8 +467,8 @@ LISTS.igws = function () {
 };
 LISTS.nats = function () {
   return ({ key: "nats", kind: "nat", title: "NAT gateways", crumb: "VPC › NAT gateways", create: [], actions: [{ label: "Delete NAT gateway", page: "del", kind: "nat" }],
-    detail: function (r) { return [["NAT gateway ID", r.id], ["State", r.state], ["VPC", vname(r.vpcId)], ["Subnet", r.subnetId], ["Elastic IP allocation ID", r.eipId]]; }, rows: function () { return S.nats; },
-    cols: [["Name", function (r) { return r.name || "-"; }], ["NAT gateway ID", function (r) { return r.id; }], ["State", function (r) { return tagp(r.state, "ok"); }], ["VPC", function (r) { return vname(r.vpcId); }], ["Subnet", function (r) { return r.subnetId; }]] });
+    detail: function (r) { return [["NAT gateway ID", r.id], ["State", natPhase(r)], ["VPC", vname(r.vpcId)], ["Subnet", r.subnetId], ["Elastic IP allocation ID", r.eipId]]; }, rows: function () { return S.nats; },
+    cols: [["Name", function (r) { return r.name || "-"; }], ["NAT gateway ID", function (r) { return r.id; }], ["State", function (r) { var p = natPhase(r); return tagp(p === "available" ? "Available" : p === "pending" ? "Pending" : p, p === "available" ? "ok" : "warn"); }], ["VPC", function (r) { return vname(r.vpcId); }], ["Subnet", function (r) { return r.subnetId; }]] });
 };
 PAGES["igw-create"] = function () {
   return formPage({ name: "igw-create", crumb: "VPC › Internet gateways › Create internet gateway", title: "Create internet gateway", back: "igws", init: function () { return { name: "" }; },
@@ -469,23 +508,23 @@ PAGES["rtb-assoc"] = function () {
     submit: "Save associations", onSubmit: function (V) { var x = API.setAssoc(r.id, V.ids); return x.errors ? x : { msg: "บันทึกแล้ว" }; } });
 };
 LISTS.sgs = function () {
-  return ({ key: "sgs", kind: "sg", title: "Security groups", crumb: "VPC › Security groups", create: [{ label: "Create security group", page: "sg-create" }], actions: [{ label: "Edit inbound rules", page: "sg-inbound" }, { label: "Delete security groups", page: "del", kind: "sg" }],
-    rows: function () { return S.sgs; }, cols: [["Name", function (r) { return r.name; }], ["Security group ID", function (r) { return r.id; }], ["VPC", function (r) { return vname(r.vpcId); }], ["Inbound rules", function (r) { return String(r.inbound.length); }]],
-    detail: function (r) { return [["Description", r.desc], ["Inbound rules", h("div", {}, r.inbound.length ? r.inbound.map(function (x) { return h("div", { cls: "mono", text: (x.proto === "-1" ? "All traffic" : "tcp " + (x.from === x.to ? x.from : x.from + "-" + x.to)) + "  ←  " + (x.srcKind === "sg" ? "sg " + nm(find(S.sgs, x.src)) : x.src) }); }) : "ไม่มี (ปิดทุกอย่าง)")], ["Outbound rules", "All traffic → 0.0.0.0/0"]]; } });
+  return ({ key: "sgs", kind: "sg", title: "Security Groups", crumb: "EC2 › Security Groups", create: [{ label: "Create security group", page: "sg-create" }], actions: [{ label: "Edit inbound rules", page: "sg-inbound" }, { label: "Delete security groups", page: "del", kind: "sg" }],
+    rows: function () { return S.sgs; }, cols: [["Name", function () { return "–"; }], ["Security group ID", function (r) { return r.id; }], ["Security group name", function (r) { return r.name; }], ["VPC ID", function (r) { return vname(r.vpcId); }], ["Description", function (r) { return r.desc; }], ["Owner", function () { return "000000000000"; }], ["Inbound rules count", function (r) { return String(r.inbound.length); }], ["Outbound rules count", function (r) { return String(r.outbound.length || 1); }]],
+    detail: function (r) { return [["Security group name", r.name], ["Security group ID", r.id], ["Description", r.desc], ["VPC ID", vname(r.vpcId)], ["Owner", "000000000000"], ["Inbound rules count", r.inbound.length + " Permission entries"], ["Outbound rules count", (r.outbound.length || 1) + " Permission entries"]]; } });
 };
 PAGES["sg-create"] = function () {
-  return formPage({ name: "sg-create", crumb: "VPC › Security groups › Create security group", title: "Create security group", back: "sgs",
+  return formPage({ name: "sg-create", crumb: "EC2 › Security Groups › Create security group", title: "Create security group", back: "sgs", cards: true, lead: "A security group acts as a virtual firewall for your instance to control inbound and outbound traffic. To create a new security group, complete the fields below.",
     init: function () { var d = S.vpcs.filter(function (v) { return !v.isDefault; })[0]; return { name: "", desc: "", vpcId: d ? d.id : defaultVpc().id, rows: [] }; },
-    sections: function (V) { return [{ t: "Basic details", f: [{ id: "name", type: "text", label: "Security group name", req: true, hint: "แก้ชื่อและ description ไม่ได้หลังสร้าง" }, { id: "desc", type: "text", label: "Description", req: true }, { id: "vpcId", type: "select", label: "VPC", opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id)]; }); } }] },
-      { t: "Inbound rules", f: [{ type: "custom", id: "rules", render: function (V) { var box = h("div"); box.appendChild(ruleEditor(V, "rows", V.vpcId)); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] },
-      { t: "Outbound rules", f: [{ type: "custom", id: "out", render: function () { return h("div", { cls: "hint", text: "Allow all traffic → 0.0.0.0/0 (ค่าเริ่มต้นของ console)" }); } }] }]; },
-    submit: "Create security group", onSubmit: function (V) { var r = API.createSg(V); if (r.errors) return r; UI.sel.sgs = r.res.id; return { msg: "สร้างแล้ว" }; } });
+    sections: function (V) { return [{ t: "Basic details", ct: "Basic details", f: [{ id: "name", type: "text", label: "Security group name", info: 1, req: true, hint: "Name cannot be edited after creation." }, { id: "desc", type: "text", label: "Description", info: 1, req: true, ph: "Allows SSH access to developers" }, { id: "vpcId", type: "select", label: "VPC", info: 1, opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id)]; }); } }] },
+      { t: "Inbound rules", ct: "Inbound rules", f: [{ type: "custom", id: "rules", render: function (V) { var box = h("div"); if (!V.rows.length) box.appendChild(h("p", { style: "text-align:center", cls: "sub", text: "This security group has no inbound rules." })); box.appendChild(ruleEditor(V, "rows", V.vpcId)); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] },
+      { t: "Outbound rules", ct: "Outbound rules", f: [{ type: "custom", id: "out", render: function () { return tbl(["Type", "Protocol", "Port range", "Destination", "Description - optional"], [["All traffic", "All", "All", "Custom  0.0.0.0/0", ""]]); } }] }]; },
+    submit: "Create security group", onSubmit: function (V) { var r = API.createSg(V); if (r.errors) return r; UI.sel.sgs = r.res.id; return { msg: "Security group (" + r.res.id + " | " + r.res.name + ") was created successfully" }; } });
 };
 PAGES["sg-inbound"] = function () {
   var g = find(S.sgs, UI.params.id);
-  return formPage({ name: "sg-inbound", crumb: "VPC › Security groups › Edit inbound rules", title: "Edit inbound rules (" + g.name + ")", back: "sgs", init: function () { return { rows: ruleRowsFrom(g) }; },
-    sections: function () { return [{ t: "Inbound rules", f: [{ type: "custom", id: "rules", render: function (V) { var box = h("div"); box.appendChild(ruleEditor(V, "rows", g.vpcId, g.id)); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] }]; },
-    submit: "Save rules", onSubmit: function (V) { var r = API.setInbound(g.id, V.rows); return r.errors ? r : { msg: "บันทึกกฎแล้ว" }; } });
+  return formPage({ name: "sg-inbound", crumb: "EC2 › Security Groups › " + g.id + " - " + g.name + " › Edit inbound rules", title: "Edit inbound rules", back: "sgs", cards: true, lead: "Inbound rules control the incoming traffic that's allowed to reach the instance.", init: function () { return { rows: ruleRowsFrom(g) }; },
+    sections: function () { return [{ t: "Inbound rules", ct: "Inbound rules", f: [{ type: "custom", id: "rules", render: function (V) { var box = h("div"); box.appendChild(ruleEditor(V, "rows", g.vpcId, g.id)); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] }]; },
+    submit: "Save rules", onSubmit: function (V) { var r = API.setInbound(g.id, V.rows); return r.errors ? r : { msg: "Inbound security group rules successfully modified on security group (" + g.id + " | " + g.name + ")" }; } });
 };
 LISTS.keys = function () {
   return ({ key: "keys", kind: "key", title: "Key pairs", crumb: "EC2 › Network & Security › Key Pairs", create: [{ label: "Import key pair", page: "key-import" }, { label: "Create key pair", page: "key-create" }], actions: [{ label: "Delete key pair", page: "del", kind: "key" }],
@@ -518,24 +557,30 @@ PAGES["role-create"] = function () {
 };
 LISTS.repos = function () {
   return ({ key: "repos", kind: "repo", title: "Private repositories", crumb: "ECR › Private registry › Repositories", create: [{ label: "Create repository", page: "repo-create" }],
-    detail: function (r) { return [["Repository name", r.name], ["URI", r.uri], ["Image tag immutability", r.mutable ? "Mutable" : "Immutable"], ["Encryption", r.enc], ["Images", String(r.images.length)]]; }, actions: [{ label: "View push commands", page: "ecr-cmds" }, { label: "Docker push / pull (จำลอง)", page: "ecr-run" }, { label: "Delete", page: "del", kind: "repo" }], rows: function () { return S.repos; }, cols: [["Repository name", function (r) { return r.name; }], ["URI", function (r) { return r.uri; }], ["Tag immutability", function (r) { return r.mutable ? "Mutable" : "Immutable"; }]] });
+    detail: function (r) { return [["Repository name", r.name], ["URI", r.uri], ["Image tag immutability", r.mutable ? "Mutable" : "Immutable"], ["Encryption", r.enc], ["Images", String(r.images.length)]]; }, actions: [{ label: "View push commands", page: "ecr-cmds" }, { label: "Docker push / pull (จำลอง)", page: "ecr-run" }, { label: "Delete", page: "del", kind: "repo" }], rows: function () { return S.repos; }, cols: [["Repository name", function (r) { return r.name; }], ["URI", function (r) { return r.uri; }], ["Created at", function () { return "October 07, 2026, 09:00:00 (UTC+07)"; }], ["Tag immutability", function (r) { return r.mutable ? "Disabled" : "Enabled"; }], ["Scan frequency", function () { return "Manual"; }], ["Encryption type", function (r) { return r.enc; }], ["Pull through cache", function () { return "Inactive"; }]] });
 };
 PAGES["repo-create"] = function () {
-  return formPage({ name: "repo-create", crumb: "ECR › Private repositories › Create repository", title: "Create repository", back: "repos", init: function () { return { name: "", mut: "Mutable", enc: "AES-256" }; },
-    sections: function () { return [{ t: "General settings", f: [{ id: "name", type: "text", label: "Repository name", req: true, ph: "pharmacy/frontend", hint: "ใช้ namespace/ชื่อ ได้ เช่น project-a/nginx-web-app" }, { id: "mut", type: "radio", label: "Image tag immutability", opts: function () { return [["Mutable", "Mutable"], ["Immutable", "Immutable"]]; } }, { id: "enc", type: "radio", label: "Encryption configuration", opts: function () { return [["AES-256", "AES-256"], ["AWS KMS", "AWS KMS", "เสียเงินเพิ่ม"]]; } }] }]; },
-    submit: "Create", onSubmit: function (V) { var r = API.createRepo({ name: V.name, mutable: V.mut === "Mutable", enc: V.enc }); return r.errors ? r : { msg: "สร้าง repository แล้ว URI: " + r.res.uri }; } });
+  return formPage({ name: "repo-create", crumb: "Amazon ECR › Repositories › Create repository", title: "Create repository", back: "repos", init: function () { return { vis: "private", name: "", mut: false, enc: "AES-256" }; },
+    sections: function (V) { return [{ t: "General settings", f: [
+      { id: "vis", type: "radio", label: "Visibility settings", info: 1, desc: "Choose the visibility setting for the repository.", opts: function () { return [["private", "Private — Access is managed by IAM and repository policy permissions."], ["public", "Public — Publicly visible and accessible for image pulls.", "ไม่จำลอง"]]; } },
+      { type: "custom", id: "uriName", render: function (V) { return h("div", {}, [h("div", { cls: "l", style: "font-weight:600;font-size:.86rem", text: "Repository name" }), h("div", { cls: "hint", style: "margin-bottom:6px", text: "Provide a concise name. A developer should be able to identify the repository contents by the name." }), h("div", { style: "display:flex;gap:8px;align-items:center" }, [h("span", { style: "white-space:nowrap", text: "000000000000.dkr.ecr." + REGION + ".amazonaws.com/" }), h("div", { style: "flex:1" }, [exPick([["pharmacy/frontend", "pharmacy/frontend"], ["pharmacy/backend", "pharmacy/backend"]], function () { return V.name; }, function (v) { V.name = v; }, V, "_c_name", "pharmacy/frontend", "Repository name", false)])]), h("div", { cls: "hint", text: (V.name || "").length + " out of 256 characters maximum (2 minimum). The name must start with a letter and can only contain lowercase letters, numbers, hyphens, underscores, periods and forward slashes." }), F2err("name")]); } },
+      { id: "mut", type: "seg", label: "Tag immutability", info: 1, desc: "Enable tag immutability to prevent image tags from being overwritten by subsequent image pushes using the same tag. Disable tag immutability to allow image tags to be overwritten.", opts: function () { return [[false, "Disabled"], [true, "Enabled"]]; } },
+      { type: "custom", id: "infobox", render: function () { return h("div", { cls: "alert info", text: "ⓘ Once a repository is created, the visibility setting of the repository can't be changed." }); } }] },
+      { t: "Encryption settings", f: [{ id: "enc", type: "seg", label: "KMS encryption", info: 1, desc: "You can use AWS Key Management Service (KMS) to encrypt images stored in this repository, instead of using the default encryption settings.", opts: function () { return [["AES-256", "Disabled (AES-256)"], ["AWS KMS", "Enabled (AWS KMS)"]]; } }] }]; },
+    submit: "Create repository", onSubmit: function (V) { var r = API.createRepo({ name: V.name, mutable: !(V.mut === true || V.mut === "true"), enc: V.enc }); return r.errors ? r : { msg: "Successfully created repository " + r.res.name }; } });
 };
+function F2err(k) { var e = UI.form && UI.form.errors && UI.form.errors[k]; return e ? h("div", { cls: "err", style: "color:var(--bad)", text: e }) : null; }
 LISTS.insts = function () {
   return ({ key: "insts", kind: "inst", title: "Instances", crumb: "EC2 › Instances", create: [{ label: "Launch instances", page: "launch" }],
     actions: [
-      { label: "Connect (ทดสอบ SSH)", page: "ssh", when: function (r) { return r.state !== "terminated"; } },
-      { label: "Instance state → Reboot instance", run: function (r) { return API.instState(r.id, "reboot"); }, msg: "reboot แล้ว IP ไม่เปลี่ยน", when: function (r) { return r.state === "running"; } },
-      { label: "Instance state → Stop instance", run: function (r) { return API.instState(r.id, "stop"); }, msg: "stop แล้ว public IPv4 ที่ได้อัตโนมัติถูกคืน (private IP และ Elastic IP ยังอยู่) ไม่คิดค่าเครื่องแต่ยังคิดค่าดิสก์ ถ้าต้องการ IP คงที่ให้ใช้ Elastic IP", when: function (r) { return r.state === "running"; } },
-      { label: "Instance state → Start instance", run: function (r) { return API.instState(r.id, "start"); }, msg: "start แล้ว ถ้าเครื่องเคยมี public IP จะได้ IP ใหม่ที่ไม่ใช่ตัวเดิม (ระวัง Ansible/SSH config ที่จด IP เก่าไว้)", when: function (r) { return r.state === "stopped"; } },
-      { label: "Instance settings → Change instance type", page: "inst-type", when: function (r) { return r.state !== "terminated"; } },
-      { label: "Security → Modify IAM role", page: "inst-role", when: function (r) { return r.state !== "terminated"; } },
-      { label: "Instance state → Terminate (delete) instance", page: "del", kind: "inst", when: function (r) { return r.state !== "terminated"; } }],
-    rows: function () { return S.insts; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Instance ID", function (r) { return r.id; }], ["Instance state", function (r) { return stateTag(r.state); }], ["Instance type", function (r) { return r.type; }], ["Public IPv4 address", function (r) { return r.publicIp || "-"; }], ["Private IPv4 address", function (r) { return r.privateIp; }], ["Subnet", function (r) { return nm(find(S.subnets, r.subnetId)); }], ["Key name", function (r) { return r.keyName || "-"; }]],
+      { label: "Connect", btn: true, page: "ssh", when: function (r) { return r.state !== "terminated"; } },
+      { label: "Reboot instance", grp: "Instance state", run: function (r) { return API.instState(r.id, "reboot"); }, msg: "reboot แล้ว IP ไม่เปลี่ยน", when: function (r) { return r.state === "running"; } },
+      { label: "Stop instance", grp: "Instance state", run: function (r) { return API.instState(r.id, "stop"); }, msg: "stop แล้ว public IPv4 ที่ได้อัตโนมัติถูกคืน (private IP และ Elastic IP ยังอยู่) ไม่คิดค่าเครื่องแต่ยังคิดค่าดิสก์ ถ้าต้องการ IP คงที่ให้ใช้ Elastic IP", when: function (r) { return r.state === "running"; } },
+      { label: "Start instance", grp: "Instance state", run: function (r) { return API.instState(r.id, "start"); }, msg: "start แล้ว ถ้าเครื่องเคยมี public IP จะได้ IP ใหม่ที่ไม่ใช่ตัวเดิม (ระวัง Ansible/SSH config ที่จด IP เก่าไว้)", when: function (r) { return r.state === "stopped"; } },
+      { label: "Change instance type", page: "inst-type", when: function (r) { return r.state !== "terminated"; } },
+      { label: "Modify IAM role", page: "inst-role", when: function (r) { return r.state !== "terminated"; } },
+      { label: "Terminate (delete) instance", grp: "Instance state", page: "del", kind: "inst", when: function (r) { return r.state !== "terminated"; } }],
+    rows: function () { return S.insts; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Instance ID", function (r) { return r.id; }], ["Instance state", function (r) { return stateIcon(r.state, r); }], ["Instance type", function (r) { return r.type; }], ["Status check", function (r) { var ph = instPhase(r); return ph.check === "2/2 checks passed" ? h("span", { style: "display:inline-flex;gap:6px;align-items:center;white-space:nowrap" }, [icoEl("check", 15, "#1d8102"), "2/2 checks passed"]) : ph.check === "Initializing" ? h("span", { style: "display:inline-flex;gap:6px;align-items:center;white-space:nowrap" }, [icoEl("clock", 15, "#5f6b7a"), "Initializing"]) : "–"; }], ["Alarm status", function () { return "No alarms  +"; }], ["Availability Zone", function (r) { return r.az; }], ["Public IPv4 DNS", function (r) { var v = find(S.vpcs, r.vpcId); return v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "–"; }], ["Public IPv4 address", function (r) { return r.publicIp || "–"; }], ["Private IPv4 address", function (r) { return r.privateIp; }], ["Subnet", function (r) { return nm(find(S.subnets, r.subnetId)); }], ["Key name", function (r) { return r.keyName || "-"; }]],
     detail: function (r) {
       var v = find(S.vpcs, r.vpcId), dns = v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "-";
       var rows = [["Instance ID", r.id], ["Instance state", stateTag(r.state)], ["Public IPv4 address", r.publicIp || "-"], ["Private IPv4 addresses", r.privateIp], ["Public IPv4 DNS", dns + (dns === "-" && r.publicIp ? "  (VPC ต้องเปิดทั้ง DNS hostnames และ DNS resolution)" : "")], ["Instance type", r.type], ["Security groups", r.sgIds.map(function (id) { return nm(find(S.sgs, id)); }).join(", ")], ["IAM Role", r.profile || "-"], ["Elastic IP", r.eipId ? (find(S.eips, r.eipId) || {}).ip : "-"], ["Metadata", "tokens: " + r.imds.tokens + ", hop limit: " + r.imds.hop], ["Tags", r.tags.map(function (t) { return t.k + "=" + t.v; }).join(", ") || "-"]];
@@ -550,8 +595,8 @@ PAGES.ssh = function () {
   var inst = find(S.insts, UI.params.id); UI.held = UI.held == null ? (inst.keyName || "") : UI.held; UI.ctab = UI.ctab || "eic";
   var wrap = h("div");
   wrap.appendChild(crumbEl("EC2 › Instances › " + (inst.name || inst.id) + " › Connect to instance"));
-  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", { text: "Connect to instance" }), h("div", { cls: "sp" }, [h("button", { cls: "btn", type: "button", text: "Cancel", onclick: function () { go("insts"); } })])]));
-  wrap.appendChild(h("div", { cls: "hint", text: (inst.name || "") + " (" + inst.id + ")" }));
+  wrap.appendChild(h("div", { cls: "titlebar" }, [h("h1", {}, ["Connect to instance", h("a", { href: "#", cls: "infolink", text: "Info", onclick: function (e) { e.preventDefault(); } })]), h("div", { cls: "sp" }, [h("button", { cls: "btn", type: "button", text: "Cancel", onclick: function () { go("insts"); } })])]));
+  wrap.appendChild(h("p", { text: "Connect to your instance " + inst.id + (inst.name ? " (" + inst.name + ")" : "") + " using any of these options" }));
   var T = [["eic", "EC2 Instance Connect"], ["ssm", "Session Manager"], ["ssh", "SSH client"], ["serial", "EC2 serial console"]];
   var card = h("div", { cls: "card" });
   card.appendChild(h("div", { cls: "dtabs", role: "tablist" }, T.map(function (t) { return h("button", { type: "button", role: "tab", text: t[1], cls: t[0] === "serial" ? "off" : "", "aria-selected": String(UI.ctab === t[0]), onclick: function () { UI.ctab = t[0]; render(); } }); })));
@@ -567,13 +612,18 @@ PAGES.ssh = function () {
     body.appendChild(h("p", { cls: "hint", text: d.kind === "timeout" ? "timeout = ติดที่เครือข่าย (ข้อ ✗ ข้างบน) ยังไปไม่ถึงขั้นตรวจกุญแจ" : d.kind === "denied" ? "Permission denied = ถึงเครื่องแล้ว แต่กุญแจไม่ตรง" : "เข้าได้" }));
   } else if (UI.ctab === "eic") {
     var d2 = sshCheck(inst, inst.keyName), net = d2.steps.slice(0, 4), okEic = net.every(function (x) { return x.ok; });
-    body.appendChild(h("p", { text: "เชื่อมต่อผ่าน EC2 Instance Connect: ไม่ต้องใช้ไฟล์กุญแจ (ใช้สิทธิ์ IAM ของคุณ) แต่เครื่องต้องเข้าถึงได้ทาง port 22 เหมือน SSH" }));
+    body.appendChild(kvDom([["Instance ID", "⧉ " + inst.id + (inst.name ? " (" + inst.name + ")" : "")]]));
+    body.appendChild(h("div", { cls: "f" }, [h("label", { cls: "l", text: "Connection Type" }), h("div", { cls: "rcards" }, [h("div", { cls: "rcard on" }, [h("span", { style: "flex:none;width:14px;height:14px;border-radius:50%;border:2px solid #0972d3;background:radial-gradient(#0972d3 45%,#fff 50%)" }), h("div", {}, [h("div", { text: "Connect using EC2 Instance Connect" }), h("div", { cls: "sub", style: "font-size:.8rem", text: "Connect using the EC2 Instance Connect browser-based client, with a public IPv4 address." })])]), h("div", { cls: "rcard", style: "opacity:.6" }, [h("span", { style: "flex:none;width:14px;height:14px;border-radius:50%;border:2px solid #879596" }), h("div", {}, [h("div", { text: "Connect using EC2 Instance Connect Endpoint" }), h("div", { cls: "sub", style: "font-size:.8rem", text: "Connect using the EC2 Instance Connect browser-based client, with a private IPv4 address and a VPC endpoint. (ไม่จำลอง)" })])])])]));
+    body.appendChild(kvDom([["Public IP address", "⧉ " + (inst.publicIp || "-")]]));
+    body.appendChild(h("div", { cls: "f" }, [h("label", { cls: "l", text: "User name" }), h("div", { cls: "hint", text: "Enter the user name defined in the AMI used to launch the instance. If you didn't define a custom user name, use the default user name, " + (/ubuntu/i.test(inst.ami || "") ? "ubuntu" : "ec2-user") + "." }), (UI.cu = UI.cu || { v: /ubuntu/i.test(inst.ami || "") ? "ubuntu" : "ec2-user" }, exPick([["ubuntu", "ubuntu"], ["ec2-user", "ec2-user"], ["root", "root"]], function () { return UI.cu.v; }, function (v) { UI.cu.v = v; }, UI.cu, "_c", "ubuntu", "User name", false))]));
+    body.appendChild(h("div", { cls: "alert info", text: "ⓘ Note: In most cases, the default user name, " + (/ubuntu/i.test(inst.ami || "") ? "ubuntu" : "ec2-user") + ", is correct. However, read your AMI usage instructions to check if the AMI owner has changed the default AMI user name." }));
     body.appendChild(steps(net));
     body.appendChild(h("pre", { cls: "term", text: okEic ? "Connected (EC2 Instance Connect)  — ไม่ต้องมีกุญแจ" : "Failed to connect to your instance. EC2 Instance Connect is unable to connect to your instance (ติดที่เครือข่ายตามข้อ ✗)" }));
     body.appendChild(h("p", { cls: "hint", text: "เอกสาร: EC2 Instance Connect ต้องมีกฎขาเข้า และสิทธิ์ IAM แต่ไม่ต้องมี key pair และไม่ต้องมี instance profile (จำลองเงื่อนไข port 22 ด้วยกฎ SSH เดียวกับ My IP; ช่วง IP ของบริการ EIC ไม่ได้จำลอง)" }));
   } else if (UI.ctab === "ssm") {
     var c = sessionCheck(inst);
-    body.appendChild(h("p", { text: "เชื่อมต่อผ่าน Session Manager: ไม่ต้องเปิด port 22 และไม่ต้องมีกุญแจ แต่เครื่องต้องมี IAM role ที่มีสิทธิ์ SSM และ SSM Agent ที่ออนไลน์" }));
+    body.appendChild(h("b", { text: "Session Manager usage:" })); body.appendChild(h("ul", {}, ["Connect to your instance without SSH keys, a bastion host, or opening any inbound ports.", "Sessions are secured using an AWS Key Management Service key.", "You can log session commands and details in an Amazon S3 bucket or CloudWatch Logs log group.", "Configure sessions on the Session Manager Preferences page."].map(function (x) { return h("li", { text: x }); })));
+    body.appendChild(h("p", { cls: "hint", text: "ตัวจำลอง: เครื่องต้องมี IAM role ที่มีสิทธิ์ SSM และ SSM Agent ที่ออนไลน์" }));
     body.appendChild(steps(c.steps));
     body.appendChild(h("pre", { cls: "term", text: c.out }));
     body.appendChild(h("p", { cls: "hint", text: "เอกสาร: Session Manager ไม่ต้องมีกฎขาเข้าและไม่ต้องมี key pair แต่ต้องมี instance profile role (ชื่อ policy AmazonSSMManagedInstanceCore และเงื่อนไขทางออกเน็ตมาจากความจำ ยังไม่ยืนยัน)" }));
@@ -583,8 +633,8 @@ PAGES.ssh = function () {
 };
 PAGES.launch = function () {
   var dv = defaultVpc();
-  return formPage({ name: "launch", crumb: "EC2 › Instances › Launch an instance", title: "Launch an instance", back: "insts",
-    init: function () { return { name: "", tags: [], ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: "", autoIp: "Enable", sgMode: "existing", sgIds: [defaultSg(dv.id).id], nsName: "", nsDesc: "", nsSrc: "Anywhere-IPv4", diskSize: "8", diskType: "gp3", profile: "", tokens: "optional", hop: "1", count: "1", _ipTouched: false, _sn: "" }; },
+  return formPage({ name: "launch", crumb: "EC2 › Instances › Launch an instance", title: "Launch an instance", back: "insts", sectionInfo: true,
+    init: function () { return { name: "", tags: [], ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: "", autoIp: "Enable", sgMode: "existing", sgIds: [defaultSg(dv.id).id], nsName: "launch-wizard-" + (S.sgs.filter(function (g) { return /^launch-wizard-\d+$/.test(g.name); }).length + 1), nsDesc: "", nsSrc: "Anywhere-IPv4", nsSsh: true, nsHttps: false, nsHttp: false, _netEdit: false, diskSize: "8", diskType: "gp3", profile: "", tokens: "optional", hop: "1", count: "1", _ipTouched: false, _sn: "" }; },
     warn: function (V) { return S.acct === "free" && FREE.indexOf(V.type) < 0 ? "Instance type " + V.type + " ไม่อยู่ในรายการใช้ฟรีของบัญชีที่สร้างตั้งแต่ 15 ก.ค. 2025 (อาจถูกบล็อกหรือคิดเงิน หน้านี้แค่เตือน)" : ""; },
     sections: function (V) {
       var sn = V.subnetId ? find(S.subnets, V.subnetId) : S.subnets.filter(function (x) { return x.vpcId === V.vpcId; })[0];
@@ -592,11 +642,11 @@ PAGES.launch = function () {
       return [
       { t: "Name and tags", f: [{ id: "name", type: "text", label: "Name", ph: "pharmacy-jenkins" }, { type: "custom", id: "tags", render: function (V) { return rowsEditor("Add additional tags", V.tags, [function (r) { return inp(r, "k", "Key เช่น Role"); }, function (r) { return inp(r, "v", "Value เช่น jenkins"); }], function () { return { k: "", v: "" }; }, "Add tag"); } }] },
       { t: "Application and OS Images (Amazon Machine Image)", f: [{ id: "ami", type: "select", label: "Quick Start", opts: function () { return AMIS; } }] },
-      { t: "Instance type", f: [{ id: "type", type: "select", label: "Instance type", opts: function () { return ITYPES.map(function (t) { return [t, t + (FREE.indexOf(t) >= 0 ? "   Free tier eligible" : "")]; }); } }] },
-      { t: "Key pair (login)", f: [{ id: "keyName", type: "select", label: "Key pair name", opts: function () { return [["", "Proceed without a key pair (not recommended)"]].concat(S.keys.map(function (k) { return [k.name, k.name]; })); } },
+      { t: "Instance type", f: [{ id: "type", type: "select", label: "Instance type", hint: "Family: " + String(V.type).split(".")[0] + "    " + (VCPU[V.type] || 2) + " vCPU    " + (MEMGIB[V.type] || 4) + " GiB Memory    Current generation: true" + (FREE.indexOf(V.type) >= 0 ? "    Free tier eligible" : "") + "   ·   Compare instance types   ·   Get advice", opts: function () { return ITYPES.map(function (t) { return [t, t + (FREE.indexOf(t) >= 0 ? "   Free tier eligible" : "")]; }); } }] },
+      { t: "Key pair (login)", f: [{ id: "keyName", type: "select", label: "Key pair name - required", desc: "You can use a key pair to securely connect to your instance. Ensure that you have access to the selected key pair before you launch the instance.", opts: function () { return [["", "Proceed without a key pair (not recommended)"]].concat(S.keys.map(function (k) { return [k.name, k.name]; })); } },
         { type: "custom", id: "newkey", render: function (V, rr) {
           var nk = V._nk, box = h("div", {});
-          if (!nk) { box.appendChild(h("a", { href: "#", text: "Create new key pair", onclick: function (e) { e.preventDefault(); V._nk = { name: "", type: "ED25519", fmt: "pem", err: "" }; rr(); } })); return box; }
+          if (!nk) { box.appendChild(h("a", { href: "#", text: "↻   Create new key pair", onclick: function (e) { e.preventDefault(); V._nk = { name: "", type: "ED25519", fmt: "pem", err: "" }; rr(); } })); return box; }
           var nm = exPick([["pharmacy-admin", "pharmacy-admin"], ["pharmacy-admin-manual", "pharmacy-admin-manual"]], function () { return nk.name; }, function (v) { nk.name = v; }, nk, "_c", "ชื่อ key pair", "New key pair name", false);
           function rad(k, label, opts) { return h("div", { cls: "opt" }, [h("b", { text: label + "  " })].concat(opts.map(function (o) { return h("label", {}, [h("input", { type: "radio", name: "nk" + k, checked: nk[k] === o[0], onchange: function () { nk[k] = o[0]; } }), " " + o[1] + "  "]); }))); }
           box.appendChild(h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("b", { text: "Create key pair" }), h("p", {}, ["Key pair name ", nm]), rad("type", "Key pair type", [["RSA", "RSA"], ["ED25519", "ED25519"]]), rad("fmt", "Private key file format", [["pem", ".pem"], ["ppk", ".ppk"]]),
@@ -605,13 +655,14 @@ PAGES.launch = function () {
             h("button", { type: "button", cls: "btn pri", text: "Create key pair", onclick: function () { var r = API.createKey({ name: nk.name, type: nk.type, fmt: nk.fmt }); if (r.errors) { nk.err = r.errors.name; rr(); return; } V.keyName = r.res.name; V._nk = null; flash("ok", "สร้าง key pair " + r.res.name + " แล้ว ไฟล์ " + r.res.file + " ถูกดาวน์โหลดอัตโนมัติ นี่คือโอกาสเดียวที่จะเก็บ private key (จำลอง) และเลือกให้ในฟอร์มแล้ว"); rr(); } })])]));
           return box; } }] },
       { t: "Network settings", f: [
-        { id: "vpcId", type: "select", label: "VPC", opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id) + " · " + v.cidr]; }); }, onchange: function (V) { V.subnetId = ""; V.sgIds = [defaultSg(V.vpcId).id]; } },
-        { id: "subnetId", type: "select", label: "Subnet", opts: function (V) { return [["", "No preference"]].concat(S.subnets.filter(function (x) { return x.vpcId === V.vpcId; }).map(function (x) { return [x.id, nm(x) + " · " + x.az + " · " + x.cidr]; })); } },
-        { id: "autoIp", type: "select", label: "Auto-assign Public IP", opts: function () { return [["Enable", "Enable"], ["Disable", "Disable"]]; }, hint: "ค่าเริ่มต้นตามซอยที่เลือก (ซอยที่ไม่ใช่ default เริ่มเป็น Disable ถ้ายังไม่ได้ติ๊กที่ Edit subnet settings)" },
-        { id: "sgMode", type: "radio", label: "Firewall (security groups)", opts: function () { return [["new", "Create security group"], ["existing", "Select existing security group"]]; } },
+        { type: "custom", id: "nethead", render: function (V, rr) { var sn0 = V.subnetId ? find(S.subnets, V.subnetId) : null, ed = !!V._netEdit; return h("div", {}, [h("div", { style: "display:flex;justify-content:flex-end" }, [h("button", { cls: "btn", type: "button", text: ed ? "Done" : "Edit", onclick: function () { V._netEdit = !V._netEdit; rr(); } })]), ed ? null : kvDom([["Network", vname(V.vpcId) + " · " + (find(S.vpcs, V.vpcId) || {}).cidr], ["Subnet", sn0 ? nm(sn0) + " · " + sn0.az + " · " + sn0.cidr : "No preference (Default subnet in any availability zone)"], ["Auto-assign public IP", V.autoIp], ["", "Additional charges apply when outside of free tier allowance"]])]); } },
+        { id: "vpcId", type: "select", label: "VPC", info: 1, show: function (V) { return V._netEdit; }, opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id) + " · " + v.cidr]; }); }, onchange: function (V) { V.subnetId = ""; V.sgIds = [defaultSg(V.vpcId).id]; } },
+        { id: "subnetId", type: "select", label: "Subnet", info: 1, show: function (V) { return V._netEdit; }, opts: function (V) { return [["", "No preference"]].concat(S.subnets.filter(function (x) { return x.vpcId === V.vpcId; }).map(function (x) { return [x.id, nm(x) + " · " + x.az + " · " + x.cidr]; })); } },
+        { id: "autoIp", type: "select", label: "Auto-assign public IP", info: 1, show: function (V) { return V._netEdit; }, opts: function () { return [["Enable", "Enable"], ["Disable", "Disable"]]; }, hint: "ค่าเริ่มต้น Enable เมื่อใช้ default subnet และ Disable เมื่อใช้ subnet ที่ไม่ใช่ default (ตามเอกสาร EC2)" },
+        { id: "sgMode", type: "rcards", label: "Firewall (security groups)", info: 1, desc: "A security group is a set of firewall rules that control the traffic for your instance. Add rules to allow specific traffic to reach your instance.", opts: function () { return [["new", "Create security group"], ["existing", "Select existing security group"]]; } },
         { id: "sgIds", type: "multi", label: "Common security groups", show: function (V) { return V.sgMode === "existing"; }, opts: function (V) { return sgOpts(V.vpcId); } },
-        { id: "nsName", type: "text", label: "Security group name", show: function (V) { return V.sgMode === "new"; } }, { id: "nsDesc", type: "text", label: "Description", show: function (V) { return V.sgMode === "new"; } },
-        { id: "nsSrc", type: "select", label: "Allow SSH traffic from", show: function (V) { return V.sgMode === "new"; }, opts: function () { return [["Anywhere-IPv4", "Anywhere (0.0.0.0/0)"], ["My IP", "My IP"]]; }, hint: "wizard ใส่กฎ SSH ให้เอง ค่าเริ่มต้นเปิดจากทุก IP ซึ่งไม่ปลอดภัยสำหรับของจริง" }] },
+        { type: "custom", id: "newsg", show: function (V) { return V.sgMode === "new"; }, render: function (V, rr) { return h("div", {}, [h("p", { text: "We'll create a new security group called '" + V.nsName + "' with the following rules:" }), h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: !!V.nsSsh, onchange: function (e) { V.nsSsh = e.target.checked; rr(); } }), h("span", {}, ["Allow SSH traffic from", h("small", { text: "Helps you connect to your instance" })]), h("select", { "aria-label": "SSH source", onchange: function (e) { V.nsSrc = e.target.value; rr(); } }, [["Anywhere-IPv4", "Anywhere 0.0.0.0/0"], ["My IP", "My IP " + S.myIp + "/32"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: V.nsSrc === o[0] ? "selected" : null }); }))]), h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: !!V.nsHttps, onchange: function (e) { V.nsHttps = e.target.checked; } }), h("span", {}, ["Allow HTTPS traffic from the internet", h("small", { text: "To set up an endpoint, for example when creating a web server" })])]), h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: !!V.nsHttp, onchange: function (e) { V.nsHttp = e.target.checked; } }), h("span", {}, ["Allow HTTP traffic from the internet", h("small", { text: "To set up an endpoint, for example when creating a web server" })])]), V.nsSsh && V.nsSrc === "Anywhere-IPv4" ? h("div", { cls: "alert warn", style: "margin-top:8px" }, ["⚠ Rules with source of 0.0.0.0/0 allow all IP addresses to access your instance. We recommend setting security group rules to allow access from known IP addresses only."]) : null]); } },
+        { id: "nsName", type: "text", label: "Security group name", show: function (V) { return V.sgMode === "new"; }, hint: "ชื่อและ description แก้ไม่ได้หลังสร้าง" }, { id: "nsDesc", type: "text", label: "Description", show: function (V) { return V.sgMode === "new"; }, desc: "จำเป็นต้องกรอก (ของจริง wizard เติมให้ เช่น launch-wizard-N created <วันเวลา>)" }] },
       { t: "Configure storage", f: [{ id: "diskSize", type: "text", label: "Size (GiB)" }, { id: "diskType", type: "select", label: "Volume type", opts: function () { return [["gp3", "gp3"], ["gp2", "gp2"]]; } }] },
       { t: "Advanced details", f: [{ id: "profile", type: "select", label: "IAM instance profile", opts: function () { return [["", "-"]].concat(S.roles.map(function (r) { return [r.profile, r.profile]; })); } },
         { id: "tokens", type: "select", label: "Metadata version", opts: function () { return [["optional", "V1 and V2 (token optional)"], ["required", "V2 only (token required)"]]; } },
@@ -620,13 +671,13 @@ PAGES.launch = function () {
     summary: function (V) {
       var gs = V.sgMode === "new" ? ["(สร้างใหม่) " + (V.nsName || "-")] : V.sgIds.map(function (id) { return nm(find(S.sgs, id)); });
       var am = AMIS.filter(function (a) { return a[0] === V.ami; })[0];
-      return h("div", {}, [h("div", { cls: "f" }, [h("label", { cls: "l", text: "Number of instances" }), h("input", { type: "text", value: V.count, "aria-label": "Number of instances", oninput: function (e) { V.count = e.target.value; } })]),
+      return h("div", {}, [h("div", { cls: "f" }, [h("label", { cls: "l", text: "Number of instances" }), exPick([["1", "1"], ["2", "2"], ["3", "3"], ["9", "9"]], function () { return V.count; }, function (v) { V.count = v; }, V, "_ccount", "1", "Number of instances", false)]),
         kvDom([["Software Image (AMI)", am ? am[1] : V.ami], ["Virtual server type (instance type)", V.type], ["Firewall (security group)", gs.join(", ") || "-"], ["Storage (volumes)", V.diskSize + " GiB " + V.diskType]])]);
     },
     submit: "Launch instance",
-    onSubmit: function (V) { var r = API.launch({ name: V.name, tags: V.tags, ami: V.ami, type: V.type, keyName: V.keyName, vpcId: V.vpcId, subnetId: V.subnetId, autoIp: V.autoIp, sgIds: V.sgIds, newSg: V.sgMode === "new" ? { name: V.nsName, desc: V.nsDesc, src: V.nsSrc } : null, diskSize: V.diskSize, diskType: V.diskType, profile: V.profile, tokens: V.tokens, hop: V.hop, count: V.count });
+    onSubmit: function (V) { var r = API.launch({ name: V.name, tags: V.tags, ami: V.ami, type: V.type, keyName: V.keyName, vpcId: V.vpcId, subnetId: V.subnetId, autoIp: V.autoIp, sgIds: V.sgIds, newSg: V.sgMode === "new" ? { name: V.nsName, desc: V.nsDesc || (V.nsName + " created " + new Date().toISOString().slice(0, 19)), src: V.nsSrc, ssh: V.nsSsh, https: V.nsHttps, http: V.nsHttp } : null, diskSize: V.diskSize, diskType: V.diskType, profile: V.profile, tokens: V.tokens, hop: V.hop, count: V.count });
       if (r.errors) { var e = r.errors; if (e.newSgName) e.nsName = e.newSgName; return r; }
-      UI.sel.insts = r.res[0].id; return { msg: "เปิดเครื่อง " + r.res.length + " เครื่องแล้ว" + (r.res[0].publicIp ? "" : " (ไม่มี public IP)") }; } });
+      UI.sel.insts = r.res[0].id; return { msg: "Successfully initiated launch of instance (" + r.res.map(function (x) { return x.id; }).join(", ") + ")" + (r.res[0].publicIp ? "" : "  (ไม่มี public IP)") }; } });
 };
 LISTS.tgs = function () {
   return ({ key: "tgs", kind: "tg", title: "Target groups", crumb: "EC2 › Load Balancing › Target Groups", create: [{ label: "Create target group", page: "tg-create" }], actions: [{ label: "Register targets", page: "tg-register" }],
@@ -661,9 +712,9 @@ PAGES["tg-register"] = function () {
 };
 LISTS.albs = function () {
   return ({ key: "albs", kind: "alb", title: "Load balancers", crumb: "EC2 › Load Balancing › Load Balancers", create: [{ label: "Create load balancer", page: "alb-create" }],
-    rows: function () { return S.albs; }, cols: [["Name", function (r) { return r.name; }], ["DNS name", function (r) { return r.dns; }], ["State", function () { return tagp("Active", "ok"); }], ["VPC", function (r) { return vname(r.vpcId); }], ["Type", function () { return "application"; }], ["Scheme", function (r) { return r.scheme; }]],
+    rows: function () { return S.albs; }, cols: [["Name", function (r) { return r.name; }], ["DNS name", function (r) { return r.dns; }], ["State", function (r) { return albPhase(r) === "active" ? tagp("Active", "ok") : tagp("Provisioning", "warn"); }], ["VPC", function (r) { return vname(r.vpcId); }], ["Type", function () { return "application"; }], ["Scheme", function (r) { return r.scheme; }]],
     detail: function (r) { var hs = albHealth(r); return [["Listeners", h("div", {}, r.listeners.map(function (l) { return h("div", { text: "HTTP:" + l.port + " → " + nm(find(S.tgs, l.tgId)) }); }))], ["Availability Zones", r.subnetIds.map(function (id) { return find(S.subnets, id).az; }).join(", ")], ["Security groups", r.sgIds.map(function (id) { return nm(find(S.sgs, id)); }).join(", ")],
-      ["Target health", h("div", {}, hs.length ? hs.map(function (x) { return x.none ? h("div", { text: x.t.name + ": ยังไม่มี target ลงทะเบียน" }) : h("div", {}, [tagp(x.state, x.ok ? "ok" : (x.state === "unused" ? "warn" : "bad")), " " + x.t.name + " · " + nm(x.inst) + ":" + x.port + (x.ok ? "" : "  — " + x.why)]); }) : "-")],
+      ["Target health", h("div", {}, hs.length ? hs.map(function (x) { return x.none ? h("div", { text: x.t.name + ": ยังไม่มี target ลงทะเบียน" }) : h("div", {}, [tagp(x.state, x.ok ? "ok" : (x.state === "unused" || x.state === "initial" ? "warn" : "bad")), " " + x.t.name + " · " + nm(x.inst) + ":" + x.port + (x.ok ? "" : "  — " + x.why)]); }) : "-")],
       ["หมายเหตุ", h("div", { cls: "hint" }, ["จำลองว่าแอปตอบ 200 ที่ health check path (lab นี้ยังไม่มีแอปจริง)", failOpen(hs) ? " · target group " + failOpen(hs) + " ไม่มี target ที่ healthy เลย ALB จะ fail open คือส่งคำขอไปทุกตัวโดยไม่สนสถานะ" : ""])]]; } });
 };
 PAGES["alb-create"] = function () {
@@ -686,7 +737,7 @@ LISTS.users = function () {
   return ({ key: "users", kind: "user", title: "Users", crumb: "IAM › Users", create: [{ label: "Create user", page: "user-create" }],
     actions: [{ label: "Add permissions / detach policies", page: "user-perm" }],
     detail: function (r) { return [["User name", r.name], ["ARN", "arn:aws:iam::000000000000:user/" + r.name], ["Permissions", r.policies.join(", ") || "ไม่มี"], ["Access keys", r.keys.length + " ชุด"]]; },
-    rows: function () { return S.users; }, cols: [["User name", function (r) { return r.name; }], ["Permissions policies", function (r) { return String(r.policies.length); }], ["Access keys", function (r) { return r.keys.map(function (k) { return k.id + (k.active ? "" : " (inactive)"); }).join(", ") || "-"; }]] });
+    rows: function () { return S.users; }, desc: "An IAM user is an identity with long-term credentials that is used to interact with AWS in an account.", cols: [["User name", function (r) { return r.name; }], ["Path", function () { return "/"; }], ["Group", function () { return "0"; }], ["Last activity", function () { return "-"; }], ["MFA", function () { return "-"; }], ["Password age", function () { return "-"; }], ["Console last sign-in", function () { return "-"; }], ["Access key ID", function (r) { return r.keys.map(function (k) { return (k.active ? "Active - " : "Inactive - ") + k.id; }).join(", ") || "-"; }]] });
 };
 LISTS.policies = function () {
   return ({ key: "policies", kind: "policy", title: "Policies", crumb: "IAM › Policies",
@@ -717,7 +768,15 @@ function tilesPage(crumb, title, tiles, buttons) {
   return wrap;
 }
 PAGES["vpc-dash"] = function () { return tilesPage("VPC › VPC dashboard", "VPC dashboard", [["VPCs", S.vpcs.length, "vpcs"], ["Subnets", S.subnets.length, "subnets"], ["Route tables", S.rtbs.length, "rtbs"], ["Internet gateways", S.igws.length, "igws"], ["Security groups", S.sgs.length, "sgs"]], [["Create VPC", "vpc-create", "vpcs"]]); };
-PAGES["ec2-dash"] = function () { return tilesPage("EC2 › Dashboard", "Dashboard", [["Instances (running)", liveInsts().filter(function (i) { return i.state === "running"; }).length, "insts"], ["Key pairs", S.keys.length, "keys"], ["Security groups", S.sgs.length, "sgs"], ["Load balancers", S.albs.length, "albs"], ["Target groups", S.tgs.length, "tgs"]], [["Launch instance", "launch", "insts"]]); };
+PAGES["ec2-dash"] = function () {
+  var w = tilesPage("EC2 › Dashboard", "Dashboard", [["Instances (running)", liveInsts().filter(function (i) { return i.state === "running"; }).length, "insts"], ["Key pairs", S.keys.length, "keys"], ["Security groups", S.sgs.length, "sgs"], ["Load balancers", S.albs.length, "albs"], ["Target groups", S.tgs.length, "tgs"]], []);
+  var dv = S.vpcs.filter(function (v) { return v.isDefault; })[0];
+  var cards = h("div", { cls: "awscards", style: "margin-bottom:14px" }, [
+    h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h3", {}, ["Launch instance"]), h("p", { cls: "sub", text: "To get started, launch an Amazon EC2 instance, which is a virtual server in the cloud." }), h("div", { style: "display:flex;gap:8px" }, [h("button", { cls: "btn pri", type: "button", text: "Launch instance ▾", onclick: function () { go("launch", {}, "EC2"); } })]), h("p", { cls: "sub", style: "margin-top:12px", text: "Note: Your instances will launch in the Asia Pacific (Singapore) Region" })])]),
+    h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h3", {}, ["Service health"]), h("div", {}, [h("button", { cls: "btn", type: "button" }, ["AWS Health Dashboard ", icoEl("ext", 14)])]), h("div", { cls: "sub", style: "margin-top:10px", text: "Region" }), h("div", { text: "Asia Pacific (Singapore)" }), h("div", { cls: "sub", style: "margin-top:8px", text: "Status" }), h("div", { style: "color:#1d8102;display:flex;gap:6px;align-items:center" }, [icoEl("check", 15), "This service is operating normally."])])]),
+    h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h3", {}, ["Account attributes"]), h("div", { cls: "sub", text: "Default VPC" }), h("div", {}, [h("a", { href: "#", text: dv ? dv.id : "-", onclick: function (e) { e.preventDefault(); go("vpcs", {}, "VPC"); } })]), h("div", { cls: "sub", style: "margin-top:8px", text: "Settings" }), h("div", {}, ["Data protection and security", h("br"), "Allowed AMIs", h("br"), "Zones", h("br"), "EC2 Serial Console", h("br"), "Default credit specification", h("br"), "EC2 console preferences"].map(function (x) { return typeof x === "string" ? h("a", { href: "#", style: "display:block;text-decoration:none", text: x, onclick: function (e) { e.preventDefault(); } }) : null; }).filter(Boolean))])])]);
+  w.insertBefore(cards, w.children[2]); return w;
+};
 
 function principalOpts() {
   return liveInsts().filter(function (i) { return i.state === "running"; }).map(function (i) { return ["inst:" + i.id, "เครื่อง " + (i.name || i.id) + (i.profile ? "  (role: " + i.profile + ")" : "  (ไม่มี role)")]; }).concat(S.users.map(function (u) { return ["user:" + u.id, "IAM user " + u.name + " (aws configure บนเครื่องเรา)"]; }));
@@ -768,25 +827,30 @@ PAGES["user-perm"] = function () {
     submit: "Save", onSubmit: function (V) { var x = API.setUserPolicies(u.id, V.pol); return x.errors ? x : { msg: "บันทึกแล้ว" }; } });
 };
 PAGES["user-create"] = function () {
-  return formPage({ name: "user-create", crumb: "IAM › Users › Create user", title: "Create user", back: "users", steps: 3, info: "เอกสาร IAM แนะนำให้ใช้ IAM role หรือ federation แทน user ที่มี access key ระยะยาว หน้านี้จำลองไว้ให้เห็นขั้นตอนตอนตั้ง aws configure สำหรับรัน terraform",
-    init: function () { return { name: "", pol: ["AdministratorAccess"] }; },
-    sections: function () { return [
-      { step: 0, t: "Step 1: Specify user details", f: [{ id: "name", type: "text", label: "User name", req: true, ph: "terraform-admin" }] },
-      { step: 1, t: "Step 2: Set permissions (Attach policies directly)", f: [{ id: "pol", type: "multi", opts: function () { return POLICIES.map(function (p) { return [p, p]; }); }, hint: "รัน terraform apply ของ lab นี้ต้องมีสิทธิ์สร้าง VPC, EC2, IAM, ECR, ELB จึงใช้ AdministratorAccess เฉพาะบัญชีฝึกนี้" }] },
-      { step: 2, t: "Step 3: Review and create", f: [{ type: "custom", id: "rv", render: function (V) { return kvDom([["User name", V.name || "-"], ["Permissions", V.pol.join(", ") || "ไม่มี"]]); } }] }]; },
-    submit: "Create user", onSubmit: function (V) { var x = API.createUser({ name: V.name, policies: V.pol }); if (x.errors) { UI.form.step = 0; return x; } UI.sel.users = x.res.id; return { msg: "สร้าง user " + V.name + " แล้ว ไปที่ Security credentials เพื่อสร้าง access key", next: "detail", nextParams: { kind: "user", id: x.res.id, from: "users", tab: "sec" } }; } });
+  return formPage({ name: "user-create", crumb: "IAM › Users › Create user", title: "Create user", back: "users", steps: 3,
+    init: function () { return { name: "", pol: ["AdministratorAccess"], permMode: "attach" }; },
+    sections: function (V) { return [
+      { step: 0, t: "Step 1: Specify user details", ct: "User details", f: [{ id: "name", type: "text", label: "User name", req: true, ph: "terraform-admin", desc: "The user name can have up to 64 characters. Valid characters: A-Z, a-z, 0-9, and + = , . @ _ - (hyphen)" },
+        { type: "custom", id: "console", render: function () { return h("div", {}, [h("label", { cls: "opt" }, [h("input", { type: "checkbox", disabled: true }), h("span", {}, ["Provide user access to the AWS Management Console - optional", h("small", { text: "If you're providing console access to a person, it's a best practice to manage their access in IAM Identity Center. (ไม่จำลอง)" })])]), h("div", { cls: "alert info", style: "margin-top:10px", text: "ⓘ If you are creating programmatic access through access keys or service-specific credentials for AWS CodeCommit or Amazon Keyspaces, you can generate them after you create this IAM user. Learn more" })]); } }] },
+      { step: 1, t: "Step 2: Set permissions", ct: "Permissions options", f: [{ id: "permMode", type: "rcards", opts: function () { return [["group", "Add user to group", "Add user to an existing group, or create a new one. We recommend using groups to manage user permissions by job function."], ["copy", "Copy permissions", "Copy all group memberships, attached managed policies, and inline policies from an existing user."], ["attach", "Attach policies directly", "Attach a managed policy directly to a user. As a best practice, we recommend attaching policies to a group instead. Then, add the user to the appropriate group."]]; }, onchange: function (V) { V.permMode = "attach"; } }] },
+      { step: 1, t: "Step 2: Set permissions", ct: "Permissions policies (" + V.pol.length + "/1204)", f: [{ id: "pol", type: "multi", opts: function () { return POLICIES.map(function (p) { return [p, p]; }); }, hint: "รัน terraform apply ของ lab นี้ต้องมีสิทธิ์สร้าง VPC, EC2, IAM, ECR, ELB จึงใช้ AdministratorAccess เฉพาะบัญชีฝึกนี้" }] },
+      { step: 2, t: "Step 3: Review and create", ct: "User details", f: [{ type: "custom", id: "rv", render: function (V) { return kvDom([["User name", V.name || "-"], ["Console password type", "None"], ["Require password reset", "No"]]); } }] },
+      { step: 2, t: "Step 3: Review and create", ct: "Permissions summary", f: [{ type: "custom", id: "rv2", render: function (V) { return tbl(["Name", "Type", "Used as"], V.pol.map(function (p) { return [p, "AWS managed", "Permissions policy"]; }), "ไม่มี permissions"); } }] }]; },
+    submit: "Create user", onSubmit: function (V) { var x = API.createUser({ name: V.name, policies: V.pol }); if (x.errors) { UI.form.step = 0; return x; } UI.sel.users = x.res.id; return { msg: "User created successfully: " + V.name + " (ไปที่ Security credentials เพื่อสร้าง access key)", next: "detail", nextParams: { kind: "user", id: x.res.id, from: "users", tab: "sec" } }; } });
 };
 PAGES["ak-create"] = function () {
   var u = find(S.users, UI.params.id);
+  var USE = [["Command Line Interface (CLI)", "You plan to use this access key to enable the AWS CLI to access your AWS account."], ["Local code", "You plan to use this access key to enable application code in a local development environment to access your AWS account."], ["Application running on an AWS compute service", "You plan to use this access key to enable application code running on an AWS compute service like Amazon EC2, Amazon ECS, or AWS Lambda to access your AWS account."], ["Third-party service", "You plan to use this access key to enable access for a third-party application or service that monitors or manages your AWS resources."], ["Application running outside AWS", "You plan to use this access key to authenticate workloads running in your data center or other infrastructure outside of AWS that needs to access your AWS resources."], ["Other", "Your use case is not listed here."]];
   return formPage({ name: "ak-create-" + u.id, crumb: "IAM › Users › " + u.name + " › Create access key", title: "Create access key", back: "users", steps: 2,
     init: function () { return { use: "Command Line Interface (CLI)", ack: false, desc: "" }; },
     sections: function (V) { return [
-      { step: 0, t: "Access key best practices & alternatives", f: [{ id: "use", type: "radio", label: "Use case", opts: function () { return ["Command Line Interface (CLI)", "Local code", "Application running on an AWS compute service", "Third-party service", "Application running outside AWS", "Other"].map(function (x) { return [x, x]; }); }, hint: "ชื่อ use case และกล่องยืนยันมาจากความจำ (เอกสารบอกให้เลือก use case แล้วกด Next)" }, { id: "ack", type: "check", text: "I understand the above recommendation and want to proceed to create an access key.", show: function (V) { return V.use === "Command Line Interface (CLI)"; } }] },
-      { step: 1, t: "Set description tag - optional", f: [{ id: "desc", type: "text", label: "Description tag value", ph: "aws configure บนเครื่องเรา" }] }]; },
+      { step: 0, t: "Step 1: Access key best practices & alternatives", ct: "Use case", f: [{ id: "use", type: "rcards", stack: true, opts: function () { return USE.map(function (x) { return [x[0], x[0], x[1]]; }); } },
+        { type: "custom", id: "bp", render: function (V) { return V.use === "Command Line Interface (CLI)" ? h("div", {}, [h("div", { cls: "alert warn" }, [h("b", { text: "Alternative recommended" }), h("ul", {}, [h("li", { text: "Use AWS CloudShell, a browser-based CLI, to run commands directly from the AWS Management Console." }), h("li", { text: "Use the AWS CLI V2 and enable authentication through a user in IAM Identity Center." })])]), h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: !!V.ack, onchange: function (e) { V.ack = e.target.checked; } }), h("span", { text: "I understand the above recommendation and want to proceed to create an access key." })])]) : h("div", { cls: "alert info" }, [h("b", { text: "It's okay to use an access key for this use case, but follow the best practices:" }), h("ul", {}, ["Never store your access key in plain text, in a code repository, or in code.", "Disable or delete access keys when no longer needed.", "Enable least-privilege permissions.", "Rotate access keys regularly."].map(function (x) { return h("li", { text: x }); }))]); } }] },
+      { step: 1, t: "Step 2: Set description tag - optional", ct: "Description tag", f: [{ id: "desc", type: "text", label: "Description tag value", desc: "Describe the purpose of this access key and where it will be used. A good description will help you rotate this access key confidently later.", ph: "aws configure บนเครื่องเรา" }] }]; },
     submit: "Create access key", onSubmit: function (V) {
       if (V.use === "Command Line Interface (CLI)" && !V.ack) { UI.form.step = 0; return E("ack", "ต้องติ๊กยืนยันก่อนไปต่อ"); }
       var x = API.createAccessKey(u.id, V.use, V.desc); if (x.errors) return x;
-      UI.secrets = UI.secrets || {}; UI.secrets[x.res.id] = x.secret; return { msg: "สร้าง access key แล้ว", next: "ak-retrieve", nextParams: { id: u.id, key: x.res.id } }; } });
+      UI.secrets = UI.secrets || {}; UI.secrets[x.res.id] = x.secret; return { msg: "Access key created", next: "ak-retrieve", nextParams: { id: u.id, key: x.res.id } }; } });
 };
 PAGES["ak-retrieve"] = function () {
   var u = find(S.users, UI.params.id), k = u && u.keys.filter(function (x) { return x.id === UI.params.key; })[0], sec = (UI.secrets || {})[UI.params.key], wrap = h("div");
@@ -850,27 +914,41 @@ PAGES.del = function () {
 var TERM = { lines: ["Console Lab terminal (จำลอง) พิมพ์ help ดูคำสั่ง", "ลองตามลำดับ: aws configure → cd ~/Desktop/work/pharmacy-aws-lab/terraform → terraform init → terraform apply → cd ../ansible → ansible-inventory --graph → ansible-playbook site.yml", ""], hist: [], hi: 0, ask: null };
 function termPrompt() { var ri = rmInst(); if (ri) return rmPrompt(ri); return "swd@laptop:" + S.laptop.cwd.replace(HOME, "~") + "$ "; }
 function termRun(raw) {
-  var out = document.getElementById("termout"), r;
+  if (TERM.busy) return;
+  var r;
   if (TERM.ask) { var a = TERM.ask; TERM.ask = null; TERM.lines.push(a.label + (a.secret ? "" : raw)); r = a.done(raw); }
   else { TERM.lines.push(termPrompt() + raw); if (raw.trim()) TERM.hist.push(raw); TERM.hi = TERM.hist.length; r = shRun(raw); }
   if (r.clear) TERM.lines = [];
-  r.lines.forEach(function (l) { TERM.lines.push.apply(TERM.lines, String(l).split("\n")); });
-  if (r.ask) { TERM.ask = r.ask; }
-  if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go("files", {}, "Laptop"); return; }
-  save(); termDraw();
+  var out = []; r.lines.forEach(function (l) { out.push.apply(out, String(l).split("\n")); });
+  function finish() {
+    TERM.busy = null; if (r.ask) TERM.ask = r.ask;
+    if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go("files", {}, "Laptop"); return; }
+    save(); termDraw();
+  }
+  if (S.speed !== "real" || out.length < 2) { TERM.lines.push.apply(TERM.lines, out); finish(); return; }
+  var plan = timingPlan(out), i = 0, timer = null;
+  TERM.busy = { skip: function () { clearTimeout(timer); TERM.lines.push.apply(TERM.lines, out.slice(i)); finish(); } };
+  (function step() {
+    if (i >= out.length) { finish(); return; }
+    timer = setTimeout(function () { TERM.lines.push(out[i]); i++; termDraw(); step(); }, plan[i]);
+  })();
+  termDraw();
 }
 function termDraw() {
   var out = document.getElementById("termout"), lab = document.getElementById("termlab"), inp = document.getElementById("terminp"); if (!out) return;
   out.textContent = TERM.lines.join("\n"); out.scrollTop = out.scrollHeight;
-  lab.textContent = TERM.ask ? TERM.ask.label : termPrompt(); inp.type = TERM.ask && TERM.ask.secret ? "password" : "text"; inp.focus();
+  var sk = document.getElementById("termskip"); if (sk) sk.hidden = !TERM.busy;
+  lab.textContent = TERM.busy ? "(กำลังรัน...) " : TERM.ask ? TERM.ask.label : termPrompt(); inp.type = TERM.ask && TERM.ask.secret ? "password" : "text"; inp.focus();
 }
 PAGES["term"] = function () {
   var inp = h("input", { id: "terminp", type: "text", autocomplete: "off", spellcheck: "false", "aria-label": "command", onkeydown: function (e) {
-    if (e.key === "Enter") { var v = inp.value; inp.value = ""; termRun(v); }
+    if (e.key === "c" && e.ctrlKey && TERM.busy) { TERM.busy.skip(); e.preventDefault(); }
+    else if (e.key === "Enter") { var v = inp.value; inp.value = ""; termRun(v); }
     else if (e.key === "ArrowUp" && !TERM.ask) { if (TERM.hi > 0) inp.value = TERM.hist[--TERM.hi]; e.preventDefault(); }
     else if (e.key === "ArrowDown" && !TERM.ask) { TERM.hi = Math.min(TERM.hist.length, TERM.hi + 1); inp.value = TERM.hist[TERM.hi] || ""; e.preventDefault(); }
   } });
   var box = h("div", {}, [crumbEl("Laptop › Terminal"), h("h1", { text: "Terminal" }), h("p", { cls: "sub", text: "เครื่อง laptop จำลอง: รัน terraform / ansible / aws cli / ssh กับ AWS จำลองในหน้านี้ ผลสะท้อนในเมนู VPC, EC2, IAM, ECR ทันที" }),
+    h("div", { cls: "termrow", style: "margin-bottom:6px;gap:12px" }, [h("label", { style: "color:#d9e4ef" }, ["ความเร็ว ", h("select", { id: "termspeed", "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (ประมาณ ใช้เวลาหลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]), h("button", { type: "button", id: "termskip", cls: "btn", hidden: true, text: "ข้าม (Ctrl+C) แสดงที่เหลือทันที", onclick: function () { if (TERM.busy) TERM.busy.skip(); } })]),
     h("pre", { cls: "term", id: "termout", style: "min-height:320px;max-height:520px;overflow:auto" }), h("div", { cls: "termrow" }, [h("span", { id: "termlab", cls: "termlab" }), inp])]);
   setTimeout(termDraw, 0); return box;
 };
@@ -901,6 +979,187 @@ PAGES["faults"] = function () {
   });
   box.appendChild(h("p", { cls: "sub", text: "ที่เกิดอยู่แล้วโดยไม่ต้องเปิด: AMI ไม่เจอถ้า owners/ชื่อ filter ไม่ตรง, โควตาตามเอกสาร (Elastic IP/VPC/IGW 5 ต่อ region, SG rule 60), Free plan ใช้ได้เฉพาะ instance type ในรายการ (เมนูบัญชีด้านบน), ALB/EC2/NAT แสดง Still creating... ตามเวลาโดยประมาณ" }));
   return box;
+};
+
+// ---- Browser: เปิด URL ของ lab (Jenkins ฯลฯ) ผ่านเครือข่ายจำลอง
+var ITM = null;
+function instTick() { if (ITM || S.speed !== "real" || !(S.insts.some(function (i) { return instPhase(i).transient; }) || S.nats.some(function (n) { return natPhase(n) !== "available"; }) || S.albs.some(function (a) { return albPhase(a) !== "active"; }))) return; ITM = setTimeout(function () { ITM = null; render(); }, 3000); }
+var WTM = null;
+function wbTick() {
+  if (WTM || !S.jk || !S.jk.builds) return;
+  var b = S.jk.builds.filter(function (x) { return x.state === "running" && x.idx < x.stages.length && jkReal(); })[0], needArgo = S.speed === "real" && Object.keys(S.argo.apps).some(function (n) { var st = argoStatus(n); return st && st.health === "Progressing"; });
+  if (!b && !needArgo) return;
+  WTM = setTimeout(function () { WTM = null; if (b && S.jk.builds.indexOf(b) >= 0 && b.state === "running") jkAdvance(b, true); render(); }, b ? jkNextDelay(b) * 1000 : 3000);
+}
+var W = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" };
+function wbGo(a) { W.addr = a; W.res = webOpen(a); W.page = ""; W.sq = ""; W.ar = ""; W.sp = ""; W.lg = ""; render(); }
+function wbBadge(r) { return h("span", { cls: "tag " + (r === "SUCCESS" ? "ok" : r === "FAILURE" || r === "ABORTED" ? "bad" : "warn"), text: r || "RUNNING" }); }
+function wbSel(label, id, opts, get, set) { return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), h("select", { id: "w-" + id, "aria-label": label, onchange: function (e) { set(e.target.value); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(get()) ? "selected" : null }); }))]); }
+function wbEx(label, key, ex, ph, type, id) { var F = W.f; return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), exPick(ex.map(function (x) { return typeof x === "string" ? [x, x] : x; }), function () { return F[key]; }, function (v) { F[key] = v; }, F, "_c" + key, ph, label, false, type, id)]); }
+function wbF(label, id, kids) { if (kids && kids.tagName === "INPUT") kids.setAttribute("aria-label", label); return h("div", { cls: "f" }, [h("label", { cls: "l", text: label, "for": "w-" + id }), kids]); }
+function wbText(id, key, ph, type) { var F = W.f; return h("input", { type: type || "text", id: "w-" + id, "aria-label": id, placeholder: ph || "", value: F[key] == null ? "" : F[key], oninput: function (e) { F[key] = e.target.value; } }); }
+function wbErr(er) { return er ? h("div", { cls: "err", text: typeof er === "string" ? er : Object.keys(er).map(function (k) { return er[k]; }).join(" · ") }) : null; }
+function wbGoPage(p) { return function () { W.page = p; W.lg = ""; render(); }; }
+function wbNA(what) { return function () { W.lg = what + " — ยังไม่ได้จำลองหน้านี้"; render(); }; }
+var WICON = { "New Item": "＋", "People": "👥", "Build History": "🕘", "Manage Jenkins": "⚙", "My Views": "▤", "Status": "▤", "Changes": "‹›", "Build Now": "▷", "Build with Parameters": "▷", "Configure": "⚙", "Delete Pipeline": "🗑", "Full Stage View": "🔍", "Stages": "◈", "Rename": "✎", "Pipeline Syntax": "?", "Console Output": "▣", "Edit Build Information": "✎", "Timings": "◔", "Git Build Data": "◆", "Pipeline Overview": "⑂", "Pipeline Console": "▣", "Restart from Stage": "↻", "Replay": "↪", "Pipeline Steps": "☰", "Workspaces": "▭" };
+function wbSideJ(items, active) { return items.filter(Boolean).map(function (x) { var on = x[0] === active; return h("div", { style: "padding:9px 12px;border-radius:10px;display:flex;gap:12px;align-items:center;cursor:pointer;" + (on ? "background:#ececf2;font-weight:600" : ""), onclick: x[1] }, [h("span", { style: "width:20px;text-align:center;color:#444", text: WICON[x[0].replace(/^Delete build.*/, "Delete Pipeline")] || "•" }), h("span", { style: "color:#1f2933", text: x[0] })]); }); }
+function wbPill(label, onclick, accent) { return h("button", { type: "button", style: "border:0;border-radius:10px;padding:9px 16px;font-size:.9rem;cursor:pointer;background:" + (accent ? "#e3f4e8;color:#1b7a3b" : "#f1f3f6;color:#1f2933"), text: label, onclick: onclick }); }
+function wbCircle(res, size) { var c = res === "SUCCESS" ? ["#1b9e3e", "✓"] : res === "FAILURE" ? ["#d33", "✕"] : res === "ABORTED" ? ["#888", "–"] : ["#0b6aa2", "…"]; return h("span", { style: "display:inline-flex;align-items:center;justify-content:center;width:" + size + "px;height:" + size + "px;border-radius:50%;border:3px solid " + c[0] + ";color:" + c[0] + ";font-weight:700;font-size:" + Math.round(size * .55) + "px", text: c[1] }); }
+function wbJLog(lines) {
+  return h("pre", { style: "background:#f1f1f1;border-radius:10px;padding:16px 20px;font-family:var(--mono);font-size:.84rem;line-height:1.55;white-space:pre-wrap;overflow-x:auto;margin:0;max-height:620px" }, lines.map(function (l) { var pip = /^\[Pipeline\]/.test(l); var m = /^(Started by user |Approved by |Aborted by )(\S+)$/.exec(l), n = /^(Running on )(\S+)( in .*)$/.exec(l); return h("div", { style: pip ? "color:#8c8c8c" : "color:#111" }, m ? [m[1], h("span", { style: "color:#0b6bcb", text: m[2] })] : n ? [n[1], h("span", { style: "color:#0b6bcb", text: n[2] }), n[3]] : [l || " "]); }));
+}
+function wbJenkins(res) {
+  var su = jkSetup(), F = W.f, gh = ansVars().github_user || "YOUR_GITHUB_USER", ip = res.host;
+  function page(inner, crumbs, userBar) {
+    return h("div", { style: "border:1px solid #d5d8e0;border-radius:6px;overflow:hidden;background:#fff" }, [
+      h("div", { style: "display:flex;gap:16px;padding:10px 18px;background:#000;align-items:center" }, [h("span", { style: "font-size:1.5rem", text: "🤵" }), h("b", { style: "font-family:Georgia,serif;font-size:1.6rem;color:#fff", text: "Jenkins" }), h("span", { style: "margin-left:auto" }), userBar ? [h("input", { type: "text", disabled: true, placeholder: "🔍  Search (⌘+K)", "aria-label": "Search", style: "width:260px;border-radius:8px;border:0;padding:8px 12px;background:#fff" }), h("span", { style: "color:#fff;font-weight:600", text: "👤 " + S.jk.login + " ▾" }), h("a", { href: "#", style: "color:#fff;font-weight:600;text-decoration:none", text: "⇥ log out", onclick: function (e) { e.preventDefault(); jkSignOut(); render(); } })] : null]),
+      crumbs ? h("div", { style: "padding:10px 18px;background:#f5f6f8;font-size:.9rem" }, crumbs.join("   ›   ")) : null, inner,
+      h("div", { style: "padding:10px 20px;text-align:right;font-size:.8rem;color:#222" }, "REST API      Jenkins 2.426.1")]);
+  }
+  function two(side, main) { return h("div", { style: "display:flex;gap:18px;padding:14px 18px;min-height:380px" }, [h("div", { style: "width:230px;flex:none" }, side), h("div", { style: "flex:1;min-width:0" }, main)]); }
+  // --- setup wizard
+  function wiz(title, kids, footer) { return h("div", { style: "border:1px solid #d5d8e0;border-radius:6px;overflow:hidden;background:#fff" }, [h("div", { style: "padding:14px 18px;border-bottom:1px solid #e3e6ee;font-weight:600", text: "Getting Started" }), h("div", { style: "padding:30px 40px;min-height:300px;background:linear-gradient(#f5f5f5,#fff 120px)" }, [h("h1", { style: "font-size:2.4rem;margin:0 0 14px", text: title })].concat(kids)), footer ? h("div", { style: "padding:12px 18px;border-top:1px solid #e3e6ee;text-align:right" }, footer) : null]); }
+  var blue = function (t, f) { return h("button", { type: "button", style: "background:#2b6cb0;color:#fff;border:0;border-radius:6px;padding:9px 20px;cursor:pointer", text: t, onclick: f }); };
+  if (su === "unlock") return wiz("Unlock Jenkins", [h("p", { style: "font-size:1.05rem", text: "To ensure Jenkins is securely set up by the administrator, a password has been written to the log (not sure where to find it?) and this file on the server:" }), h("p", {}, [h("code", { style: "background:#fdecef;color:#b3124b;padding:3px 8px;border-radius:4px", text: "/var/jenkins_home/secrets/initialAdminPassword" })]), h("p", { style: "font-size:1.05rem", text: "Please copy the password from either location and paste it below." }), h("p", { cls: "sub", text: "(ดูจากเครื่อง: sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword)" }), wbEx("Administrator password", "pw", [[jkPwdOf(jkInst()), "รหัสจาก initialAdminPassword"]], "", "password", "w-pw"), wbErr(W.lg)], blue("Continue", function () { if (jkUnlock(F.pw)) { W.lg = ""; F.pw = ""; } else W.lg = "Invalid password"; render(); }));
+  if (su === "customize") return wiz("Customize Jenkins", [h("p", { style: "font-size:1.05rem", text: "Plugins extend Jenkins with additional features to support many different needs." }), h("div", { style: "display:flex;gap:18px;flex-wrap:wrap" }, [["Install suggested plugins", "Install plugins the Jenkins community finds most useful."], ["Select plugins to install", "Select and install plugins most suitable for your needs."]].map(function (o) { return h("div", { style: "flex:1;min-width:240px;border:1px solid #d5d8e0;border-radius:6px;padding:20px;cursor:pointer;background:#fff", onclick: function () { jkCustomize(); render(); } }, [h("b", { style: "font-size:1.2rem", text: o[0] }), h("p", { cls: "sub", text: o[1] })]); })), h("p", { cls: "sub", text: "(plugin ของ lab ติดตั้งมาใน image แล้ว: workflow-aggregator, git, git-parameter, credentials-binding, pipeline-stage-view, blueocean)" })]);
+  if (su === "admin") { ["au", "ap", "ap2", "af", "ae"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); return wiz("Create First Admin User", [wbEx("Username", "au", ["admin", "swd"], "", "text", "w-au"), wbEx("Password", "ap", ["Pharmacy-Lab-2026!", "ChangeMe-123"], "", "password", "w-ap"), wbEx("Confirm password", "ap2", ["Pharmacy-Lab-2026!", "ChangeMe-123"], "", "password", "w-ap2"), wbEx("Full name", "af", ["Pharmacy Admin", "Lab Admin"], "", "text", "w-af"), wbEx("E-mail address", "ae", ["admin@pharmacy.lab", "me@example.com"], "", "text", "w-ae"), wbErr(W.lg)], blue("Save and Continue", function () { var r = jkCreateAdmin({ user: F.au, pass: F.ap, pass2: F.ap2, full: F.af, email: F.ae }); W.lg = r.errors ? r.errors : ""; render(); })); }
+  if (su === "url") { if (F.ju == null) F.ju = "http://" + ip + ":8080/"; return wiz("Instance Configuration", [wbEx("Jenkins URL:", "ju", ["http://" + ip + ":8080/"], "", "text", "w-ju"), h("p", { cls: "sub", text: "The Jenkins URL is used to provide the root URL for absolute links to various Jenkins resources." })], blue("Save and Finish", function () { jkSetUrl(); render(); })); }
+  if (su === "ready") return wiz("Jenkins is ready!", [h("p", { style: "font-size:1.05rem", text: "Your Jenkins setup is complete." })], blue("Start using Jenkins", function () { jkStart(); W.page = "dash"; render(); }));
+  if (!S.jk.login) { ["lu", "lp"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); return page(h("div", { style: "padding:40px;display:flex;justify-content:center" }, [h("div", { style: "width:360px" }, [h("h2", { text: "Sign in to Jenkins" }), wbEx("Username", "lu", S.jk.users.map(function (u) { return u.name; }), "", "text", "w-lu"), wbEx("Password", "lp", S.jk.users.map(function (u) { return [u.pass, "รหัสของ " + u.name]; }), "", "password", "w-lp"), wbErr(W.lg), blue("Sign in", function () { W.lg = jkSignIn(F.lu, F.lp) ? "" : "Invalid username or password"; render(); })])]), null, false); }
+  // --- ใช้งานจริง
+  var pg = W.page || "dash", J = S.jk.job, builds = S.jk.builds, STG = ["Declarative: Checkout SCM", "Validate", "Confirm production", "Checkout version", "SonarQube scan", "Build and push image", "Check image exists", "Update manifest", "Sync ArgoCD", "Declarative: Post Actions"];
+  var gSide = function (act) { return wbSideJ([["New Item", wbGoPage("newitem")], ["People", wbNA("People")], ["Build History", wbGoPage("history")], ["Manage Jenkins", wbGoPage("manage")], ["My Views", wbNA("My Views")]], act); };
+  var title = function (t, extra) { return h("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:14px" }, [h("h1", { style: "margin:0;font-size:1.7rem", text: t }), h("span", { style: "margin-left:auto;display:flex;gap:8px" }, extra || [])]); };
+  var na = W.lg && /ยังไม่ได้จำลอง/.test(W.lg) ? h("div", { cls: "alert info", text: W.lg }) : null;
+  function jobTable() {
+    if (!J) return h("div", {}, [h("h1", { style: "font-size:1.7rem", text: "Welcome to Jenkins!" }), h("p", { text: "This page is where your Jenkins jobs will be displayed. To get started, you can set up distributed builds or start building a software project." }), h("h3", { text: "Start building your software project" }), h("div", { style: "border:1px solid #d5d8e0;border-radius:10px;padding:16px;width:260px;cursor:pointer", onclick: wbGoPage("newitem") }, [h("b", { text: "＋ Create a job" })])]);
+    var ok = builds.filter(function (b) { return b.result === "SUCCESS"; }).pop(), bad = builds.filter(function (b) { return b.result === "FAILURE"; }).pop(), last = builds[builds.length - 1];
+    return h("div", {}, [title("All"), h("table", { cls: "tbl" }, [h("tr", {}, ["S", "W", "Name ↓", "Last Success", "Last Failure", "Last Duration"].map(function (x) { return h("th", { text: x }); })), h("tr", {}, [h("td", {}, [last ? wbCircle(last.result, 22) : "—"]), h("td", { text: last && last.result === "SUCCESS" ? "☀" : last ? "☁" : "" }), h("td", {}, [h("a", { href: "#", style: "font-weight:600", text: J.name, onclick: function (e) { e.preventDefault(); W.page = "job"; render(); } })]), h("td", { text: ok ? "#" + ok.id : "N/A" }), h("td", { text: bad ? "#" + bad.id : "N/A" }), h("td", { text: last ? "1 min 12 sec" : "N/A" })])])]);
+  }
+  function stageView() {
+    if (!builds.length) return h("p", { cls: "sub", text: "No builds yet." });
+    return h("div", { style: "overflow-x:auto" }, [h("table", { cls: "tbl" }, [h("tr", {}, [h("th", { text: "" })].concat(STG.map(function (n) { return h("th", { text: n }); })))].concat(builds.slice().reverse().map(function (b) { return h("tr", {}, [h("td", {}, [h("a", { href: "#", style: "font-weight:600", text: "#" + b.id, onclick: function (e) { e.preventDefault(); W.bid = b.id; W.btab = "status"; W.page = "build"; render(); } })])].concat(STG.map(function (n) { var s = b.stages.filter(function (x) { return x.name === n; })[0]; if (!s && n === "Declarative: Post Actions") s = b.result ? { st: "success" } : null; var c = !s || s.st === "skipped" ? ["#f1f1f1", "#999", "-"] : s.st === "success" ? ["#c9f0cf", "#145a24", "1s"] : s.st === "failed" ? ["#f8c9c9", "#8a1212", "failed"] : s.st === "waiting" ? ["#ffe9a8", "#6b4e00", "paused"] : s.st === "running" ? ["#cfe3ff", "#0a3d8f", "…"] : ["#f1f1f1", "#999", "·"]; return h("td", { style: "background:" + c[0] + ";color:" + c[1] + ";text-align:center;min-width:70px", text: c[2] }); }))); })))]);
+  }
+  var crumbs = function () { var c = ["Dashboard"]; if (/^(job|params|build|configure)$/.test(pg) && J) c.push(J.name); if (pg === "build") c.push("#" + W.bid); if (pg === "params") c.push("Build with Parameters"); if (pg === "configure") c.push("Configuration"); if (pg === "newitem") c.push("All", "New Item"); if (pg === "creds" || pg === "gcreds") c.push("Manage Jenkins", "Credentials"); if (pg === "manage") c.push("Manage Jenkins"); if (pg === "history") c.push("Build History"); return c; };
+  if (pg === "dash") return page(two(gSide("Dashboard"), [na, jobTable(), h("h3", { text: "Build Queue" }), h("p", { cls: "sub", text: "No builds in the queue." }), h("h3", { text: "Build Executor Status" }), h("p", { cls: "sub", text: "1 Idle · 2 Idle" })]), crumbs(), true);
+  if (pg === "history") return page(two(gSide("Build History"), [title("Build History of Jenkins"), builds.length ? h("table", { cls: "tbl" }, [h("tr", {}, ["S", "Build", "Parameters"].map(function (x) { return h("th", { text: x }); }))].concat(builds.slice().reverse().map(function (b) { return h("tr", {}, [h("td", {}, [wbCircle(b.result, 20)]), h("td", {}, [h("a", { href: "#", text: (J ? J.name : "") + " #" + b.id, onclick: function (e) { e.preventDefault(); W.bid = b.id; W.btab = "console"; W.page = "build"; render(); } })]), h("td", { text: b.params.VERSION ? b.params.TARGET_ENV + " / " + b.params.SERVICE + " / " + b.params.VERSION : "(ไม่มี parameters)" })]); }))) : h("p", { text: "No builds." })]), crumbs(), true);
+  if (pg === "manage") return page(two(gSide("Manage Jenkins"), [title("Manage Jenkins"), h("h3", { text: "Security" }), h("div", { style: "border:1px solid #d5d8e0;border-radius:10px;padding:14px 16px;width:300px;cursor:pointer", onclick: wbGoPage("creds") }, [h("b", { text: "🔑 Credentials" }), h("div", { cls: "sub", text: "Configure credentials" })]), h("h3", { text: "System Configuration" }), h("p", { cls: "sub", text: "System · Tools · Plugins · Nodes (ยังไม่จำลองหน้าเหล่านี้; plugin ถูกติดตั้งมากับ image แล้ว)" })]), crumbs(), true);
+  if (pg === "creds") return page(two(gSide("Manage Jenkins"), [title("Credentials"), h("h3", { text: "Stores scoped to Jenkins" }), h("table", { cls: "tbl" }, [h("tr", {}, ["P", "Store ↓", "Domains"].map(function (x) { return h("th", { text: x }); })), h("tr", {}, [h("td", { text: "🔑" }), h("td", { text: "System" }), h("td", {}, [h("a", { href: "#", text: "(global)", onclick: function (e) { e.preventDefault(); W.page = "gcreds"; render(); } })])])])]), crumbs(), true);
+  if (pg === "gcreds") {
+    var C = F; C.ck = C.ck || "userpass"; ["ci", "cu", "cp", "cs", "cd"].forEach(function (k) { if (C[k] == null) C[k] = ""; });
+    var form = !W.addCred ? null : h("div", { style: "background:#f5f6f8;border-radius:12px;padding:16px 20px;margin-top:14px" }, [h("h3", { text: "New credentials" }), wbSel("Kind", "ck", [["userpass", "Username with password"], ["secret", "Secret text"]], function () { return C.ck; }, function (v) { C.ck = v; }), h("div", { cls: "f" }, [h("label", { cls: "l", text: "Scope" }), h("select", { "aria-label": "Scope" }, [h("option", { text: "Global (Jenkins, nodes, items, all child items, etc)" })])]), C.ck === "secret" ? wbEx("Secret", "cs", ["squ_exampleSonarToken"], "token จาก SonarQube") : [wbEx("Username", "cu", ["admin", "me"], "username"), wbEx("Password", "cp", ["ghp_exampleToken", "ChangeMe-123"], "password")], wbEx("ID", "ci", ["github-token", "sonar-token", "argocd-admin"], "github-token"), wbEx("Description", "cd", ["GitHub token", "SonarQube token", "ArgoCD admin"], "optional"), wbErr(W.lg), h("button", { cls: "btn pri", type: "button", text: "Create", onclick: function () { var r = jkAddCred({ id: C.ci, kind: C.ck, user: C.cu, pass: C.cp, secret: C.cs, desc: C.cd }); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.addCred = false; C.ci = ""; C.cs = ""; C.cp = ""; C.cd = ""; } render(); } }), " ", h("button", { cls: "btn", type: "button", text: "Cancel", onclick: function () { W.addCred = false; render(); } })]);
+    return page(two(gSide("Manage Jenkins"), [title("Global credentials (unrestricted)", [W.addCred ? null : wbPill("＋ Add Credentials", function () { W.addCred = true; render(); }, false)].filter(Boolean)), h("p", { cls: "sub", text: "Credentials that should be available irrespective of domain specification to requirements matching." }), h("table", { cls: "tbl" }, [h("tr", {}, ["ID", "Name", "Kind", "Description"].map(function (x) { return h("th", { text: x }); }))].concat(S.jk.creds.map(function (c) { return h("tr", {}, [h("td", { text: c.id }), h("td", { text: (c.user ? c.user + "/****** " : "") + (c.desc || c.id) }), h("td", { text: c.kind === "secret" ? "Secret text" : "Username with password" }), h("td", { text: c.desc || "" })]); }))), form]), crumbs(), true);
+  }
+  if (pg === "newitem" || pg === "configure") {
+    var isNew = pg === "newitem" && !W.cfgOpen;
+    if (pg === "configure" && !W.cfgOpen) { W.cfgOpen = "edit"; F.jn = J.name; F.jr = J.repo; F.jc = J.cred; F.jb = J.branch; F.js = J.script; }
+    ["jn", "jr", "jc", "jb", "js"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); if (!F.jb) F.jb = "*/main"; if (!F.js) F.js = "Jenkinsfile";
+    if (isNew) { var TY = [["Freestyle project", "Classic, general-purpose job type that checks out from up to one SCM, executes build steps serially, followed by post-build steps like archiving artifacts and sending email notifications.", 0], ["Pipeline", "Orchestrates long-running activities that can span multiple build agents. Suitable for building pipelines (formerly known as workflows) and/or organizing complex activities that do not easily fit in free-style job type.", 1], ["Multi-configuration project", "Suitable for projects that need a large number of different configurations, such as testing on multiple environments, platform-specific builds, etc.", 0], ["Folder", "Creates a container that stores nested items in it. Useful for grouping things together.", 0], ["Multibranch Pipeline", "Creates a set of Pipeline projects according to detected branches in one SCM repository.", 0], ["Organization Folder", "Creates a set of multibranch project subfolders by scanning for repositories.", 0]];
+      return page(two(gSide("New Item"), [title("New Item"), wbEx("Enter an item name", "jn", ["pharmacy-app"], "pharmacy-app"), h("div", { cls: "f" }, [h("label", { cls: "l", text: "Select an item type" }), h("div", {}, TY.map(function (t) { return h("div", { style: "display:flex;gap:14px;padding:12px 14px;border-radius:10px;margin:4px 0;" + (t[2] ? "background:#f1f1f6;" : "opacity:.55;"), title: t[2] ? "" : "ยังไม่จำลองชนิดนี้" }, [h("span", { style: "font-size:1.6rem;width:34px", text: t[0] === "Pipeline" ? "⑂" : t[0] === "Folder" ? "🗀" : "◻" }), h("div", {}, [h("div", { text: t[0] }), h("div", { cls: "sub", text: t[1] })])]); }))]), wbErr(W.lg), h("button", { type: "button", style: "background:#0b6bcb;color:#fff;border:0;border-radius:10px;padding:10px 34px;cursor:pointer", text: "OK", onclick: function () { if (!/^[A-Za-z0-9_-]+$/.test(F.jn || "")) { W.lg = "» This field cannot be empty, please enter a valid name"; } else { W.lg = ""; W.cfgOpen = "new"; } render(); } })]), crumbs(), true); }
+    return page(two(wbSideJ([["General", wbNA("General")], ["Advanced Project Options", wbNA("Advanced")], ["Pipeline", function () {}]], "Pipeline"), [title("Configure"), h("h2", { text: "Pipeline" }), h("div", { cls: "f" }, [h("label", { cls: "l", text: "Definition" }), h("select", { "aria-label": "Definition" }, [h("option", { text: "Pipeline script from SCM" })])]), h("div", { cls: "f" }, [h("label", { cls: "l", text: "SCM" }), h("select", { "aria-label": "SCM" }, [h("option", { text: "Git" })])]), h("h3", { text: "Repositories" }), wbEx("Repository URL", "jr", ["https://github.com/" + gh + "/pharmacy-app.git"], "https://github.com/<user>/pharmacy-app.git"), wbSel("Credentials", "jc", [["", "- none -"]].concat(S.jk.creds.map(function (c) { return [c.id, (c.user ? c.user + "/****** " : "") + (c.desc || c.id)]; })), function () { return F.jc; }, function (v) { F.jc = v; }), h("h3", { text: "Branches to build" }), wbEx("Branch Specifier (blank for 'any')", "jb", ["*/main"], "*/main"), wbEx("Script Path", "js", ["Jenkinsfile"], "Jenkinsfile"), wbErr(W.lg), h("button", { type: "button", style: "background:#0b6bcb;color:#fff;border:0;border-radius:10px;padding:10px 34px;cursor:pointer", text: "Save", onclick: function () { var r = W.cfgOpen === "new" ? jkCreateJob({ name: F.jn, repo: F.jr, cred: F.jc, branch: F.jb, script: F.js }) : (function () { var j = S.jk.job; var e = jkCreateJob({ name: j.name, repo: F.jr, cred: F.jc, branch: F.jb, script: F.js }); if (!e.errors) { S.jk.job.paramsKnown = j.paramsKnown; } return e; })(); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.cfgOpen = ""; W.page = "job"; } render(); } })]), crumbs(), true);
+  }
+  if (pg === "job" || pg === "params" || pg === "build") {
+    if (!J) { W.page = "dash"; return wbJenkins(res); }
+    var jSide = wbSideJ([["Status", wbGoPage("job")], ["Changes", wbNA("Changes")], J.paramsKnown ? ["Build with Parameters", function () { W.page = "params"; render(); }] : ["Build Now", function () { jkBuildNow(); W.page = "job"; render(); }], ["Configure", function () { W.cfgOpen = ""; W.page = "configure"; render(); }], ["Delete Pipeline", wbNA("Delete Pipeline")], ["Full Stage View", wbGoPage("job")], ["Stages", wbNA("Stages")], ["Rename", wbNA("Rename")], ["Pipeline Syntax", wbNA("Pipeline Syntax")]], pg === "job" ? "Status" : "");
+    if (pg === "params") {
+      var P = F.p = F.p || { TARGET_ENV: "dev", SERVICE: "backend", VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }, rp = S.gh.repos["pharmacy-app"], tags = rp ? rp.tags.slice().sort().reverse() : []; if ((!P.VERSION || tags.indexOf(P.VERSION) < 0) && tags.length) P.VERSION = tags[0]; if (!tags.length) P.VERSION = "";
+      return page(two(jSide, [title("Pipeline " + J.name), h("p", { text: "This build requires parameters:" }), wbSel("TARGET_ENV", "pe", [["dev", "dev"], ["prd", "prd"]], function () { return P.TARGET_ENV; }, function (v) { P.TARGET_ENV = v; }), wbSel("SERVICE", "ps", [["backend", "backend"], ["frontend", "frontend"]], function () { return P.SERVICE; }, function (v) { P.SERVICE = v; }), wbSel("VERSION", "pv", tags.length ? tags.map(function (t) { return [t, t]; }) : [["", "(รายการว่าง: ยังไม่มี tag บน GitHub)"]], function () { return P.VERSION; }, function (v) { P.VERSION = v; }), wbSel("ACTION", "pa", [["build-and-deploy", "build-and-deploy"], ["deploy-only", "deploy-only"]], function () { return P.ACTION; }, function (v) { P.ACTION = v; }), h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: !!P.AUTO_SYNC, onchange: function (e) { P.AUTO_SYNC = e.target.checked; } }), h("span", { text: "AUTO_SYNC — ให้ Jenkins สั่ง ArgoCD sync ทันที (ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD)" })]), wbEx("CHANGE_NOTE", "pnote", ["TICKET-123", "first release"], "เลข ticket หรือเหตุผล"), h("button", { type: "button", style: "background:#0b6bcb;color:#fff;border:0;border-radius:10px;padding:10px 34px;cursor:pointer", text: "Build", onclick: function () { P.CHANGE_NOTE = F.pnote || ""; var b = jkWithParams(Object.assign({}, P)); W.bid = b.id; W.btab = "console"; W.page = "build"; render(); } })]), crumbs(), true);
+    }
+    if (pg === "build") {
+      var b = builds.filter(function (x) { return x.id === W.bid; })[0]; if (!b) { W.page = "job"; return wbJenkins(res); }
+      var tab = W.btab || "status", bSide = wbSideJ([["Status", function () { W.btab = "status"; render(); }], ["Changes", wbNA("Changes")], ["Console Output", function () { W.btab = "console"; render(); }], ["Edit Build Information", wbNA("Edit Build Information")], ["Delete build ‘#" + b.id + "’", wbNA("Delete build")], ["Timings", wbNA("Timings")], ["Git Build Data", wbNA("Git Build Data")], ["Pipeline Overview", wbNA("Pipeline Overview")], ["Pipeline Console", function () { W.btab = "console"; render(); }], ["Restart from Stage", wbNA("Restart from Stage")], ["Replay", wbNA("Replay")], ["Pipeline Steps", wbNA("Pipeline Steps")], ["Workspaces", wbNA("Workspaces")]], tab === "console" ? "Console Output" : "Status");
+      var waiting = b.state === "waiting" ? h("div", { cls: "alert warn" }, ["Input requested — ปล่อย " + b.params.SERVICE + " " + b.params.VERSION + " ขึ้น PRD ใช่ไหม? ", h("button", { cls: "btn pri", type: "button", text: "ยืนยัน", onclick: function () { jkInput(b.id, true); render(); } }), " ", h("button", { cls: "btn", type: "button", text: "Abort", onclick: function () { jkInput(b.id, false); render(); } })]) : null;
+      var rs = b.result || (b.state === "waiting" ? "WAITING" : "RUNNING"), mu = /github\.com\/([^\/]+)\//.exec(J.repo), when = "Oct 7, 2026, 9:" + (10 + b.id) + ":34 AM";
+      var main = tab === "console" ? [h("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:14px" }, [wbCircle(b.result, 34), h("h1", { style: "margin:0;font-size:1.7rem", text: "Console Output" }), h("span", { style: "margin-left:auto;display:flex;gap:8px" }, [wbPill("⤓ Download", wbNA("Download")), wbPill("⧉ Copy", wbNA("Copy")), wbPill("View as plain text", wbNA("View as plain text"))])]), na, waiting, wbJLog(b.log)] : [h("div", { style: "display:flex;gap:14px;align-items:flex-start" }, [wbCircle(b.result, 34), h("h1", { style: "margin:0;font-size:1.7rem", text: "Build #" + b.id + " (" + when + ")" }), h("div", { style: "margin-left:auto;text-align:right;font-size:.9rem" }, [wbPill("Keep this build forever", wbNA("Keep this build forever")), h("div", { style: "margin-top:10px", text: "Started " + (S.jk.seq - b.id + 1) + " min ago" }), h("div", { text: "Took " + (b.result ? "17 sec" : "…") })])]), na, waiting, h("p", { style: "margin:18px 0 6px 48px", cls: "sub", text: "✎ Add description" }), h("div", { style: "display:flex;gap:16px;margin:14px 0" }, [h("span", { style: "font-size:1.6rem", text: "◔" }), h("div", {}, ["Started by user ", h("a", { href: "#", text: b.who })])]), h("div", { style: "display:flex;gap:16px;margin:14px 0" }, [h("span", { style: "font-size:1.6rem", text: "⏱" }), h("div", {}, ["This run spent:", h("ul", {}, [h("li", { text: "6 ms waiting;" }), h("li", { text: "17 sec build duration;" }), h("li", { text: "17 sec total from scheduled to completion." })])])]), h("div", { style: "display:flex;gap:16px;margin:14px 0" }, [h("b", { style: "font-size:1.2rem", text: "◆git" }), h("div", {}, [h("div", {}, [h("b", { text: "Revision" }), ": " + hash32(J.repo + b.id) + hash32("a" + b.id) + hash32("b" + b.id)]), h("div", {}, [h("b", { text: "Repository" }), ": ", h("a", { href: "#", text: J.repo })]), h("ul", {}, [h("li", { text: "refs/remotes/origin/" + (J.branch || "*/main").replace("*/", "") })])])]), h("h3", { text: "Parameters" }), h("table", { cls: "tbl" }, Object.keys(b.params).map(function (k) { return h("tr", {}, [h("td", { text: k }), h("td", { text: String(b.params[k]) })]); }))];
+      return page(two(bSide, main), crumbs(), true);
+    }
+    var lb = builds[builds.length - 1], lok = builds.filter(function (x) { return x.result === "SUCCESS"; }).pop(), lbad = builds.filter(function (x) { return x.result === "FAILURE"; }).pop();
+    return page(two(jSide, [na, title(J.name, []), h("p", { cls: "sub", text: "✎ Add description" }), h("p", { cls: "sub", text: "Repository: " + J.repo + "  ·  Branch: " + J.branch + "  ·  Script Path: " + J.script }), h("h3", { text: "Stage View" }), stageView(), h("h3", { text: "Permalinks" }), h("ul", {}, [lb ? h("li", { text: "Last build (#" + lb.id + ")" }) : null, lok ? h("li", { text: "Last successful build (#" + lok.id + ")" }) : null, lbad ? h("li", { text: "Last failed build (#" + lbad.id + ")" }) : null].filter(Boolean))]), crumbs(), true);
+  }
+  W.page = "dash"; return wbJenkins(res);
+}
+// ---- SonarQube (หน้าตาอ้างอิงภาพจาก docs.sonarsource.com)
+function wbSonar(res) {
+  var F = W.f, pg = W.sq || (S.sq.login ? "projects" : "login");
+  function bar() {
+    var nav = ["Projects", "Portfolios", "Issues", "Rules", "Quality profiles", "Quality gates", "Administration", "More"];
+    return h("div", { style: "display:flex;gap:22px;padding:0 18px;height:54px;background:#fff;border-bottom:1px solid #e1e5ea;align-items:center;overflow-x:auto" }, [h("span", { style: "color:#555", text: "▯" }), h("span", { style: "font-weight:700;color:#236a97;font-size:1.1rem", text: "〰 SonarQube " }), h("span", { style: "color:#236a97;font-size:.8rem;margin-left:-14px;margin-top:14px", text: "server" })].concat(S.sq.login ? nav.map(function (n) { return h("a", { href: "#", style: "text-decoration:none;color:#1d2433;font-weight:600;font-size:.92rem;white-space:nowrap", title: n === "Projects" ? "" : "ยังไม่ได้จำลองหน้านี้", text: n, onclick: function (e) { e.preventDefault(); if (n === "Projects") { W.sq = "projects"; render(); } } }); }).concat([h("span", { style: "margin-left:auto;color:#555", text: "🔍   🔔   ?" }), h("span", { style: "position:relative" }, [h("span", { style: "display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;border-radius:6px;background:#17a085;color:#fff;font-weight:700;cursor:pointer", text: "A", onclick: function () { W.menu = !W.menu; render(); } }), W.menu ? h("div", { style: "position:absolute;right:0;top:36px;background:#fff;border:1px solid #d5d8e0;border-radius:6px;width:170px;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.12)" }, [h("div", { style: "padding:10px 14px;font-weight:700", text: "Administrator" }), h("div", { style: "padding:10px 14px;cursor:pointer;background:#f5f6f8", text: "My account", onclick: function () { W.menu = false; W.sq = "acct"; render(); } }), h("div", { style: "padding:10px 14px;cursor:pointer", text: "Log out", onclick: function () { S.sq.login = false; W.menu = false; W.sq = "login"; render(); } })]) : null])]) : []));
+  }
+  function frame(inner) { return h("div", { style: "border:1px solid #d5d8e0;border-radius:6px;overflow:visible;background:#fff" }, [bar(), inner]); }
+  function pad(k) { return h("div", { style: "padding:20px 26px;min-height:340px;background:#f8f9fb" }, k); }
+  function rate(n, c) { var col = { A: ["#d4f5dc", "#1b7a3b"], B: ["#e6f3b8", "#5a7a00"], C: ["#fdeabf", "#9a6500"], D: ["#fbd9b5", "#a1530a"], E: ["#f8cbcb", "#a31212"] }[n] || ["#eee", "#444"]; return h("span", { style: "display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;text-align:center;background:" + col[0] + ";color:" + col[1] + ";font-weight:700", text: n }); }
+  if (!S.sq.login) { ["sl", "sp"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); return frame(h("div", { style: "padding:40px;display:flex;justify-content:center;background:#f8f9fb" }, [h("div", { style: "width:340px;background:#fff;border:1px solid #d5d8e0;border-radius:8px;padding:24px" }, [h("h2", { style: "text-align:center", text: "Log in to SonarQube" }), wbEx("Login", "sl", ["admin"], "", "text", "w-sl"), wbEx("Password", "sp", S.sq.pwdChanged ? [[S.sq.pass, "รหัสที่ตั้งไว้"], "admin"] : [["admin", "admin (ค่าเริ่มต้น)"]], "", "password", "w-sp"), wbErr(W.lg), h("button", { cls: "btn pri", type: "button", text: "Log in", onclick: function () { var r = sqLogin(F.sl, F.sp); if (!r.ok) W.lg = "Authentication failed"; else { W.lg = ""; W.sq = r.mustChange ? "chpw" : "projects"; } render(); } })])])); }
+  if (!S.sq.pwdChanged && pg !== "chpw") pg = W.sq = "chpw";
+  if (pg === "chpw") { ["so", "sn", "sc"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); return frame(pad([h("div", { style: "max-width:420px;margin:0 auto;background:#fff;border:1px solid #d5d8e0;border-radius:8px;padding:24px" }, [h("h2", { text: "Update your password" }), h("p", { text: "This account should not use the default password." }), wbEx("Old Password", "so", [S.sq.pwdChanged ? [S.sq.pass, "รหัสปัจจุบัน"] : ["admin", "admin (ค่าเริ่มต้น)"]], "", "password", "w-so"), wbEx("New Password", "sn", ["Pharmacy-Lab-2026!", "Sonar-Pharmacy-01"], "ยาวอย่างน้อย 12 ตัว", "password", "w-sn"), wbEx("Confirm Password", "sc", ["Pharmacy-Lab-2026!", "Sonar-Pharmacy-01"], "", "password", "w-sc"), wbErr(W.lg), h("button", { cls: "btn pri", type: "button", text: "Update", onclick: function () { var r = sqChangePw(F.so, F.sn, F.sc); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.sq = "projects"; } render(); } })])])); }
+  if (pg === "acct") {
+    ["tn", "tt", "te"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); if (!F.te) F.te = "30 days";
+    var side = h("div", { style: "width:220px;flex:none;border-right:1px solid #e1e5ea;background:#fff;padding:14px 10px" }, [h("div", { style: "padding:6px 10px 14px" }, [h("b", { text: "Administrator" }), h("div", { cls: "sub", text: "User" })])].concat([["Profile", 0], ["Security", 1], ["Notifications", 0], ["Projects", 0], ["Appearance", 0]].map(function (x) { return h("div", { style: "padding:9px 12px;border-radius:6px;" + (x[1] ? "background:#eef0fb;color:#4a55c9;font-weight:600;outline:1px solid #d33;outline-offset:-1px" : "color:#333;opacity:.8"), text: x[0] }); })));
+    var main = h("div", { style: "flex:1;padding:20px 30px;background:#fff" }, [h("div", { cls: "sub", text: "My account  /  Security" }), h("h1", { style: "margin:6px 0 16px", text: "Security" }), h("p", { style: "max-width:640px", text: "If you want to enforce security by not providing credentials of a real SonarQube user to run your code scan or to invoke web services, you can provide a User Token as a replacement of the user login. This will increase the security of your installation by not letting your analysis user's password going through your network." }), h("h2", { text: "Generate Tokens" }),
+      h("div", { style: "display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap" }, [h("div", { style: "min-width:200px" }, [wbEx("Name", "tn", ["jenkins", "ci-token"], "Enter Token Name")]), h("div", {}, [wbSel("Type", "tt", [["", "Select Token Type"], ["User Token", "User Token"], ["Project Analysis Token", "Project Analysis Token"], ["Global Analysis Token", "Global Analysis Token"]], function () { return F.tt; }, function (v) { F.tt = v; })]), h("div", {}, [wbSel("Expires in", "te", [["30 days", "30 days"], ["90 days", "90 days"], ["365 days", "365 days"], ["No expiration", "No expiration"]], function () { return F.te; }, function (v) { F.te = v; })]), h("button", { type: "button", style: "background:#4a55c9;color:#fff;border:0;border-radius:6px;padding:9px 18px;cursor:pointer;margin-bottom:12px", text: "Generate", onclick: function () { var r = sqGenToken({ name: F.tn, type: F.tt || "User Token" }); if (r.errors) { W.lg = r.errors; W.tok = ""; } else { W.lg = ""; W.tok = r.res; } render(); } })]),
+      wbErr(W.lg), W.tok ? h("div", { cls: "alert info" }, ["New token: ", h("code", { text: W.tok }), " — คัดลอกตอนนี้ จะไม่แสดงอีก (นำไปใส่ Jenkins credential sonar-token)"]) : null,
+      h("table", { cls: "tbl", style: "margin-top:18px" }, [h("tr", {}, ["Name", "Type", "Project", "Last use", "Created", "Expiration", ""].map(function (x) { return h("th", { text: x }); }))].concat(S.sq.tokens.map(function (t) { return h("tr", {}, [h("td", { text: t.name }), h("td", { text: t.type.replace(" Token", "") }), h("td", { text: "" }), h("td", { text: "Never" }), h("td", { text: "Oct 7, 2026" }), h("td", { text: "Nov 6, 2026" }), h("td", {}, [h("button", { cls: "btn", type: "button", style: "color:#c00", text: "Revoke", onclick: function () { S.sq.tokens = S.sq.tokens.filter(function (x) { return x !== t; }); render(); } })])]); })))]);
+    return frame(h("div", { style: "display:flex;min-height:380px" }, [side, main]));
+  }
+  if (pg === "project") {
+    var p = S.sq.projects[0] || { name: "", version: "", key: "" };
+    var side2 = h("div", { style: "width:220px;flex:none;border-right:1px solid #e1e5ea;background:#fff;padding:14px 10px" }, [h("div", { style: "padding:6px 10px 14px;display:flex;gap:10px;align-items:center" }, [h("span", { style: "background:#17a085;color:#fff;border-radius:4px;padding:3px 8px;font-weight:700", text: p.name.slice(0, 1) }), h("div", {}, [h("b", { text: p.name }), h("div", { cls: "sub", text: "Project" })])])].concat(["Overview", "Dashboards", "Analysis", "   Summary", "   Issues", "   Security hotspots", "Architecture", "Reporting", "Policies", "Project", "Project settings"].map(function (x) { return h("div", { style: "padding:8px 12px;border-radius:6px;white-space:pre;" + (/Summary/.test(x) ? "background:#eef0fb;color:#4a55c9;font-weight:600" : "color:#333;opacity:.8"), text: x }); })));
+    function mc(t, v, sub, rt) { return h("div", { style: "padding:14px 18px;border-top:1px solid #e1e5ea" }, [h("div", { style: "font-weight:600", text: t }), h("div", { style: "display:flex;align-items:center;gap:10px;margin-top:8px" }, [h("span", { style: "font-size:1.6rem;font-weight:600", text: v }), h("span", { cls: "sub", text: sub }), h("span", { style: "margin-left:auto" }, [rt || ""])])]); }
+    var main2 = h("div", { style: "flex:1;background:#f8f9fb" }, [h("div", { style: "padding:16px 24px;background:#fff" }, [h("div", { cls: "sub", text: p.name + "  /  Summary" }), h("h1", { style: "margin:6px 0", text: "Summary" }), h("div", { cls: "sub", text: p.lines + " Lines of Code  ·  Version " + p.version + "  ·  Last analysis just now" })]), h("div", { style: "padding:18px 24px;display:flex;gap:16px;align-items:center" }, [h("span", { style: "display:inline-block;width:68px;height:68px;line-height:68px;text-align:center;background:#d4f5dc;color:#1b7a3b;font-size:2rem;border-radius:6px", text: "✓" }), h("div", {}, [h("div", { cls: "sub", text: "Quality gate" }), h("div", { style: "font-size:2rem;font-weight:700", text: "Passed" })])]), h("div", { style: "margin:0 24px;background:#fff;border:1px solid #e1e5ea;border-radius:6px" }, [h("div", { style: "display:flex;border-bottom:1px solid #e1e5ea" }, [h("div", { style: "padding:12px 24px;color:#555", text: "New Code" }), h("div", { style: "padding:12px 24px;color:#4a55c9;font-weight:600;border-bottom:3px solid #4a55c9", text: "Overall Code" })]), h("div", { style: "display:grid;grid-template-columns:repeat(3,1fr)" }, [mc("Security", String(p.vulns), "Open issues", rate("A")), mc("Reliability", String(p.bugs), "Open issues", rate("A")), mc("Maintainability", String(p.smells), "Open issues", rate("A")), mc("Accepted issues", "0", "Valid issues that were not fixed"), mc("Coverage", p.cov === "—" ? "0.0%" : p.cov, "On lines to cover."), mc("Duplications", "0.0%", "On " + p.lines + " lines.")])])]);
+    return frame(h("div", { style: "display:flex;min-height:420px" }, [side2, main2]));
+  }
+  // projects list
+  return frame(pad([h("h1", { style: "margin:0 0 14px", text: "Projects" }), S.sq.projects.length ? S.sq.projects.map(function (p) { return h("div", { style: "background:#fff;border:1px solid #e1e5ea;border-radius:8px;padding:14px 18px;margin:10px 0;cursor:pointer", onclick: function () { W.sq = "project"; render(); } }, [h("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, [h("b", { style: "color:#4a55c9;font-size:1.05rem", text: p.name }), h("span", { style: "background:#d4f5dc;color:#1b7a3b;border-radius:4px;padding:2px 10px;font-size:.8rem;font-weight:700", text: "Passed" }), h("span", { cls: "sub", text: "Last analysis: just now  ·  " + p.lines + " Lines of Code" })]), h("div", { style: "display:flex;gap:30px;margin-top:12px;flex-wrap:wrap" }, [["Security", String(p.vulns)], ["Reliability", String(p.bugs)], ["Maintainability", String(p.smells)], ["Hotspots Reviewed", "—"], ["Coverage", p.cov], ["Duplications", "0.0%"]].map(function (m) { return h("div", {}, [h("div", { style: "font-size:1.2rem;font-weight:600;display:flex;gap:8px;align-items:center" }, [m[1], /^(Security|Reliability|Maintainability)$/.test(m[0]) ? rate("A") : null]), h("div", { cls: "sub", text: m[0] })]); }))]); }) : h("p", { text: "0 projects  (ยังไม่มีโปรเจกต์: จะถูกสร้างอัตโนมัติเมื่อ Jenkins สแกนครั้งแรก)" })]));
+}
+// ---- Argo CD (หน้าตาอ้างอิงภาพจาก argo-cd.readthedocs.io)
+function wbArgo(res) {
+  var F = W.f;
+  if (!S.argo.login) { ["au", "ap"].forEach(function (k) { if (F["a" + k] == null) F["a" + k] = ""; }); return h("div", { style: "background:#1e2e3e;border-radius:6px;padding:40px 20px;display:flex;justify-content:center" }, [h("div", { style: "background:#fff;border-radius:6px;padding:22px;width:380px" }, [h("h2", { text: "🐙 Argo CD" }), wbEx("Username", "aau", ["admin"], "", "text", "w-aau"), wbEx("Password", "aap", [[argoPwdOf(argoInst()), "รหัสจาก argocd-initial-admin-secret"]], "", "password", "w-aap"), h("p", { cls: "sub", text: "รหัสเริ่มต้นของ admin: บน pharmacy-k8s-1 รัน kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d" }), wbErr(W.lg), h("button", { cls: "btn pri", type: "button", text: "SIGN IN", onclick: function () { W.lg = argoLogin(F.aau, F.aap) ? "" : "Invalid username or password"; render(); } })])]); }
+  var names = Object.keys(S.argo.apps), sel = W.ar && S.argo.apps[W.ar] ? W.ar : "", sts = {}; names.forEach(function (n) { sts[n] = argoStatus(n); });
+  var HI = { Healthy: ["♥", "#18be94"], Degraded: ["💔", "#e96d76"], Missing: ["⬤", "#f4c030"], Progressing: ["◌", "#0dadea"], Suspended: ["⏸", "#766f94"], Unknown: ["?", "#ccd6dd"] }, SI = { Synced: ["✔", "#18be94"], OutOfSync: ["⬆", "#f4c030"], Unknown: ["?", "#ccd6dd"] };
+  var pill = function (t, f, dis) { return h("button", { type: "button", disabled: !!dis, style: "background:#6d7f8b;color:#fff;border:0;border-radius:18px;padding:8px 16px;font-weight:600;font-size:.8rem;cursor:" + (dis ? "default" : "pointer") + ";opacity:" + (dis ? .6 : 1), text: t, onclick: f }); };
+  var nav = h("div", { style: "width:170px;background:#1e2e3e;color:#cfd8e3;flex:none;padding:12px 0" }, [h("div", { style: "padding:6px 16px 16px;color:#fff;font-weight:700", text: "🐙 argo  v3.3.6" })].concat([["Applications", "▤", 1], ["Settings", "⚙", 0], ["User Info", "👤", 0], ["Documentation", "▭", 0]].map(function (x) { return h("div", { style: "padding:11px 16px;" + (x[2] ? "background:#2c4156;color:#fff" : "opacity:.75"), text: x[1] + "  " + x[0] }); })));
+  function filters() {
+    var cnt = function (k, v) { return names.filter(function (n) { return sts[n][k] === v; }).length; };
+    function box(label, key, v, icon) { return h("label", { style: "display:flex;gap:8px;align-items:center;padding:3px 0;font-size:.85rem" }, [h("input", { type: "checkbox", checked: !!(W.fl && W.fl[key + v]), onchange: function (e) { W.fl = W.fl || {}; W.fl[key + v] = e.target.checked; render(); } }), icon ? h("span", { style: "color:" + icon[1], text: icon[0] }) : null, label, h("span", { style: "margin-left:auto;color:#6d7f8b", text: String(cnt(key, v)) })]); }
+    return h("div", { style: "width:190px;flex:none;color:#cfd8e3;padding:6px 14px" }, [h("div", { style: "text-align:center;opacity:.8;margin-bottom:8px", text: "Resource filters" }), h("div", { style: "font-size:.75rem;margin:8px 0 4px", text: "NAME" }), h("input", { type: "text", "aria-label": "NAME filter", placeholder: "NAME", style: "width:100%;background:#0f1a26;color:#fff;border:0;padding:6px" }), h("div", { style: "font-size:.75rem;margin:12px 0 4px", text: "SYNC STATUS" })].concat(["Synced", "OutOfSync"].map(function (v) { return box(v, "sync", v, SI[v]); }), [h("div", { style: "font-size:.75rem;margin:12px 0 4px", text: "HEALTH STATUS" })], ["Progressing", "Suspended", "Healthy", "Degraded", "Missing", "Unknown"].map(function (v) { return box(v, "health", v, HI[v]); })));
+  }
+  function visible() { var fl = W.fl || {}, any = Object.keys(fl).some(function (k) { return fl[k]; }); return names.filter(function (n) { if (!any) return true; var s = sts[n]; var sy = ["Synced", "OutOfSync"].filter(function (v) { return fl["sync" + v]; }), he = ["Progressing", "Suspended", "Healthy", "Degraded", "Missing", "Unknown"].filter(function (v) { return fl["health" + v]; }); return (!sy.length || sy.indexOf(s.sync) >= 0) && (!he.length || he.indexOf(s.health) >= 0); }); }
+  var shell = function (crumb, body, side) { return h("div", { style: "display:flex;border:1px solid #1e2e3e;border-radius:6px;overflow:hidden;background:#dee6eb;min-height:420px" }, [nav, side || null, h("div", { style: "flex:1;min-width:0" }, [h("div", { style: "background:#fff;padding:12px 18px;font-weight:600;border-bottom:1px solid #e1e5ea" }, crumb), body])]); };
+  if (!sel) {
+    var tiles = !names.length ? h("p", { style: "padding:18px", text: "No applications available to you just yet. (ยังไม่ได้ kubectl apply -f apps.yaml บน pharmacy-k8s-1)" }) : h("div", { style: "display:flex;gap:14px;flex-wrap:wrap;padding:14px" }, visible().map(function (n) { var st = sts[n], a = st.app, hi = HI[st.health] || HI.Unknown, si = SI[st.sync] || SI.Unknown; return h("div", { style: "width:340px;max-width:100%;background:#fff;border-left:5px solid " + hi[1] + ";border-radius:3px;padding:12px 16px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.12)", onclick: function () { W.ar = n; W.sp = ""; render(); } }, [h("b", { style: "color:#495763;font-size:1.05rem", text: n }), h("table", { style: "width:100%;font-size:.82rem;margin:8px 0" }, [["Project:", a.project || "default"], ["Labels:", ""], ["Status:", h("span", {}, [h("span", { style: "color:" + hi[1] }, [hi[0] + " "]), st.health, "  ", h("span", { style: "color:" + si[1] }, [si[0] + " "]), st.sync])], ["Repository:", a.repoURL], ["Target Revision:", "main"], ["Path:", a.path], ["Destination:", a.destName || "https://kubernetes.default.svc"], ["Namespace:", a.ns]].map(function (r) { return h("tr", {}, [h("td", { style: "color:#6d7f8b;width:104px;padding:2px 4px;border:0", text: r[0] }), h("td", { style: "word-break:break-all;padding:2px 4px;border:0" }, [r[1]])]); })), h("div", { style: "display:flex;gap:8px" }, [pill("⟳ SYNC", function (e) { e.stopPropagation(); W.ar = n; W.sp = n; W.lg = ""; render(); }), pill("↻ REFRESH", function (e) { e.stopPropagation(); render(); }), pill("✖ DELETE", function (e) { e.stopPropagation(); delete S.argo.apps[n]; render(); })])]); }));
+    return shell(["Applications"], h("div", {}, [h("div", { style: "padding:12px 14px;display:flex;gap:10px;background:#fff" }, [pill("＋ NEW APP", function () {}, 1), pill("⟳ SYNC APPS", function () {}, 1)]), h("div", { style: "display:flex" }, [filters(), h("div", { style: "flex:1;min-width:0" }, [tiles])])]));
+  }
+  // ---- หน้ารายละเอียดของแอป + resource tree
+  var st = sts[sel], a = st.app, hi = HI[st.health] || HI.Unknown, si = SI[st.sync] || SI.Unknown, sha = hash32(st.repoImage || "").slice(0, 7), svc = /backend/.test(sel) ? "backend" : "frontend";
+  var rp0 = (function () { var um = /github\.com\/([^\/]+)\/([^\/]+?)(\.git)?$/.exec(a.repoURL || ""); return um && ghRepoOf(um[1], um[2]); })(), dep = rp0 && rp0.files[a.path + "/deployment.yaml"], reps = dep && /replicas:\s*(\d+)/.exec(dep) ? +/replicas:\s*(\d+)/.exec(dep)[1] : 1;
+  var node = function (kind, name, tag, badge, ico) { return h("div", { style: "background:#fff;border-radius:3px;padding:8px 12px;min-width:200px;box-shadow:0 1px 3px rgba(0,0,0,.15);display:flex;gap:10px;align-items:center" }, [h("span", { style: "font-size:1.3rem;color:#7a8a96", text: ico }), h("div", {}, [h("div", { style: "font-size:.88rem", text: name }), h("div", { style: "font-size:.75rem;color:" + hi[1], text: hi[0] + " " + (badge || "") })]), h("span", { style: "margin-left:auto;background:#e1e8ee;border-radius:3px;padding:1px 6px;font-size:.72rem", text: tag })]); };
+  var showRes = st.live !== null && st.live !== undefined && st.sync !== "Unknown", podState = st.health === "Healthy" ? "running 1/1" : st.health === "Progressing" ? "ContainerCreating 0/1" : (/ImagePull|InvalidImage|ErrImage/.test(st.msg) ? "ImagePullBackOff 0/1" : "CrashLoopBackOff 0/1");
+  var tree = h("div", { style: "display:flex;gap:40px;align-items:center;padding:30px;overflow-x:auto" }, [h("div", { style: "width:90px;height:90px;border-radius:50%;background:#8da0ad;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;text-align:center;flex:none", text: sel.replace("pharmacy-", "") }), showRes ? h("div", { style: "display:flex;flex-direction:column;gap:14px" }, [node("svc", svc, "svc", "", "⛁"), node("deploy", svc, "rev:1 deploy", "", "⟳")]) : h("div", { cls: "sub", text: st.sync === "Unknown" ? "(เปรียบเทียบไม่ได้: ดูข้อความ error ด้านบน)" : "(ยังไม่มี resource ใน cluster: ยังไม่ได้ sync)" }), showRes ? node("rs", svc + "-" + hash32(st.live).slice(0, 8), "rs", "", "⧉") : null, showRes ? h("div", { style: "display:flex;flex-direction:column;gap:10px" }, Array.apply(null, Array(reps)).map(function (_, i) { return node("pod", svc + "-" + hash32(st.live).slice(0, 8) + "-" + hash32(sel + i).slice(0, 5), podState + " pod", "", "▣"); })) : null].filter(Boolean));
+  var sp = W.sp === sel ? h("div", { style: "position:absolute;right:0;top:0;width:340px;background:#fff;border-left:1px solid #d5d8e0;padding:16px;height:100%;box-shadow:-2px 0 8px rgba(0,0,0,.12)" }, [h("h3", { text: "SYNC APPLICATION" }), h("p", { text: "Synchronize " + sel + " ให้ตรงกับ Git (" + (st.repoImage || "-") + ")" }), h("div", { style: "display:flex;gap:8px" }, [h("button", { cls: "btn pri", type: "button", text: "SYNCHRONIZE", onclick: function () { var r = argoSyncApp(sel); W.lg = r.err || ""; W.sp = ""; render(); } }), h("button", { cls: "btn", type: "button", text: "CANCEL", onclick: function () { W.sp = ""; render(); } })])]) : null;
+  var head = h("div", { style: "background:#fff;padding:10px 18px;display:flex;gap:30px;flex-wrap:wrap;border-bottom:1px solid #e1e5ea" }, [h("div", {}, [h("div", { cls: "sub", style: "font-size:.72rem", text: "APP HEALTH" }), h("div", { style: "font-size:1.4rem;color:" + hi[1], text: hi[0] + " " + st.health })]), h("div", {}, [h("div", { cls: "sub", style: "font-size:.72rem", text: "SYNC STATUS" }), h("div", { style: "font-size:1.4rem;color:" + si[1], text: si[0] + " " + st.sync }), h("div", { cls: "sub", text: (st.sync === "Synced" ? "To " : "From ") + "main (" + sha + ")" })]), h("div", {}, [h("div", { cls: "sub", style: "font-size:.72rem", text: "LAST SYNC" }), S.argo.live[sel] || a.auto ? h("div", { style: "font-size:1.2rem;color:#18be94", text: "Sync OK  ✔" }) : h("div", { cls: "sub", text: "ยังไม่เคย sync" }), h("div", { cls: "sub", text: "To main (" + sha + ")" })])]);
+  var toolbar = h("div", { style: "background:#fff;padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap" }, [pill("APP DETAILS", function () {}, 1), pill("APP DIFF", function () {}, 1), pill("⟳ SYNC", function () { W.sp = sel; W.lg = ""; render(); }), pill("SYNC STATUS", function () {}, 1), pill("HISTORY AND ROLLBACK", function () {}, 1), pill("✖ DELETE", function () { delete S.argo.apps[sel]; W.ar = ""; render(); }), pill("↻ REFRESH ▾", function () { render(); })]);
+  return shell([h("a", { href: "#", style: "color:#0dadea;text-decoration:none", text: "Applications", onclick: function (e) { e.preventDefault(); W.ar = ""; W.sp = ""; render(); } }), "  /  " + sel], h("div", { style: "position:relative;min-height:380px" }, [toolbar, head, st.msg ? h("div", { cls: "err", style: "padding:8px 18px;background:#fff", text: st.msg }) : null, W.lg ? h("div", { cls: "err", style: "padding:8px 18px;background:#fff", text: W.lg }) : null, tree, sp]));
+}
+// ---- เว็บ pharmacy ผ่าน ALB
+function wbPharmacy(res) {
+  var env = /:8080/.test(W.addr) ? "dev" : "prd", be = argoStatus("pharmacy-backend-" + env), fe = argoStatus("pharmacy-frontend-" + env);
+  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "Pharmacy (" + env + ")" }), h("p", { text: "frontend: " + (fe && fe.live ? fe.live.split(":").pop() : "-") + "  ·  backend: " + (be && be.live ? be.live.split(":").pop() : "-") }), h("p", { cls: "sub", text: "หน้าเว็บจริงของแอปไม่ได้จำลอง แสดงเฉพาะเวอร์ชันที่ deploy อยู่ (ผ่าน ALB → target group → NodePort)" })])]);
+}
+PAGES.browser = function () {
+  var urls = []; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
+  var ex = (urls.length ? urls : ["http://203.0.113.15:8080"]).map(function (x) { return [x, x]; });
+  var bar = h("div", { style: "display:flex;gap:8px;align-items:flex-start" }, [h("div", { style: "flex:1" }, [exPick(ex, function () { return W.addr; }, function (v) { W.addr = v; }, W, "_cu", "http://203.0.113.15:8080", "URL", false)]), h("button", { cls: "btn pri", type: "button", text: "Go", onclick: function () { wbGo(W.addr); } })]);
+  var r = W.res, view;
+  if (!r) view = h("p", { cls: "sub", text: "เลือก URL จาก terraform output (หรือพิมพ์เอง) แล้วกด Go ตัวจำลองจะตรวจเครือข่ายเหมือน ssh: เครื่องรัน, public IP, route, security group และ service ที่ฟังพอร์ตนั้น" });
+  else if (r.err) view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "This site can’t be reached" }), h("p", { text: r.host ? (r.err === "ERR_CONNECTION_REFUSED" ? r.host + " refused to connect." : r.err === "ERR_NAME_NOT_RESOLVED" ? "ไม่พบเซิร์ฟเวอร์ " + r.host : r.host + " took too long to respond.") : r.title }), h("p", { cls: "sub", text: r.err }), h("details", {}, [h("summary", { text: "ตัวจำลองบอกเหตุผล (ไม่มีในเบราว์เซอร์จริง)" }), h("ul", { cls: "chk" }, (r.steps || []).map(function (x) { return h("li", { cls: x.ok ? "ok" : "no" }, [h("span", { cls: "m", text: x.ok ? "✓" : "✗" }), h("span", {}, [x.t, h("small", { text: x.d })])]); }))])])]);
+  else if (r.site === "jenkins") view = wbJenkins(r);
+  else if (r.site === "sonarqube") view = wbSonar(r);
+  else if (r.site === "argocd") view = wbArgo(r);
+  else if (r.site === "app") view = wbPharmacy(r);
+  else if (r.site === "alb503") view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "503 Service Temporarily Unavailable" }), h("p", { cls: "sub", text: "ALB ตอบได้ แต่ไม่มี target ที่ healthy (ดู EC2 › Target Groups › Targets)" })])]);
+  else view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: r.site === "sonarqube" ? "SonarQube" : r.site === "argocd" ? "Argo CD" : "pharmacy" }), h("p", { cls: "sub", text: "เข้าถึงได้ (เครือข่ายถูกต้อง) แต่ตัวจำลองยังไม่มีหน้าเว็บของบริการนี้" })])]);
+  var spd = h("label", { style: "display:block;margin:6px 0" }, ["ความเร็ว ", h("select", { "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); render(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (build หลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]);
+  return h("div", {}, [crumbEl("Browser"), h("h1", { text: "Browser" }), spd, bar, view]);
 };
 
 // ---- lab panel
@@ -934,5 +1193,8 @@ function labBody(tab) {
 // ---- top bar controls
 document.getElementById("myip").addEventListener("change", function (e) { var v = e.target.value.trim(); if (ip2n(v) === null) { flash("bad", "My IP ไม่ถูกต้อง"); e.target.value = S.myIp; } else S.myIp = v; render(); });
 document.getElementById("acct").addEventListener("change", function (e) { S.acct = e.target.value; S.newAcct = S.acct === "free"; render(); });
+(function () { var sel = document.getElementById("theme"), saved = ""; try { saved = sessionStorage.getItem("console-lab-theme") || ""; } catch (e) {} sel.value = saved; if (saved) document.documentElement.setAttribute("data-theme", saved);
+  sel.addEventListener("change", function (e) { var v = e.target.value; if (v) document.documentElement.setAttribute("data-theme", v); else document.documentElement.removeAttribute("data-theme"); try { sessionStorage.setItem("console-lab-theme", v); } catch (x) {} }); })();
+document.getElementById("speedsel").addEventListener("change", function (e) { S.speed = e.target.value; save(); render(); });
 document.getElementById("reset").addEventListener("click", function () { fresh(); UI.sel = {}; UI.form = null; UI.held = null; flash("info", "ล้างสถานะแล้ว เหลือแค่ default VPC เหมือนบัญชีใหม่"); go("vpc-dash", {}, "VPC"); });
 load(); render();

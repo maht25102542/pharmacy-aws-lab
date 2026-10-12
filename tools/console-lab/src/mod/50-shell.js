@@ -1,6 +1,6 @@
 // ===== เทอร์มินัลของ laptop จำลอง (ไม่มี DOM): shellRun(line) → {lines, ask?, edit?, clear?} =====
 // ask = { label, secret, done(answer) → ผลลัพธ์เดียวกับ shellRun } ใช้กับคำถามแบบ interactive (aws configure, terraform apply)
-var SH_HELP = ["คำสั่งที่ใช้ได้ (จำลอง):", "  pwd, cd, ls [-la], cat, rm, cp, mkdir, echo, clear, history   เครื่องมือไฟล์พื้นฐาน", "  edit <file>                    เปิดตัวแก้ไขไฟล์ (แทน vim/nano)", "  ssh-keygen -t ed25519 [-f ~/.ssh/ชื่อ]", "  ssh [-i key] ubuntu@<ip>", "  aws configure | aws configure list | aws sts get-caller-identity", "  aws ec2 describe-instances | aws ecr describe-repositories", "  terraform init|validate|plan|apply|destroy|output|state list|state show <addr>   (-auto-approve, -var 'k=v')", "  ansible-inventory --graph", "  ansible <pattern> -m ping", "  ansible-playbook <file>.yml [--limit <pattern>]"];
+var SH_HELP = ["คำสั่งที่ใช้ได้ (จำลอง):", "  pwd, cd, ls [-la], cat, rm, cp, mkdir, echo, clear, history   เครื่องมือไฟล์พื้นฐาน", "  sed [-i] 's/เดิม/ใหม่/g' ไฟล์   แทนที่ข้อความ    grep [-rniF] คำ ไฟล์|โฟลเดอร์   ค้นข้อความ", "  edit <file>                    เปิดตัวแก้ไขไฟล์ (แทน vim/nano)", "  ssh-keygen -t ed25519 [-f ~/.ssh/ชื่อ]", "  ssh [-i key] ubuntu@<ip>", "  aws configure | aws configure list | aws sts get-caller-identity", "  aws ec2 describe-instances | aws ecr describe-repositories", "  terraform init|validate|plan|apply|destroy|output|state list|state show <addr>   (-auto-approve, -var 'k=v')", "  ansible-inventory --graph", "  ansible <pattern> -m ping", "  ansible-playbook <file>.yml [--limit <pattern>]"];
 
 function shTok(line) {
   var out = [], re = /"([^"]*)"|'([^']*)'|(\S+)/g, m; while ((m = re.exec(line))) out.push(m[1] !== undefined ? m[1] : m[2] !== undefined ? m[2] : m[3]); return out;
@@ -18,8 +18,10 @@ function shTerraform(a) {
   if (!sub) return { lines: ["Usage: terraform [global options] <subcommand> [args]", "", "  init, validate, plan, apply, destroy, output, state"] };
   if (sub === "init") return { lines: tfInitCmd(dir, a.indexOf("-upgrade") >= 0) };
   if (sub === "validate") return { lines: tfValidateCmd(dir) };
-  if (sub === "output") return { lines: tfOutputCmd(rest[0]) };
-  if (sub === "state") return { lines: rest[0] === "list" ? tfStateList() : rest[0] === "show" ? tfStateShow(rest[1] || "") : ["Usage: terraform state <list|show>"] };
+  // state เก็บในโฟลเดอร์ที่ terraform รัน (terraform.tfstate): อยู่นอกโฟลเดอร์ที่มี .tf จึงไม่เจอ state
+  var hasState = dir === REPO + "/terraform";
+  if (sub === "output") return { lines: hasState ? tfOutputCmd(rest[0]) : ["╷", "│ Warning: No outputs found", "│ ", "│ The state file either has no outputs defined, or all the defined outputs are empty. Please define an output in your configuration with the `output` keyword and run `terraform refresh` for it to become available. If you are using interpolation, please verify the interpolated value is available.", "╵"] };
+  if (sub === "state") return { lines: !hasState ? ["No state file was found!", "", "State management commands require a state file. Run this command", "in a directory where Terraform has been run or use the -state flag", "to point the command to a specific state location."] : rest[0] === "list" ? tfStateList() : rest[0] === "show" ? tfStateShow(rest[1] || "") : ["Usage: terraform state <list|show>"] };
   if (sub !== "plan" && sub !== "apply" && sub !== "destroy") return { lines: ["Terraform has no command named \"" + sub + "\"."] };
   var destroy = sub === "destroy";
   function go() {
@@ -79,6 +81,26 @@ function shRun(line) {
   if (c === "cd") { var d = normPath(a[0] || "~"); if (!fsIsDir(d)) return shErr("cd", a[0] + ": No such file or directory"); L.cwd = d; return { lines: [] }; }
   if (c === "ls") { var long = a.some(function (x) { return /^-.*l/.test(x); }), all = a.some(function (x) { return /^-.*a/.test(x); }), t = a.filter(function (x) { return x[0] !== "-"; })[0] || "."; var p = normPath(t); if (fsRead(p) !== null) return { lines: [t] }; if (!fsIsDir(p)) return shErr("ls", "cannot access '" + t + "': No such file or directory"); return { lines: shFmtLs(p, long, all) }; }
   if (c === "cat") { var o = []; for (var i = 0; i < a.length; i++) { var f = fsRead(a[i]); if (f === null) o.push("cat: " + a[i] + ": No such file or directory"); else o.push(f.replace(/\n$/, "")); } return { lines: o }; }
+  if (c === "sed") {
+    var inpl = a.some(function (x) { return /^-[a-zA-Z]*i/.test(x); }), rest = a.filter(function (x) { return x[0] !== "-"; }), sc = rest.shift(), sm = sc && /^s(.)((?:\\.|(?!\1).)*)\1((?:\\.|(?!\1).)*)\1([gi]*)$/.exec(sc);
+    if (!sm) return shErr("sed", "จำลองเฉพาะ s/แบบ/ใหม่/[g]  เช่น sed -i 's/aaa/bbb/g' ไฟล์");
+    if (!rest.length) return shErr("sed", "ต้องระบุไฟล์");
+    var dl = sm[1], re; try { re = new RegExp(sm[2].split("\\" + dl).join(dl), sm[4].replace(/[^gi]/g, "")); } catch (e) { return shErr("sed", "-e expression #1, char 0: invalid regex"); }
+    var so = []; rest.forEach(function (fn) { var t = fsRead(fn); if (t === null) { so.push("sed: can't read " + fn + ": No such file or directory"); return; } var r = t.split("\n").map(function (ln) { return ln.replace(re, sm[3].replace(/\\(.)/g, "$1")); }).join("\n"); if (inpl) fsWrite(fn, r); else so.push(r.replace(/\n$/, "")); });
+    return { lines: so };
+  }
+  if (c === "grep") {
+    var fl = a.filter(function (x) { return x[0] === "-"; }).join(""), ga = a.filter(function (x) { return x[0] !== "-"; }), pat = ga.shift(), gre;
+    if (pat == null) return shErr("grep", "Usage: grep [-rniF] PATTERN FILE...");
+    try { gre = new RegExp(/F/.test(fl) ? pat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : pat, /i/.test(fl) ? "i" : ""); } catch (e) { return shErr("grep", "Invalid regular expression"); }
+    var gall = fsAll(), tg = [];
+    ga.forEach(function (fn) { var np = normPath(fn); if (fsRead(np) !== null) tg.push(np); else if (/r/.test(fl)) Object.keys(gall).filter(function (k) { return gall[k] !== null && k.indexOf(np + "/") === 0; }).sort().forEach(function (k) { tg.push(k); }); });
+    if (!ga.length) return shErr("grep", "ต้องระบุไฟล์ (เช่น grep -rn คำ .)");
+    var go = [], multi = tg.length > 1 || /r/.test(fl);
+    ga.forEach(function (fn) { if (fsRead(fn) === null && !(/r/.test(fl) && fsIsDir(normPath(fn)))) go.push("grep: " + fn + ": No such file or directory"); });
+    tg.forEach(function (k) { fsRead(k).split("\n").forEach(function (ln, i) { if (gre.test(ln)) go.push((multi ? k.replace(L.cwd + "/", "") + ":" : "") + (/n/.test(fl) ? (i + 1) + ":" : "") + ln); }); });
+    return { lines: go };
+  }
   if (c === "rm") { var o2 = []; a.filter(function (x) { return x[0] !== "-"; }).forEach(function (x) { if (!fsRemove(x)) o2.push("rm: cannot remove '" + x + "': No such file or directory"); }); return { lines: o2 }; }
   if (c === "cp") { var s = fsRead(a[0]); if (s === null) return shErr("cp", "cannot stat '" + a[0] + "': No such file or directory"); var dst = normPath(a[1]); if (fsIsDir(dst)) dst += "/" + normPath(a[0]).split("/").pop(); fsWrite(dst, s); return { lines: [] }; }
   if (c === "mkdir") return { lines: [] };
@@ -91,6 +113,7 @@ function shRun(line) {
     return mk();
   }
   if (c === "ssh") return shSsh(a);
+  if (c === "git") return { lines: gitCmd(a, L.cwd) };
   if (c === "aws") return shAws(a);
   if (c === "terraform") return shTerraform(a);
   if (c === "ansible-inventory") return { lines: a.indexOf("--graph") >= 0 ? ansGraph() : ["ใช้ --graph (จำลองแค่แบบนี้)"] };

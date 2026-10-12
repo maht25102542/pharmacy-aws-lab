@@ -66,8 +66,8 @@ function ansConnect(inst) {
 }
 function ansVm(i) { S.vm = S.vm || {}; if (!S.vm[i.id]) S.vm[i.id] = { done: {}, f: {} }; return S.vm[i.id]; }
 function ansVars() {
-  var t = fsRead(REPO + "/ansible/group_vars/all/terraform.yml") || "", o = {};
-  t.split("\n").forEach(function (l) { var m = /^(\w+):\s*"?([^"]*)"?\s*$/.exec(l); if (m) o[m[1]] = m[2]; });
+  var o = {};
+  ["terraform.yml", "main.yml"].forEach(function (f) { (fsRead(REPO + "/ansible/group_vars/all/" + f) || "").split("\n").forEach(function (l) { var m = /^(\w+):\s*"?([^"]*)"?\s*$/.exec(l); if (m) o[m[1]] = m[2]; }); });
   return o;
 }
 function ansUnreach(host, msg) { return '"changed": false, "msg": "' + msg.replace(/\n/g, "\\n") + '", "unreachable": true'; }
@@ -139,10 +139,11 @@ function ansTask(inst, play, task, inv, vars, item) {
   if (n === "Write marker file") vm.f.marker = 1;
   if (n === "Start a new cluster" || n === "Start MariaDB (joins the cluster and copies data)") vm.f.cluster = 1;
   vm.done[key] = once ? vm.done[key] : 1;
+  var envChanged = false; if (/^Write \/opt\/jenkins\/\.env/.test(n)) { var en = rmEnv(); envChanged = vm.f.env !== en; vm.f.env = en; }
   var m = task.module.replace("ansible.builtin.", ""), st;
   if (/^(stat|slurp|wait_for|set_fact)$/.test(m)) st = "ok";
   else if (/^(command|shell)$/.test(m)) st = (task.creates || /^Install k3s/.test(n)) && once ? "ok" : "changed";
-  else st = once ? "ok" : "changed";
+  else st = once && !envChanged ? "ok" : "changed";
   if (st === "changed") ANS_RUN[inst.id + key] = 1;
   return { st: st };
 }

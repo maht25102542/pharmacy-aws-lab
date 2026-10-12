@@ -14,6 +14,7 @@ var POLICIES = Object.keys(POLICY_DEF);
 var PUSH_ACTIONS = ["ecr:GetAuthorizationToken", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:BatchCheckLayerAvailability", "ecr:PutImage", "ecr:BatchGetImage"];
 var PULL_ACTIONS = ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"];
 var ITYPE_INFO = { "t3.micro": [2, 1], "t3.small": [2, 2], "t3.medium": [2, 4], "t3.large": [2, 8], "t4g.small": [2, 2], "c7i-flex.large": [2, 4], "m7i-flex.large": [2, 8], "m5.large": [2, 8] };
+var MEMGIB = { "t3.micro": 1, "t3.small": 2, "t3.medium": 4, "t3.large": 8, "t4g.small": 2, "c7i-flex.large": 4, "m7i-flex.large": 8, "m5.large": 8 }; // ponytail: ค่าจากความจำ
 var VCPU = { "t3.micro": 2, "t3.small": 2, "t3.medium": 2, "t3.large": 2, "t4g.small": 2, "c7i-flex.large": 2, "m7i-flex.large": 2, "m5.large": 2 }; // ponytail: จำนวน vCPU จากความจำ
 var VCPU_QUOTA = 5;
 var ITYPES = ["t3.micro", "t3.small", "t3.medium", "t3.large", "t4g.small", "c7i-flex.large", "m7i-flex.large", "m5.large"];
@@ -63,6 +64,7 @@ function ensureState() {
   if (!S.acct) S.acct = "normal";
   if (!S.nats) S.nats = [];
   if (!S.faults) S.faults = {};
+  ghInit();
   ["users", "eips", "policies"].forEach(function (k) { if (!S[k]) S[k] = []; });
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
@@ -166,7 +168,7 @@ API.createVpcAndMore = function (o) {
   if (pub) { rtPub = { id: rid("rtb"), name: nm ? nm + "-rtb-public" : "", vpcId: v.id, main: false, routes: [{ dest: "0.0.0.0/0", target: g.id }], assoc: [] }; S.rtbs.push(rtPub); }
   for (var i = 0; i < pub; i++) { var sn = { id: rid("subnet"), name: nm ? nm + "-subnet-public" + (i + 1) + "-" + AZS[i] : "", vpcId: v.id, az: AZS[i], cidr: n2ip(base + i * 4096) + "/20", autoIp: false }; S.subnets.push(sn); rtPub.assoc.push(sn.id); pubSn.push(sn); }
   var nats = [];
-  if (nat !== "none") for (var j = 0; j < (nat === "perAz" ? nAz : 1); j++) { var ea = API.allocEip(); if (ea.errors) return ea; var e = ea.res, nt = { id: rid("nat"), name: nm ? nm + "-nat-public" + (j + 1) + "-" + AZS[j] : "", vpcId: v.id, subnetId: pubSn[j].id, eipId: e.id, state: "available" }; S.nats.push(nt); nats.push(nt); }
+  if (nat !== "none") for (var j = 0; j < (nat === "perAz" ? nAz : 1); j++) { var ea = API.allocEip(); if (ea.errors) return ea; var e = ea.res, nt = { id: rid("nat"), name: nm ? nm + "-nat-public" + (j + 1) + "-" + AZS[j] : "", vpcId: v.id, subnetId: pubSn[j].id, eipId: e.id, state: "available", born: Date.now() }; S.nats.push(nt); nats.push(nt); }
   for (var k = 0; k < priv; k++) {
     var ps = { id: rid("subnet"), name: nm ? nm + "-subnet-private" + (k + 1) + "-" + AZS[k] : "", vpcId: v.id, az: AZS[k], cidr: n2ip(base + 32768 + k * 4096) + "/20", autoIp: false }; S.subnets.push(ps); privSn.push(ps);
     var rt = { id: rid("rtb"), name: nm ? nm + "-rtb-private" + (k + 1) + "-" + AZS[k] : "", vpcId: v.id, main: false, routes: [], assoc: [ps.id] };
@@ -283,7 +285,8 @@ API.launch = function (o) {
   if (!sn) er.subnetId = "VPC นี้ยังไม่มี subnet ให้วางเครื่อง"; else if (sn.vpcId !== v.id) er.subnetId = "subnet นี้ไม่อยู่ใน VPC ที่เลือก";
   var sgIds = (o.sgIds || []).slice();
   if (o.newSg) {
-    var r = API.createSg({ name: o.newSg.name, desc: o.newSg.desc, vpcId: v.id, rows: [{ type: "SSH", srcKind: o.newSg.src || "Anywhere-IPv4" }] });
+    var nsRows = []; if (o.newSg.ssh !== false) nsRows.push({ type: "SSH", srcKind: o.newSg.src || "Anywhere-IPv4" }); if (o.newSg.https) nsRows.push({ type: "HTTPS", srcKind: "Anywhere-IPv4" }); if (o.newSg.http) nsRows.push({ type: "HTTP", srcKind: "Anywhere-IPv4" });
+    var r = API.createSg({ name: o.newSg.name, desc: o.newSg.desc, vpcId: v.id, rows: nsRows });
     if (r.errors) { er.newSgName = r.errors.name || r.errors.desc || "สร้าง security group ไม่สำเร็จ"; } else sgIds = [r.res.id];
   } else {
     sgIds = sgIds.filter(function (id) { var g = find(S.sgs, id); return g && g.vpcId === v.id; });
@@ -302,7 +305,7 @@ API.launch = function (o) {
   for (var i = 0; i < cnt; i++) {
     var used = S.insts.filter(function (x) { return x.subnetId === sn.id; }).length + made.filter(function (x) { return x.subnetId === sn.id; }).length;
     var pub = (o.autoIp === "Enable") ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : "";
-    made.push({ id: rid("i"), name: o.name || "", tags: tags, ami: o.ami, type: o.type, keyName: o.keyName || "", vpcId: v.id, subnetId: sn.id, az: sn.az, sgIds: sgIds.slice(), publicIp: pub, hadPub: !!pub, volId: rid("vol"), eipId: null, privateIp: n2ip(parseCidr(sn.cidr).base + 4 + used), profile: o.profile || "", imds: { tokens: o.tokens, hop: hop }, disk: { size: size, type: o.diskType }, state: "running" });
+    made.push({ id: rid("i"), name: o.name || "", tags: tags, ami: o.ami, type: o.type, keyName: o.keyName || "", vpcId: v.id, subnetId: sn.id, az: sn.az, sgIds: sgIds.slice(), publicIp: pub, hadPub: !!pub, volId: rid("vol"), eipId: null, privateIp: n2ip(parseCidr(sn.cidr).base + 4 + used), profile: o.profile || "", imds: { tokens: o.tokens, hop: hop }, disk: { size: size, type: o.diskType }, state: "running", born: Date.now() });
   }
   made.forEach(function (x) { S.insts.push(x); });
   return { res: made };
@@ -340,7 +343,7 @@ API.createAlb = function (o) {
     var t = find(S.tgs, l.tgId); if (!t) er["ltg" + i] = "ต้องเลือก target group"; else if (v && t.vpcId !== v.id) er["ltg" + i] = "target group ต้องอยู่ใน VPC เดียวกับ ALB";
   });
   if (Object.keys(er).length) return { errors: er };
-  var a = { id: rid("alb"), name: o.name, scheme: o.scheme, vpcId: v.id, subnetIds: sns.map(function (s) { return s.id; }), sgIds: sgs, listeners: ls.map(function (l) { return { proto: "HTTP", port: +l.port, tgId: l.tgId }; }), dns: o.name + "-" + String(Math.floor(Math.random() * 9e8 + 1e8)) + "." + REGION + ".elb.lab.invalid" };
+  var a = { id: rid("alb"), name: o.name, scheme: o.scheme, vpcId: v.id, subnetIds: sns.map(function (s) { return s.id; }), sgIds: sgs, listeners: ls.map(function (l) { return { proto: "HTTP", port: +l.port, tgId: l.tgId }; }), dns: o.name + "-" + String(Math.floor(Math.random() * 9e8 + 1e8)) + "." + REGION + ".elb.lab.invalid", born: Date.now() };
   S.albs.push(a); return { res: a };
 };
 
@@ -357,13 +360,14 @@ function sshCheck(inst, heldKey) {
   var sg = sgAllows(inst.sgIds, 22, { ip: S.myIp });
   steps.push({ ok: sg, t: "security group เปิด tcp/22 ให้ My IP (" + S.myIp + ")", d: sg ? "มีกฎ SSH ที่ครอบ IP นี้" : "ไม่มีกฎขาเข้า port 22 ที่ครอบ IP ของคุณ" });
   timeout = !(run && pub && route && sg);
-  var out;
+  var ph = instPhase(inst), booting = !timeout && !ph.booted, out;
   if (timeout) out = "ssh: connect to host " + (inst.publicIp || "<no public ip>") + " port 22: Connection timed out";
+  else if (booting) out = "ssh: connect to host " + inst.publicIp + " port 22: Connection refused  (ระบบปฏิบัติการกำลังบูต sshd ยังไม่พร้อม รอ ~1 นาทีแล้วลองใหม่)";
   else if (!inst.keyName) out = "ubuntu@" + inst.publicIp + ": Permission denied (publickey).  (เครื่องนี้ไม่ได้ผูก key pair ไว้)";
   else if (heldKey !== inst.keyName) out = "ubuntu@" + inst.publicIp + ": Permission denied (publickey).";
   else out = "Welcome to Ubuntu 24.04 LTS  (จำลอง)  ubuntu@ip-" + inst.privateIp.replace(/\./g, "-") + ":~$";
   steps.push({ ok: !!inst.keyName && heldKey === inst.keyName, skip: timeout, t: "กุญแจที่คุณถือตรงกับ key pair ของเครื่อง", d: (timeout ? "(ยังไปไม่ถึงขั้นนี้เพราะติดที่เครือข่ายก่อน) " : "") + (!inst.keyName ? "เครื่องไม่มี key pair" : (heldKey === inst.keyName ? "ตรงกับ " + inst.keyName : "เครื่องใช้ " + inst.keyName + " แต่คุณถือ " + (heldKey || "(ไม่มี)"))) });
-  return { steps: steps, out: out, kind: timeout ? "timeout" : (out.indexOf("Permission denied") >= 0 ? "denied" : "ok") };
+  return { steps: steps, out: out, kind: timeout ? "timeout" : booting ? "refused" : (out.indexOf("Permission denied") >= 0 ? "denied" : "ok") };
 }
 function sessionCheck(inst) {
   var steps = [], role = inst.profile ? S.roles.filter(function (r) { return r.profile === inst.profile; })[0] : null;
@@ -378,26 +382,42 @@ function sessionCheck(inst) {
 }
 function natRoute(rt) {
   if (!rt) return false;
-  return rt.routes.some(function (x) { var n = /^nat-/.test(x.target) ? find(S.nats, x.target) : null, ns = n && find(S.subnets, n.subnetId); return x.dest === "0.0.0.0/0" && n && n.state === "available" && ns && hasIgwRoute(subnetRtb(ns)); });
+  return rt.routes.some(function (x) { var n = /^nat-/.test(x.target) ? find(S.nats, x.target) : null, ns = n && find(S.subnets, n.subnetId); return x.dest === "0.0.0.0/0" && n && natPhase(n) === "available" && ns && hasIgwRoute(subnetRtb(ns)); });
 }
 function internetOut(inst) {
   var sn = find(S.subnets, inst.subnetId), rt = sn ? subnetRtb(sn) : null;
   return inst.state === "running" && egressOpen(inst.sgIds) && ((!!inst.publicIp && hasIgwRoute(rt)) || natRoute(rt));
 }
+// NAT gateway: Pending ~60s → Available; ALB: Provisioning ~3 นาที → Active (เวลาประมาณ ไม่ยืนยัน)
+function natPhase(n) { return S.speed === "real" && n.born && Date.now() - n.born < 60000 ? "pending" : n.state; }
+function albPhase(a) { return S.speed === "real" && a.born && Date.now() - a.born < 180000 ? "provisioning" : "active"; }
 function albHealth(alb) {
-  var rows = [], azs = alb.subnetIds.map(function (id) { var x = find(S.subnets, id); return x && x.az; });
+  var rows = [], prov = albPhase(alb) === "provisioning", azs = alb.subnetIds.map(function (id) { var x = find(S.subnets, id); return x && x.az; });
   alb.listeners.forEach(function (l) {
     var t = find(S.tgs, l.tgId); if (!t) return;
     if (!t.targets.length) rows.push({ l: l, t: t, none: true });
     t.targets.forEach(function (x) {
       var inst = find(S.insts, x.instId), st = "healthy", code = "", desc = "";
-      if (!inst || inst.state === "stopped" || inst.state === "terminated") { st = "unused"; code = "Target.InvalidState"; desc = "Target is in the " + (inst ? inst.state : "terminated") + " state"; }
+      if (prov && inst && inst.state !== "stopped" && inst.state !== "terminated") { st = "initial"; code = "Elb.InitialHealthChecking"; desc = "Initial health checks in progress"; }
+      else if (!inst || inst.state === "stopped" || inst.state === "terminated") { st = "unused"; code = "Target.InvalidState"; desc = "Target is in the " + (inst ? inst.state : "terminated") + " state"; }
       else if (azs.indexOf(inst.az) < 0) { st = "unused"; code = "Target.NotInUse"; desc = "Target is in an Availability Zone that is not enabled for the load balancer"; }
       else if (!sgAllows(inst.sgIds, x.port, { sgIds: alb.sgIds })) { st = "unhealthy"; code = "Target.Timeout"; desc = "Request timed out"; }
+      else if ((x.port === 30080 || x.port === 30081) && appLayer() && !argoHealthy("pharmacy-frontend-" + (x.port === 30080 ? "prd" : "dev"))) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed"; }
       rows.push({ l: l, t: t, inst: inst, port: x.port, state: st, ok: st === "healthy", code: code, why: code ? code + ": " + desc : "" });
     });
   });
   return rows;
+}
+// เวลาของ instance ในโหมด "เวลาเหมือนจริง" (ประมาณ ไม่ยืนยัน): pending ~10s → running + Initializing ~2 นาที → 2/2 checks passed; sshd พร้อมหลัง ~45s
+function instPhase(i, now) {
+  now = now || Date.now(); var real = S.speed === "real";
+  if (!real) return { state: i.state, check: i.state === "running" ? "2/2 checks passed" : "–", booted: true, transient: false };
+  if (i.trans && now < i.trans.until) return { state: i.trans.to, check: "–", booted: false, transient: true };
+  if (i.state !== "running") return { state: i.state, check: "–", booted: true, transient: false };
+  var age = now - (i.born || 0);
+  if (age < 10000) return { state: "pending", check: "–", booted: false, transient: true };
+  if (age < 120000) return { state: "running", check: "Initializing", booted: age >= 45000, transient: true };
+  return { state: "running", check: "2/2 checks passed", booted: true, transient: false };
 }
 function liveInsts(vpcId, subnetId) { return S.insts.filter(function (i) { return i.state !== "terminated" && (!vpcId || i.vpcId === vpcId) && (!subnetId || i.subnetId === subnetId); }); }
 // fault vcpuQuota: running vCPU + จำนวนเครื่องใหม่ ต้องไม่เกิน VCPU_QUOTA (ทุก type ใน ITYPES = 2 vCPU)
@@ -410,10 +430,10 @@ API.instState = function (id, act) {
   var i = find(S.insts, id); if (!i) return E("_", "ไม่พบเครื่อง");
   var e = i.eipId ? find(S.eips, i.eipId) : null;
   if (i.state === "terminated") return E("_", "เครื่องที่ terminate แล้วทำอะไรต่อไม่ได้");
-  if (act === "stop") { if (i.state !== "running") return E("_", "หยุดได้เฉพาะเครื่องที่ running"); i.state = "stopped"; i.publicIp = e ? e.ip : ""; }
-  else if (act === "start") { if (i.state !== "stopped") return E("_", "start ได้เฉพาะเครื่องที่ stopped"); var q = vcpuCheck(1); if (q) return E("_", q); i.state = "running"; i.publicIp = e ? e.ip : (i.hadPub ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : ""); }
+  if (act === "stop") { if (i.state !== "running") return E("_", "หยุดได้เฉพาะเครื่องที่ running"); i.state = "stopped"; i.publicIp = e ? e.ip : ""; if (S.speed === "real") i.trans = { to: "stopping", until: Date.now() + 25000 }; }
+  else if (act === "start") { if (i.state !== "stopped") return E("_", "start ได้เฉพาะเครื่องที่ stopped"); var q = vcpuCheck(1); if (q) return E("_", q); i.state = "running"; i.born = Date.now(); i.trans = null; i.publicIp = e ? e.ip : (i.hadPub ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : ""); }
   else if (act === "reboot") { if (i.state !== "running") return E("_", "reboot ได้เฉพาะเครื่องที่ running"); }
-  else if (act === "terminate") { i.state = "terminated"; i.publicIp = ""; if (e) { e.instId = null; i.eipId = null; } }
+  else if (act === "terminate") { i.state = "terminated"; i.publicIp = ""; if (S.speed === "real") i.trans = { to: "shutting-down", until: Date.now() + 40000 }; if (e) { e.instId = null; i.eipId = null; } }
   else return E("_", "ไม่รู้จัก action");
   return { res: i };
 };
@@ -748,7 +768,13 @@ var RULES = [
   ["Ansible dynamic inventory: กรอง tag Project=pharmacy + running, กลุ่ม role_<Role>, ชื่อโฮสต์จาก tag Name, ansible_host = public IP (ตาม inventory/aws_ec2.yml ของ repo)", 1],
   ["Ansible ผลของแต่ละ task (changed/ok, UNREACHABLE จาก SG/route/key, ต้องมีทางออกเน็ตสำหรับ apt/curl/docker, ECR refresh ต้องมีสิทธิ์) เป็นกฎที่เขียนเองตามชื่อ task ไม่ใช่การรันจริง", 0],
   ["บัญชี suspended: ทุกคำสั่ง AWS CLI / Terraform / Ansible inventory ล้มเหลวด้วย AuthFailure (ข้อความจำลองจากความจำ)", 0],
-  ["Default quota ตามเอกสาร: Standard (A,C,D,H,I,M,R,T,Z) running On-Demand = 5 vCPU, Elastic IP 5/Region, VPC 5/Region, Internet gateway 5/Region, NAT gateway 5/AZ, SG rule 60/ทิศทาง, SG ต่อ ENI 5 (บัญชีจริงอาจสูงกว่าเพราะ EC2 ปรับให้อัตโนมัติ)", 1],
+  ["หน้าตา AWS console ที่เทียบกับ screenshot จริง (ปี 2025 จากเอกสาร/บทความ): แถบบนสีกรมท่าพร้อม logo/Services/Search [Alt+S]/region/account, เมนูซ้ายหัวข้อมี ▼, ปุ่มหลักสีส้มทรงแคปซูล, หน้า EC2 dashboard (Launch instance / Service health / Account attributes), Create VPC (Resources to create, Name tag auto-generation, Preview, NAT gateways, VPC endpoints, DNS options), Launch instance (Info, Network settings + Edit, Firewall การ์ด, launch-wizard-N, คำเตือน 0.0.0.0/0, Summary + Launch instance)", 1],
+  ["หน้า AWS อื่น (รายการ Instances, Security groups, Route tables, IAM, ECR, Elastic IPs ฯลฯ): โครงและข้อความจำลองจากความจำ ยังไม่ได้เทียบกับ screenshot จริง; ไอคอน/ฟอนต์/สีละเอียดไม่ตรง; NAT gateway แบบ Regional (ใหม่ปี 2025) ยังไม่จำลอง", 0],
+    ["ArgoCD: รหัส admin เริ่มต้นอยู่ใน secret argocd-initial-admin-secret (หรือ argocd admin initial-password -n argocd), login ด้วย argocd login <server> --insecure, app ใหม่เป็น OutOfSync/Missing จนกว่าจะ Sync, UI: กด Sync แล้ว Synchronize ในแผง", 1],
+  ["SonarQube: admin/admin เป็นค่าเริ่มต้น, token สร้างที่ My account › Security (ประเภท User / Project analysis / Global analysis) และดูได้ครั้งเดียว", 1],
+  ["SonarQube: บังคับเปลี่ยนรหัสผ่านตอน login ครั้งแรก, นโยบายรหัสผ่านยาว ≥ 12 ตัว, ป้ายปุ่มและชื่อช่องในฟอร์ม token", 0],
+  ["Jenkins: setup wizard (Unlock → Customize → Create First Admin User → Jenkins is ready), Pipeline script from SCM, Build Now/Console Output ตรงเอกสาร; รูปแบบ log [Pipeline] เต็ม, build แรกของ Jenkinsfile ที่มี parameters ล้มแล้วปุ่มเปลี่ยนเป็น Build with Parameters (จาก README ของ lab), หน้าตา dashboard และเวลาแต่ละ stage จำลองจากความจำ", 0],
+    ["Default quota ตามเอกสาร: Standard (A,C,D,H,I,M,R,T,Z) running On-Demand = 5 vCPU, Elastic IP 5/Region, VPC 5/Region, Internet gateway 5/Region, NAT gateway 5/AZ, SG rule 60/ทิศทาง, SG ต่อ ENI 5 (บัญชีจริงอาจสูงกว่าเพราะ EC2 ปรับให้อัตโนมัติ)", 1],
   ["ข้อความ error ของ quota (VcpuLimitExceeded มี URL contact-us/ec2-request; AddressLimitExceeded, VpcLimitExceeded ฯลฯ) และ error ของ AZ/instance profile: รหัสและหลักการตรงเอกสาร/กระทู้ แต่ถ้อยคำเต็มจำลองจากความจำ", 0],
   ["Free plan: ปิดบัญชีเมื่อครบ 6 เดือนหรือ credit หมด (เก็บข้อมูล 90 วัน), credit เริ่มต้น $100 + ทำกิจกรรมได้อีกสูงสุด $100; ไม่รวม Savings Plans/Reserved Instances/บางรายการ Marketplace ส่วน ALB/NAT/ECR ว่าใช้ได้ไหมเอกสารไม่ระบุ จึงไม่จำลองการบล็อก", 1],
   ["IAM access key: user ละ 2 ชุด, ลบต้อง Deactivate ก่อน, secret ดูได้ครั้งเดียว (Show / Download .csv file)", 1],

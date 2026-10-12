@@ -5,6 +5,7 @@
 
 - โครงเมนู: เมนูซ้ายและชื่อกลุ่มเรียงตาม console จริง (รายการที่ยังไม่จำลองเป็นสีจาง), ช่องค้นหาด้านบน, เลือก region, ตารางมีช่องติ๊ก/ค้นหา/กดชื่อเปิดหน้า detail ที่มีแท็บ, Launch มีแผง Summary, Connect มี 4 แท็บ
 - Laptop › Terminal: รัน `terraform` (โค้ดจริงของ repo นี้ → 41 resources), `ansible-inventory`, `ansible-playbook site.yml`, `aws configure`, `ssh`, `ssh-keygen` กับ AWS จำลอง; Files & editor แก้ไฟล์ .tf ได้ (playbook .yml รันจากชุดที่ฝังตอน build); เมนูบัญชี: ปกติ / Free plan / suspended
+- Deployment lab (Browser): GitHub (`git init/add/commit/remote/push/pull/tag` ใน `repo-app`/`repo-manifests`) → Jenkins (setup wizard, sign in, New Item, Credentials, first-build quirk, Build with Parameters, Console) → SonarQube (เปลี่ยนรหัส, สร้าง token) → ECR → ArgoCD (`kubectl apply -f apps.yaml`, Sync) → ALB. เปิด URL จาก `terraform output` ตามเครือข่ายจำลอง (SG/route/service) → หน้า Jenkins จำลอง (login ด้วย initial password, New Item, Credentials, Build with Parameters, Stage View, Console Output) รัน pipeline ตาม `repo-app/Jenkinsfile` กับสถานะ AWS จำลอง; `git tag`/`git push` ใน `repo-app`
 - ECR/IAM/EC2: จำลอง docker push/pull เทียบสิทธิ์จริงของ policy (Jenkins=PowerUser push ได้, k8s=ReadOnly push ไม่ได้, token 12 ชม.), IAM user + access key (aws configure), role/policy, Elastic IP, เปลี่ยน instance type, Modify IAM role
 - เปิด: `xdg-open tools/console-lab/index.html`
 - เช็ก logic: `node tools/console-lab/test.js`

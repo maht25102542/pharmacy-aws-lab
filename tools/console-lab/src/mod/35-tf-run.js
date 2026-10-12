@@ -180,11 +180,25 @@ function tfApplyDestroys(list, cfg, out) {
   return null;
 }
 // ---- แสดง plan
+// ตัดรูปแบบภายใน "tcp|22|22|cidr|1.2.3.4/32" ให้เป็นบล็อกอ่านง่ายเหมือน output ของ terraform
+function tfRuleBlock(str, sym) {
+  var p = String(str).split("|"), tgt = p[3] === "sg" ? "security_groups = [\"" + p[4] + "\"]" : "cidr_blocks = [\"" + p[4] + "\"]";
+  return ["          " + sym + " {", "              " + sym + " from_port = " + p[1], "              " + sym + " protocol = \"" + p[0] + "\"", "              " + sym + " " + tgt, "              " + sym + " to_port = " + p[2], "            },"];
+}
+function tfDriftLines(c) {
+  if (c.k === "__ingress" || c.k === "__egress") {
+    var name = c.k.slice(2), o = c.old || [], n = c.nw || [], out = ["      ~ " + name + " = ["];
+    o.filter(function (x) { return n.indexOf(x) < 0; }).forEach(function (x) { out = out.concat(tfRuleBlock(x, "-")); });
+    n.filter(function (x) { return o.indexOf(x) < 0; }).forEach(function (x) { out = out.concat(tfRuleBlock(x, "+")); });
+    out.push("        ]"); return out;
+  }
+  return ["      ~ " + c.k + " = " + tfOutFmt(c.old) + " -> " + tfOutFmt(c.nw)];
+}
 function tfPlanText(res, o) {
   var out = [], acts = res.actions.filter(function (a) { return a.act !== "noop"; });
   if (res.drift.length) {
     out.push("Note: Objects have changed outside of Terraform", "", "Terraform detected the following changes made outside of Terraform since the last \"terraform apply\" which may have affected this plan:", "");
-    res.drift.forEach(function (d) { if (d.gone) out.push("  # " + d.addr + " has been deleted", "  - resource ... {  (หายไปจาก AWS)  }", ""); else { out.push("  # " + d.addr + " has changed", "  ~ resource {"); d.changes.forEach(function (c) { out.push("      ~ " + c.k + " = " + tfOutFmt(c.old) + " -> " + tfOutFmt(c.nw)); }); out.push("    }", ""); } });
+    res.drift.forEach(function (d) { if (d.gone) out.push("  # " + d.addr + " has been deleted", "  - resource ... {  (หายไปจาก AWS)  }", ""); else { out.push("  # " + d.addr + " has changed", "  ~ resource \"" + d.addr.split(".")[0] + "\" \"" + d.addr.split(".").slice(1).join(".").replace(/\[.*$/, "") + "\" {"); d.changes.forEach(function (c) { tfDriftLines(c).forEach(function (l) { out.push(l); }); }); out.push("    }", ""); } });
     out.push("Unless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.", "", "─────────────────────────────────────────────────────────────────────────────", "");
   }
   var ocNow = Object.keys(res.outputs).filter(function (k) { var old = S.tf.outputs[k]; return old === undefined || !tfSame(old, res.outputs[k]); });
