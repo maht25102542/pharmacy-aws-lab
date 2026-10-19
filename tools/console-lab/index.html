@@ -103,7 +103,7 @@ td.empty { text-align: center; color: var(--muted); padding: 22px; white-space: 
 .actions { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); background: var(--code-bg); border-radius: 0 0 8px 8px; }
 .tag { font-size: .76rem; padding: 1px 8px; border-radius: 99px; background: var(--code-bg); }
 .tag.ok { background: var(--ok-bg); color: var(--ok); } .tag.bad { background: var(--bad-bg); color: var(--bad); } .tag.warn { background: var(--warn-bg); color: var(--warn); }
-pre.term { background: #0b1118; color: #d9e4ef; border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-family: var(--mono); font-size: .84rem; margin: 8px 0; white-space: pre-wrap; }
+pre.term { background: var(--t-bg, #0b1118); color: var(--t-fg, #d9e4ef); font-size: var(--t-fs, .84rem) !important; border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-family: var(--mono); font-size: .84rem; margin: 8px 0; white-space: pre-wrap; }
 @keyframes hpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,153,0,.0); } 50% { box-shadow: 0 0 0 5px rgba(255,153,0,.45); } }
 .hcreating { animation: hpulse .9s infinite; }
 .hdim { opacity: .22; transition: opacity .4s; }
@@ -168,9 +168,13 @@ a.lnk:hover, .crumb a:hover { text-decoration: underline; }
 .rbox.pub { border-color: var(--ok); background: var(--ok-bg); }
 .rbox.prv { border-color: var(--accent); background: var(--accent-bg); }
 .rbox small { display: block; color: var(--muted); }
-.termrow { display: flex; gap: 6px; align-items: center; background: #0b1118; border-radius: 8px; padding: 6px 12px; font-family: var(--mono); font-size: .84rem; }
-.termlab { color: #8fd18f; white-space: pre; }
-.termrow input { flex: 1; background: transparent; border: 0; outline: 0; color: #d9e4ef; font: inherit; }
+.termrow { display: flex; gap: 6px; align-items: center; background: var(--t-bg, #0b1118); color: var(--t-fg, #d9e4ef); border-radius: 8px; padding: 6px 12px; font-family: var(--mono); font-size: .84rem; }
+.termlab { color: var(--t-user, #8fd18f); white-space: pre; }
+.termlab .tp { color: var(--t-path, #7aa7ff); }
+.term .tu { color: var(--t-user, #8fd18f); font-weight: 700; } .term .tp { color: var(--t-path, #7aa7ff); font-weight: 700; } .term .tc { color: var(--t-cmd, #fff); font-weight: 700; }
+.term .te { color: var(--t-err, #ff6b6b); } .term .to { color: var(--t-ok, #7ee787); } .term .tw { color: var(--t-warn, #f2cc60); } .term .td { color: var(--t-dim, #7d8896); } .term .th { color: var(--t-head, #79c0ff); font-weight: 700; }
+.termrow input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--t-cmd, #d9e4ef); font: inherit; caret-color: var(--t-user, #8fd18f); }
+#termwrap select { background: #fff; color: #17222d; }
 .filewrap { display: grid; grid-template-columns: 260px 1fr; gap: 14px; }
 .filelist { max-height: 560px; overflow: auto; border: 1px solid var(--line, #ccd); border-radius: 8px; padding: 4px; }
 .fbtn { display: block; width: 100%; text-align: left; background: transparent; border: 0; padding: 3px 6px; font-family: var(--mono); font-size: .74rem; word-break: break-all; cursor: pointer; color: inherit; }
@@ -4225,11 +4229,42 @@ function termRun(raw) {
   })();
   termDraw();
 }
+// ---- ธีม + ไฮไลต์สีของ Terminal (laptop/VM)
+var TERM_THEMES = {
+  navy: ["เข้ม (ค่าเริ่มต้น)", { bg: "#0b1118", fg: "#d9e4ef", user: "#8fd18f", path: "#7aa7ff", cmd: "#ffffff", err: "#ff6b6b", ok: "#7ee787", warn: "#f2cc60", dim: "#7d8896", head: "#79c0ff" }],
+  ubuntu: ["Ubuntu", { bg: "#300a24", fg: "#eeeeec", user: "#8ae234", path: "#729fcf", cmd: "#ffffff", err: "#ef2929", ok: "#8ae234", warn: "#fce94f", dim: "#ad7fa8", head: "#34e2e2" }],
+  dracula: ["Dracula", { bg: "#282a36", fg: "#f8f8f2", user: "#50fa7b", path: "#bd93f9", cmd: "#ffffff", err: "#ff5555", ok: "#50fa7b", warn: "#f1fa8c", dim: "#6272a4", head: "#8be9fd" }],
+  solar: ["Solarized Dark", { bg: "#002b36", fg: "#93a1a1", user: "#859900", path: "#268bd2", cmd: "#eee8d5", err: "#dc322f", ok: "#859900", warn: "#b58900", dim: "#586e75", head: "#2aa198" }],
+  monokai: ["Monokai", { bg: "#272822", fg: "#f8f8f2", user: "#a6e22e", path: "#66d9ef", cmd: "#ffffff", err: "#f92672", ok: "#a6e22e", warn: "#e6db74", dim: "#75715e", head: "#ae81ff" }],
+  matrix: ["Matrix (เขียวบนดำ)", { bg: "#000000", fg: "#33ff66", user: "#00ff41", path: "#00cc33", cmd: "#b6ffc8", err: "#ff3b3b", ok: "#00ff41", warn: "#ccff33", dim: "#1a8f3a", head: "#66ffcc" }],
+  light: ["สว่าง (Light)", { bg: "#fbfbfb", fg: "#24292f", user: "#1a7f37", path: "#0969da", cmd: "#000000", err: "#cf222e", ok: "#1a7f37", warn: "#9a6700", dim: "#6e7781", head: "#0550ae" }]
+};
+function termPref(k, d) { try { return localStorage.getItem("console-lab-term-" + k) || d; } catch (e) { return d; } }
+function termSet(k, v) { try { localStorage.setItem("console-lab-term-" + k, v); } catch (e) {} }
+function termApplyTheme() {
+  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
+  Object.keys(t).forEach(function (k) { w.style.setProperty("--t-" + (k === "user" ? "user" : k === "path" ? "path" : k === "cmd" ? "cmd" : k === "err" ? "err" : k === "ok" ? "ok" : k === "warn" ? "warn" : k === "dim" ? "dim" : k === "head" ? "head" : k), t[k]); });
+  w.style.setProperty("--t-bg", t.bg); w.style.setProperty("--t-fg", t.fg); w.style.setProperty("--t-fs", fs);
+}
+function escH(x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function termHtml(ln) {
+  var m = /^([A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+):([^$#]*)([$#]) ?(.*)$/.exec(ln);
+  if (m) { var cm = /^(\S+)(.*)$/.exec(m[4]); return '<span class="tu">' + escH(m[1]) + '</span>:<span class="tp">' + escH(m[2]) + "</span>" + escH(m[3]) + " " + (cm ? '<span class="tc">' + escH(cm[1]) + "</span>" + escH(cm[2]) : ""); }
+  var e = escH(ln);
+  if (/^\s*$/.test(ln)) return e;
+  if (/^(PLAY|TASK) \[|^PLAY RECAP|^Terraform will perform|^Apply complete|^Plan:|^Outputs:|^Initializing|^Terraform has been successfully/.test(ln)) return /^Apply complete|successfully/.test(ln) ? '<span class="to"><b>' + e + "</b></span>" : /^Plan:/.test(ln) ? '<span class="tw"><b>' + e + "</b></span>" : '<span class="th">' + e + "</span>";
+  if (/\bfatal:|FAILED|UNREACHABLE|^Error:|^│ Error|\bError\b|denied|not found|No such file|refused|timed out|Permission denied|failed=[1-9]|unreachable=[1-9]|✗/i.test(ln)) return '<span class="te">' + e + "</span>";
+  if (/^(ok|changed|skipping|failed|fatal):|ok=\d+|Creation complete|Destruction complete|SUCCESS|Finished: SUCCESS|\bhealthy\b|✓|Welcome to|Reading state|^\s*\+ /.test(ln)) return /^changed:|^\s*~ /.test(ln) ? '<span class="tw">' + e + "</span>" : '<span class="to">' + e + "</span>";
+  if (/^changed:|^\s*~ |Still creating|Still destroying|Warning|WARN|UNSTABLE/.test(ln)) return '<span class="tw">' + e + "</span>";
+  if (/^\s*- |Destroying\.\.\.|will be destroyed/.test(ln)) return '<span class="te">' + e + "</span>";
+  if (/^\s*#|^Console Lab|^ลอง|^\(/.test(ln)) return '<span class="td">' + e + "</span>";
+  return e;
+}
 function termDraw() {
   var out = document.getElementById("termout"), lab = document.getElementById("termlab"), inp = document.getElementById("terminp"); if (!out) return;
-  out.textContent = TERM.lines.join("\n"); out.scrollTop = out.scrollHeight;
+  out.innerHTML = TERM.lines.map(termHtml).join("\n"); out.scrollTop = out.scrollHeight; termApplyTheme();
   var sk = document.getElementById("termskip"); if (sk) sk.hidden = !TERM.busy;
-  lab.textContent = TERM.busy ? "(กำลังรัน...) " : TERM.ask ? TERM.ask.label : termPrompt(); inp.type = TERM.ask && TERM.ask.secret ? "password" : "text"; inp.focus();
+  var pl = TERM.busy ? "(กำลังรัน...) " : TERM.ask ? TERM.ask.label : termPrompt(), pm = !TERM.busy && !TERM.ask && /^([^:]+@[^:]+):([^$#]*)([$#] ?)$/.exec(pl); if (pm) lab.innerHTML = escH(pm[1]) + ':<span class="tp">' + escH(pm[2]) + "</span>" + escH(pm[3]); else lab.textContent = pl; inp.type = TERM.ask && TERM.ask.secret ? "password" : "text"; inp.focus();
 }
 PAGES["term"] = function () {
   var inp = h("input", { id: "terminp", type: "text", autocomplete: "off", spellcheck: "false", "aria-label": "command", onkeydown: function (e) {
@@ -4238,8 +4273,8 @@ PAGES["term"] = function () {
     else if (e.key === "ArrowUp" && !TERM.ask) { if (TERM.hi > 0) inp.value = TERM.hist[--TERM.hi]; e.preventDefault(); }
     else if (e.key === "ArrowDown" && !TERM.ask) { TERM.hi = Math.min(TERM.hist.length, TERM.hi + 1); inp.value = TERM.hist[TERM.hi] || ""; e.preventDefault(); }
   } });
-  var box = h("div", {}, [crumbEl("Laptop › Terminal"), h("h1", { text: "Terminal" }), h("p", { cls: "sub", text: "เครื่อง laptop จำลอง: รัน terraform / ansible / aws cli / ssh กับ AWS จำลองในหน้านี้ ผลสะท้อนในเมนู VPC, EC2, IAM, ECR ทันที" }),
-    h("div", { cls: "termrow", style: "margin-bottom:6px;gap:12px" }, [h("label", { style: "color:#d9e4ef" }, ["ความเร็ว ", h("select", { id: "termspeed", "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (ประมาณ ใช้เวลาหลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]), h("button", { type: "button", id: "termskip", cls: "btn", hidden: true, text: "ข้าม (Ctrl+C) แสดงที่เหลือทันที", onclick: function () { if (TERM.busy) TERM.busy.skip(); } })]),
+  var box = h("div", { id: "termwrap" }, [crumbEl("Laptop › Terminal"), h("h1", { text: "Terminal" }), h("p", { cls: "sub", text: "เครื่อง laptop จำลอง: รัน terraform / ansible / aws cli / ssh กับ AWS จำลองในหน้านี้ ผลสะท้อนในเมนู VPC, EC2, IAM, ECR ทันที" }),
+    h("div", { cls: "termrow", style: "margin-bottom:6px;gap:12px" }, [h("label", { style: "color:var(--t-fg,#d9e4ef)" }, ["ความเร็ว ", h("select", { id: "termspeed", "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (ประมาณ ใช้เวลาหลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]), h("label", { style: "color:var(--t-fg,#d9e4ef)" }, ["ธีม ", h("select", { id: "termtheme", "aria-label": "ธีม Terminal", onchange: function (e) { termSet("theme", e.target.value); termApplyTheme(); } }, Object.keys(TERM_THEMES).map(function (k) { return h("option", { value: k, text: TERM_THEMES[k][0], selected: termPref("theme", "navy") === k ? "selected" : null }); }))]), h("label", { style: "color:var(--t-fg,#d9e4ef)" }, ["ขนาดตัวอักษร ", h("select", { id: "termsize", "aria-label": "ขนาดตัวอักษร Terminal", onchange: function (e) { termSet("size", e.target.value); termApplyTheme(); } }, [["s", "เล็ก"], ["m", "กลาง"], ["l", "ใหญ่"], ["xl", "ใหญ่มาก"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: termPref("size", "m") === o[0] ? "selected" : null }); }))]), h("button", { type: "button", id: "termskip", cls: "btn", hidden: true, text: "ข้าม (Ctrl+C) แสดงที่เหลือทันที", onclick: function () { if (TERM.busy) TERM.busy.skip(); } })]),
     h("pre", { cls: "term", id: "termout", style: "min-height:320px;max-height:520px;overflow:auto" }), h("div", { cls: "termrow" }, [h("span", { id: "termlab", cls: "termlab" }), inp])]);
   setTimeout(termDraw, 0); return box;
 };
