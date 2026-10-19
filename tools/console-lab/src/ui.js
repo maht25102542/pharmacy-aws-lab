@@ -351,6 +351,270 @@ function exPick(ex, get, set, flag, fk, ph, aria, area, type, id) {
   if (custom) { var t = h(area ? "textarea" : "input", { style: "width:100%;margin-top:6px", placeholder: ph || "", type: area ? null : (type || "text"), id: id || null, "aria-label": aria + " (พิมพ์เอง)", oninput: function (e) { set(e.target.value); } }); if (area) t.value = cur; else t.value = cur; box.appendChild(t); }
   return box;
 }
+// ---- แอนิเมชันอธิบายเครือข่าย (VPC → Subnet → IGW → Route table → ผูก subnet → packet วิ่งเข้าเครื่อง) ใช้ค่าจริงจากสถานะ
+var NT = [], NA = { forget: false };
+function sv(tag, at, kids) { var e = document.createElementNS("http://www.w3.org/2000/svg", tag); Object.keys(at || {}).forEach(function (k) { if (at[k] != null) e.setAttribute(k, at[k]); }); (kids || []).forEach(function (c) { e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }); return e; }
+function netData() {
+  var v = S.vpcs.filter(function (x) { return !x.isDefault; })[0]; if (!v) return null;
+  var sns = S.subnets.filter(function (x) { return x.vpcId === v.id; }), ig = vpcIgw(v.id), rt = S.rtbs.filter(function (r) { return r.vpcId === v.id && !r.main; })[0], main = rtbMain(v.id);
+  return { v: v, sns: sns, ig: ig, rt: rt, main: main, insts: liveInsts(v.id) };
+}
+// ---- ทบทวน Subnet: ตัวเลข IP มาจากไหน / IP ที่ AWS สงวน / IP ที่ใช้จริง
+// ---- ส่วนยุบ/ขยาย (details) ของแท็บ HCL: จำสถานะข้ามการ render
+var FOLD = { anim: 1, review: 1, sgan: 1, diag: 1, code: 1 };
+function fold(key, title, count) {
+  var d = h("details", { cls: "fold", open: FOLD[key] ? "open" : null, style: "margin:0 0 10px" }), sm = h("summary", { style: "cursor:pointer;font-weight:700;padding:6px 0;font-size:1.02rem" }, [title]);
+  d.appendChild(sm); d.addEventListener("toggle", function () { FOLD[key] = d.open ? 1 : 0; }); return d;
+}
+function foldAll(on) { Object.keys(FOLD).forEach(function (k) { FOLD[k] = on ? 1 : 0; }); [].forEach.call(document.querySelectorAll("#main details.fold"), function (d) { d.open = !!on; }); }
+function ip2n(ip) { var p = ip.split(".").map(Number); return ((p[0] * 256 + p[1]) * 256 + p[2]) * 256 + p[3]; }
+function n2ip(n) { return [Math.floor(n / 16777216) % 256, Math.floor(n / 65536) % 256, Math.floor(n / 256) % 256, n % 256].join("."); }
+function subnetReview(D) {
+  var box = fold("review", "ทบทวน Subnet: ตัวเลข IP มาจากไหน"); box.style.marginTop = "14px"; box.style.borderTop = "1px solid var(--line,#d3dae3)"; box.style.paddingTop = "8px";
+  var vb = +D.v.cidr.split("/")[1], vt = Math.pow(2, 32 - vb);
+  box.appendChild(h("p", { cls: "hint", style: "margin:0 0 8px", text: "CIDR เขียนเป็น ที่อยู่เริ่มต้น/จำนวนบิตที่ล็อก · เลขหลัง / ยิ่งมาก = ล็อกมาก = เหลือที่อยู่น้อย (ซอยเล็ก) · VPC " + D.v.cidr + " ล็อก " + vb + " บิต เหลือ " + (32 - vb) + " บิต → 2^" + (32 - vb) + " = " + vt.toLocaleString() + " ที่อยู่ · ตัดเป็นซอย /24 ได้ " + Math.pow(2, 24 - vb) + " ซอย (10.0.0.0/24, 10.0.1.0/24 … ตามที่เลือกใช้)" }));
+  D.sns.forEach(function (sn) {
+    var pb = +sn.cidr.split("/")[1], total = Math.pow(2, 32 - pb), base = ip2n(sn.cidr.split("/")[0]), usable = total - 5, ins = D.insts.filter(function (x) { return x.subnetId === sn.id; });
+    var usedN = ins.map(function (x) { return ip2n(x.privateIp); });
+    var per = Math.max(1, total / 256), cells = h("div", { style: "display:grid;grid-template-columns:repeat(16,11px);gap:1px;flex:none", title: "1 ช่อง = " + per + " IP" });
+    for (var c = 0; c < Math.min(256, total); c++) {
+      var lo = base + c * per, hi = lo + per - 1, rsv = [base, base + 1, base + 2, base + 3, base + total - 1].some(function (a) { return a >= lo && a <= hi; }), used = usedN.some(function (a) { return a >= lo && a <= hi; });
+      cells.appendChild(h("div", { style: "width:11px;height:11px;border-radius:2px;background:" + (used ? "#1d8102" : rsv ? "#c62828" : "rgba(95,107,122,.25)") }));
+    }
+    var rows = [[n2ip(base), "Network address", "ที่อยู่ของซอยเอง ใช้กับเครื่องไม่ได้"], [n2ip(base + 1), "VPC router", "ตัวกลางส่ง packet ตาม route table"], [n2ip(base + 2), "DNS ของ Amazon", "ตัวแปลงชื่อเป็น IP ในวง VPC"], [n2ip(base + 3), "สงวนไว้ใช้อนาคต", "AWS ไม่ให้ใช้"], [n2ip(base + total - 1), "Broadcast", "AWS ไม่รองรับ broadcast แต่ยังสงวนไว้"]];
+    box.appendChild(h("div", { style: "display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line,#d3dae3);border-radius:8px" }, [
+      h("div", {}, [h("div", { style: "font-weight:700;margin-bottom:4px", text: (sn.name || sn.id) + " · " + sn.cidr }), cells,
+        h("div", { style: "font-size:.75rem;margin-top:6px;display:flex;gap:10px;flex-wrap:wrap" }, [["#c62828", "สงวนโดย AWS 5"], ["#1d8102", "ใช้จริง " + ins.length], ["rgba(95,107,122,.5)", "ว่าง " + (usable - ins.length)]].map(function (l) { return h("span", {}, [h("span", { style: "display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;background:" + l[0] }), l[1]]); })),
+        per > 1 ? h("div", { cls: "hint", style: "font-size:.72rem", text: "(1 ช่อง = " + per + " IP)" }) : null]),
+      h("div", { style: "flex:1;min-width:300px;font-size:.88rem;line-height:1.6" }, [
+        h("div", {}, ["① ", h("b", { text: sn.cidr }), " = ล็อก " + pb + " บิต → เหลือ 32 − " + pb + " = " + (32 - pb) + " บิต → 2^" + (32 - pb) + " = ", h("b", { text: total.toLocaleString() }), " ที่อยู่ (" + n2ip(base) + " – " + n2ip(base + total - 1) + ")"]),
+        h("div", {}, ["② AWS สงวน 5 ที่อยู่ของทุกซอย → ใช้ได้ " + total.toLocaleString() + " − 5 = ", h("b", { text: usable.toLocaleString() }), " (" + n2ip(base + 4) + " – " + n2ip(base + total - 2) + ")"]),
+        h("div", {}, ["③ ใช้จริงตอนนี้ ", h("b", { text: String(ins.length) }), " เครื่อง" + (ins.length ? ": " + ins.map(function (x) { return x.privateIp + " (" + (x.name || x.id) + ")"; }).join(", ") : "") + " → เหลือว่าง ", h("b", { text: (usable - ins.length).toLocaleString() })]),
+        tbl(["ที่อยู่สงวน", "คืออะไร", "ทำไมใช้ไม่ได้"], rows, ""),
+        h("div", { cls: "hint", style: "font-size:.78rem", text: "private IP ของเครื่องถูกแจกจากช่วงที่ว่าง " + n2ip(base + 4) + " – " + n2ip(base + total - 2) + " · AWS จริงแจกตัวไหนก็ได้ในช่วงนี้ (ภาพจริงมีเครื่องได้ 10.0.1.115) simulator แจกเรียง .4 .5 .6 ให้อ่านง่าย · public IP เป็นคนละเรื่อง มาจากกองกลางของ AWS ไม่ได้อยู่ในช่วงนี้" })])]));
+  });
+  box.appendChild(h("div", { cls: "hint", style: "margin-bottom:4px", text: "เลือกขนาดซอย (เทียบเร็ว):" }));
+  box.appendChild(tbl(["CIDR", "บิตที่เหลือ", "ที่อยู่ทั้งหมด", "ใช้ได้จริง (−5)", "หมายเหตุ"], [["/16", "16", "65,536", "65,531", "ใหญ่สุดที่ VPC ยอม มักใช้เป็น VPC ทั้งก้อน"], ["/20", "12", "4,096", "4,091", "ซอยใหญ่"], ["/24", "8", "256", "251", "ที่นิยมสุดสำหรับซอย (lab นี้ใช้)"], ["/28", "4", "16", "11", "เล็กสุดที่ AWS ยอม"]]));
+  return box;
+}
+function netAnim() {
+  var D = netData(), card = h("div", { cls: "card", style: "margin-bottom:14px" }), body = fold("anim", "แอนิเมชัน: เครือข่ายนี้ทำงานยังไง (ใช้ค่าจริงที่คุณสร้าง)"); body.style.margin = "0"; body.style.padding = "8px 14px 12px";
+  card.appendChild(body);
+  if (!D || !D.sns.length) { body.appendChild(h("p", { cls: "hint", text: "ยังไม่มี VPC/Subnet ให้วาด · สร้าง VPC กับ subnet ก่อน หรือโหลด Lab ครบทั้งชุด" })); return card; }
+  var W = 920, H = Math.max(330, 60 + D.sns.length * 112), n = D.sns.length, svg = sv("svg", { viewBox: "0 0 " + W + " " + H, width: "100%", style: "max-width:" + W + "px;font-family:inherit", role: "img", "aria-label": "แผนภาพเครือข่าย VPC" });
+  var hid = function (e, id) { e.setAttribute("data-s", id); e.style.opacity = "0"; e.style.transition = "opacity .5s"; return e; };
+  var T = function (x, y, t, o) { o = o || {}; return sv("text", { x: x, y: y, "font-size": o.sz || 13, "font-weight": o.b ? 700 : 400, fill: o.c || "currentColor", "text-anchor": o.a || "start" }, [t]); };
+  // internet
+  var inet = sv("g", {}, [sv("rect", { x: 12, y: H / 2 - 44, width: 110, height: 88, rx: 44, fill: "#eef3fa", stroke: "#8aa4c8" }), T(67, H / 2 - 4, "Internet", { a: "middle", b: 1, c: "#2a4a7a" }), T(67, H / 2 + 14, "(ผู้ใช้/เรา)", { a: "middle", sz: 11, c: "#2a4a7a" })]);
+  svg.appendChild(inet);
+  // VPC
+  var vx = 190, vw = W - vx - 12;
+  svg.appendChild(hid(sv("g", {}, [sv("rect", { x: vx, y: 12, width: vw, height: H - 24, rx: 10, fill: "rgba(9,114,211,.06)", stroke: "#0972d3", "stroke-width": 2 }), T(vx + 12, 34, "VPC " + (D.v.name || D.v.id) + "  ·  " + D.v.cidr, { b: 1, c: "#0972d3" }), T(vx + 12, 51, "= " + Math.pow(2, 32 - +D.v.cidr.split("/")[1]).toLocaleString() + " ที่อยู่ IP ส่วนตัว (ใครอยู่นอก VPC มองไม่เห็น)", { sz: 11 })]), "vpc"));
+  // route table (left inside)
+  var rx = vx + 18, rw = 235, ry = 76, rtRoutes = D.rt ? D.rt.routes : [], rh = 62 + (rtRoutes.length + 1) * 18;
+  var rtG = sv("g", {}, [sv("rect", { x: rx, y: ry, width: rw, height: rh, rx: 8, fill: "rgba(132,86,206,.10)", stroke: "#8456ce", "stroke-width": 1.5 }), T(rx + 10, ry + 20, "Route table " + (D.rt ? (D.rt.name || D.rt.id) : "main"), { b: 1, c: "#8456ce" }), T(rx + 10, ry + 40, "ปลายทาง → ไปทางไหน", { sz: 11 }), T(rx + 10, ry + 58, D.v.cidr + "  →  local (ในวงเดียวกัน)", { sz: 12 })]);
+  rtRoutes.forEach(function (x, i) { var tg = x.target.indexOf("igw-") === 0 ? "igw " + nm(find(S.igws, x.target)) : x.target; rtG.appendChild(T(rx + 10, ry + 76 + i * 18, x.dest + "  →  " + tg, { sz: 12, b: 1, c: "#8456ce" })); });
+  if (!rtRoutes.length) rtG.appendChild(T(rx + 10, ry + 76, "(ไม่มี route ออกนอก VPC)", { sz: 12, c: "#c62828" }));
+  svg.appendChild(hid(rtG, "rt"));
+  // igw on VPC edge
+  var iy = H / 2 - 22, igG = sv("g", {}, [sv("rect", { x: vx - 28, y: iy, width: 56, height: 44, rx: 7, fill: "#fff3e8", stroke: "#f2711c", "stroke-width": 2 }), T(vx, iy + 19, "IGW", { a: "middle", b: 1, c: "#c2500c" }), T(vx, iy + 34, D.ig ? "attached" : "ไม่มี", { a: "middle", sz: 10, c: "#c2500c" })]);
+  svg.appendChild(hid(igG, "igw"));
+  svg.appendChild(hid(sv("line", { x1: 122, y1: H / 2, x2: vx - 28, y2: H / 2, stroke: "#f2711c", "stroke-width": 2, "stroke-dasharray": D.ig ? "" : "5 4" }), "igw"));
+  // subnets
+  var sx = rx + rw + 70, sw = W - sx - 24, sh = Math.min(100, (H - 96) / n - 10), pos = {};
+  D.sns.forEach(function (sn, i) {
+    var y = 70 + i * ((H - 96) / n), rt = subnetRtb(sn), explicit = D.rt && D.rt.assoc.indexOf(sn.id) >= 0 && !NA.forget, here = D.insts.filter(function (x) { return x.subnetId === sn.id; });
+    var eff = explicit ? D.rt : (D.rt && D.rt.assoc.indexOf(sn.id) >= 0 ? D.main : rt), isPub = hasIgwRoute(eff), col = isPub ? "#1d8102" : "#5f6b7a";
+    pos[sn.id] = { y: y + sh / 2, explicit: explicit, isPub: isPub, inst: here[0] };
+    var g = sv("g", {}, [sv("rect", { x: sx, y: y, width: sw, height: sh, rx: 8, fill: isPub ? "rgba(29,129,2,.08)" : "rgba(95,107,122,.10)", stroke: col, "stroke-width": 1.5 }),
+      T(sx + 10, y + 19, "Subnet " + (sn.name || sn.id), { b: 1, c: col }), T(sx + 10, y + 36, sn.cidr + "  ·  " + sn.az + "  ·  " + (Math.pow(2, 32 - +sn.cidr.split("/")[1]) - 5) + " IP ใช้ได้", { sz: 11 }),
+      T(sx + 10, y + 53, isPub ? "PUBLIC: route 0.0.0.0/0 → IGW" : "PRIVATE: ไม่มีทางตรงออกเน็ต" + (NA.forget && D.rt && D.rt.assoc.indexOf(sn.id) >= 0 ? " (ลืมผูก → ใช้ main table)" : ""), { sz: 11, b: 1, c: col })]);
+    var bw = (sw - 30) / 2; here.slice(0, 2).forEach(function (ins, k) { g.appendChild(sv("rect", { x: sx + 10 + k * (bw + 10), y: y + 61, width: bw, height: 30, rx: 5, fill: "#fff", stroke: "#0f766e" })); g.appendChild(T(sx + 16 + k * (bw + 10), y + 73, "🖥 " + (ins.name || ins.id), { sz: 10, b: 1 })); g.appendChild(T(sx + 16 + k * (bw + 10), y + 86, ins.publicIp || "(ไม่มี public IP)", { sz: 10 })); });
+    svg.appendChild(hid(g, "sn" + i));
+    // association line RT -> subnet
+    svg.appendChild(hid(sv("line", { x1: rx + rw, y1: ry + rh / 2, x2: sx, y2: y + sh / 2, stroke: explicit ? "#8456ce" : "#c62828", "stroke-width": 2, "stroke-dasharray": explicit ? "" : "5 4" }), "as" + i));
+    var lab = T((rx + rw + sx) / 2, (ry + rh / 2 + y + sh / 2) / 2 - 4, explicit ? "ผูกแล้ว" : "ไม่ได้ผูก", { sz: 10, a: "middle", c: explicit ? "#8456ce" : "#c62828", b: 1 }); svg.appendChild(hid(lab, "as" + i));
+  });
+  // packet
+  var pk = sv("circle", { r: 9, cx: 0, cy: 0, fill: "#ff9900", stroke: "#fff", "stroke-width": 2 }); pk.style.opacity = "0"; pk.style.transition = "transform .9s ease-in-out, opacity .3s"; pk.setAttribute("id", "npk");
+  var pkl = T(0, 0, "", { sz: 11, b: 1 }); pkl.setAttribute("id", "npkl");
+  svg.appendChild(pk);
+  body.appendChild(h("p", { cls: "hint", style: "margin:0 0 8px", text: "กด ▶ ดูทีละขั้น: สร้าง VPC → Subnet → IGW → Route table → ผูก subnet → ส่ง packet จากอินเทอร์เน็ตเข้าเครื่อง (ผลลัพธ์ตอนท้ายคำนวณจากค่าจริงของคุณ ไม่ใช่ภาพจำลอง)" }));
+  var spd = h("select", { id: "nspd", "aria-label": "ความเร็ว" }, [["2.6", "ช้า"], ["1.7", "ปกติ"], ["0.9", "เร็ว"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: o[0] === "1.7" ? "selected" : null }); }));
+  var msg = h("div", { id: "nmsg", style: "min-height:2.6em;margin:8px 0;font-weight:600;line-height:1.5" , text: "" }), res = h("div", { id: "nres", style: "margin:6px 0" });
+  var tgt = D.insts.filter(function (x) { return D.sns.some(function (sn) { return sn.id === x.subnetId; }); })[0];
+  function show(id, on) { [].forEach.call(svg.querySelectorAll('[data-s="' + id + '"]'), function (e) { e.style.opacity = on ? "1" : "0"; }); }
+  var steps = [], idx = 0, paused = false, pbtn = null;
+  function setP(on) { paused = on; if (pbtn) { pbtn.textContent = on ? "▶ เล่นต่อ" : "⏸ หยุดชั่วคราว"; pbtn.disabled = idx >= steps.length && !on; } }
+  function tick() { NT.forEach(clearTimeout); NT = []; if (paused || idx >= steps.length) { if (idx >= steps.length) setP(false), pbtn && (pbtn.disabled = true); return; } var st = steps[idx++]; st[0](); if (st[1]) msg.textContent = st[1]; NT.push(setTimeout(tick, +spd.value * 1000)); }
+  function reset() { NT.forEach(clearTimeout); NT = []; steps = []; idx = 0; paused = false; if (pbtn) { pbtn.textContent = "⏸ หยุดชั่วคราว"; pbtn.disabled = true; } [].forEach.call(svg.querySelectorAll("[data-s]"), function (e) { e.style.opacity = "0"; }); pk.style.opacity = "0"; pk.setAttribute("fill", "#ff9900"); msg.textContent = ""; res.textContent = ""; pkl.textContent = ""; }
+  function pauseToggle() { if (!steps.length || (idx >= steps.length && !paused)) return; if (paused) { setP(false); tick(); } else { NT.forEach(clearTimeout); NT = []; setP(true); } }
+  function run() {
+    reset(); var d = +spd.value * 1000;
+    function at(fn, txt) { steps.push([fn, txt]); }
+    var cidrSz = Math.pow(2, 32 - +D.v.cidr.split("/")[1]);
+    at(function () { show("vpc", 1); }, "① VPC = เครือข่ายส่วนตัวของเรา ช่วง " + D.v.cidr + " = ล็อก " + D.v.cidr.split("/")[1] + " บิต เหลือ " + (32 - +D.v.cidr.split("/")[1]) + " บิต → " + cidrSz.toLocaleString() + " IP ทุกอย่างอยู่ในกรอบนี้ ตอนนี้ยังออกอินเทอร์เน็ตไม่ได้");
+    D.sns.forEach(function (sn, i) { at(function () { show("sn" + i, 1); }, "② Subnet " + (sn.name || sn.id) + " = ซอยย่อย " + sn.cidr + " อยู่ใน " + sn.az + " ที่เดียว · /" + sn.cidr.split("/")[1] + " → เหลือ " + (32 - +sn.cidr.split("/")[1]) + " บิต → 2^" + (32 - +sn.cidr.split("/")[1]) + " = " + Math.pow(2, 32 - +sn.cidr.split("/")[1]) + " IP − 5 ที่ AWS สงวน = " + (Math.pow(2, 32 - +sn.cidr.split("/")[1]) - 5) + " ใช้ได้ (ดูตารางทบทวนด้านล่าง) · public/private ดูที่ route ไม่ใช่ชื่อ"); });
+    at(function () { show("igw", 1); }, D.ig ? "③ Internet gateway (" + nm(D.ig) + ") = ประตูเดียวของ VPC สู่อินเทอร์เน็ต ต้อง attach กับ VPC แต่มีประตูแล้วยัง 'ไม่มีใครรู้ว่าต้องเดินไปประตู'" : "③ ยังไม่มี Internet gateway → VPC นี้ปิดตาย ออกเน็ตไม่ได้เลย");
+    at(function () { show("rt", 1); }, "④ Route table = ป้ายบอกทาง: ปลายทางในวง " + D.v.cidr + " → local, ส่วน " + (D.rt && D.rt.routes.length ? D.rt.routes.map(function (x) { return x.dest; }).join(", ") + " (ที่เหลือทั้งโลก) → IGW" : "ที่เหลือ → (ยังไม่มีเส้นทาง)"));
+    D.sns.forEach(function (sn, i) { at(function () { show("as" + i, 1); }, pos[sn.id] && pos[sn.id].explicit ? "⑤ ผูก (association) " + (sn.name || sn.id) + " กับ route table นี้ → ซอยนี้ใช้ป้ายบอกทางชุดนี้" : "⑤ " + (sn.name || sn.id) + " ไม่ได้ถูกผูกกับ route table นี้ → ตกไปใช้ main route table (ไม่มีทางออก) = เส้นแดงขาดๆ · นี่คือสาเหตุ timeout ที่พบบ่อย"); });
+    // packet
+    if (tgt) {
+      var sn = find(S.subnets, tgt.subnetId), p = pos[sn.id], i = D.sns.indexOf(sn), ck = sshCheck(tgt, tgt.keyName || ""), bad = ck.steps.filter(function (x) { return !x.ok && !x.skip; })[0]; if (NA.forget && D.rt && D.rt.assoc.indexOf(sn.id) >= 0) bad = { t: "route table ของซอยมีเส้นทาง 0.0.0.0/0 → internet gateway", d: "(จำลอง) ซอยนี้ไม่ได้ถูกผูก จึงใช้ main route table ที่ไม่มีทางออก" };
+      function mv(x, y, txt) { pk.style.transform = "translate(" + x + "px," + y + "px)"; if (txt) msg.textContent = txt; }
+      at(function () { pk.style.opacity = "1"; pk.style.transition = "none"; mv(67, H / 2); void pk.getBoundingClientRect(); pk.style.transition = "transform .9s ease-in-out, opacity .3s"; }, "⑥ ลองส่ง packet จากอินเทอร์เน็ต (SSH port 22) ไปที่ " + (tgt.name || tgt.id) + (tgt.publicIp ? " ที่ " + tgt.publicIp : " (เครื่องนี้ไม่มี public IP)"));
+      at(function () { mv(vx, H / 2); }, "→ ถึง IGW: IGW แปลง public IP " + (tgt.publicIp || "?") + " เป็น private IP " + tgt.privateIp + " ของเครื่อง");
+      at(function () { mv(rx + rw / 2, ry + rh / 2); }, "→ ดู route table: ปลายทาง " + tgt.privateIp + " อยู่ในวง " + D.v.cidr + " → local ส่งต่อได้");
+      at(function () { if (p.explicit && p.isPub) mv(sx + 60, p.y); else { mv((rx + rw + sx) / 2, ry + rh / 2 + 30); pk.setAttribute("fill", "#c62828"); } }, p.explicit && p.isPub ? "→ ซอย " + (sn.name || sn.id) + " ผูกกับ route table ที่มีทางออก IGW ผ่าน" : "✗ ซอย " + (sn.name || sn.id) + " ไม่มีเส้นทางไปกลับ IGW → packet หายเงียบๆ");
+      at(function () { if (!bad) mv(sx + 70, p.y + 14, ""); }, bad ? "✗ " + (NA.forget ? "ผลกรณีจำลอง" : "ผลจริง") + ": " + bad.t + " — " + bad.d : "✓ ผลจริงจากค่าที่คุณตั้ง: ผ่านทุกด่านจนถึง security group และ key pair");
+      steps.push([function () { res.textContent = ""; res.appendChild(h("div", { cls: "alert " + (bad ? "bad" : "info"), text: (NA.forget ? "ผลลัพธ์กรณีจำลอง (ไม่ใช่ค่าจริง) " : "ผลลัพธ์จริง ") + "(SSH จาก My IP " + S.myIp + " ไป " + (tgt.name || tgt.id) + "): " + (bad ? "✗ ไม่ผ่านที่ \"" + bad.t + "\" → " + bad.d : "✓ " + ck.out) })); }, ""]);
+    } else at(function () {}, "(ยังไม่มีเครื่องใน subnet เหล่านี้ จึงไม่ส่ง packet ลองสร้าง/โหลดเครื่องก่อน)");
+    pbtn.disabled = false; tick();
+  }
+  var ctl = h("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, [
+    h("button", { cls: "btn pri", type: "button", text: "▶ เล่นอธิบายเครือข่าย", onclick: run }),
+    (pbtn = h("button", { cls: "btn", type: "button", text: "⏸ หยุดชั่วคราว", disabled: true, onclick: pauseToggle })),
+    h("button", { cls: "btn", type: "button", text: "⏹ รีเซ็ต", onclick: reset }),
+    h("label", { style: "font-size:.8rem" }, ["ความเร็ว ", spd]),
+    h("label", { style: "font-size:.8rem" }, [h("input", { type: "checkbox", checked: NA.forget, onchange: function (e) { NA.forget = e.target.checked; render(); } }), " ลองกรณี \"ลืมผูก subnet\" (ดูเฉยๆ ไม่แก้ค่าจริง)"])]);
+  body.appendChild(ctl); body.appendChild(msg); body.appendChild(svg); body.appendChild(res); body.appendChild(subnetReview(D));
+  return card;
+}
+// ---- แอนิเมชัน Security group: ใคร (เรา / คนแปลกหน้า) เข้า port ไหนได้บ้าง ใช้ sgAllows จริง
+var ST = [], STR = "192.0.2.50";
+function sgAnim() {
+  var card = h("div", { cls: "card", style: "margin-bottom:14px" }), body = fold("sgan", "แอนิเมชัน: Security group ใครเข้าได้บ้าง (0.0.0.0/0 ควรใช้ตรงไหน)"); body.style.margin = "0"; body.style.padding = "8px 14px 12px"; card.appendChild(body);
+  var vids = S.vpcs.filter(function (v) { return !v.isDefault; }).map(function (v) { return v.id; }), sgs = S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default" && g.inbound.length; });
+  if (!sgs.length) { body.appendChild(h("p", { cls: "hint", text: "ยังไม่มี security group ที่มีกฎขาเข้า · สร้างหรือโหลด Lab ครบทั้งชุดก่อน" })); return card; }
+  body.appendChild(h("div", { cls: "alert info", style: "margin:0 0 8px", text: "จำง่ายๆ: 0.0.0.0/0 ใน route table = ปกติ (ทางออกเริ่มต้น) · ใน security group ใช้เฉพาะ port เว็บสาธารณะ 80/443 · ที่เหลือจำกัด IP (/32) หรืออ้าง SG อื่น" }));
+  var rowsAll = [], tbody = h("tbody");
+  sgs.forEach(function (g) {
+    tbody.appendChild(h("tr", { style: "cursor:default;background:" + hexA("#c62828", 0.07) }, [h("td", { colspan: "6" }, [h("b", { text: "🛡 " + g.name })])]));
+    g.inbound.forEach(function (r) {
+      var rk = sgRuleRisk(g, r), port = r.proto === "-1" ? 22 : r.from, me = r.srcKind === "sg" ? false : sgAllows([g.id], port, { ip: S.myIp }), st = r.srcKind === "sg" ? false : sgAllows([g.id], port, { ip: STR });
+      var cMe = h("td", { cls: "rs", style: "min-width:110px" }), cSt = h("td", { cls: "rs", style: "min-width:110px" }), cRk = h("td", { cls: "rs" });
+      tbody.appendChild(h("tr", { style: "cursor:default" }, [h("td", { text: ruleType(r) }), h("td", { text: r.proto === "-1" ? "ทุก port" : (r.from === r.to ? String(r.from) : r.from + "-" + r.to) }), h("td", { text: srcText(r) }), cMe, cSt, cRk]));
+      rowsAll.push({ g: g, r: r, rk: rk, me: me, st: st, sgSrc: r.srcKind === "sg", cMe: cMe, cSt: cSt, cRk: cRk });
+    });
+  });
+  var msg = h("div", { id: "sgmsg", style: "min-height:2.6em;margin:8px 0;font-weight:600;line-height:1.5" }), score = h("div", { style: "margin:8px 0" }), spd = h("select", { "aria-label": "ความเร็ว", id: "sgspd" }, [["1.6", "ช้า"], ["0.9", "ปกติ"], ["0.4", "เร็ว"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: o[0] === "0.9" ? "selected" : null }); }));
+  var idx = 0, paused = false, pbtn = null, steps = [];
+  function pill(ok, t) { return h("span", { style: "display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;font-size:.82rem;color:#fff;background:" + (ok ? "#1d8102" : "#c62828") }, [t]); }
+  function reset() { ST.forEach(clearTimeout); ST = []; steps = []; idx = 0; paused = false; if (pbtn) { pbtn.textContent = "⏸ หยุดชั่วคราว"; pbtn.disabled = true; } rowsAll.forEach(function (x) { x.cMe.textContent = ""; x.cSt.textContent = ""; x.cRk.textContent = ""; x.cMe.parentNode.style.background = ""; }); msg.textContent = ""; score.textContent = ""; }
+  function tick() { ST.forEach(clearTimeout); ST = []; if (paused) return; if (idx >= steps.length) { if (pbtn) pbtn.disabled = true; return; } var s0 = steps[idx++]; s0(); ST.push(setTimeout(tick, +spd.value * 1000)); }
+  function run() {
+    reset();
+    rowsAll.forEach(function (x) {
+      var port = x.r.proto === "-1" ? "ทุก port" : "port " + (x.r.from === x.r.to ? x.r.from : x.r.from + "-" + x.r.to);
+      steps.push(function () { x.cMe.parentNode.style.background = hexA("#ff9900", 0.18); msg.textContent = "🛡 " + x.g.name + " · กฎ " + port + " ← " + srcText(x.r) + " · ส่ง packet จาก 👤 คุณ (" + S.myIp + ") ..."; x.cMe.appendChild(x.sgSrc ? h("span", { cls: "hint", text: "ไม่ใช่ IP (อ้าง SG)" }) : pill(x.me, x.me ? "✓ ผ่าน" : "✗ ถูกทิ้ง")); });
+      steps.push(function () { msg.textContent = "🛡 " + x.g.name + " · กฎ " + port + " · ส่ง packet จาก 🕵 คนแปลกหน้า (" + STR + ") ..." + (x.sgSrc ? " (ไม่ว่าจะ IP ไหนก็ผ่านไม่ได้ ต้องมาจากเครื่องใน SG นั้นเท่านั้น)" : ""); x.cSt.appendChild(x.sgSrc ? h("span", { cls: "hint", text: "ผ่านไม่ได้ (ไม่อยู่ใน SG)" }) : pill(!x.st, x.st ? (x.rk.lvl === "ok" ? "✓ เข้าได้ (ตั้งใจ: เว็บสาธารณะ)" : "✗ เข้าได้!") : "✓ ถูกบล็อก")); x.cSt.firstChild.style.background = x.sgSrc ? "" : (x.st ? (x.rk.lvl === "ok" ? "#0972d3" : "#c62828") : "#1d8102"); });
+      steps.push(function () { x.cMe.parentNode.style.background = ""; msg.textContent = RISK_ICON[x.rk.lvl] + " " + x.rk.why; x.cRk.appendChild(h("span", { style: "font-weight:700;color:" + ({ ok: "#1d8102", warn: "#b36b00", bad: "#c62828" })[x.rk.lvl], text: RISK_ICON[x.rk.lvl] + " " + ({ ok: "เหมาะสม", warn: "ทบทวน", bad: "เสี่ยง" })[x.rk.lvl] })); });
+    });
+    steps.push(function () {
+      var open = rowsAll.filter(function (x) { return x.r.srcKind === "cidr" && x.r.src === "0.0.0.0/0"; }), badN = rowsAll.filter(function (x) { return x.rk.lvl === "bad"; }), okOpen = open.filter(function (x) { return x.rk.lvl === "ok"; });
+      msg.textContent = "สรุป"; score.textContent = ""; score.appendChild(h("div", { cls: "alert " + (badN.length ? "bad" : "info"), text: "กฎทั้งหมด " + rowsAll.length + " ข้อ · เปิดทั้งโลก (0.0.0.0/0) " + open.length + " ข้อ (เหมาะสม " + okOpen.length + ": " + (okOpen.map(function (x) { return x.g.name + " " + x.r.from; }).join(", ") || "-") + ") · ที่เสี่ยง " + badN.length + " ข้อ" + (badN.length ? ": " + badN.map(function (x) { return x.g.name + " port " + x.r.from; }).join(", ") + " → แก้ Source เป็น My IP/32 หรืออ้าง SG" : " → ไม่มีกฎเสี่ยง ตรงหลัก (เปิดทั้งโลกเฉพาะเว็บสาธารณะ)") }));
+      if (pbtn) pbtn.disabled = true;
+    });
+    pbtn.disabled = false; tick();
+  }
+  function pauseToggle() { if (!steps.length || (idx >= steps.length && !paused)) return; paused = !paused; pbtn.textContent = paused ? "▶ เล่นต่อ" : "⏸ หยุดชั่วคราว"; if (!paused) tick(); else { ST.forEach(clearTimeout); ST = []; } }
+  body.appendChild(h("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, [h("button", { cls: "btn pri", type: "button", text: "▶ เล่น: ใครเข้าได้บ้าง", onclick: run }), (pbtn = h("button", { cls: "btn", type: "button", text: "⏸ หยุดชั่วคราว", disabled: true, onclick: pauseToggle })), h("button", { cls: "btn", type: "button", text: "⏹ รีเซ็ต", onclick: reset }), h("label", { style: "font-size:.8rem" }, ["ความเร็ว ", spd])]));
+  body.appendChild(msg);
+  body.appendChild(h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, ["Type", "Port", "Source ที่อนุญาต", "👤 คุณ (My IP " + S.myIp + ")", "🕵 คนแปลกหน้า (" + STR + ")", "ประเมิน"].map(function (x) { return h("th", { text: x }); }))]), tbody])]));
+  body.appendChild(score);
+  body.appendChild(h("p", { cls: "hint", text: "ผลผ่าน/ถูกบล็อกคำนวณจากกฎจริงที่คุณมี (ฟังก์ชันตรวจเดียวกับหน้า Connect) · security group เป็น firewall แบบ drop เงียบ: ที่ถูกบล็อกจะ timeout ไม่มีข้อความปฏิเสธ · ป้าย ✅⚠️❌ เป็นหลักทั่วไป ไม่ใช่ผลสแกนความปลอดภัย" }));
+  return card;
+}
+// แผนภาพ "สร้างอะไรก่อน-หลัง" ของแท็บ HCL
+var HCL_GRP = { vpc: ["VPC", "#0972d3"], subnet: ["Subnet", "#00a1c9"], igw: ["Internet gateway", "#f2711c"], rtb: ["Route table", "#8456ce"], rtba: ["ผูก subnet↔route table", "#d63f9e"], sg: ["Security group", "#c62828"], key: ["Key pair", "#8a9a00"], role: ["IAM role", "#1d8102"], attach: ["แนบ policy", "#7cb518"], profile: ["Instance profile", "#4f5bd5"], ecr: ["ECR", "#a85a00"], instance: ["EC2 instance", "#0f766e"], tg: ["Target group", "#b8860b"], tgatt: ["ลงทะเบียน target", "#6d4c41"], alb: ["Load balancer", "#d81b60"], listener: ["Listener", "#546e7a"] };
+// animation: เล่นลำดับ apply (ซ้าย→ขวา) / destroy (ขวา→ซ้าย) บนแผนภาพ + โค้ด
+var HT = [];
+function hclAnim(mode) {
+  HT.forEach(clearTimeout); HT = [];
+  var boxes = [].slice.call(document.querySelectorAll("#main [data-l]")), blocks = [].slice.call(document.querySelectorAll("#main [id^='hb-']")), msg = document.getElementById("hmsg"), dur = (+((document.getElementById("hspd") || {}).value) || 1.4) * 1000;
+  function setSt(b, t, c) { var st = b.querySelector(".hst"); if (st) { st.textContent = t; st.style.color = c || ""; } }
+  function reset() { boxes.concat(blocks).forEach(function (e) { e.classList.remove("hdim", "hlive", "hgone", "hcreating"); }); boxes.forEach(function (b) { setSt(b, ""); }); }
+  reset();
+  if (mode === "reset") { if (msg) msg.textContent = "กด ▶ เพื่อดู Terraform สร้างทีละขั้น (กล่องและโค้ดจะสว่างขึ้นตามลำดับ)"; return; }
+  var layers = [1, 2, 3, 4], ap = mode === "apply";
+  if (!ap) layers.reverse(); else boxes.concat(blocks).forEach(function (e) { e.classList.add("hdim"); });
+  layers.forEach(function (L, idx) {
+    var inL = boxes.filter(function (b) { return +b.getAttribute("data-l") === L; }), keys = inL.map(function (b) { return b.getAttribute("data-k"); });
+    if (!inL.length) return;
+    var names = inL.map(function (b) { return b.firstChild.textContent.replace(/ ×.*/, ""); }).join(", "), t0 = idx * dur;
+    HT.push(setTimeout(function () {
+      if (msg) msg.textContent = ap ? "ขั้นที่ " + L + ": สร้าง " + names + (inL.length > 1 ? " พร้อมกัน" : "") + (L > 1 ? " (รอขั้นก่อนหน้าเสร็จก่อน เพราะต้องอ้างถึงมัน)" : " (ไม่ต้องรอใคร)") : "ลบขั้นที่ " + L + " ก่อน: " + names + " (ต้องลบตัวที่อ้างถึงคนอื่นก่อน ไม่งั้น AWS ฟ้อง DependencyViolation)";
+      inL.forEach(function (b) { b.classList.remove("hdim"); b.classList.add(ap ? "hcreating" : "hlive"); setSt(b, ap ? "Still creating..." : "Destroying...", ap ? "#b36b00" : "#d91515"); });
+      blocks.forEach(function (e) { if (keys.indexOf(e.getAttribute("data-k")) >= 0) { e.classList.remove("hdim"); e.classList.add("hlive"); } });
+    }, t0));
+    HT.push(setTimeout(function () {
+      inL.forEach(function (b) { b.classList.remove("hcreating"); if (ap) setSt(b, "✓ Creation complete", "#1d8102"); else { b.classList.add("hgone"); setSt(b, "✓ Destruction complete", "#5f6b7a"); } });
+      if (!ap) blocks.forEach(function (e) { if (keys.indexOf(e.getAttribute("data-k")) >= 0) e.classList.add("hgone"); });
+      if (idx === layers.length - 1 && msg) msg.textContent = ap ? "เสร็จ: Apply complete! สร้างครบ " + boxes.length + " กลุ่ม ลองกด ◀ เพื่อดูตอนลบ (ย้อนลำดับ)" : "เสร็จ: Destroy complete! ลบย้อนจากขวาไปซ้าย กด ⏹ รีเซ็ตเพื่อกลับ";
+    }, t0 + dur * 0.7));
+  });
+}
+function hclDiagram() {
+  var layers = hclPlan(), n = layers.reduce(function (a, l) { return a + l.length; }, 0), wrap = fold("diag", "แผนภาพลำดับการสร้าง (อ่านซ้ายไปขวา) · สีเดียวกันในโค้ดด้านล่าง"); wrap.className = "fold card"; wrap.style.padding = "8px 14px 12px"; wrap.style.margin = "0 0 14px";
+  wrap.appendChild(h("p", { cls: "hint", style: "margin:0 0 8px", text: "Terraform สร้างอันที่ไม่พึ่งกันพร้อมกัน แล้วรออันที่ต้องอ้างถึง · ลบ (destroy) ย้อนลำดับนี้จากขวาไปซ้าย · แต่ละกล่องบอกว่าต้องมีอะไรก่อน และกดเมนูไหนใน console" }));
+  if (!n) { wrap.appendChild(h("p", { cls: "hint", text: "ยังไม่มี resource ให้วาด" })); return wrap; }
+  var present = {}; layers.forEach(function (l) { l.forEach(function (b) { present[b.key] = 1; }); });
+  var legend = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;margin:0 0 8px;font-size:.8rem" });
+  Object.keys(HCL_GRP).forEach(function (k) { if (!present[k]) return; var g = HCL_GRP[k]; legend.appendChild(h("span", { style: "border-left:4px solid " + g[1] + ";background:" + hexA(g[1], 0.12) + ";padding:1px 7px;border-radius:3px", text: g[0] })); });
+  wrap.appendChild(legend);
+  var ctl = h("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, [
+    h("button", { cls: "btn pri", type: "button", text: "▶ เล่น: terraform apply", onclick: function () { hclAnim("apply"); } }),
+    h("button", { cls: "btn", type: "button", text: "◀ เล่น: terraform destroy", onclick: function () { hclAnim("destroy"); } }),
+    h("button", { cls: "btn", type: "button", text: "⏹ รีเซ็ต", onclick: function () { hclAnim("reset"); } }),
+    h("label", { style: "font-size:.8rem" }, ["ความเร็ว ", h("select", { id: "hspd", "aria-label": "ความเร็ว animation" }, [["2.4", "ช้า"], ["1.4", "ปกติ"], ["0.6", "เร็ว"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: o[0] === "1.4" ? "selected" : null }); }))])]);
+  wrap.appendChild(ctl);
+  wrap.appendChild(h("div", { id: "hmsg", cls: "hint", style: "min-height:1.4em;margin:0 0 6px;font-weight:600", text: "กด ▶ เพื่อดู Terraform สร้างทีละขั้น (กล่องและโค้ดจะสว่างขึ้นตามลำดับ)" }));
+  var row = h("div", { style: "display:flex;gap:6px;align-items:stretch;overflow-x:auto;padding-bottom:6px" });
+  layers.forEach(function (l, i) {
+    if (!l.length) return;
+    if (row.children.length) row.appendChild(h("div", { style: "align-self:center;font-size:1.4rem;color:#5f6b7a", text: "→" }));
+    row.appendChild(h("div", { style: "min-width:190px;flex:1" }, [h("div", { style: "font-weight:700;margin-bottom:6px;font-size:.85rem", text: "ขั้นที่ " + (i + 1) + (i === 0 ? " (ไม่ต้องรอใคร)" : "") })].concat(l.map(function (b) {
+      var g = HCL_GRP[b.key], nm2 = b.names.filter(Boolean), shown = nm2.slice(0, 4).join(", ") + (nm2.length > 4 ? " +" + (nm2.length - 4) : "");
+      return h("div", { "data-k": b.key, "data-l": String(i + 1), title: "กดเพื่อดูโค้ดของ " + b.label + " · กดที่: " + b.where, onclick: function () { var el = document.querySelector("[id^=\"hb-\"][data-k=\"" + b.key + "\"]"); if (el) hclJump(el.id.slice(3)); }, style: "cursor:pointer;border:1px solid var(--line,#d3dae3);border-left:4px solid " + g[1] + ";border-radius:6px;padding:6px 9px;margin-bottom:6px;background:var(--surface,#fff)" }, [h("div", { style: "font-weight:600", text: b.label + " × " + b.names.length }), shown ? h("div", { cls: "hint", style: "font-size:.78rem", text: shown }) : null, b.needs ? h("div", { cls: "hint", style: "font-size:.75rem", text: "ต้องมีก่อน: " + b.needs }) : null, h("div", { cls: "hint", style: "font-size:.75rem", text: "กดที่: " + b.where }), h("div", { cls: "hst", style: "font-size:.78rem;font-weight:600;min-height:1em" })]);
+    }))));
+  });
+  wrap.appendChild(row);
+  return wrap;
+}
+// โค้ด HCL แบบแยกสีตามกลุ่ม: แถบ+พื้นหลังของบล็อก, comment, และ "ลิงก์" ชื่อ resource ที่อ้างถึง (กดเพื่อกระโดดไปบล็อกนั้น)
+var HCL_TYPE = { aws_vpc: "vpc", aws_subnet: "subnet", aws_internet_gateway: "igw", aws_route_table: "rtb", aws_route_table_association: "rtba", aws_security_group: "sg", aws_key_pair: "key", aws_iam_role: "role", aws_iam_role_policy_attachment: "attach", aws_iam_instance_profile: "profile", aws_ecr_repository: "ecr", aws_instance: "instance", aws_lb_target_group: "tg", aws_lb_target_group_attachment: "tgatt", aws_lb: "alb", aws_lb_listener: "listener" };
+function hexA(hex, a) { var n = parseInt(hex.slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
+function hclJump(id) { var el = document.getElementById("hb-" + id); if (!el) return; var dd = el.closest("details"); if (dd && !dd.open) { dd.open = true; FOLD.code = 1; } el.scrollIntoView({ behavior: "smooth", block: "center" }); el.style.outline = "3px solid #ff9900"; setTimeout(function () { el.style.outline = ""; }, 1400); }
+function hclView() {
+  var blocks = hcl().split(/\n\n(?=# )/), box = h("div", { style: "font-family:var(--mono);font-size:.8rem;line-height:1.6" });
+  blocks.forEach(function (b) {
+    var m = /resource "(aws_[a-z_]+)" "([^"]+)"/.exec(b), key = m && HCL_TYPE[m[1]], g = key ? HCL_GRP[key] : null, col = g ? g[1] : "#879596";
+    var el = h("div", { id: m ? "hb-" + m[1] + "." + m[2] : null, "data-k": key || "", style: "border-left:5px solid " + col + ";background:" + hexA(col, 0.09) + ";border-radius:6px;padding:8px 12px;margin:0 0 8px;white-space:pre-wrap;overflow-x:auto" });
+    var RC = { "✅": "#1d8102", "⚠": "#b36b00", "❌": "#c62828" }, cur = null;
+    b.split("\n").forEach(function (ln) {
+      var row = h("div"), rm0 = /^\s+# (✅|⚠️|❌) /.exec(ln);
+      if (rm0) { cur = RC[rm0[1].charAt(0)] || RC[rm0[1]]; row.appendChild(h("b", { style: "color:" + cur + ";background:" + hexA(cur, 0.12) + ";padding:0 4px;border-radius:3px", text: ln })); }
+      else if (cur && /cidr_blocks|security_groups|self = true/.test(ln)) { var lc = /"0\.0\.0\.0\/0"/.test(ln) && cur === RC["✅"] ? "#b36b00" : cur; row.appendChild(h("span", { style: "background:" + hexA(lc, 0.14) + ";border-left:3px solid " + lc + ";padding:0 4px;display:inline-block" + (lc === "#b36b00" ? ";font-weight:700" : ""), title: lc === "#b36b00" ? "เปิดทั้งโลก (0.0.0.0/0) แต่ตั้งใจ เพราะเป็น port เว็บสาธารณะ" : "", text: ln })); }
+      else if (/^# ──/.test(ln)) row.appendChild(h("b", { style: "color:" + col, text: ln }));
+      else if (/^#/.test(ln)) row.appendChild(h("span", { style: "color:" + col + ";opacity:.9", text: ln }));
+      else {
+        var rm = /^(resource ")(aws_[a-z_]+)(" ")([^"]+)(".*)$/.exec(ln);
+        if (rm) { row.appendChild(document.createTextNode(rm[1])); row.appendChild(h("b", { style: "color:" + col, text: rm[2] })); row.appendChild(document.createTextNode(rm[3] + rm[4] + rm[5])); }
+        else {
+          var parts = ln.split(/(aws_[a-z_]+\.[a-z0-9_]+)/);
+          parts.forEach(function (t) {
+            var rr = /^(aws_[a-z_]+)\.([a-z0-9_]+)$/.exec(t), tk = rr && HCL_TYPE[rr[1]];
+            if (tk) row.appendChild(h("a", { href: "#", title: "กระโดดไปที่ " + t + " → " + HCL_GRP[tk][0], style: "color:" + HCL_GRP[tk][1] + ";font-weight:700;text-decoration:underline dotted", text: t, onclick: function (e) { e.preventDefault(); hclJump(t); } }));
+            else row.appendChild(document.createTextNode(t));
+          });
+        }
+      }
+      el.appendChild(row);
+    });
+    box.appendChild(el);
+  });
+  return box;
+}
 function field(f, V, F) {
   var err = F.errors[f.id], box = h("div", { cls: "f" + (err ? " bad" : ""), style: f.wide ? "max-width:none" : null });
   if (f.type === "custom") { box.appendChild(f.render(V, function () { render(); })); return box; }
@@ -1229,7 +1493,11 @@ function labBody(tab) {
     cb.appendChild(h("ul", { cls: "chk" }, c.map(function (x) { return h("li", { cls: x.ok ? "ok" : "no" }, [h("span", { cls: "m", text: x.ok ? "✓" : "✗" }), h("span", {}, [x.label, x.hint && !x.ok ? h("small", { text: "วิธี: " + x.hint }) : null])]); })));
   } else if (tab === "hcl") {
     cb.appendChild(h("p", { text: "สิ่งที่คุณกดไป แปลงเป็นโค้ด Terraform ตรง ๆ (ไม่ได้ย่อด้วย count/for_each เหมือนใน repo จริง จึงยาวกว่า) ใช้เทียบว่าแต่ละคลิกกลายเป็นบรรทัดไหน" }));
-    cb.appendChild(h("pre", { cls: "hcl", text: hcl() }));
+    cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:0 0 10px" }, [h("button", { cls: "btn", type: "button", text: "▾ ขยายทั้งหมด", onclick: function () { foldAll(true); } }), h("button", { cls: "btn", type: "button", text: "▸ ยุบทั้งหมด", onclick: function () { foldAll(false); } })]));
+    cb.appendChild(netAnim());
+    cb.appendChild(sgAnim());
+    cb.appendChild(hclDiagram());
+    var cd = fold("code", "โค้ด HCL (" + hcl().split(/\n\n(?=# )/).length + " บล็อก) · กดชื่อ resource สีที่ขีดเส้นประเพื่อกระโดดไปบล็อกที่อ้างถึง"); cd.className = "fold card"; cd.style.padding = "8px 14px 12px"; cd.appendChild(hclView()); cb.appendChild(cd);
   } else if (tab === "rules") {
     cb.appendChild(h("p", { text: "กฎที่หน้านี้ตรวจให้ แต่ละข้อบอกว่ายืนยันจากเอกสาร AWS แล้วหรือยัง" }));
     cb.appendChild(h("ul", { cls: "chk" }, RULES.map(function (r) { return h("li", {}, [h("span", { cls: "m" }, [h("span", { cls: "tag " + (r[1] ? "ok" : "warn"), text: r[1] ? "ตรงเอกสาร" : "ไม่ยืนยัน" })]), h("span", { text: r[0] })]); })));

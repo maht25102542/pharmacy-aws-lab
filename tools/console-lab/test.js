@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -383,4 +383,16 @@ sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + dbIp, ["yes"]); assert(/wsrep_cluster_s
   const r = L.API.launch({ name: "c", ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: sn0.id, autoIp: "Enable", sgIds: [], newSg: { name: "launch-wizard-9", desc: "d", src: "203.0.113.0/24", ssh: true }, diskSize: 8, diskType: "gp3", tokens: "required", hop: 2, count: 1 });
   assert(!r.errors, JSON.stringify(r.errors)); const g = L.S.sgs.find(x => x.name === "launch-wizard-9"); assert(g.inbound.some(x => x.from === 22 && x.src === "203.0.113.0/24"), "SSH จาก CIDR ที่ระบุ");
   const bad = L.API.launch({ name: "c2", ami: "ami-ubuntu2404", type: "t3.micro", keyName: "", vpcId: dv.id, subnetId: sn0.id, autoIp: "Enable", sgIds: [], newSg: { name: "launch-wizard-10", desc: "d", src: "xyz", ssh: true }, diskSize: 8, diskType: "gp3", tokens: "required", hop: 2, count: 1 }); assert(bad.errors, "CIDR ผิดต้องไม่ผ่าน"); }
+// ---- HCL: ป้ายลำดับ/เมนู + แผนภาพขั้นการสร้าง
+{ L.buildLab("full"); const pl = L.hclPlan(), code = L.hcl();
+  assert(pl.length === 4 && pl.every(l => l.length), "4 ขั้นมี resource ครบ");
+  const layerOf = k => L.HCL_INFO[k][0]; assert(layerOf("vpc") < layerOf("subnet") && layerOf("subnet") < layerOf("instance") && layerOf("instance") < layerOf("tgatt") && layerOf("alb") < layerOf("listener") && layerOf("rtb") < layerOf("rtba"), "ลำดับ dependency ถูก");
+  assert(/# กดที่: VPC → Your VPCs → Create VPC/.test(code) && /# ขั้นที่ 4|ขั้นที่ 4 │ Listener/.test(code) && /ต้องมีก่อน: Load balancer, Target group/.test(code), "มี comment กดที่/ต้องมีก่อน");
+  assert(code.split("resource \"").length > 30, "ยังมี resource ครบ"); }
+// ---- ประเมินความเสี่ยงกฎ SG (0.0.0.0/0 ใช้เฉพาะ 80/443)
+{ const g = { id: "sg-x", name: "t" }, R = (from, to, src, kind) => L.sgRuleRisk(g, { proto: "tcp", from, to, srcKind: kind || "cidr", src }).lvl;
+  assert.strictEqual(R(80, 80, "0.0.0.0/0"), "ok", "80 ทั้งโลก OK"); assert.strictEqual(R(443, 443, "0.0.0.0/0"), "ok", "443 ทั้งโลก OK");
+  assert.strictEqual(R(22, 22, "0.0.0.0/0"), "bad", "SSH ทั้งโลก เสี่ยง"); assert.strictEqual(R(3306, 3306, "0.0.0.0/0"), "bad", "DB ทั้งโลก เสี่ยง"); assert.strictEqual(R(8080, 8080, "0.0.0.0/0"), "bad", "8080 ทั้งโลก เสี่ยง");
+  assert.strictEqual(R(22, 22, "198.51.100.7/32"), "ok", "/32 OK"); assert.strictEqual(R(22, 22, "203.0.113.0/24"), "warn", "/24 ทบทวน"); assert.strictEqual(R(3306, 3306, "sg-y", "sg"), "ok", "อ้าง SG OK");
+  L.buildLab("full"); assert(!/❌/.test(L.hcl()), "lab ครบทั้งชุดไม่มีกฎเสี่ยง"); assert(/# ✅ เปิดทั้งโลกที่ port 80/.test(L.hcl()), "มี comment ประเมิน port 80"); }
 console.log("ok");

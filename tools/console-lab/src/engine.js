@@ -651,6 +651,38 @@ function checks() {
 }
 
 // ---- console actions -> Terraform HCL
+// ประเมินความเสี่ยงของกฎขาเข้า: ok = เหมาะสม, warn = ควรทบทวน, bad = ไม่ควรเปิดแบบนี้ (หลักทั่วไป ไม่ใช่ผลสแกนจริง)
+function sgRuleRisk(g, r) {
+  var all = r.proto === "-1" || (r.from === 0 && r.to === 65535), port = all ? "ทุก port" : (r.from === r.to ? "port " + r.from : "port " + r.from + "-" + r.to);
+  if (r.srcKind === "sg") return { lvl: "ok", why: (r.src === g.id ? "เฉพาะเครื่องใน SG เดียวกันคุยกันเอง" : "เฉพาะเครื่องใน SG " + nm(find(S.sgs, r.src)) + " เท่านั้น") + " (" + port + ") ดีที่สุด ไม่ผูกกับ IP" };
+  var open = r.src === "0.0.0.0/0", web = !all && ((r.from === 80 && r.to === 80) || (r.from === 443 && r.to === 443));
+  if (open && web) return { lvl: "ok", why: "เปิดทั้งโลกที่ " + port + " = เว็บสาธารณะ เหมาะสมที่จะเปิด" };
+  if (open && all) return { lvl: "bad", why: "เปิดทุก port ให้ทั้งโลก อันตรายมาก" };
+  if (open) return { lvl: "bad", why: "เปิดทั้งโลกที่ " + port + (r.from <= 22 && r.to >= 22 ? " (SSH โดนบอทสแกนตลอดเวลา)" : r.from <= 3306 && r.to >= 3306 ? " (ฐานข้อมูล ห้ามเปิดทั้งโลก)" : " (หน้าจัดการ/บริการภายใน ควรจำกัด IP)") };
+  if (/\/32$/.test(r.src)) return { lvl: "ok", why: "จำกัดเฉพาะ IP เดียว (" + r.src + ") ที่ " + port + " ถูกต้อง · IP บ้านเปลี่ยนแล้วต้องมาแก้" };
+  return { lvl: "warn", why: "จำกัดเป็นช่วง " + r.src + " ที่ " + port + " ใช้ได้ถ้าช่วงนี้เชื่อถือได้ (เช่น ออฟฟิศ) ยิ่งแคบยิ่งดี" };
+}
+var RISK_ICON = { ok: "✅", warn: "⚠️", bad: "❌" };
+// ลำดับการสร้าง = ความลึกของ dependency (Terraform สร้างอันที่ไม่พึ่งกันพร้อมกัน แล้วรออันที่พึ่ง)
+var HCL_INFO = {
+  vpc: [1, "VPC", "เครือข่ายส่วนตัวของเรา ทุกอย่างอยู่ในนี้", "VPC → Your VPCs → Create VPC", ""],
+  key: [1, "Key pair", "กุญแจ SSH เข้าเครื่อง (AWS เก็บ public key)", "EC2 → Key Pairs → Create key pair / Import key pair", ""],
+  role: [1, "IAM role", "ตัวตนที่เครื่อง EC2 ใช้เรียก AWS โดยไม่ต้องฝัง access key", "IAM → Roles → Create role (AWS service → EC2)", ""],
+  ecr: [1, "ECR repository", "ที่เก็บ docker image ที่ Jenkins push และ k8s pull", "ECR → Repositories → Create repository", ""],
+  subnet: [2, "Subnet", "ซอยย่อยของ VPC ผูกกับ AZ เดียว", "VPC → Subnets → Create subnet", "VPC"],
+  igw: [2, "Internet gateway", "ประตูออกอินเทอร์เน็ตของ VPC", "VPC → Internet gateways → Create → Actions → Attach to VPC", "VPC"],
+  sg: [2, "Security group", "firewall ของเครื่อง (กฎขาเข้า)", "EC2 → Security Groups → Create security group", "VPC"],
+  tg: [2, "Target group", "กลุ่มเครื่องปลายทางที่ ALB ส่งต่อ traffic ไปให้", "EC2 → Target Groups → Create target group", "VPC"],
+  attach: [2, "แนบ policy กับ role", "ให้ role มีสิทธิ์ทำอะไรได้บ้าง", "IAM → Roles → เลือก role → Add permissions → Attach policies", "IAM role"],
+  profile: [2, "Instance profile", "กล่องที่ใส่ role ให้เครื่อง EC2 ใช้", "(console สร้างให้เองตอนสร้าง role ใน Terraform ต้องเขียนเอง)", "IAM role"],
+  rtb: [3, "Route table", "ตารางเส้นทาง เช่น 0.0.0.0/0 → ออกประตู", "VPC → Route tables → Create route table → Edit routes", "VPC, Internet gateway"],
+  instance: [3, "EC2 instance", "เครื่อง VM จริง", "EC2 → Instances → Launch instances", "Subnet, Security group, Key pair, Instance profile"],
+  alb: [3, "Load balancer (ALB)", "ตัวกระจาย traffic เข้าหน้าเว็บ", "EC2 → Load Balancers → Create load balancer → Application Load Balancer", "Subnet (2 AZ), Security group"],
+  rtba: [4, "ผูก subnet กับ route table", "บอกว่าซอยไหนใช้ตารางเส้นทางไหน (ลืมแล้ว timeout)", "VPC → Route tables → เลือกตาราง → Subnet associations → Edit subnet associations", "Route table, Subnet"],
+  tgatt: [4, "ลงทะเบียนเครื่องใน target group", "ระบุว่าเครื่องไหน port ไหนรับ traffic", "EC2 → Target Groups → เลือกกลุ่ม → Register targets", "Target group, EC2 instance"],
+  listener: [4, "Listener", "ALB ฟัง port ไหนแล้วส่งไป target group ไหน", "EC2 → Load Balancers → Create → ส่วน Listeners and routing", "Load balancer, Target group"]
+};
+function hcm(k, what) { var d = HCL_INFO[k]; return "# ── ขั้นที่ " + d[0] + " │ " + d[1] + (what ? " : " + what : "") + "\n# คืออะไร: " + d[2] + "\n# กดที่: " + d[3] + (d[4] ? "\n# ต้องมีก่อน: " + d[4] : "") + "\n"; }
 function hcl() {
   var map = {};
   function reg(list, type) { list.forEach(function (r) { map[r.id] = type + "." + slug(r.name || r.id.replace(/-/g, "_")); }); }
@@ -666,37 +698,37 @@ function hcl() {
   function ref(id, attr) { return map[id] ? map[id] + "." + (attr || "id") : '"' + id + '"'; }
   function tags(t) { var a = t.filter(function (x) { return x.k; }); return a.length ? "  tags = { " + a.map(function (x) { return x.k + ' = "' + x.v + '"'; }).join(", ") + " }\n" : ""; }
   var o = [];
-  vp.forEach(function (v) { o.push('resource "aws_vpc" "' + slug(v.name || v.id) + '" {\n  cidr_block = "' + v.cidr + '"\n' + (v.dnsHostnames ? "  enable_dns_hostnames = true\n" : "") + tags(v.name ? [{ k: "Name", v: v.name }] : []) + "}"); });
-  sn.forEach(function (s) { o.push('resource "aws_subnet" "' + slug(s.name || s.id) + '" {\n  vpc_id            = ' + ref(s.vpcId) + '\n  cidr_block        = "' + s.cidr + '"\n  availability_zone = "' + s.az + '"\n' + (s.autoIp ? "  map_public_ip_on_launch = true\n" : "") + tags(s.name ? [{ k: "Name", v: s.name }] : []) + "}"); });
-  ig.forEach(function (g) { o.push('resource "aws_internet_gateway" "' + slug(g.name || g.id) + '" {\n  vpc_id = ' + ref(g.vpcId) + "\n}"); });
+  vp.forEach(function (v) { o.push(hcm("vpc", v.name) + 'resource "aws_vpc" "' + slug(v.name || v.id) + '" {\n  cidr_block = "' + v.cidr + '"\n' + (v.dnsHostnames ? "  enable_dns_hostnames = true\n" : "") + tags(v.name ? [{ k: "Name", v: v.name }] : []) + "}"); });
+  sn.forEach(function (s) { o.push(hcm("subnet", s.name) + 'resource "aws_subnet" "' + slug(s.name || s.id) + '" {\n  vpc_id            = ' + ref(s.vpcId) + '\n  cidr_block        = "' + s.cidr + '"\n  availability_zone = "' + s.az + '"\n' + (s.autoIp ? "  map_public_ip_on_launch = true\n" : "") + tags(s.name ? [{ k: "Name", v: s.name }] : []) + "}"); });
+  ig.forEach(function (g) { o.push(hcm("igw", g.name) + 'resource "aws_internet_gateway" "' + slug(g.name || g.id) + '" {\n  vpc_id = ' + ref(g.vpcId) + "\n}"); });
   rt.forEach(function (r) {
     var rs = r.routes.map(function (x) { return '  route {\n    cidr_block = "' + x.dest + '"\n    gateway_id = ' + ref(x.target) + "\n  }\n"; }).join("");
-    o.push('resource "aws_route_table" "' + slug(r.name || r.id) + '" {\n  vpc_id = ' + ref(r.vpcId) + "\n" + rs + "}");
-    r.assoc.forEach(function (sid) { o.push('resource "aws_route_table_association" "' + slug(nm(r) + "_" + nm(find(S.subnets, sid))) + '" {\n  subnet_id      = ' + ref(sid) + "\n  route_table_id = " + ref(r.id) + "\n}"); });
+    o.push(hcm("rtb", r.name) + 'resource "aws_route_table" "' + slug(r.name || r.id) + '" {\n  vpc_id = ' + ref(r.vpcId) + "\n" + rs + "}");
+     r.assoc.forEach(function (sid) { o.push(hcm("rtba", nm(r) + " ↔ " + nm(find(S.subnets, sid))) + 'resource "aws_route_table_association" "' + slug(nm(r) + "_" + nm(find(S.subnets, sid))) + '" {\n  subnet_id      = ' + ref(sid) + "\n  route_table_id = " + ref(r.id) + "\n}"); });
   });
   sg.forEach(function (g) {
-    var ing = g.inbound.map(function (r) { return "  ingress {\n    from_port = " + r.from + "\n    to_port   = " + r.to + '\n    protocol  = "' + r.proto + '"\n    ' + (r.srcKind === "sg" ? (r.src === g.id ? "self = true" : "security_groups = [" + ref(r.src) + "]") : 'cidr_blocks = ["' + r.src + '"]') + "\n  }\n"; }).join("");
-    o.push('resource "aws_security_group" "' + slug(g.name) + '" {\n  name        = "' + g.name + '"\n  description = "' + g.desc + '"\n  vpc_id      = ' + ref(g.vpcId) + "\n" + ing + "}");
+    var ing = g.inbound.map(function (r) { var rk = sgRuleRisk(g, r); return "  # " + RISK_ICON[rk.lvl] + " " + rk.why + "\n  ingress {\n    from_port = " + r.from + "\n    to_port   = " + r.to + '\n    protocol  = "' + r.proto + '"\n    ' + (r.srcKind === "sg" ? (r.src === g.id ? "self = true" : "security_groups = [" + ref(r.src) + "]") : 'cidr_blocks = ["' + r.src + '"]') + "\n  }\n"; }).join("");
+    o.push(hcm("sg", g.name) + 'resource "aws_security_group" "' + slug(g.name) + '" {\n  name        = "' + g.name + '"\n  description = "' + g.desc + '"\n  vpc_id      = ' + ref(g.vpcId) + "\n" + ing + "}");
   });
-  S.keys.forEach(function (k) { if (k.imported) o.push('resource "aws_key_pair" "' + slug(k.name) + '" {\n  key_name   = "' + k.name + '"\n  public_key = file("~/.ssh/' + k.name + '.pub")\n}'); });
+  S.keys.forEach(function (k) {  if (k.imported) o.push(hcm("key", k.name) + 'resource "aws_key_pair" "' + slug(k.name) + '" {\n  key_name   = "' + k.name + '"\n  public_key = file("~/.ssh/' + k.name + '.pub")\n}'); });
   S.roles.forEach(function (r) {
-    o.push('resource "aws_iam_role" "' + slug(r.name) + '" {\n  name               = "' + r.name + '"\n  assume_role_policy = data.aws_iam_policy_document.ec2_assume.json   # console เขียน trust policy ให้เอง ต้องเขียนเองใน Terraform\n}');
-    r.policies.forEach(function (p) { o.push('resource "aws_iam_role_policy_attachment" "' + slug(r.name + "_" + p) + '" {\n  role       = ' + ref(r.id, "name") + '\n  policy_arn = "arn:aws:iam::aws:policy/' + p + '"\n}'); });
-    o.push('resource "aws_iam_instance_profile" "' + slug(r.name) + '" {   # console สร้างให้อัตโนมัติ\n  name = "' + r.name + '"\n  role = ' + ref(r.id, "name") + "\n}");
+    o.push(hcm("role", r.name) + 'resource "aws_iam_role" "' + slug(r.name) + '" {\n  name               = "' + r.name + '"\n  assume_role_policy = data.aws_iam_policy_document.ec2_assume.json   # console เขียน trust policy ให้เอง ต้องเขียนเองใน Terraform\n}');
+     r.policies.forEach(function (p) { o.push(hcm("attach", p) + 'resource "aws_iam_role_policy_attachment" "' + slug(r.name + "_" + p) + '" {\n  role       = ' + ref(r.id, "name") + '\n  policy_arn = "arn:aws:iam::aws:policy/' + p + '"\n}'); });
+    o.push(hcm("profile", r.name) + 'resource "aws_iam_instance_profile" "' + slug(r.name) + '" {\n  name = "' + r.name + '"\n  role = ' + ref(r.id, "name") + "\n}");
   });
-  S.repos.forEach(function (r) { o.push('resource "aws_ecr_repository" "' + slug(r.name) + '" {\n  name = "' + r.name + '"\n}'); });
+   S.repos.forEach(function (r) { o.push(hcm("ecr", r.name) + 'resource "aws_ecr_repository" "' + slug(r.name) + '" {\n  name = "' + r.name + '"\n}'); });
   is.forEach(function (i) {
-    o.push('resource "aws_instance" "' + map[i.id].split(".")[1] + '" {\n  ami           = "' + i.ami + '"\n  instance_type = "' + i.type + '"\n  subnet_id     = ' + ref(i.subnetId) + "\n" + (i.keyName ? '  key_name      = "' + i.keyName + '"\n' : "") + "  vpc_security_group_ids = [" + i.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n" + (i.profile ? '  iam_instance_profile   = "' + i.profile + '"\n' : "") + "  metadata_options {\n    http_tokens                 = \"" + i.imds.tokens + '"\n    http_put_response_hop_limit = ' + i.imds.hop + "\n  }\n  root_block_device {\n    volume_size = " + i.disk.size + '\n    volume_type = "' + i.disk.type + '"\n  }\n' + tags((i.name ? [{ k: "Name", v: i.name }] : []).concat(i.tags)) + "}");
+    o.push(hcm("instance", i.name) + 'resource "aws_instance" "' + map[i.id].split(".")[1] + '" {\n  ami           = "' + i.ami + '"\n  instance_type = "' + i.type + '"\n  subnet_id     = ' + ref(i.subnetId) + "\n" + (i.keyName ? '  key_name      = "' + i.keyName + '"\n' : "") + "  vpc_security_group_ids = [" + i.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n" + (i.profile ? '  iam_instance_profile   = "' + i.profile + '"\n' : "") + "  metadata_options {\n    http_tokens                 = \"" + i.imds.tokens + '"\n    http_put_response_hop_limit = ' + i.imds.hop + "\n  }\n  root_block_device {\n    volume_size = " + i.disk.size + '\n    volume_type = "' + i.disk.type + '"\n  }\n' + tags((i.name ? [{ k: "Name", v: i.name }] : []).concat(i.tags)) + "}");
   });
   S.tgs.forEach(function (t) {
-    o.push('resource "aws_lb_target_group" "' + slug(t.name) + '" {\n  port     = ' + t.port + '\n  protocol = "' + t.proto + '"\n  vpc_id   = ' + ref(t.vpcId) + '\n  health_check { path = "' + t.hcPath + '" }\n}');
-    t.targets.forEach(function (x) { o.push('resource "aws_lb_target_group_attachment" "' + slug(t.name + "_" + (find(S.insts, x.instId) || {}).name) + '" {\n  target_group_arn = ' + ref(t.id, "arn") + "\n  target_id        = " + ref(x.instId) + "\n  port             = " + x.port + "\n}"); });
+    o.push(hcm("tg", t.name) + 'resource "aws_lb_target_group" "' + slug(t.name) + '" {\n  port     = ' + t.port + '\n  protocol = "' + t.proto + '"\n  vpc_id   = ' + ref(t.vpcId) + '\n  health_check { path = "' + t.hcPath + '" }\n}');
+     t.targets.forEach(function (x) { o.push(hcm("tgatt", t.name + " ← " + ((find(S.insts, x.instId) || {}).name || "")) + 'resource "aws_lb_target_group_attachment" "' + slug(t.name + "_" + (find(S.insts, x.instId) || {}).name) + '" {\n  target_group_arn = ' + ref(t.id, "arn") + "\n  target_id        = " + ref(x.instId) + "\n  port             = " + x.port + "\n}"); });
   });
   S.albs.forEach(function (a) {
-    o.push('resource "aws_lb" "' + slug(a.name) + '" {\n  name               = "' + a.name + '"\n  load_balancer_type = "application"\n  internal           = ' + (a.scheme === "Internal") + "\n  security_groups    = [" + a.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n  subnets            = [" + a.subnetIds.map(function (id) { return ref(id); }).join(", ") + "]\n}");
-    a.listeners.forEach(function (l) { o.push('resource "aws_lb_listener" "' + slug(a.name + "_" + l.port) + '" {\n  load_balancer_arn = ' + ref(a.id, "arn") + "\n  port              = " + l.port + '\n  protocol          = "HTTP"\n  default_action {\n    type             = "forward"\n    target_group_arn = ' + ref(l.tgId, "arn") + "\n  }\n}"); });
+    o.push(hcm("alb", a.name) + 'resource "aws_lb" "' + slug(a.name) + '" {\n  name               = "' + a.name + '"\n  load_balancer_type = "application"\n  internal           = ' + (a.scheme === "Internal") + "\n  security_groups    = [" + a.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n  subnets            = [" + a.subnetIds.map(function (id) { return ref(id); }).join(", ") + "]\n}");
+     a.listeners.forEach(function (l) { o.push(hcm("listener", a.name + ":" + l.port) + 'resource "aws_lb_listener" "' + slug(a.name + "_" + l.port) + '" {\n  load_balancer_arn = ' + ref(a.id, "arn") + "\n  port              = " + l.port + '\n  protocol          = "HTTP"\n  default_action {\n    type             = "forward"\n    target_group_arn = ' + ref(l.tgId, "arn") + "\n  }\n}"); });
   });
-  return o.length ? o.join("\n\n") : "# ยังไม่มีอะไรให้แปลง ลองสร้าง VPC หรือกดโหลดตัวอย่างในแท็บ 'ตัวอย่างสำเร็จรูป'";
+  return o.length ? "# อ่านยังไง: แต่ละก้อนมีป้าย \"ขั้นที่ N\" = ลำดับที่ Terraform สร้าง (เลขเท่ากันสร้างพร้อมกันได้)\n# \"กดที่\" = เมนูใน console ที่ทำสิ่งเดียวกัน · \"ต้องมีก่อน\" = อ้างถึงอะไร (เลื่อนดูแผนภาพด้านบนของหน้านี้)\n\n" + o.join("\n\n") : "# ยังไม่มีอะไรให้แปลง ลองสร้าง VPC หรือกดโหลดตัวอย่างในแท็บ 'ตัวอย่างสำเร็จรูป'";
 }
 
 // ---- scenarios: rebuild the Terraform lab through the same API a human click would use
@@ -799,3 +831,23 @@ var RULES = [
  ["เชื่อมต่อ SSH: ต้องมี public IP + route ออก internet gateway + SG เปิด 22 + กุญแจตรง (timeout = เครือข่าย, Permission denied = กุญแจ)", 0]
 ];
 fresh();
+
+// แผนภาพลำดับการสร้าง: จัดกลุ่มสิ่งที่มีในสถานะปัจจุบันตามขั้น (ความลึกของ dependency)
+function hclPlan() {
+  var vp = S.vpcs.filter(function (v) { return !v.isDefault; }), vids = vp.map(function (v) { return v.id; }), acc = {};
+  function add(k, name) { (acc[k] = acc[k] || []).push(name || ""); }
+  vp.forEach(function (v) { add("vpc", v.name || v.id); });
+  S.subnets.filter(function (x) { return vids.indexOf(x.vpcId) >= 0; }).forEach(function (x) { add("subnet", x.name || x.id); });
+  S.igws.filter(function (g) { return g.vpcId && vids.indexOf(g.vpcId) >= 0; }).forEach(function (g) { add("igw", g.name || g.id); });
+  S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }).forEach(function (g) { add("sg", g.name); });
+  S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }).forEach(function (r) { add("rtb", r.name || r.id); r.assoc.forEach(function (sid) { add("rtba", nm(r) + "↔" + nm(find(S.subnets, sid))); }); });
+  S.keys.forEach(function (k) { if (k.imported) add("key", k.name); });
+  S.roles.forEach(function (r) { add("role", r.name); add("profile", r.name); r.policies.forEach(function (p) { add("attach", p); }); });
+  S.repos.forEach(function (r) { add("ecr", r.name); });
+  liveInsts().forEach(function (i) { add("instance", i.name || i.id); });
+  S.tgs.forEach(function (t) { add("tg", t.name); t.targets.forEach(function (x) { add("tgatt", t.name + "←" + ((find(S.insts, x.instId) || {}).name || "")); }); });
+  S.albs.forEach(function (a) { add("alb", a.name); a.listeners.forEach(function (l) { add("listener", ":" + l.port); }); });
+  var layers = [[], [], [], []];
+  Object.keys(acc).forEach(function (k) { var d = HCL_INFO[k]; layers[d[0] - 1].push({ key: k, label: d[1], names: acc[k], needs: d[4], where: d[3] }); });
+  return layers;
+}
