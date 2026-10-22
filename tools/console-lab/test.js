@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -395,4 +395,14 @@ sh2("ssh -i ~/.ssh/id_ed25519 ubuntu@" + dbIp, ["yes"]); assert(/wsrep_cluster_s
   assert.strictEqual(R(22, 22, "0.0.0.0/0"), "bad", "SSH ทั้งโลก เสี่ยง"); assert.strictEqual(R(3306, 3306, "0.0.0.0/0"), "bad", "DB ทั้งโลก เสี่ยง"); assert.strictEqual(R(8080, 8080, "0.0.0.0/0"), "bad", "8080 ทั้งโลก เสี่ยง");
   assert.strictEqual(R(22, 22, "198.51.100.7/32"), "ok", "/32 OK"); assert.strictEqual(R(22, 22, "203.0.113.0/24"), "warn", "/24 ทบทวน"); assert.strictEqual(R(3306, 3306, "sg-y", "sg"), "ok", "อ้าง SG OK");
   L.buildLab("full"); assert(!/❌/.test(L.hcl()), "lab ครบทั้งชุดไม่มีกฎเสี่ยง"); assert(/# ✅ เปิดทั้งโลกที่ port 80/.test(L.hcl()), "มี comment ประเมิน port 80"); }
+// ---- ลบ route table (กติกาเหมือน AWS: ลบ main ไม่ได้ / ต้องปลดการผูก subnet ก่อน)
+{ L.buildLab("full"); const rt = L.S.rtbs.find(r => !r.main && r.assoc.length), main = L.S.rtbs.find(r => r.main);
+  assert(/DependencyViolation/.test(L.API.del("rtb", rt.id, "").errors._), "ยังผูก subnet ลบไม่ได้");
+  assert(/main route table/.test(L.API.del("rtb", main.id, "").errors._), "main ลบไม่ได้");
+  L.API.setAssoc(rt.id, []); const r2 = L.API.del("rtb", rt.id, ""); assert(r2.res && !L.S.rtbs.some(r => r.id === rt.id), "ปลดผูกแล้วลบได้"); }
+// ---- แก้ outbound rules: ลบ All traffic → ออกเน็ตไม่ได้ (egress ปิด)
+{ L.buildLab("full"); const ins = L.S.insts.find(i => i.name === "pharmacy-jenkins"), g = L.S.sgs.find(x => x.name === "pharmacy-jenkins");
+  assert(L.internetOut(ins), "เริ่มต้นออกเน็ตได้");
+  const r = L.API.setOutbound(g.id, []); assert(!r.errors, JSON.stringify(r.errors)); assert(!L.internetOut(ins) || ins.sgIds.some(id => id !== g.id && L.S.sgs.find(x => x.id === id).outbound.some(o => o.proto === "-1" && o.src === "0.0.0.0/0")), "ไม่มี egress กฎจากทุก SG ที่ผูก → ออกไม่ได้");
+  L.API.setInbound(g.id, [{ type: "Custom TCP", port: "8080", srcKind: "Custom", src: "203.0.113.0/24", desc: "ทดสอบ" }]); assert.strictEqual(g.inbound[0].desc, "ทดสอบ", "เก็บ description"); }
 console.log("ok");

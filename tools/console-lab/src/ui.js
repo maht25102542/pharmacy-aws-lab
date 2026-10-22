@@ -48,7 +48,7 @@ function flash(kind, msg) { UI.banner = { kind: kind, msg: msg }; }
 // ---- ไอคอน SVG (วาดเอง เส้นง่ายๆ ไม่ใช้ asset ของ AWS) ใช้ innerHTML กับสตริงตายตัวเท่านั้น
 var ICONS = {
   refresh: '<path d="M13.2 8a5.2 5.2 0 1 1-1.6-3.7M13.4 2.2v3h-3"/>', check: '<circle cx="8" cy="8" r="6.3"/><path d="M5.2 8.2l2 2 3.7-4"/>', pause: '<circle cx="8" cy="8" r="6.3"/><path d="M6.4 5.6v4.8M9.6 5.6v4.8"/>', minus: '<circle cx="8" cy="8" r="6.3"/><path d="M5 8h6"/>', clock: '<circle cx="8" cy="8" r="6.3"/><path d="M8 4.6V8l2.4 1.6"/>',
-  copy: '<rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.5v-1h-8v8h1"/>', ext: '<path d="M9.5 2.5h4v4M13.5 2.5L7.5 8.5M12 9v3.5H3.5V4H7"/>', chevR: '<path d="M6 3.5L10.5 8 6 12.5"/>', chevL: '<path d="M10 3.5L5.5 8l4.5 4.5"/>', info: '<circle cx="8" cy="8" r="6.3"/><path d="M8 7.2v3.6M8 5v.1"/>', warn: '<path d="M8 2.2L14.2 13H1.8z"/><path d="M8 6.6v3M8 11.2v.1"/>', search: '<circle cx="6.8" cy="6.8" r="4.4"/><path d="M10.2 10.2L14 14"/>'
+  copy: '<rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.5v-1h-8v8h1"/>', ext: '<path d="M9.5 2.5h4v4M13.5 2.5L7.5 8.5M12 9v3.5H3.5V4H7"/>', chevR: '<path d="M6 3.5L10.5 8 6 12.5"/>', chevD: '<path d="M3 6l5 5 5-5"/>', chevL: '<path d="M10 3.5L5.5 8l4.5 4.5"/>', info: '<circle cx="8" cy="8" r="6.3"/><path d="M8 7.2v3.6M8 5v.1"/>', warn: '<path d="M8 2.2L14.2 13H1.8z"/><path d="M8 6.6v3M8 11.2v.1"/>', search: '<circle cx="6.8" cy="6.8" r="4.4"/><path d="M10.2 10.2L14 14"/>'
 };
 function icoEl(name, size, color) { var s = document.createElement("span"); s.className = "ico"; s.style.color = color || ""; s.innerHTML = '<svg width="' + (size || 16) + '" height="' + (size || 16) + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || "") + "</svg>"; return s; }
 function crumbEl(text) {
@@ -120,7 +120,7 @@ function actionMenu(acts, sel, from) {
   var groups = []; acts.forEach(function (a) { if (!a.btn) { var g = a.grp || "Actions"; if (groups.indexOf(g) < 0) groups.push(g); } });
   groups.forEach(function (g) {
     var gi = items.filter(function (a) { return !a.btn && (a.grp || "Actions") === g; });
-    out.push(h("button", { cls: "btn", type: "button", text: g + " ▾", disabled: !sel || !gi.length, onclick: function () { UI.menu = UI.menu === g ? false : g; render(); } }));
+    out.push(h("button", { cls: "btn", type: "button", "aria-haspopup": "true", "aria-expanded": String(UI.menu === g), disabled: !sel || !gi.length, onclick: function () { UI.menu = UI.menu === g ? false : g; render(); } }, [g, icoEl("chevD", 16)]));
     if (UI.menu === g && sel) out.push(h("div", { cls: "menu" }, gi.map(function (a) { return h("button", { type: "button", text: a.label, onclick: function () { runAct(a); } }); })));
   });
   return out;
@@ -198,7 +198,7 @@ function rtbAssoc(r) {
 }
 function subRoute(r) { var rt = subnetRtb(r); return h("div", {}, [h("p", { text: "Route table: " + (rt.main ? "main (" + rt.id + ")" : nm(rt)) }), rtbRoutes(rt)]); }
 function sgrId(g, i, k) { return "sgr-0" + hash32(g.id + k + i) + hash32(k + g.id + i) + hash32(i + g.id).slice(0, 3); }
-function sgRules(kind) { return function (r) { var list = kind === "in" ? r.inbound : r.outbound; if (kind === "out" && !list.length) list = [{ proto: "-1", from: 0, to: 65535, srcKind: "cidr", src: "0.0.0.0/0" }]; var rows = ruleRows(list).map(function (x, i) { return ["–", sgrId(r, i, kind), "IPv4", x[0], x[1], x[2], x[3]]; }); return h("div", {}, [h("div", { style: "display:flex;gap:8px;align-items:center;margin-bottom:8px" }, [h("b", { text: (kind === "in" ? "Inbound rules" : "Outbound rules") + " (" + rows.length + ")" }), h("span", { style: "margin-left:auto;display:flex;gap:8px" }, [h("button", { cls: "btn", type: "button", text: "Manage tags" }), h("button", { cls: "btn", type: "button", text: kind === "in" ? "Edit inbound rules" : "Edit outbound rules", onclick: function () { if (kind === "in") go("sg-inbound", { id: r.id, from: "sgs" }); } })])]), tbl(["Name", "Security group rule ID", "IP version", "Type", "Protocol", "Port range", kind === "in" ? "Source" : "Destination"], rows, "ไม่มีกฎ (ปิดทุกอย่าง)")]); }; }
+function sgRules(kind) { return function (r) { var list = kind === "in" ? r.inbound : r.outbound; if (kind === "out" && !list.length) list = [{ proto: "-1", from: 0, to: 65535, srcKind: "cidr", src: "0.0.0.0/0" }]; var rows = ruleRows(list).map(function (x, i) { return ["–", sgrId(r, i, kind), "IPv4", x[0], x[1], x[2], x[3], list[i].desc || "–"]; }); return h("div", {}, [h("div", { style: "display:flex;gap:8px;align-items:center;margin-bottom:8px" }, [h("b", { text: (kind === "in" ? "Inbound rules" : "Outbound rules") + " (" + rows.length + ")" }), h("span", { style: "margin-left:auto;display:flex;gap:8px" }, [h("button", { cls: "btn", type: "button", text: "Manage tags" }), h("button", { cls: "btn", type: "button", text: kind === "in" ? "Edit inbound rules" : "Edit outbound rules", onclick: function () { go(kind === "in" ? "sg-inbound" : "sg-outbound", { id: r.id, from: "sgs" }); } })])]), tbl(["Name", "Security group rule ID", "IP version", "Type", "Protocol", "Port range", kind === "in" ? "Source" : "Destination", "Description"], rows, "ไม่มีกฎ (ปิดทุกอย่าง)")]); }; }
 function instSec(r) { return h("div", {}, [kvDom([["IAM Role", r.profile || "-"], ["Key pair assigned at launch", r.keyName || "-"]]), r.sgIds.map(function (id) { var g = find(S.sgs, id); return g ? h("div", {}, [h("h4", { text: "Security group: " + g.name }), tbl(["Type", "Protocol", "Port range", "Source"], ruleRows(g.inbound), "ไม่มีกฎขาเข้า")]) : null; })]); }
 function instNet(r) { var v = find(S.vpcs, r.vpcId); var dns = v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "-"; return kvDom([["VPC ID", vname(r.vpcId)], ["Subnet ID", nm(find(S.subnets, r.subnetId))], ["Availability Zone", r.az], ["Private IPv4 addresses", r.privateIp], ["Public IPv4 address", r.publicIp || "-"], ["Public IPv4 DNS", dns], ["Auto-assigned public IP at launch", r.hadPub ? "Yes" : "No"]]); }
 function instSto(r) { return tbl(["Volume", "Device", "Size", "Type", "Delete on termination"], [["root volume", "/dev/sda1", r.disk.size + " GiB", r.disk.type, "Yes"]]); }
@@ -322,13 +322,13 @@ function formPage(o) {
 // ---- ช่องกรอกแบบ dropdown ตัวอย่าง + "ไม่ระบุ (พิมพ์เอง)"
 var CUSTOM = "__custom__";
 var EXF = {
-  "vpc-create.name": ["pharmacy-vpc", "pharmacy"], "vpc-create.cidr": ["10.0.0.0/16", "172.16.0.0/16", "192.168.0.0/16"],
-  "subnet-create.name": ["pharmacy-public-1", "pharmacy-public-2", "pharmacy-private-1"], "subnet-create.cidr": ["10.0.1.0/24", "10.0.2.0/24", "10.0.128.0/20"],
+  "vpc-create.name": ["pharmacy-vpc", "pharmacy"], "vpc-create.cidr": ["10.0.0.0/16", "172.16.0.0/16", "192.168.0.0/16", "10.1.0.0/16"],
+  "subnet-create.name": ["pharmacy-public-1", "pharmacy-public-2", "pharmacy-private-1"], "subnet-create.cidr": ["10.0.1.0/24", "10.0.2.0/24", "10.0.128.0/20", "10.1.1.0/24", "10.1.2.0/24", "10.1.128.0/20"],
   "subnet-edit.name": ["pharmacy-public-1", "pharmacy-private-1"],
-  "igw-create.name": ["pharmacy-igw"], "rtb-create.name": ["pharmacy-public", "pharmacy-private"], "rtb-routes.dest": ["0.0.0.0/0", "10.0.0.0/16"],
+  "igw-create.name": ["pharmacy-igw"], "rtb-create.name": ["pharmacy-public", "pharmacy-private"], "rtb-routes.dest": ["0.0.0.0/0", "10.0.0.0/16", "10.1.0.0/16"],
   "sg-create.name": ["pharmacy-base", "pharmacy-alb", "pharmacy-jenkins", "pharmacy-sonarqube", "pharmacy-k8s", "pharmacy-db"],
   "sg-create.desc": ["pharmacy base", "pharmacy alb", "pharmacy jenkins", "pharmacy sonarqube", "pharmacy k8s", "pharmacy db"],
-  "*.src": ["203.0.113.0/24", "10.0.0.0/16", "172.31.0.0/16"], "*.port": ["22", "80", "8080", "9000", "30080", "30080-30081", "30443", "3306"],
+  "*.src": ["203.0.113.0/24", "10.0.0.0/16", "172.31.0.0/16", "10.1.0.0/16"], "*.port": ["22", "80", "8080", "9000", "30080", "30080-30081", "30443", "3306"],
   "key-import.name": ["pharmacy-admin", "pharmacy-admin-manual"], "key-create.name": ["pharmacy-admin", "pharmacy-admin-manual"],
   "role-create.name": ["pharmacy-jenkins", "pharmacy-k8s"], "role-create.desc": ["Jenkins push image to ECR", "k8s pull image from ECR"], "role-create.q": ["ECR", "SSM", "AdministratorAccess"],
   "repo-create.name": ["pharmacy/frontend", "pharmacy/backend"],
@@ -337,11 +337,14 @@ var EXF = {
   "tg-create.name": ["pharmacy-prd", "pharmacy-dev"], "tg-create.hcPath": ["/", "/healthz", "/api/health"], "alb-create.name": ["pharmacy-alb"],
   "user-create.name": ["terraform-admin", "pharmacy-ci"], "user-create.desc": ["aws configure บนเครื่องเรา", "terraform CLI"], "ak-create-.desc": ["aws configure บนเครื่องเรา", "terraform CLI"],
   "eip-alloc.bg": [REGION], "*.k": ["Name", "Role", "Env", "Project"], "*.v": ["pharmacy", "jenkins", "sonarqube", "k8s_server", "k8s_agent", "k8s_dev", "db", "prd", "dev"],
-  "*.tag": ["v1.0.0", "v1.1.0", "dev-1"], "*.dest": ["0.0.0.0/0", "10.0.0.0/16"], "*.cidr": ["10.0.1.0/24", "10.0.2.0/24"], "*.nk": ["pharmacy-admin", "pharmacy-admin-manual"]
+  "*.tag": ["v1.0.0", "v1.1.0", "dev-1"], "*.dest": ["0.0.0.0/0", "10.0.0.0/16", "10.1.0.0/16"], "*.cidr": ["10.0.1.0/24", "10.0.2.0/24", "10.1.1.0/24", "10.1.2.0/24"], "*.nk": ["pharmacy-admin", "pharmacy-admin-manual"]
 };
 function exFor(id) { var fn = UI.form ? UI.form.name : ""; var hit = EXF[fn + "." + id] || EXF["*." + id]; if (!hit && fn.slice(-1) === "-") hit = null; if (!hit) Object.keys(EXF).some(function (k) { if (k.indexOf(".") > 0 && k.slice(-id.length - 1) === "." + id && k.charAt(k.length - id.length - 2) === "-" && fn.indexOf(k.slice(0, k.length - id.length - 1)) === 0) { hit = EXF[k]; return true; } }); return hit ? hit.map(function (x) { return [x, x]; }) : null; }
 // ex: [[val,label]]; get/set ค่า; flag = object+key ที่จำว่าเลือก "พิมพ์เอง" ไว้
+// ทุก dropdown ตัวอย่าง: ถ้ามีค่าที่ขึ้นต้น pharmacy ให้เพิ่มคู่ cafe ต่อท้ายอัตโนมัติ (เพิ่ม ไม่แทนที่) สำหรับทดสอบโดยไม่ต้องพิมพ์
+function cafeEx(ex) { var out = ex.slice(); ex.forEach(function (e) { var v = String(e[0]), l = String(e[1]); if ((/pharmacy/i.test(v) || /pharmacy/i.test(l)) && !/github\.com\//.test(v)) { var cv = v.replace(/pharmacy/g, "cafe"), cl = l.replace(/pharmacy/g, "cafe"); if (!out.some(function (o) { return String(o[0]) === cv; })) out.push([cv, cl]); } }); return out; }
 function exPick(ex, get, set, flag, fk, ph, aria, area, type, id) {
+  ex = cafeEx(ex);
   var cur = get() == null ? "" : String(get()), has = ex.some(function (e) { return e[0] === cur; }), custom = flag[fk] || (cur !== "" && !has);
   var opts = [];
   if (!custom && cur === "") opts.push(["", "— เลือกตัวอย่าง —"]);
@@ -645,23 +648,34 @@ function rowsEditor(label, arr, cols, blank, addText) {
   box.appendChild(h("button", { cls: "btn", type: "button", text: addText, onclick: function () { arr.push(blank()); render(); } }));
   return box;
 }
-function inp(r, k, ph, rerender) {
-  var exs = exFor(k); if (exs) return exPick(exs, function () { return r[k]; }, function (v) { r[k] = v; }, r, "_c_" + k, ph, ph || k, false);
+function inp(r, k, ph, rerender, exList) {
+  var exs = exList ? exList.map(function (x) { return [x, x]; }) : exFor(k); if (exs) return exPick(exs, function () { return r[k]; }, function (v) { r[k] = v; }, r, "_c_" + k, ph, ph || k, false);
   return h("input", { type: "text", value: r[k] == null ? "" : r[k], placeholder: ph || "", "aria-label": ph || k, oninput: function (e) { r[k] = e.target.value; } }); }
 function sel(r, k, opts, label) { return h("select", { "aria-label": label || k, onchange: function (e) { r[k] = e.target.value; render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(r[k]) ? "selected" : null }); })); }
 function sgOpts(vpcId, blank) { var a = S.sgs.filter(function (g) { return !vpcId || g.vpcId === vpcId; }).map(function (g) { return [g.id, g.name + " (" + g.id.slice(0, 11) + ")"]; }); return blank ? [["", "เลือก security group"]].concat(a) : a; }
-function ruleCols(vpcId, selfId) {
-  var T = ["SSH", "HTTP", "HTTPS", "MYSQL/Aurora", "Custom TCP", "All traffic"].map(function (x) { return [x, x]; });
-  var SK = ["Custom", "Anywhere-IPv4", "My IP", "Security group"].map(function (x) { return [x, x]; });
-  return [
-    function (r) { return sel(r, "type", T, "Type"); },
-    function (r) { return r.type === "Custom TCP" ? inp(r, "port", "port เช่น 8080 หรือ 30080-30081") : h("div", { cls: "hint", text: r.type === "All traffic" ? "All / 0-65535" : "TCP / " + typeRule(r.type).from }); },
-    function (r) { return h("div", {}, [sel(r, "srcKind", SK, "Source"), r.srcKind === "Custom" ? inp(r, "src", "CIDR เช่น 203.0.113.0/24") : (r.srcKind === "Security group" ? sel(r, "src", sgOpts(vpcId, true), "Security group") : h("div", { cls: "hint", text: r.srcKind === "My IP" ? S.myIp + "/32" : "0.0.0.0/0" }))]); }
-  ];
+// ---- ตารางแก้กฎ SG (Edit inbound/outbound rules) หัวคอลัมน์ตามคอนโซลจริง
+function ruleRowsFrom(sg, dir) { var list = dir === "out" ? sg.outbound : sg.inbound; return list.map(function (r, i) { var t = ruleType(r); return { rid: sgrId(sg, i, dir === "out" ? "out" : "in"), type: t, port: r.from === r.to ? String(r.from) : r.from + "-" + r.to, srcKind: r.srcKind === "sg" ? "Security group" : (r.src === "0.0.0.0/0" ? "Anywhere-IPv4" : "Custom"), src: r.src, desc: r.desc || "" }; }); }
+function rulePort(x) { if (x.type === "Custom TCP") return x.port || ""; if (x.type === "All traffic") return "0-65535"; var t = typeRule(x.type); return String(t.from); }
+function ruleSig(x) { return x.type + "|" + rulePort(x) + "|" + (x.srcKind === "Anywhere-IPv4" ? "0.0.0.0/0" : x.srcKind === "My IP" ? S.myIp + "/32" : x.src) + "|" + (x.desc || ""); }
+function ruleTable(V, dir, vpcId, saved) {
+  var T = ["SSH", "HTTP", "HTTPS", "MYSQL/Aurora", "Custom TCP", "All traffic"].map(function (x) { return [x, x]; }), SK = ["Custom", "Anywhere-IPv4", "My IP", "Security group"].map(function (x) { return [x, x]; }), rows = V.rows, wrap = h("div");
+  var open = rows.some(function (x) { return x.srcKind === "Anywhere-IPv4" || (x.srcKind === "Custom" && /^0\.0\.0\.0\/0$/.test((x.src || "").trim())); });
+  var head = ["Security group rule ID", "Type", "Protocol", "Port range", dir === "out" ? "Destination" : "Source", "Description - optional", ""], tb = h("table", { cls: "rt" }, [h("thead", {}, [h("tr", {}, head.map(function (x) { return h("th", { text: x }); }))])]), body = h("tbody");
+  rows.forEach(function (r, i) {
+    var port = r.type === "Custom TCP" ? inp(r, "port", "8080 หรือ 30080-30081") : h("span", { text: r.type === "All traffic" ? "All" : String(typeRule(r.type).from) }), proto = r.type === "All traffic" ? "All" : "TCP";
+    var srcCell = h("div", { style: "display:flex;flex-direction:column;gap:6px;min-width:230px" }, [sel(r, "srcKind", SK, "Source"), r.srcKind === "Custom" ? inp(r, "src", "Search / CIDR เช่น 203.0.113.0/24") : (r.srcKind === "Security group" ? sel(r, "src", sgOpts(vpcId, true), "Security group") : null), (r.srcKind === "Anywhere-IPv4" || r.srcKind === "My IP" || (r.srcKind === "Custom" && (r.src || "").trim())) ? h("span", { style: "display:inline-flex;align-items:center;gap:6px;border:1px solid var(--cs-ctl-bd,#7d8998);border-radius:8px;padding:0 8px;background:var(--cs-sel-bg,#f2f8fd);width:max-content;font-size:.82rem" }, [r.srcKind === "Anywhere-IPv4" ? "0.0.0.0/0" : r.srcKind === "My IP" ? S.myIp + "/32" : r.src.trim()]) : null]);
+    body.appendChild(h("tr", { style: "cursor:default;vertical-align:top" }, [h("td", { text: r.rid || "-" }), h("td", {}, [sel(r, "type", T, "Type")]), h("td", { text: proto }), h("td", {}, [port]), h("td", {}, [srcCell]), h("td", { style: "min-width:200px" }, [inp(r, "desc", "Description", false, ["SSH จาก My IP", "เว็บสาธารณะ", "Jenkins UI", "SonarQube UI", "ArgoCD UI", "ALB ไป k8s NodePort", "MariaDB จาก k8s", "cafe web"])]), h("td", {}, [h("button", { cls: "btn", type: "button", text: "Delete", onclick: function () { rows.splice(i, 1); render(); } })])]));
+  });
+  tb.appendChild(body); wrap.appendChild(h("div", { cls: "twrap" }, [tb]));
+  wrap.appendChild(h("button", { cls: "btn", type: "button", style: "margin-top:10px", text: "Add rule", onclick: function () { rows.push({ rid: "", type: "SSH", srcKind: "My IP", port: "", src: "", desc: "" }); render(); } }));
+  if (open && dir !== "out") wrap.appendChild(h("div", { cls: "alert warn", style: "margin-top:10px", text: "⚠ Rules with source of 0.0.0.0/0 or ::/0 allow all IP addresses to access your instance. We recommend setting security group rules to allow access from known IP addresses only." }));
+  if (V.preview) {
+    var before = {}, after = {}; saved.forEach(function (x) { before[ruleSig(x)] = x; }); rows.forEach(function (x) { after[ruleSig(x)] = x; });
+    var add = Object.keys(after).filter(function (k) { return !before[k]; }), del = Object.keys(before).filter(function (k) { return !after[k]; });
+    wrap.appendChild(h("div", { cls: "card", style: "margin-top:12px" }, [h("div", { cls: "ch", text: "Preview changes" }), h("div", { cls: "cb" }, [!add.length && !del.length ? h("p", { cls: "hint", text: "No changes" }) : h("div", {}, [h("b", { text: "Rules to add (" + add.length + ")" }), h("ul", {}, add.map(function (k) { return h("li", { text: k.split("|").slice(0, 3).join(" · ") }); })), h("b", { text: "Rules to delete (" + del.length + ")" }), h("ul", {}, del.map(function (k) { return h("li", { text: k.split("|").slice(0, 3).join(" · ") }); }))])])]));
+  }
+  return wrap;
 }
-function ruleEditor(V, key, vpcId, selfId) { return rowsEditor("Inbound rules", V[key], ruleCols(vpcId, selfId), function () { return { type: "SSH", srcKind: "My IP", port: "", src: "" }; }, "Add rule"); }
-function ruleRowsFrom(sg) { return sg.inbound.map(function (r) { var t = ruleType(r); return { type: t, port: r.from === r.to ? String(r.from) : r.from + "-" + r.to, srcKind: r.srcKind === "sg" ? "Security group" : "Custom", src: r.src }; }); }
-
 // ---- pages
 // ---- ตัวช่วยแสดงผลให้เหมือนคอนโซลจริง
 var OWNER = "000000000000";
@@ -732,7 +746,7 @@ PAGES["subnet-create"] = function () {
           box.appendChild(h("div", { cls: "card" }, [h("div", { cls: "ch", text: "Subnet " + (i + 1) + " of " + V.list.length }), h("div", { cls: "cb" }, [
             h("div", { cls: "f" }, [h("label", { cls: "l", text: "Subnet name" }), inp(s, "name", "pharmacy-public-" + (i + 1))]),
             h("div", { cls: "f" }, [h("label", { cls: "l", text: "Availability Zone" }), sel(s, "az", [["", "No preference"]].concat(AZS.map(function (a) { return [a, a]; })), "Availability Zone")]),
-            h("div", { cls: "f" + (e ? " bad" : "") }, [h("label", { cls: "l", text: "IPv4 subnet CIDR block (Manual input)" }), inp(s, "cidr", "10.0." + (i + 1) + ".0/24"), e ? h("div", { cls: "err", text: e }) : null]),
+            h("div", { cls: "f" + (e ? " bad" : "") }, [h("label", { cls: "l", text: "IPv4 subnet CIDR block (Manual input)" }), inp(s, "cidr", "10.0." + (i + 1) + ".0/24", false, ["10.0.1.0/24", "10.0.2.0/24", "10.0.128.0/20", "10.0.129.0/24", "10.1.1.0/24", "10.1.2.0/24", "10.1.128.0/20", "10.1.129.0/24"]), e ? h("div", { cls: "err", text: e }) : null]),
             V.list.length > 1 ? h("button", { cls: "btn", type: "button", text: "Remove", onclick: function () { V.list.splice(i, 1); render(); } }) : null])]));
         });
         box.appendChild(h("button", { cls: "btn", type: "button", text: "Add new subnet", onclick: function () { V.list.push({ name: "", az: "", cidr: "" }); render(); } }));
@@ -771,7 +785,7 @@ PAGES["igw-attach"] = function () {
 };
 function rtbExp(r) { if (r.main || !r.assoc.length) return "-"; return r.assoc.length === 1 ? r.assoc[0] : r.assoc.length + " subnets"; }
 LISTS.rtbs = function () {
-  return ({ key: "rtbs", kind: "rtb", title: "Route tables", crumb: "VPC › Route tables", create: [{ label: "Create route table", page: "rtb-create" }], actions: [{ label: "Edit routes", page: "rtb-routes" }, { label: "Edit subnet associations", page: "rtb-assoc", when: function (r) { return !r.main; } }],
+  return ({ key: "rtbs", kind: "rtb", title: "Route tables", crumb: "VPC › Route tables", create: [{ label: "Create route table", page: "rtb-create" }], actions: [{ label: "Edit routes", page: "rtb-routes" }, { label: "Edit subnet associations", page: "rtb-assoc", when: function (r) { return !r.main; } }, { label: "Delete route table", page: "del", kind: "rtb" }],
     rows: function () { return S.rtbs; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Route table ID", function (r) { return r.id; }], ["Explicit subnet associations", rtbExp], ["Edge associations", function () { return "-"; }], ["Main", function (r) { return r.main ? "Yes" : "No"; }], ["VPC", function (r) { return vcol(r.vpcId); }], ["Owner ID", function () { return OWNER; }]],
     detail: function (r) { return [["Route table ID", r.id], ["Main", r.main ? "Yes" : "No"], ["Explicit subnet associations", rtbExp(r)], ["Edge associations", "-"], ["VPC", vcol(r.vpcId)], ["Owner ID", OWNER]]; } });
 };
@@ -807,16 +821,18 @@ PAGES["sg-create"] = function () {
   return formPage({ name: "sg-create", crumb: "EC2 › Security Groups › Create security group", title: "Create security group", back: "sgs", cards: true, lead: "A security group acts as a virtual firewall for your instance to control inbound and outbound traffic. To create a new security group, complete the fields below.",
     init: function () { var d = S.vpcs.filter(function (v) { return !v.isDefault; })[0]; return { name: "", desc: "", vpcId: d ? d.id : defaultVpc().id, rows: [] }; },
     sections: function (V) { return [{ t: "Basic details", ct: "Basic details", f: [{ id: "name", type: "text", label: "Security group name", info: 1, req: true, hint: "Name cannot be edited after creation." }, { id: "desc", type: "text", label: "Description", info: 1, req: true, ph: "Allows SSH access to developers" }, { id: "vpcId", type: "select", label: "VPC", info: 1, opts: function () { return S.vpcs.map(function (v) { return [v.id, vname(v.id)]; }); } }] },
-      { t: "Inbound rules", ct: "Inbound rules", f: [{ type: "custom", id: "rules", render: function (V) { var box = h("div"); if (!V.rows.length) box.appendChild(h("p", { style: "text-align:center", cls: "sub", text: "This security group has no inbound rules." })); box.appendChild(ruleEditor(V, "rows", V.vpcId)); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] },
+      { t: "Inbound rules", ct: "Inbound rules", f: [{ type: "custom", wide: true, id: "rules", render: function (V) { var box = h("div"); if (!V.rows.length) box.appendChild(h("p", { style: "text-align:center", cls: "sub", text: "This security group has no inbound rules." })); box.appendChild(ruleTable({ rows: V.rows, preview: false }, "in", V.vpcId, [])); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] },
       { t: "Outbound rules", ct: "Outbound rules", f: [{ type: "custom", id: "out", render: function () { return tbl(["Type", "Protocol", "Port range", "Destination", "Description - optional"], [["All traffic", "All", "All", "Custom  0.0.0.0/0", ""]]); } }] }]; },
     submit: "Create security group", onSubmit: function (V) { var r = API.createSg(V); if (r.errors) return r; UI.sel.sgs = r.res.id; return { msg: "Security group (" + r.res.id + " | " + r.res.name + ") was created successfully" }; } });
 };
-PAGES["sg-inbound"] = function () {
-  var g = find(S.sgs, UI.params.id);
-  return formPage({ name: "sg-inbound", crumb: "EC2 › Security Groups › " + g.id + " - " + g.name + " › Edit inbound rules", title: "Edit inbound rules", back: "sgs", cards: true, lead: "Inbound rules control the incoming traffic that's allowed to reach the instance.", init: function () { return { rows: ruleRowsFrom(g) }; },
-    sections: function () { return [{ t: "Inbound rules", ct: "Inbound rules", f: [{ type: "custom", id: "rules", render: function (V) { var box = h("div"); box.appendChild(ruleEditor(V, "rows", g.vpcId, g.id)); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); return box; } }] }]; },
-    submit: "Save rules", onSubmit: function (V) { var r = API.setInbound(g.id, V.rows); return r.errors ? r : { msg: "Inbound security group rules successfully modified on security group (" + g.id + " | " + g.name + ")" }; } });
-};
+function sgRulesPage(dir) {
+  var g = find(S.sgs, UI.params.id), nm2 = dir === "out" ? "outbound" : "inbound", Cap = dir === "out" ? "Outbound" : "Inbound", pg = dir === "out" ? "sg-outbound" : "sg-inbound";
+  return formPage({ name: pg, crumb: "EC2 › Security Groups › " + g.id + " - " + g.name + " › Edit " + nm2 + " rules", title: "Edit " + nm2 + " rules", back: "sgs", cards: true, lead: dir === "out" ? "Outbound rules control the outgoing traffic that's allowed to leave the instance." : "Inbound rules control the incoming traffic that's allowed to reach the instance.", init: function () { return { rows: ruleRowsFrom(g, dir), preview: false }; },
+    sections: function () { return [{ t: Cap + " rules", ct: Cap + " rules", f: [{ type: "custom", wide: true, id: "rules", render: function (V) { var box = h("div"); box.appendChild(ruleTable(V, dir, g.vpcId, ruleRowsFrom(g, dir))); var e = UI.form.errors.rules; if (e) box.appendChild(h("div", { cls: "err", text: e })); box.appendChild(h("button", { cls: "btn", type: "button", style: "margin-top:10px", text: V.preview ? "Hide preview" : "Preview changes", onclick: function () { V.preview = !V.preview; render(); } })); return box; } }] }]; },
+    submit: "Save rules", onSubmit: function (V) { var r = dir === "out" ? API.setOutbound(g.id, V.rows) : API.setInbound(g.id, V.rows); return r.errors ? r : { msg: Cap + " security group rules successfully modified on security group (" + g.id + " | " + g.name + ")" }; } });
+}
+PAGES["sg-inbound"] = function () { return sgRulesPage("in"); };
+PAGES["sg-outbound"] = function () { return sgRulesPage("out"); };
 LISTS.keys = function () {
   return ({ key: "keys", kind: "key", title: "Key pairs", crumb: "EC2 › Network & Security › Key Pairs", create: [{ label: "Create key pair", page: "key-create" }], actions: [{ label: "Import key pair", page: "key-import", btn: true }, { label: "Delete key pair", page: "del", kind: "key" }],
     detail: function (r) { return [["Key pair name", r.name], ["Key pair ID", r.id], ["Type", r.type], ["Created", fmtT(r.born || t0())], ["Fingerprint", fpr(r.name)], ["Source", r.imported ? "Imported" : "Created by EC2"]]; }, rows: function () { return S.keys; }, cols: [["Name", function (r) { return r.name; }], ["Type", function (r) { return r.type; }], ["Created", function (r) { return fmtT(r.born || t0()); }], ["Fingerprint", function (r) { return fpr(r.name); }], ["ID", function (r) { return r.id; }]] });

@@ -118,7 +118,7 @@ function normRules(rows, vpcId) {
     else if (r.srcKind === "My IP") s = { srcKind: "cidr", src: S.myIp + "/32" };
     else if (r.srcKind === "Security group") { var rg = find(S.sgs, r.src); if (!rg) errs.push("กฎที่ " + (i + 1) + ": ต้องเลือก security group"); else if (vpcId && rg.vpcId !== vpcId) errs.push("กฎที่ " + (i + 1) + ": อ้างถึง security group ได้เฉพาะ SG ใน VPC เดียวกัน (หรือ VPC ที่ peer กัน)"); s = { srcKind: "sg", src: r.src }; }
     else { if (!parseCidr(r.src)) errs.push("กฎที่ " + (i + 1) + ": CIDR ไม่ถูกต้อง"); s = { srcKind: "cidr", src: String(r.src || "").trim() }; }
-    out.push({ proto: t.proto, from: t.from, to: t.to, srcKind: s.srcKind, src: s.src });
+    out.push({ proto: t.proto, from: t.from, to: t.to, srcKind: s.srcKind, src: s.src, desc: String(r.desc || "").slice(0, 255) });
   });
   return { errs: errs, rules: out };
 }
@@ -247,6 +247,11 @@ API.setInbound = function (id, rows) {
   var g = find(S.sgs, id); if (!g) return E("_", "ไม่พบ security group");
   var n = normRules(rows, g.vpcId); if (n.errs.length) return E("rules", n.errs.join(" · "));
   g.inbound = n.rules; return { res: g };
+};
+API.setOutbound = function (id, rows) {
+  var g = find(S.sgs, id); if (!g) return E("_", "ไม่พบ security group");
+  var n = normRules(rows, g.vpcId); if (n.errs.length) return E("rules", n.errs.join(" · "));
+  g.outbound = n.rules; return { res: g };
 };
 API.importKey = function (o) {
   var n = (o.name || ""), er = {};
@@ -556,6 +561,12 @@ function delPlan(kind, id) {
     var g = find(S.igws, id); if (!g) return null;
     if (kind === "igw") { P.title = "Delete internet gateway (" + nm(g) + ")"; P.crumb = "VPC › Internet gateways › Delete"; P.word = "delete"; P.button = "Delete internet gateway"; P.done = "ลบ internet gateway แล้ว"; if (g.vpcId) P.blockers.push("ยัง attach กับ VPC อยู่ ต้อง Actions → Detach from VPC ก่อน"); }
     else { P.title = "Detach from VPC (" + nm(g) + ")"; P.crumb = "VPC › Internet gateways › Detach from VPC"; P.button = "Detach internet gateway"; P.done = "Detach แล้ว"; if (!g.vpcId) P.blockers.push("ไม่ได้ attach กับ VPC ใด"); else liveInsts(g.vpcId).filter(function (i) { return i.publicIp; }).forEach(function (i) { P.blockers.push("เครื่อง " + (i.name || i.id) + " ยังมี public IP " + i.publicIp + " (VPC ที่มีของที่ผูก public IP อยู่ detach ไม่ได้)"); }); }
+  } else if (kind === "rtb") {
+    var rt0 = find(S.rtbs, id); if (!rt0) return null;
+    P.title = "Delete route table (" + nm(rt0) + ")"; P.crumb = "VPC › Route tables › Delete route table"; P.word = ""; P.button = "Delete"; P.done = "ลบ route table แล้ว";
+    if (rt0.main) P.blockers.push("DependencyViolation: The routeTable '" + rt0.id + "' has dependencies and cannot be deleted. (main route table ลบเองไม่ได้ จะถูกลบพร้อมกับ VPC)");
+    else if (rt0.assoc.length) P.blockers.push("DependencyViolation: The routeTable '" + rt0.id + "' has dependencies and cannot be deleted. (ยังผูกกับ subnet " + rt0.assoc.map(function (sid) { return nm(find(S.subnets, sid)); }).join(", ") + " ไปที่ Subnet associations → Edit subnet associations เอาติ๊กออกก่อน)");
+    P.note = "ลบได้เฉพาะ route table ที่ไม่ใช่ main และไม่มี subnet ผูกอยู่ (explicit association) · ซอยที่เคยผูกจะกลับไปใช้ main route table";
   } else if (kind === "nat") {
     var nt0 = find(S.nats, id); if (!nt0) return null;
     P.title = "Delete NAT gateway (" + (nt0.name || nt0.id) + ")"; P.crumb = "VPC › NAT gateways › Delete NAT gateway"; P.word = "delete"; P.button = "Delete"; P.done = "NAT gateway ถูกลบ (Elastic IP ยังถูกจองอยู่ ต้อง Release เอง)";
@@ -601,6 +612,7 @@ API.del = function (kind, id, word) {
   if (P.word && String(word || "").trim().toLowerCase() !== P.word.toLowerCase()) return E("confirm", "พิมพ์ " + P.word + " เพื่อยืนยัน");
   if (kind === "vpc") { S.subnets = S.subnets.filter(function (x) { return x.vpcId !== id; }); S.rtbs = S.rtbs.filter(function (x) { return x.vpcId !== id; }); S.igws = S.igws.filter(function (x) { return x.vpcId !== id; }); S.sgs = S.sgs.filter(function (x) { return x.vpcId !== id; }); S.vpcs = S.vpcs.filter(function (x) { return x.id !== id; }); }
   else if (kind === "nat") { S.nats = S.nats.filter(function (x) { return x.id !== id; }); S.rtbs.forEach(function (r) { r.routes.forEach(function (x) { if (x.target === id) x.target = id + " (blackhole)"; }); }); }
+  else if (kind === "rtb") S.rtbs = S.rtbs.filter(function (x) { return x.id !== id; });
   else if (kind === "igw") S.igws = S.igws.filter(function (x) { return x.id !== id; });
   else if (kind === "igw-detach") find(S.igws, id).vpcId = null;
   else if (kind === "sg") S.sgs = S.sgs.filter(function (x) { return x.id !== id; });
@@ -802,6 +814,8 @@ var RULES = [
   ["บัญชี suspended: ทุกคำสั่ง AWS CLI / Terraform / Ansible inventory ล้มเหลวด้วย AuthFailure (ข้อความจำลองจากความจำ)", 0],
   ["หน้าตา AWS console ที่เทียบกับ screenshot จริง (ปี 2025 จากเอกสาร/บทความ): แถบบนสีกรมท่าพร้อม logo/Services/Search [Alt+S]/region/account, เมนูซ้ายหัวข้อมี ▼, ปุ่มหลักสีส้มทรงแคปซูล, หน้า EC2 dashboard (Launch instance / Service health / Account attributes), Create VPC (Resources to create, Name tag auto-generation, Preview, NAT gateways, VPC endpoints, DNS options), Launch instance (Info, Network settings + Edit, Firewall การ์ด, launch-wizard-N, คำเตือน 0.0.0.0/0, Summary + Launch instance)", 1],
   ["หน้าที่เทียบกับ screenshot จริงปี 2023 (KodeKloud) แล้ว: รายการ+รายละเอียด Route tables (คอลัมน์, แท็บ Routes/Subnet associations, Edit routes), Internet gateways, NAT gateways (Pending→Available, แท็บ Secondary IPv4), Subnets, Load balancers (หน้า Compare and select type, Create ALB + Summary, รายละเอียด), Target groups, IAM Create role 3 ขั้น (Select trusted entity → Add permissions → Name, review, and create); คอลัมน์ Created/Owner/ENI/ARN เป็นค่าจำลอง", 1],
+  ["ปุ่ม (ปกติ/hover/active/disabled/focus), ช่องกรอก, select, checkbox/radio, เมนู Actions, แท็บ, segmented, การ์ดเลือก ใช้ค่า design token จริงของ Cloudscape (แพ็กเกจ @cloudscape-design/components ธีม visual-refresh) ทั้งโหมดสว่างและมืด เช่น ปุ่มขอบ 2px ฟ้า #0972d3 มุม 20px สูง 32px ตัวหนา 14px ช่องกรอกมุม 8px ขอบ #7d8998", 1],
+  ["สีปุ่มหลักสีส้ม #ff9900 (และ hover/active) มาจากภาพ console จริงปี 2025 ไม่ใช่จาก token ของ Cloudscape (ค่าเริ่มต้นของแพ็กเกจเป็นสีฟ้า) จึงไม่ยืนยันว่า console รุ่นปัจจุบันตรงเป๊ะ", 0],
   ["หน้า AWS อื่นที่ยังไม่ได้เทียบกับ screenshot จริง: Key pairs, Elastic IPs (รายการ), IAM Users/Policies, ECR; ไอคอน/ฟอนต์/สีละเอียดไม่ตรง; หน้า Create target group ขั้น Register targets ยังเป็นรายการติ๊กแบบย่อ; NAT gateway แบบ Regional (ใหม่ปี 2025) ยังไม่จำลอง", 0],
     ["ArgoCD: รหัส admin เริ่มต้นอยู่ใน secret argocd-initial-admin-secret (หรือ argocd admin initial-password -n argocd), login ด้วย argocd login <server> --insecure, app ใหม่เป็น OutOfSync/Missing จนกว่าจะ Sync, UI: กด Sync แล้ว Synchronize ในแผง", 1],
   ["SonarQube: admin/admin เป็นค่าเริ่มต้น, token สร้างที่ My account › Security (ประเภท User / Project analysis / Global analysis) และดูได้ครั้งเดียว", 1],
