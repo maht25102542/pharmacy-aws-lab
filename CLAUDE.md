@@ -29,7 +29,7 @@ ansible-playbook site.yml    # db -> k8s (prd cluster, dev cluster, register dev
 ansible-playbook jenkins.yml # one role only
 ```
 
-There is no test suite or linter configured. Cheap-mode: set `k8s_node_count = 1` and `db_count = 1` (dev VM is always created) in `terraform.tfvars`.
+The only tests are the backend API tests in `repo-app/backend/test_app.py` (no database needed: `pip install -r repo-app/backend/requirements.txt -r repo-app/backend/requirements-dev.txt && pytest repo-app/backend`) and the Console Lab engine tests; no linter is configured. Cheap-mode: set `k8s_node_count = 1` and `db_count = 1` (dev VM is always created) in `terraform.tfvars`.
 
 ## Architecture notes (cross-file)
 

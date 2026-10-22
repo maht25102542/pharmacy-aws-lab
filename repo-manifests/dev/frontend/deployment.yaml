@@ -32,6 +32,13 @@ spec:
             httpGet:
               path: /
               port: 80
+          # ตอบไม่ได้ต่อเนื่อง Kubernetes จะรีสตาร์ท container ให้ (readiness แค่หยุดส่ง traffic ไม่รีสตาร์ท)
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
           resources:
             requests:
               cpu: 25m

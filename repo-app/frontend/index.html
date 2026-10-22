@@ -11,6 +11,12 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid #dde3e6; }
     .error { color: #b3261e; }
+    .num { text-align: right; width: 90px; }
+    .act { width: 120px; text-align: right; white-space: nowrap; }
+    button { font: inherit; padding: 2px 10px; cursor: pointer; }
+    form { display: flex; gap: 8px; margin: 16px 0 8px; flex-wrap: wrap; }
+    form input { font: inherit; padding: 4px 8px; }
+    #msg { min-height: 1.4em; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -23,39 +29,98 @@
 
   <h2>สต็อกยา</h2>
   <table>
-    <thead><tr><th>ชื่อยา</th><th>คงเหลือ</th></tr></thead>
-    <tbody id="rows"><tr><td colspan="2">กำลังโหลด...</td></tr></tbody>
+    <thead><tr><th>ชื่อยา</th><th class="num">คงเหลือ</th><th class="act">ปรับสต็อก</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="3">กำลังโหลด...</td></tr></tbody>
   </table>
 
+  <h2>เพิ่มยาใหม่</h2>
+  <form id="add">
+    <input name="name" placeholder="ชื่อยา" maxlength="100" required>
+    <input name="stock" type="number" min="0" max="1000000" value="0" required aria-label="จำนวน">
+    <button type="submit">เพิ่ม</button>
+  </form>
+  <div id="msg" role="status"></div>
+
   <script>
-    fetch('/api/version').then(r => r.json()).then(v => {
+    const rows = document.getElementById('rows');
+    const msg = document.getElementById('msg');
+
+    function show(text, isError) {
+      msg.textContent = text;
+      msg.className = isError ? 'error' : '';
+    }
+
+    // ส่งคำขอไป backend: คืน JSON หรือโยน Error พร้อมข้อความจาก backend
+    async function call(method, url, body) {
+      const r = await fetch(url, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'ผิดพลาด (' + r.status + ')');
+      return data;
+    }
+
+    function cell(text, cls) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      if (cls) td.className = cls;
+      return td;
+    }
+
+    function adjustButton(m, label, delta) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.setAttribute('aria-label', (delta > 0 ? 'เพิ่ม ' : 'ลด ') + m.name);
+      b.addEventListener('click', async () => {
+        try {
+          await call('PATCH', '/api/medicines/' + m.id, { delta });
+          show('', false);
+          load();
+        } catch (e) { show(e.message, true); }
+      });
+      return b;
+    }
+
+    function render(list) {
+      rows.innerHTML = '';
+      list.forEach(m => {
+        const tr = document.createElement('tr');
+        const act = cell('', 'act');
+        act.append(adjustButton(m, '−', -1), ' ', adjustButton(m, '+', 1));
+        tr.append(cell(m.name), cell(m.stock, 'num'), act);
+        rows.append(tr);
+      });
+      if (!list.length) rows.innerHTML = '<tr><td colspan="3">ยังไม่มียา</td></tr>';
+    }
+
+    function load() {
+      return call('GET', '/api/medicines').then(d => render(d.medicines)).catch(e => {
+        rows.innerHTML = '<tr><td colspan="3" class="error"></td></tr>';
+        rows.querySelector('td').textContent = e.message;
+      });
+    }
+
+    document.getElementById('add').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const f = ev.target;
+      try {
+        await call('POST', '/api/medicines', { name: f.name.value, stock: Number(f.stock.value) });
+        show('เพิ่มแล้ว', false);
+        f.reset();
+        load();
+      } catch (e) { show(e.message, true); }
+    });
+
+    call('GET', '/api/version').then(v => {
       document.getElementById('be-version').textContent = v.version + ' (' + v.env + ')';
       document.getElementById('be-host').textContent = v.host;
     }).catch(() => {
       document.getElementById('be-version').textContent = 'ติดต่อไม่ได้';
     });
 
-    fetch('/api/medicines').then(r => r.json()).then(d => {
-      const rows = document.getElementById('rows');
-      if (d.error) {
-        rows.innerHTML = '<tr><td colspan="2" class="error"></td></tr>';
-        rows.querySelector('td').textContent = d.error;
-        return;
-      }
-      rows.innerHTML = '';
-      d.medicines.forEach(m => {
-        const tr = document.createElement('tr');
-        const name = document.createElement('td');
-        const stock = document.createElement('td');
-        name.textContent = m.name;
-        stock.textContent = m.stock;
-        tr.append(name, stock);
-        rows.append(tr);
-      });
-    }).catch(() => {
-      document.getElementById('rows').innerHTML =
-        '<tr><td colspan="2" class="error">ติดต่อ backend ไม่ได้</td></tr>';
-    });
+    load();
   </script>
 </body>
 </html>
