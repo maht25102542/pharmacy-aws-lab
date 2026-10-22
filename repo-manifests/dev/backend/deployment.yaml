@@ -1,11 +1,21 @@
-# Backend ของ dev | ArgoCD app: pharmacy-backend-dev
+# Backend (Django) ของ dev | ArgoCD app: pharmacy-backend-dev
+# ไฟล์นี้ Jenkins แก้เฉพาะบรรทัดที่ขึ้นต้นด้วยคำว่า image ตอนปล่อย ที่เหลือคุณแก้ใน Git ตามปกติ
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
   namespace: dev
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: pharmacy
 spec:
   replicas: 1
+  revisionHistoryLimit: 5          # เก็บ ReplicaSet เก่า 5 ชุดไว้ย้อนเวอร์ชัน (kubectl rollout undo)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0            # ห้ามมี pod ที่ใช้งานไม่ได้ระหว่างอัปเดต (ปล่อยแล้วไม่มีช่วงล่ม)
+      maxSurge: 1                  # สร้าง pod ใหม่เพิ่มได้ทีละ 1 ก่อนปิดตัวเก่า
   selector:
     matchLabels:
       app: backend
@@ -13,9 +23,18 @@ spec:
     metadata:
       labels:
         app: backend
+        app.kubernetes.io/name: backend
     spec:
+      automountServiceAccountToken: false   # แอปไม่ต้องเรียก API ของ Kubernetes จึงไม่แนบ token ให้ pod
+      terminationGracePeriodSeconds: 30     # ตอนปิด pod ให้เวลา 30 วินาทีเก็บงานที่ค้างอยู่ก่อนถูกบังคับปิด
       imagePullSecrets:
-        - name: ecr-pull
+        - name: ecr-pull                    # รหัสผ่านดึงจาก ECR (timer บนเครื่องต่ออายุให้ทุก 12 ชม.)
+      securityContext:
+        runAsNonRoot: true                  # ปฏิเสธการรันถ้า container จะเป็น root
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault              # จำกัด system call ที่ container เรียกได้ตามค่ามาตรฐาน
       # กระจาย pod ไปคนละเครื่อง เครื่องหนึ่งล่มจะได้ไม่ล่มทั้งหมด
       topologySpreadConstraints:
         - maxSkew: 1
@@ -27,38 +46,124 @@ spec:
       containers:
         - name: backend
           image: WAITING_FOR_FIRST_JENKINS_DEPLOY
+          imagePullPolicy: IfNotPresent     # tag ตามเวอร์ชันไม่เปลี่ยนเนื้อ จึงไม่ต้องดึงซ้ำทุกครั้ง
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
           env:
             - name: APP_ENV
               value: dev
+            - name: LOG_LEVEL
+              value: DEBUG
+            # kubelet เรียก probe ด้วย Host เป็น IP ของ pod: ถ้าจำกัดชื่อโฮสต์ Django จะตอบ 400 และ pod ไม่มีวันผ่าน probe
+            # เปิด * ได้เพราะ Service ของ backend เป็น ClusterIP (เข้าได้เฉพาะจากภายใน cluster)
+            - name: DJANGO_ALLOWED_HOSTS
+              value: "*"
           envFrom:
+            # รหัสผ่านฐานข้อมูล + SECRET_KEY + รหัสแอดมิน อยู่ใน Secret (Ansible สร้างให้) ไม่อยู่ใน Git
             - secretRef:
                 name: db-credentials
-          readinessProbe:
+            - secretRef:
+                name: app-secrets
+          securityContext:
+            allowPrivilegeEscalation: false # process ใน container ขอสิทธิ์เพิ่มไม่ได้
+            readOnlyRootFilesystem: true    # เขียนไฟล์ลงตัว container ไม่ได้ (ผู้โจมตีวางไฟล์ไม่ได้)
+            capabilities:
+              drop: [ALL]                   # ถอดสิทธิ์พิเศษของ Linux ทั้งหมด
+          # probe 3 ตัว หน้าที่ต่างกัน:
+          startupProbe:                     # รอให้แอปเริ่มเสร็จก่อน (ผ่านแล้วค่อยเริ่ม probe อีก 2 ตัว)
             httpGet:
               path: /api/health
-              port: 8000
-          # ตอบไม่ได้ต่อเนื่อง Kubernetes จะรีสตาร์ท container ให้ (readiness แค่หยุดส่ง traffic ไม่รีสตาร์ท)
-          livenessProbe:
+              port: http
+            periodSeconds: 5
+            failureThreshold: 12            # รอได้สูงสุด 60 วินาที
+          readinessProbe:                   # ไม่ผ่าน = หยุดส่ง traffic ให้ pod นี้ (ไม่รีสตาร์ท)
+            httpGet:
+              path: /api/ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:                    # ไม่ผ่านต่อเนื่อง = Kubernetes รีสตาร์ท container ให้
             httpGet:
               path: /api/health
-              port: 8000
-            initialDelaySeconds: 15
+              port: http
             periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]     # ถูกถอดออกจาก Service ก่อน แล้วค่อยปิดจริง คำขอที่กำลังมาไม่ตกหล่น
           resources:
-            requests:
-              cpu: 50m
-              memory: 96Mi
+            requests:                       # จองไว้ให้ (ใช้ตัดสินว่า pod ลงเครื่องไหนได้)
+              cpu: 100m
+              memory: 192Mi
+            limits:                         # เพดาน: เกินแล้วถูกบีบ (cpu) หรือถูกปิด (memory)
+              cpu: 500m
+              memory: 384Mi
 ---
+# ClusterIP: เข้าได้เฉพาะจากภายใน cluster (frontend เรียกผ่านชื่อ backend:8000) ไม่เปิดสู่ภายนอก
 apiVersion: v1
 kind: Service
 metadata:
   name: backend
   namespace: dev
 spec:
+  type: ClusterIP
   selector:
     app: backend
   ports:
     - port: 8000
-      targetPort: 8000
+      targetPort: http                      # ชี้ด้วยชื่อ port ด้านบน (เปลี่ยนเลข port ในแอปแล้วไม่ต้องแก้ที่นี่)
+---
+# งานครั้งเดียวก่อนปล่อยทุกครั้ง (ArgoCD PreSync hook): สร้าง/อัปเดตตารางในฐานข้อมูล แล้วสร้างแอดมินถ้ายังไม่มี  + ยาตัวอย่าง (dev เท่านั้น)
+# ล้มเหลว = ArgoCD หยุดไม่ปล่อยเวอร์ชันใหม่ (ดีกว่าให้แอปใหม่รันบนตารางเก่า) · ทำที่ Job เดียว ไม่ทำใน pod ทุกตัว เพราะ 3 replica พร้อมกันจะชนกัน
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backend-migrate
+  namespace: dev
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation   # ลบ Job รอบก่อนก่อนสร้างรอบใหม่ (ชื่อเดิมซ้ำได้)
+spec:
+  backoffLimit: 2                  # ลองใหม่ได้อีก 2 ครั้ง (DB อาจยังเริ่มไม่เสร็จ)
+  activeDeadlineSeconds: 300       # เกิน 5 นาที = ล้มเหลว ไม่ค้างตลอดไป
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: ecr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: WAITING_FOR_FIRST_JENKINS_DEPLOY
+          command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py bootstrap_app --sample"]
+          env:
+            - name: DJANGO_ALLOWED_HOSTS
+              value: "*"
+          envFrom:
+            - secretRef:
+                name: db-credentials
+            - secretRef:
+                name: app-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

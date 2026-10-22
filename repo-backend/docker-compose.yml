@@ -1,0 +1,61 @@
+# ของจริงอยู่ที่: ราก repo pharmacy-backend — ใช้รันบนเครื่องนักพัฒนาเท่านั้น (ไม่ได้ขึ้น server)
+# รัน:  docker compose up --build     เปิด:  http://localhost:8000/api/health  ·  แอดมิน: http://localhost:8000/admin/
+# ล็อกอิน API: POST /api/auth/login  (admin / ค่า DJANGO_ADMIN_PASSWORD ด้านล่าง)
+# ทำให้ได้ backend + MariaDB ในเครื่องเดียว ไม่ต้องรอ Galera ของ lab
+x-app-env: &app-env
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-only-not-secret}
+  DJANGO_ALLOWED_HOSTS: "*"
+  DJANGO_ADMIN_PASSWORD: ${DJANGO_ADMIN_PASSWORD:-Local-Admin-Pass-123}
+  DB_HOST: db
+  DB_USER: pharmacy
+  DB_PASSWORD: ${DB_PASSWORD:-pharmacy-local-only}
+  DB_NAME: pharmacy_dev
+
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root-local-only}
+      MARIADB_DATABASE: pharmacy_dev
+      MARIADB_USER: pharmacy
+      MARIADB_PASSWORD: ${DB_PASSWORD:-pharmacy-local-only}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      # migrate และ backend จะเริ่มเมื่อ DB ตอบแล้วเท่านั้น (depends_on ด้านล่าง)
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # งานครั้งเดียวก่อนแอปเริ่ม: สร้างตาราง + แอดมิน + ยาตัวอย่าง (ใน Kubernetes คือ Job แบบ PreSync ของ ArgoCD)
+  migrate:
+    build:
+      context: .
+      args:
+        APP_VERSION: local
+    command: sh -c "python manage.py migrate --noinput && python manage.py bootstrap_app --sample"
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: .
+      args:
+        APP_VERSION: local
+    environment: *app-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    # รันแบบเดียวกับที่ตั้งใน Kubernetes: root filesystem อ่านอย่างเดียว ไม่มีสิทธิ์พิเศษ
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  db-data:

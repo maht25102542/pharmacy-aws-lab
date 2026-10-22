@@ -1,0 +1,24 @@
+# ของจริงอยู่ที่: ราก repo pharmacy-frontend — ใช้รันบนเครื่องนักพัฒนาเท่านั้น (ไม่ได้ขึ้น server)
+# ต้องรัน backend ก่อน (ใน repo pharmacy-backend:  docker compose up --build  ฟังที่พอร์ต 8000)
+# รัน:  docker compose up --build     เปิด:  http://localhost:3000  (admin / Local-Admin-Pass-123)
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        APP_VERSION: local
+    environment:
+      # host.docker.internal = เครื่องของคุณ (ที่ backend เปิดพอร์ต 8000 ไว้)
+      BACKEND_URL: http://host.docker.internal:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+    # รันแบบเดียวกับที่ตั้งใน Kubernetes: root filesystem อ่านอย่างเดียว ไม่มีสิทธิ์พิเศษ เขียนได้เฉพาะ /tmp และ cache
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true

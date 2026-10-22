@@ -49,7 +49,7 @@ function tfCanon(type, attrs, tags, selfId) {
     delete o.ingress; delete o.egress;
   }
   if (type === "aws_instance") { if (o.vpc_security_group_ids && !tfHasUnknown(o.vpc_security_group_ids)) o.vpc_security_group_ids = tfSortedKeys(o.vpc_security_group_ids); }
-  if (type === "aws_route_table" && o.route && !tfHasUnknown(o.route)) o.route = o.route.map(function (r) { return { cidr_block: r.cidr_block, gateway_id: r.gateway_id }; });
+  if (type === "aws_route_table" && o.route && !tfHasUnknown(o.route)) o.route = o.route.map(function (r) { var x = { cidr_block: r.cidr_block }; if (r.gateway_id !== undefined) x.gateway_id = r.gateway_id; if (r.nat_gateway_id !== undefined) x.nat_gateway_id = r.nat_gateway_id; return x; });
   return o;
 }
 function tfStable(v) { if (Array.isArray(v)) return v.map(tfStable); if (v && typeof v === "object") { var o = {}; Object.keys(v).sort().forEach(function (k) { o[k] = tfStable(v[k]); }); return o; } return v; }

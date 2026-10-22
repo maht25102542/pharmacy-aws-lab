@@ -407,6 +407,7 @@ function albHealth(alb) {
       else if (!inst || inst.state === "stopped" || inst.state === "terminated") { st = "unused"; code = "Target.InvalidState"; desc = "Target is in the " + (inst ? inst.state : "terminated") + " state"; }
       else if (azs.indexOf(inst.az) < 0) { st = "unused"; code = "Target.NotInUse"; desc = "Target is in an Availability Zone that is not enabled for the load balancer"; }
       else if (!sgAllows(inst.sgIds, x.port, { sgIds: alb.sgIds })) { st = "unhealthy"; code = "Target.Timeout"; desc = "Request timed out"; }
+      else if (x.port === 30443 && appLayer() && !rmArgo()) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed (ArgoCD ยังไม่ถูกติดตั้ง: รัน ansible-playbook k8s.yml)"; }
       else if ((x.port === 30080 || x.port === 30081) && appLayer() && !argoHealthy("pharmacy-frontend-" + (x.port === 30080 ? "prd" : "dev"))) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed"; }
       rows.push({ l: l, t: t, inst: inst, port: x.port, state: st, ok: st === "healthy", code: code, why: code ? code + ": " + desc : "" });
     });
@@ -631,33 +632,45 @@ function checks() {
   var vpc = byName(S.vpcs, "pharmacy-vpc");
   add(vpc && vpc.cidr === "10.0.0.0/16", "VPC pharmacy-vpc ช่วง 10.0.0.0/16", "VPC → Your VPCs → Create VPC");
   add(vpc && vpc.dnsHostnames, "เปิด DNS hostnames ของ VPC", "Actions → Edit VPC settings (aws_vpc: enable_dns_hostnames)");
-  var s1 = byName(S.subnets, "pharmacy-public-1"), s2 = byName(S.subnets, "pharmacy-public-2");
-  add(s1 && s2 && vpc && s1.vpcId === vpc.id && s2.vpcId === vpc.id && s1.cidr === "10.0.1.0/24" && s2.cidr === "10.0.2.0/24", "ซอย pharmacy-public-1 (10.0.1.0/24) และ -2 (10.0.2.0/24) ใน VPC นี้", "VPC → Subnets → Create subnet");
-  add(s1 && s2 && s1.az !== s2.az, "2 ซอยอยู่คนละ Availability Zone", "ช่อง Availability Zone ตอนสร้างซอย");
-  add(s1 && s2 && s1.autoIp && s2.autoIp, "ซอยทั้งสองเปิด auto-assign public IPv4", "Actions → Edit subnet settings (map_public_ip_on_launch)");
+  var pu = [1, 2, 3].map(function (i) { return byName(S.subnets, "pharmacy-public-" + i); }), pr = [1, 2, 3].map(function (i) { return byName(S.subnets, "pharmacy-private-" + i); });
+  add(pu.every(function (x, i) { return x && vpc && x.vpcId === vpc.id && x.cidr === "10.0." + (i + 1) + ".0/24"; }), "ซอย public 3 อัน pharmacy-public-1..3 (10.0.1-3.0/24) ใน VPC นี้", "VPC → Subnets → Create subnet");
+  add(pr.every(function (x, i) { return x && vpc && x.vpcId === vpc.id && x.cidr === "10.0." + (i + 11) + ".0/24"; }), "ซอย private 3 อัน pharmacy-private-1..3 (10.0.11-13.0/24)", "VPC → Subnets → Create subnet");
+  var azs = {}; pu.concat(pr).forEach(function (x) { if (x) azs[x.az] = 1; });
+  add(Object.keys(azs).length === 3 && pu.every(function (x, i) { return x && pr[i] && x.az === pr[i].az; }), "กระจาย 3 Availability Zone (public-N กับ private-N อยู่ AZ เดียวกัน)", "ช่อง Availability Zone ตอนสร้างซอย");
+  add(pu.every(function (x) { return x && x.autoIp; }) && pr.every(function (x) { return x && !x.autoIp; }), "public เปิด auto-assign public IPv4 · private ไม่เปิด", "Actions → Edit subnet settings (map_public_ip_on_launch)");
   var g = vpc && vpcIgw(vpc.id);
   add(g, "มี internet gateway attach กับ pharmacy-vpc", "Internet gateways → Create แล้ว Actions → Attach to VPC");
   var rt = S.rtbs.filter(function (r) { return vpc && r.vpcId === vpc.id && !r.main && hasIgwRoute(r); })[0];
-  add(rt, "มี route table ที่มีเส้นทาง 0.0.0.0/0 → internet gateway", "Route tables → Edit routes");
-  add(rt && s1 && s2 && rt.assoc.indexOf(s1.id) >= 0 && rt.assoc.indexOf(s2.id) >= 0, "route table นั้นผูกกับซอยทั้งสอง (Subnet associations)", "ถ้าขาด ซอยจะใช้ main route table ที่ไม่มีทางออกเน็ต");
+  add(rt && pu.every(function (x) { return x && rt.assoc.indexOf(x.id) >= 0; }), "public route table (0.0.0.0/0 → IGW) ผูกกับซอย public ทั้ง 3 อัน", "ถ้าขาด ซอยจะใช้ main route table ที่ไม่มีทางออกเน็ต");
+  var nat = S.nats.filter(function (n) { return vpc && n.vpcId === vpc.id && n.state !== "deleted"; })[0];
+  add(nat && pu[0] && nat.subnetId === pu[0].id, "NAT gateway อยู่ใน pharmacy-public-1", "VPC → NAT gateways → Create (ต้องเลือกซอย public + Elastic IP)");
+  var rp = S.rtbs.filter(function (r) { return vpc && r.vpcId === vpc.id && !r.main && nat && r.routes.some(function (x) { return x.dest === "0.0.0.0/0" && x.target === nat.id; }); })[0];
+  add(rp && pr.every(function (x) { return x && rp.assoc.indexOf(x.id) >= 0; }), "private route table (0.0.0.0/0 → NAT) ผูกกับซอย private ทั้ง 3 อัน", "Route tables → Edit routes (target = NAT gateway) → Subnet associations");
   add(byName(S.keys, "pharmacy-admin"), "key pair pharmacy-admin", "EC2 → Key Pairs → Import key pair");
-  ["base", "alb", "jenkins", "sonarqube", "k8s", "db"].forEach(function (n) { add(byName(S.sgs, "pharmacy-" + n), "security group pharmacy-" + n, "VPC → Security groups"); });
-  var base = byName(S.sgs, "pharmacy-base");
-  add(base && sgAllows([base.id], 22, { ip: S.myIp }), "pharmacy-base เปิด SSH ให้ My IP", "Inbound rules: Type SSH, Source My IP");
+  ["bastion", "base", "alb", "jenkins", "sonarqube", "k8s", "db"].forEach(function (n) { add(byName(S.sgs, "pharmacy-" + n), "security group pharmacy-" + n, "VPC → Security groups"); });
+  var bas = byName(S.sgs, "pharmacy-bastion"), base = byName(S.sgs, "pharmacy-base");
+  add(bas && sgAllows([bas.id], 22, { ip: S.myIp }), "pharmacy-bastion เปิด SSH ให้ My IP (ประตูเดียวจากเน็ต)", "Inbound rules: Type SSH, Source My IP");
+  add(base && bas && sgAllows([base.id], 22, { sgIds: [bas.id] }) && !sgAllows([base.id], 22, { ip: S.myIp }), "pharmacy-base รับ SSH จาก SG ของ bastion เท่านั้น", "Source = Security group (pharmacy-bastion) ไม่ใช่ IP");
   var db = byName(S.sgs, "pharmacy-db"), k8s = byName(S.sgs, "pharmacy-k8s");
   add(db && k8s && sgAllows([db.id], 3306, { sgIds: [k8s.id] }) && !sgAllows([db.id], 3306, { ip: "203.0.113.50" }), "pharmacy-db รับ 3306 จาก SG ของ k8s เท่านั้น", "Source = Security group (ไม่ใช่ IP)");
   var rj = byName(S.roles, "pharmacy-jenkins"), rk = byName(S.roles, "pharmacy-k8s");
   add(rj && rj.policies.indexOf("AmazonEC2ContainerRegistryPowerUser") >= 0, "role pharmacy-jenkins ถือ ECR PowerUser", "IAM → Roles → Create role");
   add(rk && rk.policies.indexOf("AmazonEC2ContainerRegistryReadOnly") >= 0, "role pharmacy-k8s ถือ ECR ReadOnly", "");
   add(byName(S.repos, "pharmacy/frontend") && byName(S.repos, "pharmacy/backend"), "ECR repo pharmacy/frontend และ pharmacy/backend", "ECR → Create repository");
-  var names = ["jenkins", "sonarqube", "k8s-1", "k8s-2", "k8s-3", "dev", "db-1", "db-2", "db-3"], have = names.filter(function (n) { return liveInsts().some(function (i) { return i.name === "pharmacy-" + n; }); });
-  add(have.length === 9, "เครื่องครบ 9 เครื่อง (มี " + have.length + ")", "EC2 → Launch instance (ทำทีละเครื่อง)");
+  var names = ["bastion", "jenkins", "sonarqube", "k8s-1", "k8s-2", "k8s-3", "dev", "db-1", "db-2", "db-3"], have = names.filter(function (n) { return liveInsts().some(function (i) { return i.name === "pharmacy-" + n; }); });
+  add(have.length === 10, "เครื่องครบ 10 เครื่อง (มี " + have.length + ")", "EC2 → Launch instance (ทำทีละเครื่อง)");
   add(liveInsts().length > 0 && liveInsts().every(function (i) { return i.tags.some(function (t) { return t.k === "Role" && t.v; }); }), "ทุกเครื่องมี tag Role (Ansible ใช้แยกบทบาท)", "Add additional tags: Key Role");
-  var tp = byName(S.tgs, "pharmacy-prd"), td = byName(S.tgs, "pharmacy-dev");
+  var inPriv = function (n) { var i = liveInsts().filter(function (x) { return x.name === "pharmacy-" + n; })[0], sn = i && find(S.subnets, i.subnetId); return i && sn && /^pharmacy-private-/.test(sn.name || "") && !i.publicIp; };
+  add(["k8s-1", "k8s-2", "k8s-3", "dev", "db-1", "db-2", "db-3"].every(inPriv), "k8s, dev, DB อยู่ private subnet และไม่มี public IP", "Launch instance → Subnet = pharmacy-private-N, Auto-assign public IP = Disable");
+  var spread = function (list) { var z = {}; list.forEach(function (n) { var i = liveInsts().filter(function (x) { return x.name === "pharmacy-" + n; })[0]; if (i) z[i.az] = 1; }); return Object.keys(z).length === 3; };
+  add(spread(["k8s-1", "k8s-2", "k8s-3"]) && spread(["db-1", "db-2", "db-3"]), "k8s 3 เครื่อง และ DB 3 เครื่อง อยู่คนละ AZ (AZ ไหนล่มก็ยังเหลือเสียงข้างมาก)", "เลือกซอย private-1, 2, 3 ตามลำดับ");
+  var tp = byName(S.tgs, "pharmacy-prd"), td = byName(S.tgs, "pharmacy-dev"), ta = byName(S.tgs, "pharmacy-argocd");
   add(tp && tp.port === 30080 && tp.targets.length >= 1, "target group pharmacy-prd port 30080 มีเครื่องลงทะเบียน", "Target Groups → Create → Register targets");
   add(td && td.port === 30081, "target group pharmacy-dev port 30081", "");
+  add(ta && ta.port === 30443, "target group pharmacy-argocd port 30443 (HTTPS)", "Target Groups → Create (Protocol HTTPS)");
   var alb = byName(S.albs, "pharmacy-alb");
-  add(alb && alb.listeners.some(function (l) { return l.port === 80 && tp && l.tgId === tp.id; }) && alb.listeners.some(function (l) { return l.port === 8080 && td && l.tgId === td.id; }), "ALB pharmacy-alb: :80 → prd และ :8080 → dev", "Listeners and routing");
+  add(alb && pu.every(function (x) { return x && alb.subnetIds.indexOf(x.id) >= 0; }), "ALB อยู่ใน public subnet ครบ 3 AZ", "Create load balancer → Network mapping เลือก 3 AZ");
+  add(alb && alb.listeners.some(function (l) { return l.port === 80 && tp && l.tgId === tp.id; }) && alb.listeners.some(function (l) { return l.port === 8080 && td && l.tgId === td.id; }) && alb.listeners.some(function (l) { return l.port === 8443 && ta && l.tgId === ta.id; }), "ALB pharmacy-alb: :80 → prd · :8080 → dev · :8443 → ArgoCD", "Listeners and rules → Add listener");
   add(alb && albHealth(alb).filter(function (r) { return r.ok; }).length > 0, "ALB เห็นอย่างน้อย 1 เครื่อง healthy", "SG ของ k8s ต้องเปิด 30080-30081 ให้ SG ของ ALB");
   return out;
 }
@@ -687,12 +700,14 @@ var HCL_INFO = {
   tg: [2, "Target group", "กลุ่มเครื่องปลายทางที่ ALB ส่งต่อ traffic ไปให้", "EC2 → Target Groups → Create target group", "VPC"],
   attach: [2, "แนบ policy กับ role", "ให้ role มีสิทธิ์ทำอะไรได้บ้าง", "IAM → Roles → เลือก role → Add permissions → Attach policies", "IAM role"],
   profile: [2, "Instance profile", "กล่องที่ใส่ role ให้เครื่อง EC2 ใช้", "(console สร้างให้เองตอนสร้าง role ใน Terraform ต้องเขียนเอง)", "IAM role"],
-  rtb: [3, "Route table", "ตารางเส้นทาง เช่น 0.0.0.0/0 → ออกประตู", "VPC → Route tables → Create route table → Edit routes", "VPC, Internet gateway"],
+  eip: [1, "Elastic IP", "IP สาธารณะคงที่ ให้ NAT gateway ใช้ออกอินเทอร์เน็ต", "VPC → Elastic IPs → Allocate Elastic IP address", ""],
+  nat: [3, "NAT gateway", "ให้เครื่องใน private subnet ออกอินเทอร์เน็ตได้ (ขาเข้าจากเน็ตเข้าไม่ได้)", "VPC → NAT gateways → Create NAT gateway", "Subnet (public), Elastic IP, Internet gateway"],
+  rtb: [4, "Route table", "ตารางเส้นทาง เช่น 0.0.0.0/0 → ออกประตู (IGW หรือ NAT)", "VPC → Route tables → Create route table → Edit routes", "VPC, Internet gateway / NAT gateway"],
   instance: [3, "EC2 instance", "เครื่อง VM จริง", "EC2 → Instances → Launch instances", "Subnet, Security group, Key pair, Instance profile"],
   alb: [3, "Load balancer (ALB)", "ตัวกระจาย traffic เข้าหน้าเว็บ", "EC2 → Load Balancers → Create load balancer → Application Load Balancer", "Subnet (2 AZ), Security group"],
-  rtba: [4, "ผูก subnet กับ route table", "บอกว่าซอยไหนใช้ตารางเส้นทางไหน (ลืมแล้ว timeout)", "VPC → Route tables → เลือกตาราง → Subnet associations → Edit subnet associations", "Route table, Subnet"],
-  tgatt: [4, "ลงทะเบียนเครื่องใน target group", "ระบุว่าเครื่องไหน port ไหนรับ traffic", "EC2 → Target Groups → เลือกกลุ่ม → Register targets", "Target group, EC2 instance"],
-  listener: [4, "Listener", "ALB ฟัง port ไหนแล้วส่งไป target group ไหน", "EC2 → Load Balancers → Create → ส่วน Listeners and routing", "Load balancer, Target group"]
+  rtba: [5, "ผูก subnet กับ route table", "บอกว่าซอยไหนใช้ตารางเส้นทางไหน (ลืมแล้ว timeout)", "VPC → Route tables → เลือกตาราง → Subnet associations → Edit subnet associations", "Route table, Subnet"],
+  tgatt: [5, "ลงทะเบียนเครื่องใน target group", "ระบุว่าเครื่องไหน port ไหนรับ traffic", "EC2 → Target Groups → เลือกกลุ่ม → Register targets", "Target group, EC2 instance"],
+  listener: [5, "Listener", "ALB ฟัง port ไหนแล้วส่งไป target group ไหน", "EC2 → Load Balancers → Create → ส่วน Listeners and routing", "Load balancer, Target group"]
 };
 function hcm(k, what) { var d = HCL_INFO[k]; return "# ── ขั้นที่ " + d[0] + " │ " + d[1] + (what ? " : " + what : "") + "\n# คืออะไร: " + d[2] + "\n# กดที่: " + d[3] + (d[4] ? "\n# ต้องมีก่อน: " + d[4] : "") + "\n"; }
 function hcl() {
@@ -702,6 +717,7 @@ function hcl() {
   reg(vp, "aws_vpc");
   var sn = S.subnets.filter(function (s) { return vids.indexOf(s.vpcId) >= 0; }); reg(sn, "aws_subnet");
   var ig = S.igws.filter(function (g) { return g.vpcId && vids.indexOf(g.vpcId) >= 0; }); reg(ig, "aws_internet_gateway");
+  var nt = S.nats.filter(function (n) { return vids.indexOf(n.vpcId) >= 0 && n.state !== "deleted"; }); reg(nt, "aws_nat_gateway"); nt.forEach(function (n) { map[n.eipId] = "aws_eip." + slug(n.name || n.id); });
   var rt = S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }); reg(rt, "aws_route_table");
   var sg = S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }); reg(sg, "aws_security_group");
   reg(S.keys, "aws_key_pair"); reg(S.roles, "aws_iam_role"); reg(S.repos, "aws_ecr_repository");
@@ -713,8 +729,12 @@ function hcl() {
   vp.forEach(function (v) { o.push(hcm("vpc", v.name) + 'resource "aws_vpc" "' + slug(v.name || v.id) + '" {\n  cidr_block = "' + v.cidr + '"\n' + (v.dnsHostnames ? "  enable_dns_hostnames = true\n" : "") + tags(v.name ? [{ k: "Name", v: v.name }] : []) + "}"); });
   sn.forEach(function (s) { o.push(hcm("subnet", s.name) + 'resource "aws_subnet" "' + slug(s.name || s.id) + '" {\n  vpc_id            = ' + ref(s.vpcId) + '\n  cidr_block        = "' + s.cidr + '"\n  availability_zone = "' + s.az + '"\n' + (s.autoIp ? "  map_public_ip_on_launch = true\n" : "") + tags(s.name ? [{ k: "Name", v: s.name }] : []) + "}"); });
   ig.forEach(function (g) { o.push(hcm("igw", g.name) + 'resource "aws_internet_gateway" "' + slug(g.name || g.id) + '" {\n  vpc_id = ' + ref(g.vpcId) + "\n}"); });
+  nt.forEach(function (n) {
+    o.push(hcm("eip", n.name) + 'resource "aws_eip" "' + slug(n.name || n.id) + '" {\n  domain = "vpc"\n}');
+    o.push(hcm("nat", n.name) + 'resource "aws_nat_gateway" "' + slug(n.name || n.id) + '" {\n  allocation_id = ' + ref(n.eipId) + "\n  subnet_id     = " + ref(n.subnetId) + "\n" + tags(n.name ? [{ k: "Name", v: n.name }] : []) + "}");
+  });
   rt.forEach(function (r) {
-    var rs = r.routes.map(function (x) { return '  route {\n    cidr_block = "' + x.dest + '"\n    gateway_id = ' + ref(x.target) + "\n  }\n"; }).join("");
+    var rs = r.routes.map(function (x) { return '  route {\n    cidr_block = "' + x.dest + '"\n    ' + (/^nat-/.test(x.target) ? "nat_gateway_id" : "gateway_id    ") + " = " + ref(x.target) + "\n  }\n"; }).join("");
     o.push(hcm("rtb", r.name) + 'resource "aws_route_table" "' + slug(r.name || r.id) + '" {\n  vpc_id = ' + ref(r.vpcId) + "\n" + rs + "}");
      r.assoc.forEach(function (sid) { o.push(hcm("rtba", nm(r) + " ↔ " + nm(find(S.subnets, sid))) + 'resource "aws_route_table_association" "' + slug(nm(r) + "_" + nm(find(S.subnets, sid))) + '" {\n  subnet_id      = ' + ref(sid) + "\n  route_table_id = " + ref(r.id) + "\n}"); });
   });
@@ -747,35 +767,45 @@ function hcl() {
 function buildLab(kind) {
   fresh();
   function ok(r) { if (r.errors) throw new Error(JSON.stringify(r.errors)); return r.res; }
+  // ตรงกับ terraform/network.tf: 3 AZ · public 10.0.1-3.0/24 · private 10.0.11-13.0/24 · NAT 1 ตัว
   var v = ok(API.createVpc({ name: "pharmacy-vpc", cidr: "10.0.0.0/16", dns: true }));
-  var sn = ok(API.createSubnet({ vpcId: v.id, list: [{ name: "pharmacy-public-1", az: AZS[0], cidr: "10.0.1.0/24" }, { name: "pharmacy-public-2", az: AZS[1], cidr: "10.0.2.0/24" }] }));
-  sn.forEach(function (s) { API.setAutoIp(s.id, true); });
+  var pub = ok(API.createSubnet({ vpcId: v.id, list: [0, 1, 2].map(function (i) { return { name: "pharmacy-public-" + (i + 1), az: AZS[i], cidr: "10.0." + (i + 1) + ".0/24" }; }) }));
+  pub.forEach(function (s) { API.setAutoIp(s.id, true); });
+  var prv = ok(API.createSubnet({ vpcId: v.id, list: [0, 1, 2].map(function (i) { return { name: "pharmacy-private-" + (i + 1), az: AZS[i], cidr: "10.0." + (i + 11) + ".0/24" }; }) }));
   var g = ok(API.createIgw({ name: "pharmacy-igw" })); ok(API.attachIgw(g.id, v.id));
   var rt = ok(API.createRtb({ name: "pharmacy-public", vpcId: v.id }));
   ok(API.setRoutes(rt.id, [{ dest: "0.0.0.0/0", target: g.id }]));
-  if (kind !== "noassoc") ok(API.setAssoc(rt.id, sn.map(function (s) { return s.id; })));
+  if (kind !== "noassoc") ok(API.setAssoc(rt.id, pub.map(function (s) { return s.id; })));
+  var eip = ok(API.allocEip()), nat = { id: rid("nat"), name: "pharmacy-nat", vpcId: v.id, subnetId: pub[0].id, eipId: eip.id, state: "available", born: Date.now() }; S.nats.push(nat);
+  var rp = ok(API.createRtb({ name: "pharmacy-private", vpcId: v.id }));
+  ok(API.setRoutes(rp.id, [{ dest: "0.0.0.0/0", target: nat.id }])); ok(API.setAssoc(rp.id, prv.map(function (s) { return s.id; })));
   ok(API.importKey({ name: "pharmacy-admin", pub: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEMO demo@lab" }));
-  var sgn = {}; ["base", "alb", "jenkins", "sonarqube", "k8s", "db"].forEach(function (n) { sgn[n] = ok(API.createSg({ name: "pharmacy-" + n, desc: "pharmacy " + n, vpcId: v.id, rows: [] })); });
+  var sgn = {}; ["bastion", "base", "alb", "jenkins", "sonarqube", "k8s", "db"].forEach(function (n) { sgn[n] = ok(API.createSg({ name: "pharmacy-" + n, desc: "pharmacy " + n, vpcId: v.id, rows: [] })); });
   var me = kind === "wrongip" ? { type: "SSH", srcKind: "Custom", src: "203.0.113.99/32" } : { type: "SSH", srcKind: "My IP" };
   function R(type, port, kindS, src) { return { type: type, port: port, srcKind: kindS, src: src }; }
-  ok(API.setInbound(sgn.base.id, [me]));
-  ok(API.setInbound(sgn.alb.id, [R("HTTP", "", "Anywhere-IPv4"), R("Custom TCP", "8080", "My IP")]));
+  ok(API.setInbound(sgn.bastion.id, [me]));
+  ok(API.setInbound(sgn.base.id, [R("SSH", "", "Security group", sgn.bastion.id)]));
+  ok(API.setInbound(sgn.alb.id, [R("HTTP", "", "Anywhere-IPv4"), R("Custom TCP", "8080", "My IP"), R("Custom TCP", "8443", "My IP")]));
   ok(API.setInbound(sgn.jenkins.id, [R("Custom TCP", "8080", "My IP")]));
   ok(API.setInbound(sgn.sonarqube.id, [R("Custom TCP", "9000", "My IP"), R("Custom TCP", "9000", "Security group", sgn.jenkins.id)]));
-  ok(API.setInbound(sgn.k8s.id, [R("All traffic", "", "Security group", sgn.k8s.id), R("Custom TCP", "30080-30081", "Security group", sgn.alb.id), R("Custom TCP", "30443", "My IP"), R("Custom TCP", "30443", "Security group", sgn.jenkins.id)]));
+  ok(API.setInbound(sgn.k8s.id, [R("All traffic", "", "Security group", sgn.k8s.id), R("Custom TCP", "30080-30081", "Security group", sgn.alb.id), R("Custom TCP", "30443", "Security group", sgn.alb.id), R("Custom TCP", "30443", "Security group", sgn.jenkins.id)]));
   ok(API.setInbound(sgn.db.id, [R("All traffic", "", "Security group", sgn.db.id), R("MYSQL/Aurora", "", "Security group", sgn.k8s.id)]));
   ok(API.createRole({ name: "pharmacy-jenkins", entity: "AWS service", usecase: "EC2", policies: ["AmazonEC2ContainerRegistryPowerUser"] }));
   ok(API.createRole({ name: "pharmacy-k8s", entity: "AWS service", usecase: "EC2", policies: ["AmazonEC2ContainerRegistryReadOnly"] }));
   ok(API.createRepo({ name: "pharmacy/frontend" })); ok(API.createRepo({ name: "pharmacy/backend" }));
-  function L(name, role, sgs, sub, prof) { return ok(API.launch({ name: "pharmacy-" + name, tags: [{ k: "Role", v: role }], ami: "ami-ubuntu2404", type: "t3.medium", keyName: "pharmacy-admin", vpcId: v.id, subnetId: sub.id, autoIp: "Enable", sgIds: sgs.map(function (x) { return x.id; }), diskSize: 30, diskType: "gp3", profile: prof || "", tokens: "required", hop: 2, count: 1 }))[0]; }
-  L("jenkins", "jenkins", [sgn.base, sgn.jenkins], sn[0], "pharmacy-jenkins"); L("sonarqube", "sonarqube", [sgn.base, sgn.sonarqube], sn[0]);
-  var k1 = L("k8s-1", "k8s_server", [sgn.base, sgn.k8s], sn[0], "pharmacy-k8s"), k2 = L("k8s-2", "k8s_agent", [sgn.base, sgn.k8s], sn[1], "pharmacy-k8s"), k3 = L("k8s-3", "k8s_agent", [sgn.base, sgn.k8s], sn[0], "pharmacy-k8s");
-  var dv = L("dev", "k8s_dev", [sgn.base, sgn.k8s], sn[0], "pharmacy-k8s");
-  L("db-1", "db", [sgn.base, sgn.db], sn[0]); L("db-2", "db", [sgn.base, sgn.db], sn[1]); L("db-3", "db", [sgn.base, sgn.db], sn[0]);
-  var tp = ok(API.createTg({ name: "pharmacy-prd", port: 30080, vpcId: v.id, hcPath: "/", targets: [k1, k2, k3].map(function (x) { return { instId: x.id, port: 30080 }; }) }));
-  var td = ok(API.createTg({ name: "pharmacy-dev", port: 30081, vpcId: v.id, hcPath: "/", targets: [{ instId: dv.id, port: 30081 }] }));
-  if (kind === "ecr") S.repos.forEach(function (rp) { ok(API.ecrAction({ repoId: rp.id, principal: { type: "inst", id: S.insts.filter(function (i) { return i.name === "pharmacy-jenkins"; })[0].id }, op: "push", tag: "v1.0.0" })); });
-  ok(API.createAlb({ name: "pharmacy-alb", scheme: "Internet-facing", vpcId: v.id, subnetIds: sn.map(function (s) { return s.id; }), sgIds: [sgn.alb.id], listeners: [{ port: 80, tgId: tp.id }, { port: 8080, tgId: td.id }] }));
+  function L(name, role, tier, sgs, sub, prof, type, disk) { return ok(API.launch({ name: "pharmacy-" + name, tags: [{ k: "Project", v: "pharmacy" }, { k: "Role", v: role }, { k: "Tier", v: tier }], ami: "ami-ubuntu2404", type: type || "t3.medium", keyName: "pharmacy-admin", vpcId: v.id, subnetId: sub.id, autoIp: tier === "public" ? "Enable" : "Disable", sgIds: sgs.map(function (x) { return x.id; }), diskSize: disk || 30, diskType: "gp3", profile: prof || "", tokens: "required", hop: 2, count: 1 }))[0]; }
+  L("bastion", "bastion", "public", [sgn.bastion], pub[0], "", "t3.micro", 8);
+  L("jenkins", "jenkins", "public", [sgn.base, sgn.jenkins], pub[0], "pharmacy-jenkins"); L("sonarqube", "sonarqube", "public", [sgn.base, sgn.sonarqube], pub[0]);
+  var k1 = L("k8s-1", "k8s_server", "private", [sgn.base, sgn.k8s], prv[0], "pharmacy-k8s"), k2 = L("k8s-2", "k8s_server", "private", [sgn.base, sgn.k8s], prv[1], "pharmacy-k8s"), k3 = L("k8s-3", "k8s_server", "private", [sgn.base, sgn.k8s], prv[2], "pharmacy-k8s");
+  var dv = L("dev", "k8s_dev", "private", [sgn.base, sgn.k8s], prv[0], "pharmacy-k8s");
+  L("db-1", "db", "private", [sgn.base, sgn.db], prv[0], "", "t3.small", 20); L("db-2", "db", "private", [sgn.base, sgn.db], prv[1], "", "t3.small", 20); L("db-3", "db", "private", [sgn.base, sgn.db], prv[2], "", "t3.small", 20);
+  var tp = ok(API.createTg({ name: "pharmacy-prd", port: 30080, vpcId: v.id, hcPath: "/healthz", targets: [k1, k2, k3].map(function (x) { return { instId: x.id, port: 30080 }; }) }));
+  var td = ok(API.createTg({ name: "pharmacy-dev", port: 30081, vpcId: v.id, hcPath: "/healthz", targets: [{ instId: dv.id, port: 30081 }] }));
+  var ta = ok(API.createTg({ name: "pharmacy-argocd", port: 30443, proto: "HTTPS", vpcId: v.id, hcPath: "/healthz", targets: [k1, k2, k3].map(function (x) { return { instId: x.id, port: 30443 }; }) }));
+  if (kind === "ecr") S.repos.forEach(function (rp2) { ok(API.ecrAction({ repoId: rp2.id, principal: { type: "inst", id: S.insts.filter(function (i) { return i.name === "pharmacy-jenkins"; })[0].id }, op: "push", tag: "v1.0.0" })); });
+  ok(API.createAlb({ name: "pharmacy-alb", scheme: "Internet-facing", vpcId: v.id, subnetIds: pub.map(function (s) { return s.id; }), sgIds: [sgn.alb.id], listeners: [{ port: 80, tgId: tp.id }, { port: 8080, tgId: td.id }, { port: 8443, tgId: ta.id }] }));
+  // เหมือนรัน aws configure ไว้แล้ว: ไม่งั้น ansible-inventory (aws_ec2) ถาม AWS ไม่ได้ จะไม่เห็นกลุ่ม role_* ทั้งที่เครื่องมีอยู่
+  if (!S.laptop.creds) { var tu = API.createUser({ name: "tf-admin", policies: ["AdministratorAccess"] }).res, tk = API.createAccessKey(tu.id, "CLI", ""); S.laptop.creds = { id: tk.res.id, secretHash: hash32(tk.secret), region: "ap-southeast-1" }; S.laptop.awsRegion = "ap-southeast-1"; }
 }
 var RULES = [
  ["VPC: ขนาด IPv4 CIDR ระหว่าง /16 ถึง /28; ห้ามใช้ 0.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 224.0.0.0/4", 1],
@@ -853,6 +883,7 @@ function hclPlan() {
   vp.forEach(function (v) { add("vpc", v.name || v.id); });
   S.subnets.filter(function (x) { return vids.indexOf(x.vpcId) >= 0; }).forEach(function (x) { add("subnet", x.name || x.id); });
   S.igws.filter(function (g) { return g.vpcId && vids.indexOf(g.vpcId) >= 0; }).forEach(function (g) { add("igw", g.name || g.id); });
+  S.nats.filter(function (n) { return vids.indexOf(n.vpcId) >= 0 && n.state !== "deleted"; }).forEach(function (n) { add("eip", n.name || n.id); add("nat", n.name || n.id); });
   S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }).forEach(function (g) { add("sg", g.name); });
   S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }).forEach(function (r) { add("rtb", r.name || r.id); r.assoc.forEach(function (sid) { add("rtba", nm(r) + "↔" + nm(find(S.subnets, sid))); }); });
   S.keys.forEach(function (k) { if (k.imported) add("key", k.name); });
@@ -861,7 +892,7 @@ function hclPlan() {
   liveInsts().forEach(function (i) { add("instance", i.name || i.id); });
   S.tgs.forEach(function (t) { add("tg", t.name); t.targets.forEach(function (x) { add("tgatt", t.name + "←" + ((find(S.insts, x.instId) || {}).name || "")); }); });
   S.albs.forEach(function (a) { add("alb", a.name); a.listeners.forEach(function (l) { add("listener", ":" + l.port); }); });
-  var layers = [[], [], [], []];
+  var layers = [[], [], [], [], []];
   Object.keys(acc).forEach(function (k) { var d = HCL_INFO[k]; layers[d[0] - 1].push({ key: k, label: d[1], names: acc[k], needs: d[4], where: d[3] }); });
   return layers;
 }

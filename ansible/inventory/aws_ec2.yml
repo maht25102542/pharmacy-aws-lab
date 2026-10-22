@@ -1,5 +1,6 @@
-# ให้ Ansible ถาม AWS เองว่ามีเครื่องอะไรบ้าง โดยดูจากป้ายที่ Terraform ติดไว้
-# ได้กลุ่ม: role_jenkins, role_sonarqube, role_k8s_server, role_k8s_agent, role_db
+# ให้ Ansible ถามหาเครื่องจาก AWS เอง โดยดูจากป้ายที่ Terraform ติดไว้
+# กลุ่มตามหน้าที่: role_bastion, role_jenkins, role_sonarqube, role_k8s_server, role_k8s_dev, role_db
+# กลุ่ม internal: ทุกเครื่องยกเว้น bastion ต่อผ่าน bastion ด้วย private IP (ดู group_vars/internal.yml)
 # ทดสอบ: ansible-inventory --graph
 plugin: amazon.aws.aws_ec2
 regions:
@@ -12,5 +13,8 @@ hostnames:
 keyed_groups:
   - key: tags.Role
     prefix: role
+groups:
+  internal: "tags.Role != 'bastion'"
 compose:
-  ansible_host: public_ip_address
+  # bastion ต่อด้วย public IP · เครื่องอื่นต่อด้วย private IP (ผ่าน bastion) เพราะ SG ของเครื่องภายในรับ SSH จาก bastion เท่านั้น
+  ansible_host: "public_ip_address if tags.Role == 'bastion' else private_ip_address"

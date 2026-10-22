@@ -1,6 +1,6 @@
 // ===== SonarQube + ArgoCD จำลอง (ไม่มี DOM) =====
 // ponytail: ข้อความและค่าเริ่มต้นจำลองจากความจำ; นโยบายรหัสผ่าน SonarQube (>= 12 ตัว) ไม่ยืนยัน
-function sqPropsName() { var t = LABFILES["repo-app/sonar-project.properties"] || "", m = /sonar\.projectName=(.*)/.exec(t); return m ? m[1].trim() : "pharmacy-app"; }
+function sqPropsName(svc) { var t = LABFILES["repo-" + svc + "/sonar-project.properties"] || "", m = /sonar\.projectName=(.*)/.exec(t); return m ? m[1].trim() : "pharmacy-" + svc; }
 function sqLogin(u, pw) {
   var cur = S.sq.pwdChanged ? S.sq.pass : "admin"; if (u !== "admin" || pw !== cur) return { ok: false };
   S.sq.login = true; return { ok: true, mustChange: !S.sq.pwdChanged };
@@ -14,7 +14,7 @@ function sqGenToken(o) {
   if (Object.keys(er).length) return { errors: er }; var v = "squ_" + hash32(o.name + S.sq.tokens.length) + hash32(o.name + "x") + hash32(o.name + "y") + hash32("z" + o.name) + hash32("w" + o.name); S.sq.tokens.push({ name: o.name, type: o.type || "User Token", value: v }); return { res: v };
 }
 function sqTokenOk(cred) { return !!cred && S.sq.tokens.some(function (t) { return hash32(t.value) === cred.h; }); }
-function sqRecord(version) { var k = "pharmacy-app", p = S.sq.projects.filter(function (x) { return x.key === k; })[0]; if (!p) { p = { key: k, name: sqPropsName() }; S.sq.projects.push(p); } p.version = version; p.qg = "Passed"; p.lines = 1240; p.bugs = 0; p.vulns = 0; p.smells = 12; p.cov = "—"; }
+function sqRecord(version, svc) { svc = svc || "backend"; var k = "pharmacy-" + svc, p = S.sq.projects.filter(function (x) { return x.key === k; })[0]; if (!p) { p = { key: k, name: sqPropsName(svc) }; S.sq.projects.push(p); } p.version = version; p.qg = "Passed"; p.lines = 1240; p.bugs = 0; p.vulns = 0; p.smells = 12; p.cov = "—"; }
 // ---- ArgoCD
 function argoInst() { return S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Role") === "k8s_server" && rmHas(i, "Install ArgoCD"); })[0]; }
 function argoPwdOf(i) { var h = hash32(i.id + "argo"), o = ""; for (var k = 0; o.length < 16; k++) o += hash32(h + k); return o.slice(0, 16); }

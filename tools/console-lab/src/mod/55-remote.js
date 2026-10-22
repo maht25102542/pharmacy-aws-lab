@@ -6,6 +6,8 @@ function rmInst() { return S.laptop.remote ? find(S.insts, S.laptop.remote) : nu
 function rmPrompt(i) { return "ubuntu@" + rmHost(i) + ":" + (S.laptop.rcwd || "~") + "$ "; }
 function rmRole(i) { return ansTag(i, "Role"); }
 function rmFirst(role) { return S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === role; })[0]; }
+// ArgoCD ลงครั้งเดียวผ่านเครื่อง server แรก แต่เป็นของทั้ง cluster prd: kubectl จาก server ไหนก็เห็น
+function rmArgo() { return S.insts.some(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_server" && rmHas(x, "Install ArgoCD"); }); }
 function rmEnv() {
   var v = ansVars(), sq = rmFirst("sonarqube"), k8 = rmFirst("k8s_server");
   return "AWS_DEFAULT_REGION=" + (v.aws_region || "") + "\nECR_REGISTRY=" + (v.ecr_registry || "") + "\nSONAR_HOST_URL=http://" + (sq ? sq.privateIp : "") + ":9000\nARGOCD_SERVER=" + (k8 ? k8.privateIp : "") + ":30443\nMANIFESTS_REPO=github.com/" + (v.github_user || "YOUR_GITHUB_USER") + "/pharmacy-manifests.git\n";
@@ -14,8 +16,7 @@ function rmServices(i) {
   var r = rmRole(i), s = {};
   if ((r === "jenkins" || r === "sonarqube") && rmHas(i, "Install Docker")) s.docker = "Docker Application Container Engine";
   if (r === "db" && rmHas(i, "Install packages")) s.mariadb = "MariaDB 10.11 database server";
-  if ((r === "k8s_server" || r === "k8s_dev") && rmHas(i, "Install k3s server")) s.k3s = "Lightweight Kubernetes";
-  if (r === "k8s_agent" && rmHas(i, "Install k3s agent and join the cluster")) s["k3s-agent"] = "Lightweight Kubernetes";
+  if ((r === "k8s_server" || r === "k8s_dev") && (rmHas(i, "Install k3s server") || rmHas(i, "Install k3s server and join the cluster"))) s.k3s = "Lightweight Kubernetes";
   if ((r === "k8s_server" || r === "k8s_dev") && rmHas(i, "Enable the timer")) s["ecr-refresh.timer"] = "Refresh ECR pull secret";
   return s;
 }
@@ -47,7 +48,7 @@ function rmLs(i, p, all) {
   f = f.filter(function (x) { return all || x[0] !== "."; }).sort(); return f.length ? [f.join("  ")] : [];
 }
 function remoteRun(i, line) {
-  if (/argocd-initial-admin-secret/.test(line) && /(kubectl|k3s)/.test(line)) { if (rmRole(i) !== "k8s_server" || !rmHas(i, "Install ArgoCD")) return { lines: ["Error from server (NotFound): namespaces \"argocd\" not found"] }; return { lines: [/base64\s+-d/.test(line) ? argoPwdOf(i) : "(base64)"] }; }
+  if (/argocd-initial-admin-secret/.test(line) && /(kubectl|k3s)/.test(line)) { if (rmRole(i) !== "k8s_server" || !rmArgo()) return { lines: ["Error from server (NotFound): namespaces \"argocd\" not found"] }; return { lines: [/base64\s+-d/.test(line) ? argoPwdOf(i) : "(base64)"] }; }
   var a = shTok(line); if (!a.length) return { lines: [] };
   var sudo = false; if (a[0] === "sudo") { sudo = true; a.shift(); } var c = a.shift() || "", r = rmRole(i);
   if (c === "exit" || c === "logout") { S.laptop.remote = null; S.laptop.rcwd = "~"; return { lines: ["logout", "Connection to " + i.publicIp + " closed."] }; }
@@ -82,12 +83,11 @@ function remoteRun(i, line) {
     return { lines: ["curl: (7) Failed to connect to localhost port " + m[1] + " after 0 ms: Couldn't connect to server"] };
   }
   if (c === "k3s" || c === "kubectl") {
-    if (c === "k3s") a.shift(); if (!rmServices(i).k3s && !rmServices(i)["k3s-agent"]) return { lines: ["Command '" + c + "' not found"] };
-    if (r === "k8s_agent") return { lines: ["WARN[0000] Unable to read /etc/rancher/k3s/k3s.yaml  (agent ไม่มี kubeconfig ต้องรันบน server)"] };
-    if (a[0] === "apply" && a[1] === "-f") { if (r !== "k8s_server" || !rmHas(i, "Install ArgoCD")) return { lines: ["error: resource mapping not found: no matches for kind \"Application\" in version \"argoproj.io/v1alpha1\""] }; return { lines: argoApply(a[2]) }; }
+    if (c === "k3s") a.shift(); if (!rmServices(i).k3s) return { lines: ["Command '" + c + "' not found"] };
+    if (a[0] === "apply" && a[1] === "-f") { if (r !== "k8s_server" || !rmArgo()) return { lines: ["error: resource mapping not found: no matches for kind \"Application\" in version \"argoproj.io/v1alpha1\""] }; return { lines: argoApply(a[2]) }; }
     if (/^get (applications?|app)$/.test(a.slice(0, 2).join(" "))) { var names = Object.keys(S.argo.apps); return { lines: names.length ? rmTable(["NAME", "SYNC STATUS", "HEALTH STATUS"], names.map(function (n) { var st = argoStatus(n); return [n, st.sync, st.health]; })) : ["No resources found in argocd namespace."] }; }
     var sub = a.slice(0, 2).join(" ");
-    if (sub === "get nodes") { var nodes = [i].concat(r === "k8s_server" ? S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_agent" && rmHas(x, "Install k3s agent and join the cluster"); }) : []); return { lines: rmTable(["NAME", "STATUS", "ROLES", "AGE", "VERSION"], nodes.map(function (n) { return [rmHost(n), "Ready", n === i ? "control-plane,master" : "<none>", "4m", "v1.31.4+k3s1"]; })) }; }
+    if (sub === "get nodes") { var nodes = r === "k8s_server" ? S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_server" && rmServices(x).k3s; }) : [i]; return { lines: rmTable(["NAME", "STATUS", "ROLES", "AGE", "VERSION"], nodes.map(function (n) { return [rmHost(n), "Ready", "control-plane,etcd,master", "4m", "v1.31.4+k3s1"]; })) }; }
     if (sub === "get ns" || sub === "get namespaces") return { lines: rmTable(["NAME", "STATUS", "AGE"], ["default", "kube-system", "kube-public", "kube-node-lease"].concat(r === "k8s_dev" ? ["dev"] : ["prd", "argocd"]).map(function (n) { return [n, "Active", "4m"]; })) };
     return { lines: ["k3s kubectl: จำลองเฉพาะ get nodes / get ns"] };
   }

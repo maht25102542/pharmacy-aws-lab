@@ -1,11 +1,21 @@
-# Frontend ของ dev | ArgoCD app: pharmacy-frontend-dev
+# Frontend (Next.js) ของ dev | ArgoCD app: pharmacy-frontend-dev
+# ไฟล์นี้ Jenkins แก้เฉพาะบรรทัดที่ขึ้นต้นด้วยคำว่า image ตอนปล่อย ที่เหลือคุณแก้ใน Git ตามปกติ
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
   namespace: dev
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: pharmacy
 spec:
   replicas: 1
+  revisionHistoryLimit: 5          # เก็บ ReplicaSet เก่า 5 ชุดไว้ย้อนเวอร์ชัน (kubectl rollout undo)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0            # ห้ามมี pod ที่ใช้งานไม่ได้ระหว่างอัปเดต (ปล่อยแล้วไม่มีช่วงล่ม)
+      maxSurge: 1                  # สร้าง pod ใหม่เพิ่มได้ทีละ 1 ก่อนปิดตัวเก่า
   selector:
     matchLabels:
       app: frontend
@@ -13,9 +23,19 @@ spec:
     metadata:
       labels:
         app: frontend
+        app.kubernetes.io/name: frontend
     spec:
+      automountServiceAccountToken: false   # แอปไม่ต้องเรียก API ของ Kubernetes จึงไม่แนบ token ให้ pod
+      terminationGracePeriodSeconds: 30     # ตอนปิด pod ให้เวลา 30 วินาทีเก็บงานที่ค้างอยู่ก่อนถูกบังคับปิด
       imagePullSecrets:
-        - name: ecr-pull
+        - name: ecr-pull                    # รหัสผ่านดึงจาก ECR (timer บนเครื่องต่ออายุให้ทุก 12 ชม.)
+      securityContext:
+        runAsNonRoot: true                  # ปฏิเสธการรันถ้า container จะเป็น root
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault              # จำกัด system call ที่ container เรียกได้ตามค่ามาตรฐาน
+      # กระจาย pod ไปคนละเครื่อง เครื่องหนึ่งล่มจะได้ไม่ล่มทั้งหมด
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
@@ -26,23 +46,64 @@ spec:
       containers:
         - name: frontend
           image: WAITING_FOR_FIRST_JENKINS_DEPLOY
+          imagePullPolicy: IfNotPresent     # tag ตามเวอร์ชันไม่เปลี่ยนเนื้อ จึงไม่ต้องดึงซ้ำทุกครั้ง
           ports:
-            - containerPort: 80
-          readinessProbe:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: APP_ENV
+              value: dev
+            # ที่อยู่ backend: ชื่อ Service ใน namespace เดียวกัน (อ่านตอนรัน จึงใช้ image ตัวเดียวกันได้ทุก environment)
+            - name: BACKEND_URL
+              value: http://backend:8000
+          securityContext:
+            allowPrivilegeEscalation: false # process ใน container ขอสิทธิ์เพิ่มไม่ได้
+            readOnlyRootFilesystem: true    # เขียนไฟล์ลงตัว container ไม่ได้ (ผู้โจมตีวางไฟล์ไม่ได้)
+            capabilities:
+              drop: [ALL]                   # ถอดสิทธิ์พิเศษของ Linux ทั้งหมด
+          # probe 3 ตัว หน้าที่ต่างกัน:
+          startupProbe:                     # รอให้แอปเริ่มเสร็จก่อน (ผ่านแล้วค่อยเริ่ม probe อีก 2 ตัว)
             httpGet:
-              path: /
-              port: 80
-          # ตอบไม่ได้ต่อเนื่อง Kubernetes จะรีสตาร์ท container ให้ (readiness แค่หยุดส่ง traffic ไม่รีสตาร์ท)
-          livenessProbe:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 12            # รอได้สูงสุด 60 วินาที
+          readinessProbe:                   # ไม่ผ่าน = หยุดส่ง traffic ให้ pod นี้ (ไม่รีสตาร์ท)
             httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 15
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:                    # ไม่ผ่านต่อเนื่อง = Kubernetes รีสตาร์ท container ให้
+            httpGet:
+              path: /healthz
+              port: http
             periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]     # ถูกถอดออกจาก Service ก่อน แล้วค่อยปิดจริง คำขอที่กำลังมาไม่ตกหล่น
           resources:
-            requests:
-              cpu: 25m
-              memory: 32Mi
+            requests:                       # จองไว้ให้ (ใช้ตัดสินว่า pod ลงเครื่องไหนได้)
+              cpu: 50m
+              memory: 128Mi
+            limits:                         # เพดาน: เกินแล้วถูกบีบ (cpu) หรือถูกปิด (memory)
+              cpu: 500m
+              memory: 384Mi
+          # Next.js เขียนไฟล์ชั่วคราวและ cache: ให้เขียนได้เฉพาะ 2 ที่นี้ (emptyDir) ที่เหลืออ่านอย่างเดียว
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}
 ---
 # NodePort 30081 คือประตูที่ load balancer ของ AWS ส่งคำขอเข้ามา
 apiVersion: v1
@@ -56,5 +117,5 @@ spec:
     app: frontend
   ports:
     - port: 80
-      targetPort: 80
+      targetPort: http                      # ชี้ด้วยชื่อ port ด้านบน (เปลี่ยนเลข port ในแอปแล้วไม่ต้องแก้ที่นี่)
       nodePort: 30081

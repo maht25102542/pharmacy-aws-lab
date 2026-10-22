@@ -1,0 +1,4 @@
+# ของจริงอยู่ที่: ราก repo pharmacy-backend / requirements/ — ใช้ตอน docker build (Dockerfile)
+# mysqlclient ต้องคอมไพล์ จึงแยกไว้ที่นี่: เครื่องทดสอบ (ใช้ sqlite) ไม่ต้องลง compiler
+-r base.txt
+mysqlclient==2.3.0

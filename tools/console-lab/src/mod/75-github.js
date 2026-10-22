@@ -1,12 +1,12 @@
-// ===== GitHub + git จำลอง (ไม่มี DOM): repo-app / repo-manifests บน laptop → push → GitHub =====
+// ===== GitHub + git จำลอง (ไม่มี DOM): repo-backend / repo-frontend / repo-manifests บน laptop → push → GitHub =====
 // ponytail: ไม่จำลอง auth ของ GitHub (ข้ามการถาม username/token) และไม่มี branch อื่นนอกจาก main
-var GH_DIRS = { "repo-app": "pharmacy-app", "repo-manifests": "pharmacy-manifests" };
+var GH_DIRS = { "repo-backend": "pharmacy-backend", "repo-frontend": "pharmacy-frontend", "repo-manifests": "pharmacy-manifests" };
 function ghUser() { return ansVars().github_user || "YOUR_GITHUB_USER"; }
-function ghDirName(cwd) { var m = /\/(repo-app|repo-manifests)(\/|$)/.exec(cwd); return m ? m[1] : null; }
+function ghDirName(cwd) { var m = /\/(repo-backend|repo-frontend|repo-manifests)(\/|$)/.exec(cwd); return m ? m[1] : null; }
 function ghSnapshot(dirName) { var base = REPO + "/" + dirName + "/", all = fsAll(), o = {}; Object.keys(all).forEach(function (k) { if (k.indexOf(base) === 0) o[k.slice(base.length)] = all[k]; }); return o; }
 function ghRepoOf(user, name) { ghInit(); var r = S.gh.repos[name]; return r && r.user === user ? r : null; }
 function gitCmd(a, cwd) {
-  ghInit(); var dn = ghDirName(cwd); if (!dn) return ["fatal: not a git repository (or any of the parent directories): .git  (cd ~/Desktop/work/pharmacy-aws-lab/repo-app หรือ repo-manifests)"];
+  ghInit(); var dn = ghDirName(cwd); if (!dn) return ["fatal: not a git repository (or any of the parent directories): .git  (cd ~/Desktop/work/pharmacy-aws-lab/repo-backend, repo-frontend หรือ repo-manifests)"];
   var L0 = S.gh.local[dn] = S.gh.local[dn] || { init: false, staged: false, commit: null, remote: "", tags: [] }, c = a[0];
   if (c === "init") { L0.init = true; return ["Initialized empty Git repository in " + REPO + "/" + dn + "/.git/"]; }
   if (!L0.init) return ["fatal: not a git repository (or any of the parent directories): .git  (ต้อง git init -b main ก่อน)"];

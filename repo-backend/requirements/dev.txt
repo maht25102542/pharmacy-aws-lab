@@ -1,0 +1,5 @@
+# ของจริงอยู่ที่: ราก repo pharmacy-backend / requirements/ — ใช้ตอนรันเทสต์ (Jenkins stage Test และเครื่องนักพัฒนา)
+# ไม่มี mysqlclient: เทสต์ใช้ sqlite ในหน่วยความจำ ไม่ต้องมี MariaDB
+-r base.txt
+pytest==9.1.1
+pytest-django==4.14.0

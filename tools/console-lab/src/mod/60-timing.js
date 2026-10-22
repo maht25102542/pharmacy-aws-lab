@@ -2,7 +2,7 @@
 // ponytail: ค่าวินาทีเป็นประมาณจากความจำ ไม่ได้วัดจาก AWS จริง และ terraform จริงสร้างหลาย resource ขนานกัน ตัวจำลองเล่นทีละอัน
 var TASK_SEC = {
   "Gathering Facts": 2, "Install packages": 40, "Stop MariaDB before the first bootstrap": 3, "Start a new cluster": 8, "Start MariaDB (joins the cluster and copies data)": 15,
-  "Create pharmacy_dev, pharmacy_prd and the app user": 3, "Install k3s server": 35, "Wait for the join token": 3, "Install k3s agent and join the cluster": 30,
+  "Create pharmacy_dev, pharmacy_prd and the app user": 3, "Install k3s server": 35, "Wait for the join token": 3, "Install k3s server and join the cluster": 40,
   "Wait until the node is ready": 20, "Apply base objects": 5, "Create argocd namespace": 2, "Install ArgoCD": 45, "Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR)": 20,
   "Run the refresh once now": 3, "Apply service account, binding and token secret": 3, "Install Docker": 60, "Start SonarQube": 90, "Build and start Jenkins": 150
 };

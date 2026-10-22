@@ -22,12 +22,14 @@ function webOpen(raw) {
   if (!/^https?:\/\//i.test(u)) u = "http://" + u;
   var m = /^(https?):\/\/([^\/:]+)(?::(\d+))?(\/.*)?$/i.exec(u); if (!m) return { err: "ERR_INVALID_URL", title: "URL ไม่ถูกต้อง", steps: [] };
   var host = m[2], port = +m[3] || (/^https/i.test(m[1]) ? 443 : 80), alb = S.albs.filter(function (a) { return a.dns === host; })[0];
+  if (/^(www\.)?github\.com$/i.test(host)) return { site: "github", host: host, path: String(m[4] || "/").split("?")[0].replace(/\/+$/, "") || "/" };
   if (alb) {
     if (albPhase(alb) === "provisioning") return { err: "ERR_NAME_NOT_RESOLVED", host: host, steps: [{ ok: false, t: "ALB สถานะ Active", d: "ยัง Provisioning (~3 นาที) DNS ยังไม่พร้อม" }] };
     var l = alb.listeners.filter(function (x) { return x.port === port; })[0];
     if (!l) return { err: "ERR_CONNECTION_REFUSED", host: host, steps: [{ ok: false, t: "ALB มี listener พอร์ต " + port, d: "ไม่มี" }] };
     var h = albHealth(alb).filter(function (r) { return r.l === l && r.state === "healthy"; });
-    return h.length ? { site: "app", host: host } : { site: "alb503", host: host };
+    var tgp = find(S.tgs, l.tgId);
+    return h.length ? { site: tgp && tgp.port === 30443 ? "argocd" : "app", host: host } : { site: "alb503", host: host };
   }
   var inst = S.insts.filter(function (i) { return i.state !== "terminated" && (i.publicIp === host || i.privateIp === host); })[0];
   if (!inst) return { err: /^[\d.]+$/.test(host) ? "ERR_CONNECTION_TIMED_OUT" : "ERR_NAME_NOT_RESOLVED", host: host, steps: [{ ok: false, t: "มีเครื่องที่ใช้ที่อยู่ " + host, d: "ไม่พบ" }] };
@@ -58,9 +60,19 @@ function jkAddCred(o) {
   if (Object.keys(er).length) return { errors: er }; S.jk.creds.push({ id: o.id, kind: o.kind, user: o.user || "", scope: o.scope || "Global", desc: o.desc || "", h: hash32(o.kind === "secret" ? o.secret : o.pass) }); return { res: o.id };
 }
 function jkCred(id) { return S.jk.creds.filter(function (c) { return c.id === id; })[0]; }
-function jkCreateJob(o) {
-  var er = {}; if (!/^[A-Za-z0-9_-]+$/.test(o.name || "")) er.name = "ชื่อใช้ได้เฉพาะ A-Z a-z 0-9 _ -"; if (!/^https:\/\/github\.com\/[^\/]+\/pharmacy-app(\.git)?$/.test(o.repo || "")) er.repo = "Repository URL ต้องเป็น https://github.com/<user>/pharmacy-app.git"; if (!o.script) er.script = "ต้องระบุ Script Path"; if (!o.branch) er.branch = "ต้องระบุ Branch Specifier";
-  if (Object.keys(er).length) return { errors: er }; S.jk.job = { name: o.name, repo: o.repo, cred: o.cred || "", branch: o.branch, script: o.script, paramsKnown: false }; return { res: o.name };
+// หนึ่ง repo = หนึ่ง job: pharmacy-backend / pharmacy-frontend (S.jk.job = job ที่เปิดอยู่ตอนนี้ ใช้เป็นตัวชี้ที่ UI และ jkNew อ่าน)
+var JK_REPO_RE = /github\.com\/([^\/]+)\/(pharmacy-(backend|frontend))(?:\.git)?$/;
+function jkJobs() { if (!S.jk.jobs) S.jk.jobs = S.jk.job ? [S.jk.job] : []; if (S.jk.job && S.jk.jobs.indexOf(S.jk.job) < 0) S.jk.jobs.push(S.jk.job); S.jk.jobs.forEach(function (j) { if (!j.svc) { var m = JK_REPO_RE.exec(j.repo || ""); j.svc = m ? m[3] : "backend"; } if (j.seq == null) j.seq = 0; }); S.jk.builds.forEach(function (b) { if (!b.job && S.jk.jobs[0]) b.job = S.jk.jobs[0].name; }); return S.jk.jobs; }
+function jkJob(name) { return jkJobs().filter(function (j) { return j.name === name; })[0]; }
+function jkSelect(name) { var j = jkJob(name); if (j) S.jk.job = j; return j; }
+function jkBuildsOf(job) { jkJobs(); return S.jk.builds.filter(function (b) { return b.job === (job && job.name); }); }
+function jkRepoName(job) { var m = JK_REPO_RE.exec(job.repo || ""); return m ? m[2] : ""; }
+function jkCreateJob(o, isNew) {
+  var er = {}; if (!/^[A-Za-z0-9_-]+$/.test(o.name || "")) er.name = "ชื่อใช้ได้เฉพาะ A-Z a-z 0-9 _ -"; else if (isNew && jkJob(o.name)) er.name = "A job already exists with the name ‘" + o.name + "’";
+  if (!JK_REPO_RE.test(o.repo || "")) er.repo = "Repository URL ต้องเป็น https://github.com/<user>/pharmacy-backend.git หรือ pharmacy-frontend.git (หนึ่ง job ต่อหนึ่ง repo)"; if (!o.script) er.script = "ต้องระบุ Script Path"; if (!o.branch) er.branch = "ต้องระบุ Branch Specifier";
+  if (Object.keys(er).length) return { errors: er };
+  var old = jkJob(o.name), m = JK_REPO_RE.exec(o.repo), job = { name: o.name, repo: o.repo, svc: m[3], cred: o.cred || "", branch: o.branch, script: o.script, paramsKnown: old ? old.paramsKnown : false, seq: old ? old.seq : 0 };
+  if (old) S.jk.jobs[S.jk.jobs.indexOf(old)] = job; else S.jk.jobs.push(job); S.jk.job = job; return { res: o.name };
 }
 function jkEnv() { var i = jkInst(), e = i && ansVm(i).f.env, o = {}; (e || "").split("\n").forEach(function (l) { var m = /^(\w+)=(.*)$/.exec(l); if (m) o[m[1]] = m[2]; }); return o; }
 function jkHasCred(id) { return !!jkCred(id); }
@@ -71,27 +83,28 @@ function jkNodesOk(envName) {
   return { nodes: nodes, role: nodes.length && nodes.every(function (n) { var r = S.roles.filter(function (x) { return x.profile === n.profile; })[0]; return r && r.policies.some(function (p) { return ANS_ECR_POL.indexOf(p) >= 0; }); }) };
 }
 // เวลาโดยประมาณของแต่ละ stage (วินาที) ใช้เมื่อเลือก "เวลาเหมือนจริง": ค่าจากความจำ ไม่ได้วัดจริง
-var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 4, "SonarQube scan": 75, "Build and push image": 100, "Check image exists": 3, "Update manifest": 6, "Sync ArgoCD": 40 };
+var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 4, "SonarQube scan": 75, "Test": 20, "Build image": 60, "Scan image": 25, "Push image": 15, "Check image exists": 3, "Update manifest": 6, "Sync ArgoCD": 40 };
 function jkReal() { return S.speed === "real"; }
 function jkMarkNext(b) { while (b.idx < b.stages.length && b.stages[b.idx].st === "skipped") { b.idx++; } if (b.idx < b.stages.length && b.stages[b.idx].st === "pending") b.stages[b.idx].st = "running"; }
 function jkNextDelay(b) { var s = b.stages[b.idx]; return s ? (JK_SEC[s.name] || 1) : 0; }
 function jkNew(p, who) {
-  var b = { id: ++S.jk.seq, params: p, state: "running", result: "", stages: [], log: [], who: who || S.jk.login || "admin" }; S.jk.builds.push(b);
-  b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + S.jk.job.name, "[Pipeline] {", "[Pipeline] stage", "[Pipeline] { (Declarative: Checkout SCM)", "[Pipeline] checkout", "The recommended git tool is: NONE");
-  var want = [["Validate", 1], ["Confirm production", p.TARGET_ENV === "prd"], ["Checkout version", p.ACTION === "build-and-deploy"], ["SonarQube scan", p.ACTION === "build-and-deploy"], ["Build and push image", p.ACTION === "build-and-deploy"], ["Check image exists", p.ACTION === "deploy-only"], ["Update manifest", 1], ["Sync ArgoCD", !!p.AUTO_SYNC]];
+  var jb = S.jk.job; jkJobs(); p.SERVICE = jb.svc; // service คงที่ต่อ job (repo นี้มีแค่ service เดียว)
+  var b = { id: ++jb.seq, job: jb.name, params: p, state: "running", result: "", stages: [], log: [], who: who || S.jk.login || "admin" }; S.jk.seq = (S.jk.seq || 0) + 1; S.jk.builds.push(b);
+  b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {", "[Pipeline] stage", "[Pipeline] { (Declarative: Checkout SCM)", "[Pipeline] checkout", "The recommended git tool is: NONE");
+  var want = [["Validate", 1], ["Confirm production", p.TARGET_ENV === "prd"], ["Checkout version", p.ACTION === "build-and-deploy"], ["Test", p.ACTION === "build-and-deploy"], ["SonarQube scan", p.ACTION === "build-and-deploy"], ["Build image", p.ACTION === "build-and-deploy"], ["Scan image", p.ACTION === "build-and-deploy"], ["Push image", p.ACTION === "build-and-deploy"], ["Check image exists", p.ACTION === "deploy-only"], ["Update manifest", 1], ["Sync ArgoCD", !!p.AUTO_SYNC]];
   b.stages = want.map(function (w) { return { name: w[0], st: w[1] ? "pending" : "skipped" }; });
   // clone ของ job เอง: repo ต้องถูก push ขึ้น GitHub ใต้ user ที่ตรงกับ URL
-  var m = /github\.com\/([^\/]+)\/pharmacy-app/.exec(S.jk.job.repo), jc = S.jk.job.cred;
-  b.log.push(jc ? "using credential " + jc : "No credentials specified", "Cloning the remote Git repository", "Cloning repository " + S.jk.job.repo);
-  if (!ghRepoOf(m[1], "pharmacy-app")) { b.log.push(" > git fetch --tags --force --progress -- " + S.jk.job.repo + " +refs/heads/*:refs/remotes/origin/* # timeout=10", "ERROR: Error cloning remote repo 'origin'", "hudson.plugins.git.GitException: Command \"git fetch --tags --force --progress -- " + S.jk.job.repo + " +refs/heads/*:refs/remotes/origin/*\" returned status code 128:", "stderr: remote: Repository not found.", "fatal: repository '" + S.jk.job.repo + "/' not found  (ยังไม่ได้ git push repo-app ขึ้น GitHub หรือ URL/ชื่อ user ไม่ตรง)", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.state = "done"; b.result = "FAILURE"; b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); return b; }
-  b.log.push("Checking out Revision " + hash32(S.jk.job.repo) + " (" + S.jk.job.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {");
+  var m = JK_REPO_RE.exec(jb.repo), jc = jb.cred;
+  b.log.push(jc ? "using credential " + jc : "No credentials specified", "Cloning the remote Git repository", "Cloning repository " + jb.repo);
+  if (!ghRepoOf(m[1], m[2])) { b.log.push(" > git fetch --tags --force --progress -- " + jb.repo + " +refs/heads/*:refs/remotes/origin/* # timeout=10", "ERROR: Error cloning remote repo 'origin'", "hudson.plugins.git.GitException: Command \"git fetch --tags --force --progress -- " + jb.repo + " +refs/heads/*:refs/remotes/origin/*\" returned status code 128:", "stderr: remote: Repository not found.", "fatal: repository '" + jb.repo + "/' not found  (ยังไม่ได้ git push repo-" + jb.svc + " ขึ้น GitHub หรือ URL/ชื่อ user ไม่ตรง)", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.state = "done"; b.result = "FAILURE"; b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); return b; }
+  b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {");
   b.stages.unshift({ name: "Declarative: Checkout SCM", st: "success" });
   b.idx = 1; if (jkReal()) { jkMarkNext(b); } else jkAdvance(b); return b;
 }
-function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; j.paramsKnown = true; return jkNew({ TARGET_ENV: "dev", SERVICE: "backend", VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); }
+function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ return b; }
 function jkWithParams(p) { S.jk.job.paramsKnown = true; return jkNew(p); }
 function jkAdvance(b, once) {
-  var env = jkEnv(), p = b.params, ji = jkInst(), image = (env.ECR_REGISTRY || "") + "/pharmacy/" + p.SERVICE + ":" + p.VERSION, app = "pharmacy-" + p.SERVICE + "-" + p.TARGET_ENV;
+  var jb = jkJob(b.job) || S.jk.job, env = jkEnv(), p = b.params, ji = jkInst(), image = (env.ECR_REGISTRY || "") + "/pharmacy/" + p.SERVICE + ":" + p.VERSION, app = "pharmacy-" + p.SERVICE + "-" + p.TARGET_ENV;
   function end(res) { b.log.push("[Pipeline] }", "[Pipeline] // withEnv", "[Pipeline] }", "[Pipeline] // node", "[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] sh", "+ rm -rf manifests", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline"); }
   function fail(s, msg) {
     s.st = "failed"; b.log.push.apply(b.log, msg);
@@ -105,19 +118,30 @@ function jkAdvance(b, once) {
     b.log.push("[Pipeline] stage", "[Pipeline] { (" + n + ")"); s.st = "running";
     if (n === "Validate") { b.log.push("[Pipeline] script", "[Pipeline] {"); if (!p.VERSION) return fail(s, ["[Pipeline] error", "ยังไม่ได้เลือก VERSION (ถ้ารายการว่าง ให้ติด tag ใน Git ก่อน แล้ว build อีกครั้ง)"]); if (p.TARGET_ENV === "prd" && !/^v\d+\.\d+\.\d+$/.test(p.VERSION)) return fail(s, ["[Pipeline] error", "prd รับเฉพาะ tag รูปแบบ v1.2.3 แต่ได้ '" + p.VERSION + "'"]); b.log.push("[Pipeline] }", "[Pipeline] // script"); }
     else if (n === "Confirm production") { s.st = "waiting"; b.state = "waiting"; b.log.push("[Pipeline] input", "Input requested"); return; }
-    else if (n === "Checkout version") { var ra = ghRepoOf((/github\.com\/([^\/]+)\//.exec(S.jk.job.repo) || [])[1], "pharmacy-app"); b.log.push("[Pipeline] checkout"); if (!ra || ra.tags.indexOf(p.VERSION) < 0) return fail(s, [" > git checkout -f refs/tags/" + p.VERSION, "ERROR: Couldn't find any revision to build. Verify the repository and branch configuration for this job.  (tag " + p.VERSION + " ไม่อยู่บน GitHub: git push origin " + p.VERSION + ")"]); b.log.push("Checking out Revision " + hash32(p.VERSION) + " (refs/tags/" + p.VERSION + ")"); }
+    else if (n === "Checkout version") { var ra = ghRepoOf((JK_REPO_RE.exec(jb.repo) || [])[1], jkRepoName(jb)); b.log.push("[Pipeline] checkout"); if (!ra || ra.tags.indexOf(p.VERSION) < 0) return fail(s, [" > git checkout -f refs/tags/" + p.VERSION, "ERROR: Couldn't find any revision to build. Verify the repository and branch configuration for this job.  (tag " + p.VERSION + " ไม่อยู่บน GitHub: git push origin " + p.VERSION + ")"]); b.log.push("Checking out Revision " + hash32(p.VERSION) + " (refs/tags/" + p.VERSION + ")"); }
     else if (n === "SonarQube scan") {
       b.log.push("[Pipeline] withCredentials"); if (!jkHasCred("sonar-token")) return fail(s, [jkCredErr("sonar-token")]); b.log.push("Masking supported pattern matches of $SONAR_TOKEN", "[Pipeline] {", "[Pipeline] sh");
       var sq = S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Role") === "sonarqube"; })[0];
-      b.log.push("+ docker run --rm --user 0:0 --volumes-from jenkins -w /var/jenkins_home/workspace/" + S.jk.job.name + " -e SONAR_HOST_URL -e SONAR_TOKEN sonarsource/sonar-scanner-cli -Dsonar.projectVersion=" + p.VERSION + " -Dsonar.qualitygate.wait=true");
+      b.log.push("+ docker run --rm --user 0:0 --volumes-from jenkins -w /var/jenkins_home/workspace/" + jb.name + " -e SONAR_HOST_URL -e SONAR_TOKEN sonarsource/sonar-scanner-cli -Dsonar.projectVersion=" + p.VERSION + " -Dsonar.qualitygate.wait=true");
       if (!sq || !rmDocker(sq).length) return fail(s, ["ERROR: SonarQube server [" + (env.SONAR_HOST_URL || "") + "] can not be reached", "ERROR: Error during SonarScanner execution"]);
       if (!sgAllows(sq.sgIds, 9000, { sgIds: ji.sgIds })) return fail(s, ["ERROR: SonarQube server [" + env.SONAR_HOST_URL + "] can not be reached  (connect timed out: SG ของ sonarqube ไม่เปิด 9000 ให้ SG ของ jenkins)", "ERROR: Error during SonarScanner execution"]);
       if (!sqTokenOk(jkCred("sonar-token"))) return fail(s, ["ERROR: Error during SonarScanner execution", "ERROR: Not authorized. Please check the user token in the property 'sonar.token' or the credentials in the properties 'sonar.login' and 'sonar.password'."]);
-      sqRecord(p.VERSION); b.log.push("INFO: ANALYSIS SUCCESSFUL, you can find the results at: " + env.SONAR_HOST_URL + "/dashboard?id=pharmacy-app", "INFO: Quality gate status: OK", "[Pipeline] }", "[Pipeline] // withCredentials");
+      sqRecord(p.VERSION, jb.svc); b.log.push("INFO: ANALYSIS SUCCESSFUL, you can find the results at: " + env.SONAR_HOST_URL + "/dashboard?id=pharmacy-" + jb.svc, "INFO: Quality gate status: OK", "[Pipeline] }", "[Pipeline] // withCredentials");
     }
-    else if (n === "Build and push image") {
+    else if (n === "Test") {
+      b.log.push("[Pipeline] sh");
+      if (jb.svc === "backend") b.log.push("+ docker run --rm --volumes-from jenkins -w $WORKSPACE python:3.12.7-slim-bookworm sh -c \"pip install -q -r requirements/dev.txt && python -m pytest\"", "...........................                                              [100%]", "27 passed in 0.4s");
+      else b.log.push("+ docker run --rm --volumes-from jenkins -w $WORKSPACE node:22.12.0-alpine3.21 sh -c \"npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test\"", "added 352 packages in 21s", "> eslint .", "> tsc --noEmit", " Test Files  4 passed (4)", "      Tests  24 passed (24)");
+    }
+    else if (n === "Build image") {
+      b.log.push("[Pipeline] sh", "+ docker build --pull --build-arg APP_VERSION=" + p.VERSION + " -t " + image + " .", jb.svc === "backend" ? "#5 [build 4/4] RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements/prod.txt   (ด่านที่ 1: คอมไพล์ mysqlclient)" : "#6 [build 4/4] RUN npm run build   (ด่านที่ 2: next build -> standalone)", "#9 [runtime] COPY --from=build ...   (ด่านสุดท้าย: เอาเฉพาะของที่ต้องรัน)", "Successfully tagged " + image);
+    }
+    else if (n === "Scan image") {
+      b.log.push("[Pipeline] sh", "+ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed " + image, "Total: 0 (HIGH: 0, CRITICAL: 0)");
+    }
+    else if (n === "Push image") {
       var repo = byName(S.repos, "pharmacy/" + p.SERVICE); b.log.push("[Pipeline] sh", "+ aws ecr get-login-password", "+ docker login --username AWS --password-stdin " + env.ECR_REGISTRY);
-      if (!repo) return fail(s, ["Login Succeeded", "+ docker build --build-arg APP_VERSION=" + p.VERSION + " -t " + image + " " + p.SERVICE, "+ docker push " + image, "name unknown: The repository with name 'pharmacy/" + p.SERVICE + "' does not exist in the registry with id '000000000000'"]);
+      if (!repo) return fail(s, ["Login Succeeded", "+ docker push " + image, "name unknown: The repository with name 'pharmacy/" + p.SERVICE + "' does not exist in the registry with id '000000000000'"]);
       var r = API.ecrAction({ repoId: repo.id, tag: p.VERSION, op: "push", principal: { type: "inst", id: ji.id } }); b.log.push.apply(b.log, r.res.out.split("\n"));
       if (!r.res.ok) return fail(s, [r.res.out.split("\n").pop()]);
     }
@@ -151,7 +175,7 @@ function jkAdvance(b, once) {
   b.log.push("[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] script", "[Pipeline] {", "[Pipeline] echo", p.AUTO_SYNC ? "เสร็จแล้ว: " + app + " รันเวอร์ชัน " + p.VERSION + " และผ่านการตรวจสุขภาพ" : "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป " + app, "[Pipeline] }", "[Pipeline] // script"); end(); b.log.push("Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS";
 }
 function jkInput(id, proceed) {
-  var b = S.jk.builds.filter(function (x) { return x.id === id; })[0]; if (!b || b.state !== "waiting") return;
+  var b = typeof id === "object" ? id : S.jk.builds.filter(function (x) { return x.id === id && (!S.jk.job || x.job === S.jk.job.name); })[0]; if (!b || b.state !== "waiting") return;
   var s = b.stages[b.idx];
   if (!proceed) { s.st = "failed"; b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; return; }
   s.st = "success"; b.state = "running"; b.log.push("Approved by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage"); b.idx++; if (jkReal()) jkMarkNext(b); else jkAdvance(b);

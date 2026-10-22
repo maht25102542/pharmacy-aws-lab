@@ -1,0 +1,13 @@
+# ของที่ไม่ต้องอยู่ใน image (node_modules ติดตั้งใหม่ใน Dockerfile, เทสต์/ความลับไม่ให้หลุดเข้าไป)
+.git/
+.scannerwork/
+node_modules/
+.next/
+coverage/
+.env*
+Jenkinsfile
+docker-compose.yml
+sonar-project.properties
+WHERE.md
+src/**/*.test.ts
+vitest.config.ts

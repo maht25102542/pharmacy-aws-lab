@@ -1,15 +1,18 @@
-# เป้าหมาย: VM pharmacy-k8s-1 (server) และ pharmacy-k8s-2, 3 (agent) = cluster prd
+# เป้าหมาย: VM pharmacy-k8s-1, 2, 3 = cluster prd (k3s server 3 เครื่อง HA: etcd ในตัว วางคนละ AZ)
 #           VM pharmacy-dev = cluster dev แยกต่างหาก (k3s เครื่องเดียว)
-# ติดตั้ง Kubernetes (k3s), ArgoCD (เฉพาะ k8s-1) และของพื้นฐานใน cluster
-# ArgoCD ที่ k8s-1 คุมทั้งสอง cluster (ลงทะเบียน dev ตอนท้ายไฟล์)
+# ทุกเครื่องอยู่ private subnet: Ansible เข้าผ่าน bastion (ดู group_vars/internal.yml)
+# ติดตั้ง Kubernetes (k3s), ArgoCD (ลงครั้งเดียวผ่านเครื่องแรก) และของพื้นฐานใน cluster
+# ArgoCD ที่ cluster prd คุมทั้งสอง cluster (ลงทะเบียน dev ตอนท้ายไฟล์)
 
-- name: Kubernetes servers (pharmacy-k8s-1 และ pharmacy-dev)
-  hosts: role_k8s_server:role_k8s_dev
+- name: First Kubernetes server (pharmacy-k8s-1) and the dev server (pharmacy-dev)
+  hosts: role_k8s_server[0]:role_k8s_dev
   become: true
   tasks:
+    # cluster prd ต้องเริ่มด้วย --cluster-init เพื่อให้เครื่องอื่นมาเข้าร่วมเป็น server (etcd) ได้ · dev เครื่องเดียวไม่ต้อง
     - name: Install k3s server
       ansible.builtin.shell: >
         curl -sfL https://get.k3s.io | sh -s - server
+        {{ '--cluster-init' if 'role_k8s_server' in group_names else '' }}
         --disable traefik
         --write-kubeconfig-mode 644
         --tls-san {{ ansible_host }}
@@ -25,27 +28,31 @@
         src: /var/lib/rancher/k3s/server/node-token
       register: node_token
 
-    - name: Keep the token for the agent play
+    - name: Keep the token for the join play
       ansible.builtin.set_fact:
         k3s_token: "{{ node_token.content | b64decode | trim }}"
 
-- name: Kubernetes agents (pharmacy-k8s-2, 3)
-  hosts: role_k8s_agent
+- name: Join the other Kubernetes servers one at a time (pharmacy-k8s-2, 3)
+  hosts: role_k8s_server[1:]
   become: true
+  serial: 1
   vars:
-    server: "{{ groups['role_k8s_server'][0] }}"
+    first: "{{ groups['role_k8s_server'][0] }}"
   tasks:
-    - name: Install k3s agent and join the cluster
+    - name: Install k3s server and join the cluster
       ansible.builtin.shell: >
         curl -sfL https://get.k3s.io |
-        K3S_URL=https://{{ hostvars[server].private_ip_address }}:6443
-        K3S_TOKEN={{ hostvars[server].k3s_token }}
-        sh -
+        K3S_TOKEN={{ hostvars[first].k3s_token }}
+        sh -s - server
+        --server https://{{ hostvars[first].private_ip_address }}:6443
+        --disable traefik
+        --write-kubeconfig-mode 644
+        --tls-san {{ ansible_host }}
       args:
         creates: /usr/local/bin/k3s
 
 - name: Cluster add-ons (pharmacy-k8s-1 = prd + ArgoCD, pharmacy-dev = dev)
-  hosts: role_k8s_server:role_k8s_dev
+  hosts: role_k8s_server[0]:role_k8s_dev
   become: true
   vars:
     is_dev: "{{ 'role_k8s_dev' in group_names }}"
@@ -169,7 +176,7 @@
       changed_when: false
 
 - name: Register pharmacy-dev in ArgoCD (รันบน pharmacy-k8s-1)
-  hosts: role_k8s_server
+  hosts: role_k8s_server[0]
   become: true
   tasks:
     - name: Apply cluster secret

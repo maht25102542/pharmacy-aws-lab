@@ -1,0 +1,6 @@
+# ใช้กับกลุ่ม internal (ทุกเครื่องยกเว้น bastion): SG รับ SSH จาก bastion เท่านั้น
+# Ansible จึง SSH ผ่าน bastion (กระโดดผ่านเครื่อง role_bastion ที่ public IP) แล้วต่อไปยัง private IP
+ansible_ssh_common_args: >-
+  -o ProxyCommand="ssh -W %h:%p -i {{ ansible_ssh_private_key_file | default('~/.ssh/id_ed25519') }}
+  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+  ubuntu@{{ hostvars[groups['role_bastion'][0]].public_ip_address }}"

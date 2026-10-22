@@ -66,7 +66,7 @@ var TF_PROV = {
   },
   aws_route_table: {
     act: "ec2:CreateRouteTable", svc: "EC2", op: "CreateRouteTable",
-    rows: function (a) { return (a.route || []).map(function (x) { return { dest: x.cidr_block, target: x.gateway_id }; }); },
+    rows: function (a) { return (a.route || []).map(function (x) { return { dest: x.cidr_block, target: x.gateway_id || x.nat_gateway_id }; }); },
     create: function (c) {
       var t = tfOk(API.createRtb({ name: (c.tags || {}).Name || "", vpcId: c.attrs.vpc_id }), "creating Route Table", "EC2", "CreateRouteTable"); tfPutTags(t, c.tags);
       var rows = TF_PROV.aws_route_table.rows(c.attrs);
@@ -75,7 +75,34 @@ var TF_PROV = {
     },
     update: function (st, d) { var t = find(S.rtbs, st.id); tfPutTags(t, d.tags); var x = API.setRoutes(t.id, TF_PROV.aws_route_table.rows(d)); if (x.errors) { var f = firstErr(x); throw TfAwsError("updating Route Table (" + t.id + ")", "EC2", "ReplaceRoute", f.code, f.msg); } },
     del: function (st) { var t = find(S.rtbs, st.id); if (!t) return; if (t.assoc.length) throw depViolation("deleting Route Table (" + t.id + ")", "EC2", "DeleteRouteTable", "The routeTable '" + t.id + "' has dependencies and cannot be deleted."); S.rtbs = S.rtbs.filter(function (x) { return x.id !== t.id; }); },
-    read: function (st) { var t = find(S.rtbs, st.id); return t ? { cfg: { route: t.routes.map(function (x) { return { cidr_block: x.dest, gateway_id: x.target }; }), tags: t.tagMap || (t.name ? { Name: t.name } : {}) }, computed: {} } : null; }
+    read: function (st) { var t = find(S.rtbs, st.id); return t ? { cfg: { route: t.routes.map(function (x) { return /^nat-/.test(x.target) ? { cidr_block: x.dest, nat_gateway_id: x.target } : { cidr_block: x.dest, gateway_id: x.target }; }), tags: t.tagMap || (t.name ? { Name: t.name } : {}) }, computed: {} } : null; }
+  },
+  aws_eip: {
+    act: "ec2:AllocateAddress", svc: "EC2", op: "AllocateAddress",
+    create: function (c) {
+      var e = tfOk(API.allocEip(), "creating EC2 EIP", "EC2", "AllocateAddress"); tfPutTags(e, c.tags);
+      return { id: e.id, computed: { id: e.id, allocation_id: e.id, public_ip: e.ip } };
+    },
+    update: function (st, d) { var e = find(S.eips, st.id); if (e) tfPutTags(e, d.tags); },
+    del: function (st) {
+      var e = find(S.eips, st.id); if (!e) return;
+      if (S.nats.some(function (n) { return n.eipId === e.id && n.state !== "deleted"; })) throw TfAwsError("deleting EC2 EIP (" + e.id + ")", "EC2", "ReleaseAddress", "AuthFailure", "You do not have permission to access the specified resource.");
+      S.eips = S.eips.filter(function (x) { return x.id !== e.id; });
+    },
+    read: function (st) { var e = find(S.eips, st.id); return e ? { cfg: { tags: e.tagMap || {} }, computed: { public_ip: e.ip } } : null; }
+  },
+  aws_nat_gateway: {
+    act: "ec2:CreateNatGateway", svc: "EC2", op: "CreateNatGateway",
+    create: function (c) {
+      var a = c.attrs, label = "creating EC2 NAT Gateway", sn = find(S.subnets, a.subnet_id), e = a.allocation_id ? find(S.eips, a.allocation_id) : null;
+      if (!sn) throw TfAwsError(label, "EC2", "CreateNatGateway", "InvalidSubnetID.NotFound", "The subnet ID '" + a.subnet_id + "' does not exist");
+      if (!e) throw TfAwsError(label, "EC2", "CreateNatGateway", "InvalidAllocationID.NotFound", "The allocation ID '" + (a.allocation_id || "") + "' does not exist");
+      var nt = { id: rid("nat"), name: (c.tags || {}).Name || "", vpcId: sn.vpcId, subnetId: sn.id, eipId: e.id, state: "available", born: Date.now() }; S.nats.push(nt); tfPutTags(nt, c.tags);
+      return { id: nt.id, computed: { id: nt.id, public_ip: e.ip, private_ip: "10.0.0.0" } };
+    },
+    update: function (st, d) { var n = find(S.nats, st.id); if (n) tfPutTags(n, d.tags); },
+    del: function (st) { var n = find(S.nats, st.id); if (!n) return; API.del("nat", n.id, "delete"); },
+    read: function (st) { var n = find(S.nats, st.id); return n && n.state !== "deleted" ? { cfg: { tags: n.tagMap || (n.name ? { Name: n.name } : {}) }, computed: {} } : null; }
   },
   aws_route_table_association: {
     act: "ec2:AssociateRouteTable", svc: "EC2", op: "AssociateRouteTable",

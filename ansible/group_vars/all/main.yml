@@ -6,4 +6,7 @@ manifests_repo: "github.com/{{ github_user }}/pharmacy-manifests.git"
 
 db_app_user: "pharmacy"
 db_app_password: "ChangeMe-App-123"
+# Django: SECRET_KEY ใช้เซ็น session/token (ยาวและสุ่ม: python -c "import secrets;print(secrets.token_urlsafe(50))") · รหัสแอดมินของเว็บ (Job migrate สร้างให้ครั้งแรก)
+django_secret_key: "ChangeMe-Django-Secret-Key-Use-A-Long-Random-String"
+django_admin_password: "ChangeMe-Admin-123456"
 sonar_db_password: "ChangeMe-Sonar-123"

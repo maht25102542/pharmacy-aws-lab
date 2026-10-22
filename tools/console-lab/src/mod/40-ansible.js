@@ -1,6 +1,6 @@
 // ===== Ansible แบบจำลอง: dynamic inventory + ping + playbook (ไม่มี DOM) =====
 // ponytail: รัน playbook ที่ฝังตอน build (ANSIBLE_PLAN) ไม่ได้อ่านไฟล์ .yml ที่แก้บน laptop จำลอง; ผลของแต่ละ task เป็นกฎตามชื่อ task
-var ANS_NEEDS_NET = { "Install packages": "apt", "Install k3s server": "curl", "Install k3s agent and join the cluster": "curl", "Install ArgoCD": "curl", "Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR)": "snap", "Install Docker": "apt", "Build and start Jenkins": "docker", "Start SonarQube": "docker" };
+var ANS_NEEDS_NET = { "Install packages": "apt", "Install k3s server": "curl", "Install k3s server and join the cluster": "curl", "Install ArgoCD": "curl", "Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR)": "snap", "Install Docker": "apt", "Build and start Jenkins": "docker", "Start SonarQube": "docker" };
 var ANS_RUN = {};
 var ANS_ECR_POL = ["AmazonEC2ContainerRegistryReadOnly", "AmazonEC2ContainerRegistryPowerUser", "AdministratorAccess"];
 
@@ -25,7 +25,7 @@ function ansInventory() {
     return { hosts: [], groups: {}, warn: ["[WARNING]:  * Failed to parse " + REPO + "/ansible/" + cfg.inventory + " with auto plugin: " + why, "[WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'"], empty: true, credErr: why };
   }
   var hosts = S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Project") === "pharmacy" && i.name; }).sort(function (a, b) { return a.name < b.name ? -1 : 1; }), groups = {};
-  hosts.forEach(function (i) { var r = ansTag(i, "Role"); if (r) (groups["role_" + r] = groups["role_" + r] || []).push(i); });
+  hosts.forEach(function (i) { var r = ansTag(i, "Role"); if (r) (groups["role_" + r] = groups["role_" + r] || []).push(i); if (r && r !== "bastion") (groups.internal = groups.internal || []).push(i); });
   return { hosts: hosts, groups: groups, warn: warn };
 }
 function ansGraph() {
@@ -55,14 +55,19 @@ function ansMatch(inv, pat) {
   });
   return { hosts: res, warn: warn };
 }
-// ผลการ ssh จากเครื่อง laptop ไปหา host (ตาม inventory: ansible_host = public IP)
+// ผลการ ssh จากเครื่อง laptop ไปหา host (ตาม inventory: bastion ต่อด้วย public IP · เครื่องอื่นต่อด้วย private IP ผ่าน bastion เพราะ SG รับ SSH จาก bastion เท่านั้น)
 function ansConnect(inst) {
-  var cfg = ansCfg(), k = ansHeldKey(cfg.key);
-  if (!inst.publicIp) return { ok: false, msg: "Failed to connect to the host via ssh: ssh: Could not resolve hostname " + inst.name + ": Name or service not known" };
-  if (k.missing) return { ok: false, msg: "Failed to connect to the host via ssh: Warning: Identity file " + cfg.key + " not accessible: No such file or directory.\nubuntu@" + inst.publicIp + ": Permission denied (publickey)." };
-  var r = sshCheck(inst, k.keyName);
-  if (r.kind === "ok") return { ok: true };
-  return { ok: false, msg: "Failed to connect to the host via ssh: " + r.out };
+  var cfg = ansCfg(), k = ansHeldKey(cfg.key), viaBastion = ansTag(inst, "Role") !== "bastion", ip = viaBastion ? inst.privateIp : inst.publicIp;
+  if (!ip) return { ok: false, msg: "Failed to connect to the host via ssh: ssh: Could not resolve hostname " + inst.name + ": Name or service not known" };
+  if (k.missing) return { ok: false, msg: "Failed to connect to the host via ssh: Warning: Identity file " + cfg.key + " not accessible: No such file or directory.\nubuntu@" + ip + ": Permission denied (publickey)." };
+  if (!viaBastion) { var r = sshCheck(inst, k.keyName); return r.kind === "ok" ? { ok: true } : { ok: false, msg: "Failed to connect to the host via ssh: " + r.out }; }
+  var bs = (ansInventory().groups.role_bastion || [])[0];
+  if (!bs) return { ok: false, msg: "The error was: list object has no element 0 (group_vars/internal.yml ต้องใช้เครื่อง role_bastion แต่ inventory ไม่เจอ: bastion ยังไม่ถูกสร้าง หรือไม่มี tag Project/Role)" };
+  var rb = sshCheck(bs, k.keyName);
+  if (rb.kind !== "ok") return { ok: false, msg: "Failed to connect to the host via ssh: kex_exchange_identification: Connection closed by remote host\nConnection closed by UNKNOWN port 65535  (ต่อ bastion " + bs.publicIp + " ไม่ได้: " + rb.out + ")" };
+  if (!sgAllows(inst.sgIds, 22, { sgIds: bs.sgIds })) return { ok: false, msg: "Failed to connect to the host via ssh: channel 0: open failed: connect failed: Connection timed out\nstdio forwarding failed\nssh_exchange_identification: Connection closed by remote host  (SG ของ " + inst.name + " ไม่รับ SSH จาก SG ของ bastion)" };
+  if (!inst.keyName || inst.keyName !== k.keyName) return { ok: false, msg: "Failed to connect to the host via ssh: ubuntu@" + ip + ": Permission denied (publickey)." };
+  return { ok: true };
 }
 function ansVm(i) { S.vm = S.vm || {}; if (!S.vm[i.id]) S.vm[i.id] = { done: {}, f: {} }; return S.vm[i.id]; }
 function ansVars() {
@@ -114,9 +119,9 @@ function ansTask(inst, play, task, inv, vars, item) {
   if (/Write \/opt\/jenkins\/\.env/.test(n)) { if (!first("role_k8s_server")) return undef("list object has no element 0"); if (!first("role_sonarqube")) return undef("list object has no element 0"); }
   if (n === "Render base objects (namespace, DB service, DB secret)" && !(g.role_db || []).length) return undef("'galera_ips' is empty: no hosts in group role_db");
   // ลำดับ/เครือข่ายภายใน
-  if (n === "Install k3s agent and join the cluster" && !once) {
+  if (n === "Install k3s server and join the cluster" && !once) {
     var sv = first("role_k8s_server"); if (!sv || !ansVm(sv).f.k3s_token) return undef("'dict object' has no attribute 'k3s_token'");
-    if (!sgAllows(sv.sgIds, 6443, { sgIds: inst.sgIds })) return fail("non-zero return code: [ERROR] Failed to connect to https://" + sv.privateIp + ":6443/cacerts: dial tcp " + sv.privateIp + ":6443: i/o timeout (SG ของ server ไม่เปิด 6443 ให้ agent)");
+    if (!sgAllows(sv.sgIds, 6443, { sgIds: inst.sgIds })) return fail("non-zero return code: [ERROR] Failed to connect to https://" + sv.privateIp + ":6443/cacerts: dial tcp " + sv.privateIp + ":6443: i/o timeout (SG ของ k8s-1 ไม่เปิด 6443 ให้เครื่องที่จะเข้าร่วม)");
   }
   if (n === "Start MariaDB (joins the cluster and copies data)") {
     var d1 = first("role_db"), cl = d1 && ansVm(d1).f.cluster;
@@ -134,7 +139,7 @@ function ansTask(inst, play, task, inv, vars, item) {
     var dv = first("role_k8s_dev"); if (!dv) return undef("list object has no element 0"); if (!ansVm(dv).f.dev_token) return undef("'dict object' has no attribute 'dev_token'");
   }
   // สำเร็จ: บันทึกผลลง state ของเครื่อง
-  if (n === "Keep the token for the agent play") vm.f.k3s_token = 1;
+  if (n === "Keep the token for the join play") vm.f.k3s_token = 1;
   if (n === "Read the token" && isDev) vm.f.dev_token = 1;
   if (n === "Write marker file") vm.f.marker = 1;
   if (n === "Start a new cluster" || n === "Start MariaDB (joins the cluster and copies data)") vm.f.cluster = 1;

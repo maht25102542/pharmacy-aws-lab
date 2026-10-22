@@ -3,6 +3,7 @@
 #   - namespace ของ cluster นี้ (prd บน k8s-1, dev บน pharmacy-dev)
 #   - service ชื่อ galera ที่ชี้ออกไปยังเครื่องฐานข้อมูลนอก cluster
 #   - secret ชื่อ db-credentials ที่ backend ใช้ต่อฐานข้อมูล
+#   - secret ชื่อ app-secrets (SECRET_KEY ของ Django + รหัสแอดมินของเว็บ)
 {% for ns in namespaces %}
 ---
 apiVersion: v1
@@ -43,4 +44,13 @@ stringData:
   DB_NAME: pharmacy_{{ ns }}
   DB_USER: "{{ db_app_user }}"
   DB_PASSWORD: "{{ db_app_password }}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: {{ ns }}
+stringData:
+  DJANGO_SECRET_KEY: "{{ django_secret_key }}"
+  DJANGO_ADMIN_PASSWORD: "{{ django_admin_password }}"
 {% endfor %}

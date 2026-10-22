@@ -17,7 +17,8 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
 | `vm-sonarqube/` | VM `pharmacy-sonarqube` ที่ `/opt/sonarqube/` | `ansible/sonarqube.yml` |
 | `vm-k8s/` | VM `pharmacy-k8s-1` (หลาย path ดูใน `WHERE.md`) | `ansible/k8s.yml` |
 | `vm-db/` | VM `pharmacy-db-1`, `-2`, `-3` ที่ `/etc/mysql/mariadb.conf.d/` | `ansible/db.yml` |
-| `repo-app/` | GitHub repo `pharmacy-app` | คุณ `git push` |
+| `repo-backend/` | GitHub repo `pharmacy-backend` | คุณ `git push` |
+| `repo-frontend/` | GitHub repo `pharmacy-frontend` | คุณ `git push` |
 | `repo-manifests/` | GitHub repo `pharmacy-manifests` | คุณ `git push` ครั้งแรก จากนั้น Jenkins แก้ให้ |
 
 ทุกโฟลเดอร์ `vm-*` และ `repo-*` มีไฟล์ `WHERE.md` บอก path จริงของแต่ละไฟล์
@@ -43,7 +44,8 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
 ## Flow ทั้งหมด
 
 ```
-คุณ ──git push + ติด tag──▶ GitHub: pharmacy-app
+คุณ ──git push + ติด tag──▶ GitHub: pharmacy-backend / pharmacy-frontend
+                                  (คนละ repo คนละ job ใน Jenkins)
                                   │
 คุณ ──กด build ใน Jenkins──────────┤
                                   ▼
@@ -74,7 +76,8 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
 
 ### 1. สร้าง repo บน GitHub
 
-สร้าง repo เปล่า 2 อัน: `pharmacy-app` และ `pharmacy-manifests`
+สร้าง repo เปล่า 3 อัน: `pharmacy-backend`, `pharmacy-frontend` และ `pharmacy-manifests`
+(แยกโค้ด backend กับ frontend เป็นคนละ repo เหมือนทีมจริง แต่ละ repo มี Jenkinsfile กับเลข tag ของตัวเอง ส่วน manifests เป็น repo สำหรับ deploy ที่ Jenkins กับ ArgoCD ใช้ร่วมกัน)
 (ตั้ง `pharmacy-manifests` เป็น public จะง่ายสุด เพราะ ArgoCD อ่านได้เลย ในนั้นไม่มีรหัสผ่าน)
 
 แก้ `YOUR_GITHUB_USER` ในไฟล์ `repo-manifests/argocd-apps/apps.yaml` แล้ว push ทั้งสองโฟลเดอร์:
@@ -85,9 +88,15 @@ git init -b main && git add . && git commit -m "initial manifests"
 git remote add origin https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
 git push -u origin main
 
-cd ../repo-app
-git init -b main && git add . && git commit -m "initial app"
-git remote add origin https://github.com/YOUR_GITHUB_USER/pharmacy-app.git
+cd ../repo-backend
+git init -b main && git add . && git commit -m "initial backend"
+git remote add origin https://github.com/YOUR_GITHUB_USER/pharmacy-backend.git
+git push -u origin main
+git tag v1.0.0 && git push origin v1.0.0
+
+cd ../repo-frontend
+git init -b main && git add . && git commit -m "initial frontend"
+git remote add origin https://github.com/YOUR_GITHUB_USER/pharmacy-frontend.git
 git push -u origin main
 git tag v1.0.0 && git push origin v1.0.0
 ```
@@ -143,22 +152,29 @@ sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 | `sonar-token` | Secret text | token จาก SonarQube |
 | `argocd-admin` | Username with password | `admin` และรหัสผ่าน ArgoCD |
 
-สร้าง job: New Item > Pipeline > เลือก "Pipeline script from SCM" > Git >
-ใส่ URL ของ `pharmacy-app` เลือก credential `github-token` และ branch `*/main`
+สร้าง job **2 อัน** (ทำซ้ำทีละ repo): New Item > Pipeline > เลือก "Pipeline script from SCM" > Git >
 
-กด Build ครั้งแรกหนึ่งครั้งเพื่อให้ Jenkins อ่านรายการช่องติ๊กจาก Jenkinsfile (รอบนี้จะล้มเหลว ซึ่งปกติ)
+| ชื่อ job | Repository URL |
+|---|---|
+| `pharmacy-backend` | `https://github.com/YOUR_GITHUB_USER/pharmacy-backend.git` |
+| `pharmacy-frontend` | `https://github.com/YOUR_GITHUB_USER/pharmacy-frontend.git` |
+
+เลือก credential `github-token` และ branch `*/main` เหมือนกันทั้งคู่
+
+แต่ละ job กด Build ครั้งแรกหนึ่งครั้งเพื่อให้ Jenkins อ่านรายการช่องติ๊กจาก Jenkinsfile (รอบนี้จะล้มเหลว ซึ่งปกติ)
 รอบถัดไปปุ่มจะเปลี่ยนเป็น Build with Parameters และมีรายการ tag ให้เลือก
 
 ### 5. ปล่อยครั้งแรก
 
 ปล่อย **backend ก่อน** แล้วค่อย frontend (frontend ต้องเห็น service ของ backend ถึงจะเริ่มทำงานได้)
 
-1. `TARGET_ENV=dev`, `SERVICE=backend`, `VERSION=v1.0.0`, `ACTION=build-and-deploy`
-2. `TARGET_ENV=dev`, `SERVICE=frontend`, ค่าที่เหลือเหมือนกัน
-3. เปิด `site_dev` ดูผล
+1. job `pharmacy-backend`: `TARGET_ENV=dev`, `VERSION=v1.0.0`, `ACTION=build-and-deploy`
+   (ก่อนปล่อยทุกครั้ง ArgoCD รัน Job `backend-migrate` สร้าง/อัปเดตตารางในฐานข้อมูลให้ก่อน)
+2. job `pharmacy-frontend`: `TARGET_ENV=dev`, `VERSION=v1.0.0`, `ACTION=build-and-deploy`
+3. เปิด `site_dev` แล้วล็อกอินด้วย `admin` และรหัส `django_admin_password` ใน `ansible/group_vars/all/main.yml` (ครั้งแรกของ dev มียาตัวอย่างให้ ลองเพิ่มยา รับเข้า จ่ายออก ดูหน้า "ประวัติการเคลื่อนไหว")
 4. ปล่อย prd ด้วย `ACTION=deploy-only` เพื่อใช้ image ตัวเดียวกับที่ทดสอบใน dev แล้ว
    ลองทั้งแบบติ๊กและไม่ติ๊ก `AUTO_SYNC`
-5. เปิด `site_prd` แล้วกดรีเฟรชหลายครั้ง ช่อง "ตอบโดย" จะสลับไปมาระหว่าง backend 3 ตัว
+5. เปิด `site_prd` แล้วกดรีเฟรชหลายครั้ง ข้อความ "ตอบโดย backend pod" จะสลับไปมาระหว่าง backend 3 ตัว
 
 ### 6. ลบทุกอย่างเมื่อเลิกใช้
 

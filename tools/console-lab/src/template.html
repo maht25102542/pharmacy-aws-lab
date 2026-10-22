@@ -8,6 +8,7 @@
   --bar: #1f2d3d; --bar-fg: #e8eef5; --bar-muted: #9fb0c2;
   --accent: #2b6cb0; --accent-bg: #e3eefa; --accent-fg: #ffffff;
   --ok: #1b7448; --ok-bg: #dcf2e6; --bad: #b3261e; --bad-bg: #fbe3e1; --warn: #8a5a00; --warn-bg: #faebcd;
+  --cd-fg:#24292f;--cd-cm:#6e7781;--cd-str:#0a3069;--cd-kw:#cf222e;--cd-var:#116329;--cd-flag:#953800;--cd-num:#8250df;--cd-const:#0550ae;--cd-ln:#8c959f;
   --ctl: #f8fafc; --ctl-line: #aab6c4; --code-bg: #e9eef4; --hl: #fff1b8;
   --font: "IBM Plex Sans Thai", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
@@ -17,6 +18,7 @@
     --bar: #0a1118; --bar-fg: #e8eef5; --bar-muted: #8fa1b3;
     --accent: #6aa7ec; --accent-bg: #172a40; --accent-fg: #0b141c;
     --ok: #72d3a3; --ok-bg: #12301f; --bad: #ff8a80; --bad-bg: #3b1c1a; --warn: #f0b966; --warn-bg: #38280f;
+    --cd-fg:#e6edf3;--cd-cm:#8b949e;--cd-str:#a5d6ff;--cd-kw:#ff7b72;--cd-var:#7ee787;--cd-flag:#ffa657;--cd-num:#d2a8ff;--cd-const:#79c0ff;--cd-ln:#6e7681;
     --ctl: #0f1a24; --ctl-line: #3d4f60; --code-bg: #0b121a; --hl: #4a3f10;
     color-scheme: dark;
   }
@@ -26,6 +28,7 @@
   --bar: #0a1118; --bar-fg: #e8eef5; --bar-muted: #8fa1b3;
   --accent: #6aa7ec; --accent-bg: #172a40; --accent-fg: #0b141c;
   --ok: #72d3a3; --ok-bg: #12301f; --bad: #ff8a80; --bad-bg: #3b1c1a; --warn: #f0b966; --warn-bg: #38280f;
+  --cd-fg:#e6edf3;--cd-cm:#8b949e;--cd-str:#a5d6ff;--cd-kw:#ff7b72;--cd-var:#7ee787;--cd-flag:#ffa657;--cd-num:#d2a8ff;--cd-const:#79c0ff;--cd-ln:#6e7681;
   --ctl: #0f1a24; --ctl-line: #3d4f60; --code-bg: #0b121a; --hl: #4a3f10;
   color-scheme: dark;
 }
@@ -272,6 +275,166 @@ thead th { background: var(--code-bg, #fafafa); color: var(--muted, #414d5c); fo
 .hicons { display: flex; gap: 14px; align-items: center; color: #fff; } .hicons span { display: inline-flex; }
 .svcbtn { display: inline-flex; gap: 6px; align-items: center; }
 .ico { display: inline-flex; vertical-align: -3px; }
+
+/* ---- ช่องกรอก / dropdown / ปุ่ม (หน้าทั่วไปและแถบบน) ให้ดูทันสมัย: มุมโค้ง โฟกัสมีวงแสง hover เปลี่ยนสี · หน้า AWS มีกฎเฉพาะของตัวเองทับอีกชั้น */
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+.f input[type=text], .f textarea, .f select, .finder input, .labbar input[type=text] { border-radius: 10px; border: 1px solid var(--ctl-line); background: var(--ctl); padding: 8px 12px; transition: border-color .15s, box-shadow .15s; }
+.labbar input[type=text] { padding: 2px 9px; border-radius: 8px; }
+.f input[type=text]:hover, .f textarea:hover, .finder input:hover, .labbar input[type=text]:hover { border-color: var(--accent); }
+.f input[type=text]:focus, .f textarea:focus, .finder input:focus, .labbar input[type=text]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
+.csel { position: relative; display: inline-block; vertical-align: middle; max-width: 100%; }
+.csel.fill { display: block; width: 100%; }
+.csel > select { visibility: hidden; padding-right: 34px !important; min-width: 64px; }
+.labbar .csel > select { padding-right: 22px !important; }
+.csel-btn { position: absolute; inset: 0; width: 100%; display: block; text-align: left; padding: 0 34px 0 12px; background: var(--ctl); color: var(--fg); border: 1px solid var(--ctl-line); border-radius: 10px; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: inherit; transition: border-color .15s, box-shadow .15s, background .15s; }
+.csel-btn::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-70%) rotate(45deg); opacity: .6; transition: transform .18s; }
+.csel-btn[aria-expanded="true"]::after { transform: translateY(-30%) rotate(225deg); }
+.csel-btn.ph { color: var(--muted); }
+.csel-btn:hover:not(:disabled) { border-color: var(--accent); }
+.csel-btn:focus-visible, .csel-btn[aria-expanded="true"] { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
+.csel-btn:disabled { opacity: .55; cursor: not-allowed; }
+.labbar .csel-btn { border-radius: 8px; padding: 0 20px 0 8px; } .labbar .csel-btn::after { right: 8px; width: 6px; height: 6px; }
+.csel-list { position: fixed; z-index: 9999; background: var(--surface); color: var(--fg); border: 1px solid var(--ctl-line); border-radius: 12px; box-shadow: 0 14px 36px rgba(15,23,42,.24), 0 2px 6px rgba(15,23,42,.1); padding: 6px; overflow: auto; font: inherit; animation: cselIn .12s ease-out; }
+@keyframes cselIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.csel-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; line-height: 1.35; word-break: break-all; }
+.csel-opt .ck { margin-left: auto; color: var(--accent); font-weight: 700; }
+.csel-opt.act { background: var(--accent-bg); }
+.csel-opt.sel { font-weight: 600; color: var(--accent); }
+.csel-opt.ph { color: var(--muted); }
+.csel-opt.dis { opacity: .45; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .csel-list { animation: none; } .btn, .csel-btn, .csel-btn::after { transition: none; } }
+
+/* ---- ปุ่ม (สไตล์เดียวทั้ง Lab / Browser / Laptop): แบนเรียบ สูง 34px มุมโค้ง 10px · ปุ่มรองขอบบาง hover เติมสีอ่อน · ปุ่มหลัก .pri สีเน้นทึบ */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 6px 16px; font-weight: 600; line-height: 1.2; color: var(--fg); cursor: pointer; background: var(--surface); border: 1px solid var(--ctl-line); border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,.06); transition: background .15s, border-color .15s, color .15s, box-shadow .15s; }
+.btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+.btn:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); box-shadow: none; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.btn.pri { color: var(--accent-fg); background: var(--accent); border-color: var(--accent); box-shadow: 0 1px 2px rgba(16,24,40,.14); }
+.btn.pri:hover:not(:disabled) { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 86%, #000); border-color: color-mix(in srgb, var(--accent) 86%, #000); }
+.btn.pri:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 74%, #000); }
+.btn.sm { min-height: 28px; padding: 3px 12px; font-size: .86rem; border-radius: 8px; }
+.labbar button { border-radius: 8px; padding: 2px 12px; font-weight: 600; transition: border-color .15s, background .15s, color .15s; }
+.labbar button, .labbar .csel-btn, .labbar input[type=text] { background: var(--ctl, #fff); color: var(--fg, #16191f); border-color: var(--ctl-line, #aab7b8); }
+.labbar button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+/* ปุ่มหน้า AWS คงรูปทรง pill ของ Cloudscape ไว้ แต่เพิ่มการตอบสนองตอน hover/กด */
+:is(body[data-svc="VPC"],body[data-svc="EC2"],body[data-svc="IAM"],body[data-svc="ECR"]) .main .btn { min-height: 0; transition: background .15s, border-color .15s, color .15s, box-shadow .15s; }
+:is(body[data-svc="VPC"],body[data-svc="EC2"],body[data-svc="IAM"],body[data-svc="ECR"]) .main .btn:hover:not(:disabled) { box-shadow: 0 3px 10px rgba(9,114,211,.28); }
+:is(body[data-svc="VPC"],body[data-svc="EC2"],body[data-svc="IAM"],body[data-svc="ECR"]) .main .btn.pri:hover:not(:disabled) { box-shadow: 0 3px 10px rgba(236,114,17,.4); }
+@media (prefers-reduced-motion: reduce) { .btn, .labbar button { transition: none; } }
+/* ---- เมนูข้างของ Lab / Browser / Laptop: ไอคอนในกรอบ ปุ่มโค้งมน รายการที่เลือกมีแถบสีและไล่เฉด */
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav { padding: 18px 12px; background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 93%, var(--accent))); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav .grp { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; padding: 4px 12px 10px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav .grp::before { content: none; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button { display: flex; align-items: center; gap: 12px; width: 100%; margin: 3px 0; padding: 9px 12px; border: 1px solid transparent; border-radius: 14px; color: var(--fg); font-weight: 500; line-height: 1.3; text-align: left; position: relative; transition: background .15s, border-color .15s, transform .12s, box-shadow .15s; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button .ni { flex: none; width: 34px; height: 34px; display: inline-grid; place-items: center; font-size: 1.05rem; border-radius: 11px; background: var(--accent-bg); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); transition: background .15s, transform .15s; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:hover { background: color-mix(in srgb, var(--accent) 9%, transparent); transform: translateX(3px); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:hover .ni { transform: scale(1.08) rotate(-4deg); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button[aria-current="true"] { color: var(--accent); font-weight: 700; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 4%, transparent)); border-color: color-mix(in srgb, var(--accent) 30%, transparent); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 16%, transparent); border-left: 4px solid var(--accent); border-radius: 14px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button[aria-current="true"] .ni { background: var(--accent); border-color: transparent; box-shadow: 0 3px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.off { color: var(--muted); }
+
+/* ---- Lab / Browser / Laptop: ดีไซน์เดียวกันทั้งสามแท็บ (หัวเรื่อง การ์ด ตาราง รายการ แถบเครื่องมือ ช่องกรอก) ให้ดูสมดุลและเข้ากัน */
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --r-card: 16px; --sh-1: 0 1px 2px rgba(16,24,40,.05); --sh-2: 0 1px 3px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.05); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main { padding: 24px 32px 40px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) h1 { font-size: 1.7rem; font-weight: 750; letter-spacing: -.015em; margin: 2px 0 10px; line-height: 1.25; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) h2 { font-size: 1.15rem; font-weight: 700; margin: 22px 0 10px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .crumb { display: flex; align-items: center; font-size: .8rem; color: var(--muted); margin-bottom: 12px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .crumb a { text-decoration: none; font-weight: 600; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .crumb a:hover { text-decoration: underline; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .card { border-radius: var(--r-card); border: 1px solid var(--line); box-shadow: var(--sh-2); margin-bottom: 18px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .card > .cb { padding: 22px 26px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .cb > p:first-child { margin-top: 0; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .cb p { line-height: 1.7; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .sub, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .hint { color: var(--muted); line-height: 1.6; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) thead th { text-transform: uppercase; letter-spacing: .05em; font-size: .72rem; font-weight: 700; background: color-mix(in srgb, var(--surface) 93%, var(--accent)); border-bottom: 1px solid var(--line); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) th, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) td { padding: 11px 14px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) tbody tr:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .twrap { border: 1px solid var(--line); border-radius: 12px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk { gap: 2px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk li { grid-template-columns: 26px minmax(0, 1fr); padding: 7px 8px; border-radius: 10px; align-items: start; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk li:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk li.ok .m, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk li.no .m { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-size: .7rem; margin-top: 2px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk li.ok .m { background: var(--ok-bg); } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chk li.no .m { background: var(--bad-bg); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .prog { height: 10px; border-radius: 99px; margin: 10px 0 16px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .prog > i { background: linear-gradient(90deg, color-mix(in srgb, var(--ok) 70%, #fff), var(--ok)); border-radius: 99px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .tag { padding: 2px 10px; font-weight: 600; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen { max-width: none; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 16px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div { border-radius: 14px; padding: 16px 20px; border-left: 4px solid var(--accent); box-shadow: var(--sh-1); transition: box-shadow .15s, transform .15s; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div:hover { box-shadow: var(--sh-2); transform: translateY(-1px); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) details.fold.card > summary { font-size: 1.05rem; padding: 8px 2px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .termbar { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 18px; margin-bottom: 14px; box-shadow: var(--sh-1); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .termbar label { display: inline-flex; gap: 8px; align-items: center; font-size: .85rem; font-weight: 600; color: var(--muted); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) pre.term { border-radius: 14px; padding: 16px 20px; box-shadow: var(--sh-2); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .termrow { border-radius: 14px; padding: 10px 18px; margin-top: 10px; box-shadow: var(--sh-2); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 8px 6px 18px; box-shadow: var(--sh-1); margin: 8px 0 18px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .gl { font-size: 1.05rem; opacity: .75; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar > div:not(.csel) { flex: 1; min-width: 0; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .csel-btn { border: 0; background: transparent; box-shadow: none; border-radius: 999px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .csel-btn:hover, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .csel-btn[aria-expanded="true"] { background: var(--accent-bg); box-shadow: none; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .f, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .f > div { margin: 0; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .addrbar .btn { border-radius: 999px; padding: 6px 22px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .filewrap { gap: 18px; grid-template-columns: 280px 1fr; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .filelist { border-radius: 14px; border: 1px solid var(--line); padding: 8px; background: var(--surface); box-shadow: var(--sh-1); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .fbtn { padding: 6px 10px; border-radius: 8px; margin: 1px 0; transition: background .12s; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .fbtn:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .fbtn[aria-current="true"] { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) textarea#edtxt { border-radius: 14px; padding: 14px 16px; line-height: 1.6; border: 1px solid var(--line); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .tiles { gap: 14px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .tile { border-radius: 14px; padding: 14px 18px; box-shadow: var(--sh-1); }
+
+/* ---- ข้อความอ่านง่าย: แถวมีป้ายสี · ตัวหนาสีเน้น · ไฮไลต์เหลือง · ชิปโค้ด */
+.ic { display: grid; gap: 8px; margin: 0 0 16px; }
+.ic-row { --c: var(--accent); display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 14px; align-items: start; padding: 10px 16px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--c) 22%, transparent); border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 8%, var(--surface)); line-height: 1.65; }
+.ic-lb { font-weight: 700; font-size: .84rem; color: var(--c); padding-top: 1px; }
+@media (max-width: 640px) { .ic-row { grid-template-columns: 1fr; gap: 2px; } }
+.rb { font-weight: 700; color: var(--accent); }
+.rhl { background: linear-gradient(transparent 52%, color-mix(in srgb, #ffd54a 75%, transparent) 52%); color: inherit; padding: 0 3px; font-weight: 600; }
+.rch { font-family: var(--mono); font-size: .86em; padding: 1px 7px; border-radius: 6px; color: var(--accent); background: color-mix(in srgb, var(--accent) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); white-space: nowrap; }
+
+/* ---- หน้ากฎที่จำลอง: ชิปตัวกรอง · กลุ่มสีตามบริการ · ป้ายสถานะคงความกว้าง */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--ctl-line); background: var(--surface); color: var(--fg); font-weight: 600; font-size: .83rem; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chip .n { font-size: .74rem; opacity: .75; background: color-mix(in srgb, currentColor 14%, transparent); border-radius: 999px; padding: 0 7px; }
+.rg { --c: var(--accent); margin: 14px 0; border: 1px solid color-mix(in srgb, var(--c) 25%, var(--line)); border-left: 5px solid var(--c); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.rg-h { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: color-mix(in srgb, var(--c) 10%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--c) 22%, transparent); } .rg-h b { color: var(--c); font-size: 1rem; } .rg-h .n { font-size: .76rem; color: var(--muted); }
+.rg-r { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 14px; align-items: start; padding: 10px 16px; border-top: 1px solid var(--line); line-height: 1.65; } .rg-r:first-of-type { border-top: 0; } .rg-r:hover { background: color-mix(in srgb, var(--c) 5%, transparent); }
+.rg-b { display: inline-block; text-align: center; white-space: nowrap; padding: 2px 10px; border-radius: 999px; font-size: .76rem; font-weight: 700; } .rg-b.ok { background: var(--ok-bg); color: var(--ok); } .rg-b.no { background: var(--warn-bg); color: var(--warn); }
+@media (max-width: 640px) { .rg-r { grid-template-columns: 1fr; gap: 4px; } }
+
+/* ---- scrollbar บาง โค้งมน ปรับสีตามธีม (Firefox: scrollbar-width/color · Chrome/Edge/Safari: ::-webkit-scrollbar) */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted, #5a6b7d) 55%, transparent) transparent; }
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted, #5a6b7d) 40%, transparent); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; min-height: 36px; min-width: 36px; transition: background .15s; }
+*::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--accent, #2b6cb0) 70%, transparent); background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:active { background: var(--accent, #2b6cb0); background-clip: padding-box; }
+*::-webkit-scrollbar-corner { background: transparent; }
+html { scrollbar-gutter: stable; }
+pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); background-clip: padding-box; } pre.term::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.5); background-clip: padding-box; }
+
+/* ---- ขยาย/ยุบ: กลุ่มปุ่มติดกัน + หัวข้อพับได้แบบเดียวกันทุกที่ (ลูกศรในกรอบมน หมุนตอนเปิด) */
+.fbar { display: inline-flex; border: 1px solid var(--ctl-line); border-radius: 12px; overflow: hidden; background: var(--surface); box-shadow: 0 1px 2px rgba(16,24,40,.06); }
+.fbar button { display: inline-flex; align-items: center; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 16px 0 10px; white-space: nowrap; background: transparent; border: 0; font-weight: 600; font-size: .86rem; line-height: 1; color: var(--fg); cursor: pointer; transition: background .15s, color .15s; }
+.fbar button + button { border-left: 1px solid var(--ctl-line); }
+.fbar button:hover { background: var(--accent-bg); color: var(--accent); }
+.fbar button:active { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+.fbar button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+.fbar button::before { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; box-sizing: border-box; border-radius: 6px; font-size: 1rem; font-weight: 700; line-height: 1; padding-bottom: 2px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.fbar .ex::before { content: "+"; } .fbar .co::before { content: "−"; }
+.main details > summary { list-style: none; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: text; padding: 9px 8px; margin: 0 -8px; border-radius: 12px; transition: background .15s; }
+.main details > summary::-webkit-details-marker { display: none; }
+.main details > summary::before { content: "›"; flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-size: 1.15rem; font-weight: 700; line-height: 1; color: var(--accent); background: var(--accent-bg); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); transition: transform .18s, background .15s, color .15s; }
+.main details > summary:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.main details[open] > summary::before { transform: rotate(90deg); background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.main details > summary:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+@media (prefers-reduced-motion: reduce) { .main details > summary::before, .fbar button { transition: none; } }
+
+/* ---- ช่องกรอก (Lab / Browser / Laptop): ขนาดและหน้าตาเดียวกับ dropdown ใหม่ ทุกช่องสูง 38px มุม 10px ขอบเดียวกัน hover/โฟกัสเหมือนกัน */
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel > select { height: 38px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])):not(.termrow input), :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:not(#edtxt) { box-sizing: border-box; height: 38px; width: 100%; padding: 0 14px; font: inherit; color: var(--fg); background: var(--ctl); border: 1px solid var(--ctl-line); border-radius: 10px; box-shadow: none; transition: border-color .15s, box-shadow .15s, background .15s; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:not(#edtxt) { height: auto; min-height: 96px; padding: 10px 14px; line-height: 1.6; resize: vertical; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])):not(.termrow input)::placeholder, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea::placeholder { color: var(--muted); opacity: .75; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])):not(.termrow input):hover, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:not(#edtxt):hover { border-color: var(--accent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])):not(.termrow input):focus, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:not(#edtxt):focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])):not(.termrow input):disabled, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:disabled { opacity: .55; cursor: not-allowed; background: color-mix(in srgb, var(--ctl) 85%, var(--line)); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .addrbar input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])) { border: 0; background: transparent; box-shadow: none; height: 34px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .addrbar input:is([type=text],[type=search],[type=password],[type=number],[type=url],[type=email],:not([type])):focus { box-shadow: none; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn { height: 38px; }
+.labbar input[type=text] { height: 28px; box-sizing: border-box; }
+
+/* ---- พื้นที่ของหน้าเว็บจำลอง (Jenkins / SonarQube / ArgoCD / GitHub / แอป): ระยะห่างเท่าการ์ดหน้าอื่น เนื้อหาไม่ชิดขอบ */
+.bwin { padding: 30px 48px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 1px 3px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.05); overflow-x: auto; }
+.bwin > .card { margin: 0; }
 </style>
 
 <header class="top">

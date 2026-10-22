@@ -1,8 +1,9 @@
 # ไฟร์วอลล์ แยกตามบทบาทของเครื่อง
+# หลักคิด: อนุญาต "จาก SG ที่ต้องคุยกัน" ไม่ใช้ IP · เครื่องภายในไม่รับ SSH จากอินเทอร์เน็ต (เข้าผ่าน bastion เท่านั้น)
 
-# ใช้กับทุกเครื่อง: SSH จาก IP ของคุณ และออกอินเทอร์เน็ตได้
-resource "aws_security_group" "base" {
-  name   = "${var.project}-base"
+# bastion: ประตูเดียวที่รับ SSH จากอินเทอร์เน็ต (เฉพาะ IP ของคุณ)
+resource "aws_security_group" "bastion" {
+  name   = "${var.project}-bastion"
   vpc_id = aws_vpc.main.id
 
   ingress {
@@ -11,6 +12,27 @@ resource "aws_security_group" "base" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = [var.my_ip]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# ใช้กับทุกเครื่องภายใน (Jenkins, SonarQube, k8s, dev, db): SSH จาก bastion เท่านั้น และออกอินเทอร์เน็ตได้
+resource "aws_security_group" "base" {
+  name   = "${var.project}-base"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    description     = "SSH from bastion"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
   }
 
   egress {
@@ -37,6 +59,14 @@ resource "aws_security_group" "alb" {
     description = "dev: admin only"
     from_port   = 8080
     to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+
+  ingress {
+    description = "ArgoCD UI: admin only"
+    from_port   = 8443
+    to_port     = 8443
     protocol    = "tcp"
     cidr_blocks = [var.my_ip]
   }
@@ -88,7 +118,7 @@ resource "aws_security_group" "k8s" {
   vpc_id = aws_vpc.main.id
 
   ingress {
-    description = "Kubernetes nodes talk to each other"
+    description = "Kubernetes nodes talk to each other (API 6443, etcd, flannel)"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -104,11 +134,11 @@ resource "aws_security_group" "k8s" {
   }
 
   ingress {
-    description = "ArgoCD UI from admin"
-    from_port   = 30443
-    to_port     = 30443
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
+    description     = "ArgoCD UI (NodePort 30443) from ALB only"
+    from_port       = 30443
+    to_port         = 30443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
   }
 
   ingress {

@@ -1,0 +1,210 @@
+// ของจริงอยู่ที่: GitHub repo pharmacy-frontend (ไฟล์ชื่อ Jenkinsfile ที่ราก repo)
+// repo นี้มีแต่ frontend (อีกตัวคือ pharmacy-backend) Jenkins สร้าง job แยกต่อ repo: job ชื่อ pharmacy-frontend
+// ใครรัน: Jenkins บน VM pharmacy-jenkins
+//
+// ตัวแปรที่มาจากไฟล์ /opt/jenkins/.env บนเครื่อง Jenkins:
+//   ECR_REGISTRY, SONAR_HOST_URL, ARGOCD_SERVER, MANIFESTS_REPO
+// credentials ที่ต้องสร้างในหน้า Jenkins:
+//   github-token (Username with password), sonar-token (Secret text), argocd-admin (Username with password)
+//
+// ลำดับ: ตรวจค่า → ดึงโค้ดตาม tag → ทดสอบ → SonarQube → build → สแกนช่องโหว่ → push ECR → แก้ manifest → sync ArgoCD
+// หลักคิด: ล้มเร็ว (ทดสอบ/สแกนก่อน push) · image มี tag เดียวตาม VERSION ไม่เขียนทับ · ไม่มีรหัสผ่านใน Git
+
+pipeline {
+  agent any
+
+  options {
+    disableConcurrentBuilds()                              // job เดียวกันไม่รันซ้อนกัน
+    timeout(time: 30, unit: 'MINUTES')                     // ค้างเกิน 30 นาที = ล้มเหลว ไม่กินเครื่องไปเรื่อยๆ
+    buildDiscarder(logRotator(numToKeepStr: '30'))         // เก็บประวัติ build แค่ 30 ครั้งล่าสุด (ดิสก์ไม่เต็ม)
+  }
+
+  parameters {
+    choice(name: 'TARGET_ENV', choices: ['dev', 'prd'],
+           description: 'ปลายทาง (ค่าตั้งต้น: dev)')
+    gitParameter(name: 'VERSION', type: 'PT_TAG',
+           sortMode: 'DESCENDING_SMART', selectedValue: 'TOP',
+           description: 'เลือก tag เวอร์ชันจาก Git')
+    choice(name: 'ACTION', choices: ['build-and-deploy', 'deploy-only'],
+           description: 'deploy-only: ใช้ image ที่มีอยู่แล้ว (เอาตัวที่ทดสอบใน dev ขึ้น prd หรือย้อนเวอร์ชัน)')
+    booleanParam(name: 'AUTO_SYNC', defaultValue: false,
+           description: 'ให้ Jenkins สั่ง ArgoCD sync ทันที (ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD)')
+    string(name: 'CHANGE_NOTE', defaultValue: '',
+           description: 'เลข ticket หรือเหตุผล')
+  }
+
+  environment {
+    SERVICE = 'frontend'
+    IMAGE   = "${env.ECR_REGISTRY}/pharmacy/frontend:${params.VERSION}"
+    APP     = "pharmacy-frontend-${params.TARGET_ENV}"
+    DOCKER_BUILDKIT = '1'
+  }
+
+  stages {
+    stage('Validate') {
+      steps {
+        script {
+          if (!params.VERSION) {
+            error('ยังไม่ได้เลือก VERSION (ถ้ารายการว่าง ให้ติด tag ใน Git ก่อน แล้ว build อีกครั้ง)')
+          }
+          if (params.TARGET_ENV == 'prd' && !(params.VERSION ==~ /^v\d+\.\d+\.\d+$/)) {
+            error("prd รับเฉพาะ tag รูปแบบ v1.2.3 แต่ได้ '${params.VERSION}'")
+          }
+        }
+      }
+    }
+
+    stage('Confirm production') {
+      when { expression { params.TARGET_ENV == 'prd' } }
+      steps {
+        input message: "ปล่อย ${env.SERVICE} ${params.VERSION} ขึ้น PRD ใช่ไหม?", ok: 'ยืนยัน'
+      }
+    }
+
+    stage('Checkout version') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        checkout scmGit(
+          branches: [[name: "refs/tags/${params.VERSION}"]],
+          userRemoteConfigs: scm.userRemoteConfigs
+        )
+      }
+    }
+
+    stage('Test') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        // รันในกล่องชั่วคราว (--rm) ไม่ต้องลง Node บนเครื่อง Jenkins
+        // --volumes-from jenkins: Jenkins เองก็อยู่ใน container ต้องใช้ workspace เดียวกัน
+        // ลำดับ: ติดตั้งตาม lockfile (npm ci) → lint → ตรวจชนิด TypeScript → เทสต์ (ล้มอันไหนก็หยุด)
+        sh '''
+          docker run --rm --volumes-from jenkins -w "$WORKSPACE" node:22.12.0-alpine3.21 \
+            sh -c "npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test"
+        '''
+      }
+    }
+
+    stage('SonarQube scan') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+          sh '''
+            docker run --rm --user 0:0 --volumes-from jenkins -w "$WORKSPACE" \
+              -e SONAR_HOST_URL -e SONAR_TOKEN \
+              sonarsource/sonar-scanner-cli \
+              -Dsonar.projectVersion="$VERSION" \
+              -Dsonar.qualitygate.wait=true
+          '''
+        }
+      }
+    }
+
+    stage('Build image') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        // --pull: ดึง base image ล่าสุดทุกครั้ง (ได้แพตช์ความปลอดภัย) · label เก็บว่า image นี้มาจาก commit ไหน
+        sh '''
+          docker build --pull \
+            --build-arg APP_VERSION="$VERSION" \
+            --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
+            -t "$IMAGE" .
+        '''
+      }
+    }
+
+    stage('Scan image') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        // เจอช่องโหว่ระดับ HIGH/CRITICAL ที่มีตัวแก้แล้ว = ล้มเหลว ก่อนที่ image จะถูก push (ล้มเร็ว)
+        sh '''
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$IMAGE"
+        '''
+      }
+    }
+
+    stage('Push image') {
+      when { expression { params.ACTION == 'build-and-deploy' } }
+      steps {
+        // ไม่มี access key: Jenkins ขอรหัสผ่านชั่วคราวของ ECR ผ่าน IAM role ของเครื่อง (PowerUser)
+        sh '''
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+          docker push "$IMAGE"
+        '''
+      }
+    }
+
+    stage('Check image exists') {
+      when { expression { params.ACTION == 'deploy-only' } }
+      steps {
+        sh '''
+          aws ecr describe-images \
+            --repository-name "pharmacy/$SERVICE" \
+            --image-ids imageTag="$VERSION" > /dev/null
+        '''
+      }
+    }
+
+    stage('Update manifest') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'github-token',
+                         usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+          sh '''
+            rm -rf manifests
+            git clone "https://$GIT_USER:$GIT_TOKEN@$MANIFESTS_REPO" manifests
+            cd manifests
+
+            sed -i "s|image: .*|image: $IMAGE|" "$TARGET_ENV/$SERVICE/deployment.yaml"
+
+            git config user.name "jenkins"
+            git config user.email "jenkins@pharmacy.local"
+
+            if git diff --quiet; then
+              echo "manifest เป็นเวอร์ชันนี้อยู่แล้ว ไม่มีอะไรเปลี่ยน"
+            else
+              git commit -am "$SERVICE $VERSION -> $TARGET_ENV ($CHANGE_NOTE) [build $BUILD_NUMBER]"
+              # job ของ backend กับ frontend push repo เดียวกัน: ถ้าอีกตัวเพิ่ง push ให้ดึงมารวมแล้วลองใหม่ (สูงสุด 3 ครั้ง)
+              for i in 1 2 3; do
+                git pull --rebase origin main && git push origin main && break
+                sleep 5
+              done
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Sync ArgoCD') {
+      when { expression { params.AUTO_SYNC } }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'argocd-admin',
+                         usernameVariable: 'ARGO_USER', passwordVariable: 'ARGO_PASS')]) {
+          sh '''
+            argocd login "$ARGOCD_SERVER" --username "$ARGO_USER" --password "$ARGO_PASS" --insecure --grpc-web
+            argocd app sync "$APP" --timeout 300
+            argocd app wait "$APP" --health --timeout 300
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      // ลบของชั่วคราว: โฟลเดอร์ manifests (มี token ใน URL ตอน clone) และ node_modules และ image ในเครื่อง Jenkins (ดิสก์ไม่เต็ม)
+      sh 'rm -rf manifests node_modules; docker rmi "$IMAGE" > /dev/null 2>&1 || true'
+    }
+    success {
+      script {
+        if (params.AUTO_SYNC) {
+          echo "เสร็จแล้ว: ${env.APP} รันเวอร์ชัน ${params.VERSION} และผ่านการตรวจสุขภาพ"
+        } else {
+          echo "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป ${env.APP}"
+        }
+      }
+    }
+    failure {
+      echo "ล้มเหลวที่ขั้น ${env.STAGE_NAME ?: '(ไม่ทราบ)'}: ดู Console Output ด้านบน"
+    }
+  }
+}

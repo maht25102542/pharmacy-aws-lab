@@ -9,7 +9,7 @@ variable "region" {
 }
 
 variable "my_ip" {
-  description = "IP ของคุณ สำหรับ SSH และเปิดหน้า Jenkins/SonarQube/ArgoCD เช่น 1.2.3.4/32"
+  description = "IP ของคุณ สำหรับ SSH เข้า bastion และเปิดหน้า Jenkins/SonarQube/ArgoCD/dev เช่น 1.2.3.4/32"
   type        = string
 }
 
@@ -19,7 +19,7 @@ variable "public_key_path" {
 }
 
 variable "k8s_node_count" {
-  description = "จำนวนเครื่อง Kubernetes (เครื่องแรกเป็น server ที่เหลือเป็น agent)"
+  description = "จำนวนเครื่อง Kubernetes (ทุกเครื่องเป็น server แบบ HA: 3 เครื่อง = ทน 1 เครื่องล่ม วางคนละ AZ)"
   default     = 3
 }
 
@@ -32,6 +32,7 @@ variable "instance_types" {
   description = "ขนาดเครื่องของแต่ละบทบาท"
   type        = map(string)
   default = {
+    bastion   = "t3.micro"
     jenkins   = "t3.medium"
     sonarqube = "t3.medium"
     k8s       = "t3.medium"

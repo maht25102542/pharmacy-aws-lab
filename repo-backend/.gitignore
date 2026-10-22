@@ -1,0 +1,7 @@
+manifests/
+__pycache__/
+.pytest_cache/
+.scannerwork/
+db.sqlite3
+staticfiles/
+.env

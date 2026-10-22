@@ -1,4 +1,0 @@
-__pycache__/
-.pytest_cache/
-test_*.py
-requirements-dev.txt

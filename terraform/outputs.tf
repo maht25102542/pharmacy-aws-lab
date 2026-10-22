@@ -21,7 +21,12 @@ output "sonarqube_url" {
 }
 
 output "argocd_url" {
-  value = "https://${aws_instance.k8s[0].public_ip}:30443"
+  value = "http://${aws_lb.main.dns_name}:8443"
+}
+
+output "bastion_ip" {
+  description = "ประตูเข้าเครื่องภายใน: ssh -J ubuntu@<ค่านี้> ubuntu@<private IP>"
+  value       = aws_instance.bastion.public_ip
 }
 
 output "ecr_registry" {
@@ -29,13 +34,14 @@ output "ecr_registry" {
 }
 
 output "vm_list" {
-  description = "รายชื่อเครื่องทั้งหมดและ IP"
+  description = "รายชื่อเครื่องทั้งหมดและ IP (public = เข้าจากเน็ตได้, private = เข้าผ่าน bastion)"
   value = merge(
+    { (aws_instance.bastion.tags.Name) = aws_instance.bastion.public_ip },
     { (aws_instance.jenkins.tags.Name) = aws_instance.jenkins.public_ip },
     { (aws_instance.sonarqube.tags.Name) = aws_instance.sonarqube.public_ip },
-    { (aws_instance.dev.tags.Name) = aws_instance.dev.public_ip },
-    { for i in aws_instance.k8s : i.tags.Name => i.public_ip },
-    { for i in aws_instance.db : i.tags.Name => i.public_ip },
+    { (aws_instance.dev.tags.Name) = aws_instance.dev.private_ip },
+    { for i in aws_instance.k8s : i.tags.Name => i.private_ip },
+    { for i in aws_instance.db : i.tags.Name => i.private_ip },
   )
 }
 

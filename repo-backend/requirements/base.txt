@@ -1,0 +1,5 @@
+# ของจริงอยู่ที่: ราก repo pharmacy-backend / requirements/ — แพ็กเกจที่แอปต้องใช้ตอนรัน (ล็อกเวอร์ชันตายตัว)
+Django==5.2.18
+djangorestframework==3.18.3
+gunicorn==26.2.0
+whitenoise==6.12.0

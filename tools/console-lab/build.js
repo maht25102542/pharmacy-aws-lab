@@ -8,11 +8,11 @@ function walk(rel) {
   const abs = path.join(root, rel);
   fs.readdirSync(abs, { withFileTypes: true }).forEach((e) => {
     const r = rel + "/" + e.name;
-    if (e.isDirectory()) { if (!/^(\.terraform|node_modules)$/.test(e.name)) walk(r); }
-    else if (!/\.(tfstate|backup)$|^terraform\.tfvars$|^\.terraform\.lock\.hcl$|^terraform\.yml$/.test(e.name)) LABFILES[r] = fs.readFileSync(path.join(root, r), "utf8");
+    if (e.isDirectory()) { if (!/^(\.terraform|node_modules|\.next|__pycache__|staticfiles|\.pytest_cache)$/.test(e.name)) walk(r); }
+    else if (!/\.(tfstate|backup)$|^terraform\.tfvars$|^\.terraform\.lock\.hcl$|^package-lock\.json$|^db\.sqlite3$|^terraform\.yml$/.test(e.name)) LABFILES[r] = fs.readFileSync(path.join(root, r), "utf8");
   });
 }
-["terraform", "ansible", "repo-app", "repo-manifests"].concat(fs.readdirSync(root).filter((d) => /^vm-/.test(d))).forEach(walk);
+["terraform", "ansible", "repo-backend", "repo-frontend", "repo-manifests"].concat(fs.readdirSync(root).filter((d) => /^vm-/.test(d))).forEach(walk);
 const RESERVED = ["name", "when", "register", "loop", "block", "args", "until", "retries", "delay", "changed_when", "vars", "become", "tags", "ignore_errors"];
 function flatten(tasks, inherit, out) {
   (tasks || []).forEach((t) => {
@@ -33,7 +33,7 @@ const DATA = "var ITYPE_ALL = " + JSON.stringify(ITYPE_ALL) + ";\nvar LABFILES =
 const parts = [src("engine.js"), "// ---- generated data (build.js)\n" + DATA];
 const modDir = path.join(here, "src", "mod");
 fs.readdirSync(modDir).filter((f) => f.endsWith(".js")).sort().forEach((f) => parts.push("// ---- mod/" + f + "\n" + src("mod/" + f)));
-const html = src("template.html").replace("/*SCRIPT*/", () => parts.join("\n") + "\n//==UI==\n" + src("ui.js"));
+const html = src("template.html").replace("/*SCRIPT*/", () => parts.join("\n") + "\n//==UI==\n" + src("ui.js") + "\n" + src("ui-flow.js") + "\n" + src("ui-jenkins.js") + "\n" + src("ui-select.js") + "\n" + src("ui-ansible.js") + "\n" + src("ui-system.js"));
 const script = html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
 if (/<\/script/i.test(script)) throw new Error("build: </script> inside script source (split it, e.g. \"</scr\" + \"ipt>\")");
 fs.writeFileSync(path.join(here, "index.html"), html);
