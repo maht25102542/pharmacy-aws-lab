@@ -27,7 +27,7 @@
 | role pipeline ไม่มี `codestar-connections:UseConnection` | `Unable to use Connection: <arn>. The provided role does not have sufficient permissions.` | ตรง | ✅ หลายรายงานตรงกัน |
 | CodeBuild ไม่ privileged | log: `Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?` | ตรง | ✅ ข้อความมาตรฐาน Docker |
 | role CodeBuild ไม่มี ECR | `AccessDeniedException … ecr:GetAuthorizationToken` / `denied: … ecr:InitiateLayerUpload` | ตรง | ✅ รูปแบบ IAM มาตรฐาน |
-| imagedefinitions.json `name` ไม่ตรง container | Deploy ล้ม · เอกสาร: `name` ต้องตรงชื่อ container ใน task definition (case-sensitive) | `Unable to find container named 'app' in task definition …` | ❌ **ถ้อยคำจริงไม่ทราบ** ดู Details ใน console จริงแล้วแก้ |
+| imagedefinitions.json `name` ไม่ตรง container | Deploy ล้ม · เอกสาร: `name` ต้องตรงชื่อ container ใน task definition (case-sensitive) | `Unable to find container named 'app' in task definition …` + ต่อท้ายว่าข้อความนี้ตัวจำลองเขียนเอง | ❌ **ถ้อยคำจริงไม่ทราบ** ค้นเว็บ 3 รอบ (รวมแบบ extended) ไม่พบข้อความจริงในเอกสาร/ฟอรัมสาธารณะ ต้องดู Details ของ action ใน console จริงแล้วแก้ที่ `src/mod/44-cicd.js` (ค้นคำว่า "Unable to find container") |
 | ไม่มี iam:PassRole | `… is not authorized to perform: iam:PassRole on resource: arn:aws:iam::…:role/<execution role>` (เห็นชื่อ role ที่ต้อง pass) | ตรง | ✅ รูปแบบเดียวกับรายงาน ECS อื่น |
 | authorize connection นอก Terraform แล้ว plan | `Objects have changed outside of Terraform` (connection_status PENDING → AVAILABLE) | ตรง | ✅ พฤติกรรม Terraform |
 | ขั้น Approve | execution หยุดรอ · Review → Approve/Reject | ตรง | ✅ |
@@ -52,5 +52,7 @@
 | RDS single-AZ / Multi-AZ | ~6 / ~12 นาที (Creating: app ต่อ DB ไม่ได้) | ของจริง 5-20 นาที ขึ้นกับขนาด |
 | ECS service หลัง create/update | PENDING ~45 วินาที → health check รอบแรก ~30 วินาที | ขึ้นกับขนาด image |
 | CodePipeline ต่อขั้น | Source ~8 วินาที · Build ~100 วินาที · Deploy ECS ~80 วินาที | pipeline ผลคำนวณล่วงหน้าแต่เปิดเผยเมื่อครบเวลา (หน้ารีเฟรชเอง) |
+| EKS cluster / node group | Creating ~9 นาที / ~2.5 นาที (สร้าง node group ตอน cluster ยัง Creating = `ResourceInUseException … not in ACTIVE state` ⚠️ ถ้อยคำจากความจำ) | ของจริง cluster ~10-15 นาที |
+| CloudFront | Deploying ~4 นาทีหลังสร้าง/แก้ แล้วเป็น Deployed | ของจริงมัก 3-10 นาที |
 | terraform apply | EKS ~9 นาที · RDS ~6/13 นาที · CloudFront ~4 นาที · interface endpoint ~90 วินาที ฯลฯ | แสดง `Still creating…` ตามเวลา |
-ค่าที่ไม่ได้อยู่ในตาราง (EKS node, CloudFront deploy ฯลฯ ใน console) ยังไม่มีสถานะ transitional
+ที่ยังไม่มีสถานะ transitional: ACM (ออกใบรับรองหลังสร้าง CNAME), invalidation ของ CloudFront, การลบ resource (destroy ใช้เวลาเท่ากันหมด)

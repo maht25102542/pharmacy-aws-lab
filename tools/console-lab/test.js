@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -717,5 +717,15 @@ console.log("ok");
   assert(nx.stages[0].actions[0].status === "InProgress" && nx.cursor, "real: Source ยัง InProgress ทันทีหลังเริ่ม"); nx.cursor.until = 0; L.cdTick(pp2); assert(nx.stages[0].status === "Succeeded" && nx.stages[1].actions[0].status === "InProgress", "ครบเวลา Source → ไป Build");
   for (let i = 0; i < 4 && nx.cursor; i++) { nx.cursor.until = 0; L.cdTick(pp2); } assert(nx.stages[3].status === "Waiting" && !nx.cursor, "ไล่ครบ Source/Build/DeployDev จนถึงรออนุมัติ: " + JSON.stringify(nx.stages.map(s => s.status)));
   L.S.speed = "instant";
+}
+// ---- สถานะ transitional ของ EKS / node group / CloudFront (โหมดเหมือนจริง)
+{
+  L.buildManaged("managed"); L.S.speed = "real"; const ek = L.S.eks[0], ng = L.S.ngs[0];
+  ek.born = Date.now(); assert(L.eksPhase(ek) === "CREATING" && /not in ACTIVE state/.test(L.API.createNodegroup({ cluster: ek.name, name: "x2", roleArn: ng.roleArn, subnetIds: ng.subnetIds, desired: 1, min: 1, max: 1 }).errors.cluster), "cluster Creating: เพิ่ม node group ไม่ได้");
+  ek.born = Date.now() - 10 * 60000; assert(L.eksPhase(ek) === "ACTIVE", "EKS Active หลัง ~9 นาที");
+  ng.born = Date.now(); assert(L.ngPhase(ng) === "CREATING", "node group Creating"); ng.born = Date.now() - 3 * 60000; assert(L.ngPhase(ng) === "ACTIVE", "node group Active หลัง ~2.5 นาที");
+  L.buildStatic("static"); L.S.speed = "real"; const cf = L.S.cfds[0]; cf.touched = Date.now(); assert(L.cfPhase(cf) === "Deploying", "CloudFront Deploying");
+  L.API.updateCfd(cf.id, { comment: "x" }); assert(L.cfPhase(cf) === "Deploying", "แก้ค่า = Deploying อีกรอบ"); cf.touched = Date.now() - 5 * 60000; assert(L.cfPhase(cf) === "Deployed", "Deployed หลัง ~4 นาที");
+  L.S.speed = "instant"; assert(L.eksPhase({ born: Date.now() }) === "ACTIVE" && L.cfPhase({ touched: Date.now() }) === "Deployed", "โหมดทันที: ไม่มีสถานะรอ");
 }
 

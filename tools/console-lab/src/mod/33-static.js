@@ -97,7 +97,7 @@ API.createCfd = function (o) {
   }
   if (Object.keys(er).length) return { errors: er };
   var id = o.id || "E" + stAlnum(13, true);
-  var d = { id: id, domain: "d" + stAlnum(13) + ".cloudfront.net", comment: o.comment || "", origins: origins.map(function (x, i) { return { id: x.id || ("origin-" + (i + 1)), domain: x.domain, oacId: x.oacId || "" }; }), aliases: aliases, certArn: o.certArn || "", defaultRoot: o.defaultRoot || "", viewerProto: o.viewerProto || "redirect-to-https", priceClass: o.priceClass || "PriceClass_All", enabled: o.enabled !== false, cachePolicy: o.cachePolicy || "658327ea-f89d-4fab-a63d-7e88639e58f6", errorPages: (o.errorPages || []).slice(), invalidations: [], born: Date.now(), tagMap: {}, deployed: true };
+  var d = { id: id, domain: "d" + stAlnum(13) + ".cloudfront.net", comment: o.comment || "", origins: origins.map(function (x, i) { return { id: x.id || ("origin-" + (i + 1)), domain: x.domain, oacId: x.oacId || "" }; }), aliases: aliases, certArn: o.certArn || "", defaultRoot: o.defaultRoot || "", viewerProto: o.viewerProto || "redirect-to-https", priceClass: o.priceClass || "PriceClass_All", enabled: o.enabled !== false, cachePolicy: o.cachePolicy || "658327ea-f89d-4fab-a63d-7e88639e58f6", errorPages: (o.errorPages || []).slice(), invalidations: [], born: Date.now(), touched: Date.now(), tagMap: {}, deployed: true };
   S.cfds.push(d); return { res: d };
 };
 function cfdArn(d) { return "arn:aws:cloudfront::" + ACCOUNT + ":distribution/" + d.id; }
@@ -106,7 +106,7 @@ API.updateCfd = function (id, o) {
   var probe = API.createCfd({ id: id, origins: o.origins || d.origins, aliases: o.aliases || d.aliases, certArn: o.certArn !== undefined ? o.certArn : d.certArn });
   if (probe.errors) return probe; S.cfds = S.cfds.filter(function (x) { return x !== probe.res; });
   ["origins", "aliases", "certArn", "defaultRoot", "viewerProto", "priceClass", "enabled", "errorPages", "comment", "cachePolicy"].forEach(function (k) { if (o[k] !== undefined) d[k] = o[k]; });
-  return { res: d };
+  d.touched = Date.now(); return { res: d };
 };
 API.deleteCfd = function (id) {
   var d = S.cfds.filter(function (x) { return x.id === id; })[0]; if (!d) return E("_", "NoSuchDistribution: The specified distribution does not exist.");

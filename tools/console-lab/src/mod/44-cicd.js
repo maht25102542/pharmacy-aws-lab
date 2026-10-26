@@ -146,7 +146,7 @@ function cdEcsDeploy(p, ad, ex, role) {
   var pass = [td.execRole, td.taskRole].filter(Boolean).filter(function (rn) { return !iamCan(role, "iam:PassRole", "arn:aws:iam::" + ACCOUNT + ":role/" + String(rn).split("/").pop()); });
   if (pass.length) return { err: "Action failed: " + cdNotAuth(role, "iam:PassRole", "arn:aws:iam::" + ACCOUNT + ":role/" + String(pass[0]).split("/").pop(), sess) };
   var def = art.filter(function (x) { return td.containers.some(function (c) { return c.name === x.name; }); })[0];
-  if (!def) return { err: "Unable to find container named '" + (art[0] || {}).name + "' in task definition " + td.id + " (imagedefinitions.json ต้องใช้ชื่อ container เดิมของ task definition: " + td.containers.map(function (c) { return c.name; }).join(", ") + ")" };
+  if (!def) return { err: "Unable to find container named '" + (art[0] || {}).name + "' in task definition " + td.id + " (imagedefinitions.json ต้องใช้ชื่อ container เดิมของ task definition: " + td.containers.map(function (c) { return c.name; }).join(", ") + ") [ข้อความนี้ตัวจำลองเขียนเอง: ถ้อยคำจริงของ AWS ไม่ทราบ ดู Details ของ action]" };
   var cs = td.containers.map(function (c) { return Object.assign({}, c, { image: c.name === def.name ? def.imageUri : c.image, logGroup: c.logGroup }); });
   var nr = API.registerTd({ family: td.family, cpu: td.cpu, memory: td.memory, execRole: td.execRole, taskRole: td.taskRole, containers: cs }); if (nr.errors) return { err: "RegisterTaskDefinition failed: " + String(nr.errors[Object.keys(nr.errors)[0]]) };
   API.updateEcsService(cl, sn, { td: nr.res.id });

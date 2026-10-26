@@ -75,11 +75,11 @@ PAGES["bucket-policy"] = function () {
 };
 
 // ---------- CloudFront ----------
-function cfdStatus(d) { return d.enabled ? okIco("Deployed") : tagp("Disabled", "warn"); }
+function cfdStatus(d) { return !d.enabled ? tagp("Disabled", "warn") : cfPhase(d) === "Deployed" ? okIco("Deployed") : tagp("Deploying", "warn"); }
 LISTS.cfds = function () {
   return ({ key: "cfds", kind: "cfd", title: "Distributions", crumb: "CloudFront › Distributions", create: [{ label: "Create distribution", page: "cf-create" }],
     actions: [{ label: "Create invalidation", grp: "Actions", page: "cf-inv-create" }, { label: "Edit settings", grp: "Actions", page: "cf-edit" }, { label: "Disable", grp: "Actions", run: function (d) { d.enabled = false; return { res: true }; }, msg: "Disable แล้ว (ของจริงใช้เวลา deploy หลายนาที)", when: function (d) { return d.enabled; } }, { label: "Enable", grp: "Actions", run: function (d) { d.enabled = true; return { res: true }; }, msg: "Enable แล้ว", when: function (d) { return !d.enabled; } }, { label: "Delete", page: "del", kind: "cfd" }],
-    detail: function (d) { var cert = S.certs.filter(function (c) { return c.arn === d.certArn; })[0]; return [["Distribution domain name", d.domain], ["ARN", cfdArn(d)], ["Distribution ID", d.id], ["Description", d.comment || "-"], ["Last modified", stFmt(d.born)], ["Alternate domain names", d.aliases.length ? d.aliases.join(", ") : "- (ใช้ชื่อ *.cloudfront.net เท่านั้น)"], ["Custom SSL certificate", cert ? cert.names[0] + " (" + cert.region + ", " + acmStatus(cert) + ")" : "Default CloudFront certificate (*.cloudfront.net)"], ["Default root object", d.defaultRoot || "- (ไม่ตั้ง: เปิด / จะได้ 403)"], ["Price class", d.priceClass], ["Status", cfdStatus(d)]]; },
+    detail: function (d) { var cert = S.certs.filter(function (c) { return c.arn === d.certArn; })[0]; return [["Distribution domain name", d.domain], ["ARN", cfdArn(d)], ["Distribution ID", d.id], ["Description", d.comment || "-"], ["Last modified", cfPhase(d) === "Deployed" ? stFmt(d.touched || d.born) : "Deploying… (โหมดเหมือนจริง: ~4 นาที ถึงจะ Deployed ทุก edge)"], ["Alternate domain names", d.aliases.length ? d.aliases.join(", ") : "- (ใช้ชื่อ *.cloudfront.net เท่านั้น)"], ["Custom SSL certificate", cert ? cert.names[0] + " (" + cert.region + ", " + acmStatus(cert) + ")" : "Default CloudFront certificate (*.cloudfront.net)"], ["Default root object", d.defaultRoot || "- (ไม่ตั้ง: เปิด / จะได้ 403)"], ["Price class", d.priceClass], ["Status", cfdStatus(d)]]; },
     rows: function () { return S.cfds; },
     cols: [["ID", function (d) { return d.id; }], ["Description", function (d) { return d.comment || "-"; }], ["Domain name", function (d) { return d.domain; }], ["Alternate domain names", function (d) { return d.aliases.join(", ") || "-"; }], ["Origins", function (d) { return d.origins.map(function (o) { return o.domain; }).join(", "); }], ["Status", cfdStatus]] });
 };
@@ -260,7 +260,7 @@ function scenGroups(cb, sc, card) {
 }
 // ---------- Browser: เว็บที่ผ่าน CloudFront ----------
 function wbCloudFront(r) {
-  var q = r.req, card = h("div", { cls: "card" }), cb = h("div", { cls: "cb" }), steps = [];
+  var q = r.req, card = h("div", { cls: "card" }), cb = h("div", { cls: "cb" }), steps = [], dpl = S.cfds.filter(function (d) { return d.domain === r.host || d.aliases.indexOf(r.host) >= 0; })[0]; if (dpl && cfPhase(dpl) !== "Deployed") cb.appendChild(h("div", { cls: "alert info", text: "ⓘ distribution นี้ยัง Deploying (โหมดเหมือนจริง): การตั้งค่าใหม่ยังไม่ถึงทุก edge บาง request อาจยังได้ผลแบบเดิม" }));
   var dns = q.dns; if (dns) steps.push({ ok: dns.kind === "cloudfront", t: "DNS: " + r.host + " → CloudFront", d: dns.kind === "cloudfront" ? dns.chain.join(" ") : dns.why || "ไม่พบ" });
   if (q.err) {
     var cert = /CERT/.test(q.err);
