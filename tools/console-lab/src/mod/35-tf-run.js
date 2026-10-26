@@ -85,7 +85,7 @@ function tfRequireInit(out) {
 }
 // ---- หัวใจ: ประเมินทีละ resource ตามลำดับ แล้วตัดสินใจ create/update/replace/noop (plan) หรือลงมือจริง (apply)
 function tfExec(o) {
-  var P = o.prep, cfg = P.cfg, env = tfMakeEnv(cfg, P.vars), apply = o.mode === "apply", actions = [], errors = [], log = [], out = o.out;
+  var P = o.prep, cfg = P.cfg; S.tfCfg = cfg; var env = tfMakeEnv(cfg, P.vars), apply = o.mode === "apply", actions = [], errors = [], log = [], out = o.out;
   var order; try { order = tfOrder(cfg); } catch (e) { if (e.tfCycle) return { fail: tfFmtError("Cycle", "Cycle: " + e.tfCycle.join(", ")) }; throw e; }
   var pv = cfg.providers.aws, who0 = whoAmI();
   if (who0.err) return { fail: tfFmtError("Retrieving AWS account details", "validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: " + tfReqId() + ", api error " + who0.err + ": " + who0.msg + (who0.err === "NoCredentialProviders" ? "\nPlease see https://registry.terraform.io/providers/hashicorp/aws for more information about providing credentials." : ""), pv ? { file: pv.file, line: pv.line, ctx: "in provider \"aws\"", src: tfSrcLine(cfg, pv.file, pv.line) } : null) };
@@ -108,7 +108,12 @@ function tfExec(o) {
   for (var ni = 0; ni < order.length && !failed; ni++) {
     var node = order[ni];
     try {
-      if (node.kind === "data") { var dctx = env.baseCtx(node); var dattrs = tfEvalBody(node.body, dctx); env.data[node.addr] = tfReadData(node, env, dattrs); continue; }
+      if (node.kind === "data") {
+        var dl = tfInstances(node, env);
+        if (!dl.multi) { var dctx = env.baseCtx(node); var dattrs = tfEvalBody(node.body, dctx); env.data[node.addr] = tfReadData(node, env, dattrs); continue; }
+        var dmap = {}; dl.items.forEach(function (it0) { var c0 = env.baseCtx(node); if (dl.isCount) c0.count = { index: +it0.key }; else c0.each = { key: it0.key, value: it0.value }; dmap[it0.key] = tfReadData(node, env, tfEvalBody(node.body, c0)); });
+        env.data[node.addr] = tfMultiObj(dmap); continue;
+      }
       var instList = tfInstances(node, env), multi = instList.multi, isCount = instList.isCount, resMap = {};
       instList.items.forEach(function (it) { wanted[tfInstLabel(node, it.key, multi, isCount)] = 1; });
       for (var ii = 0; ii < instList.items.length && !failed; ii++) {
@@ -144,7 +149,7 @@ function tfExec(o) {
         var comp = cur ? cur.computed : {};
         if (act === "replace" && !apply) comp = {};
         var val = Object.assign({}, attrs); if (sc.args.indexOf("tags") >= 0) val.tags = attrs.tags;
-        Object.assign(val, comp); if (!cur || (act === "replace" && !apply) || (act === "create" && !apply)) val.__unknownAttrs = true;
+        Object.assign(val, comp); if (!cur || (act === "replace" && !apply) || (act === "create" && !apply)) { val.__unknownAttrs = true; if (TF_PROV[node.type] && TF_PROV[node.type].plan) Object.assign(val, TF_PROV[node.type].plan(attrs)); Object.keys(val).forEach(function (bk) { if (Array.isArray(val[bk])) val[bk] = val[bk].map(function (e) { return e && typeof e === "object" && !Array.isArray(e) ? Object.assign({}, e, { __unknownAttrs: true }) : e; }); }); }
         resMap[it.key] = val; actions.push(action);
       }
       env.res[node.addr] = { multi: multi, inst: multi ? resMap : { "": resMap[""] } };

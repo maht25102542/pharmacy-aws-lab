@@ -297,9 +297,11 @@ function tfReadData(node, env, attrs) {
     return { id: hit, name: AMIS.filter(function (a) { return a[0] === hit; })[0][1], owner_id: (attrs.owners || [])[0] || "" };
   }
   if (t === "aws_iam_policy_document") {
+    if (tfHasUnknown(attrs)) return { json: HCL_UNKNOWN, id: HCL_UNKNOWN };
     var stmts = (attrs.statement || []).map(function (s) {
-      var o = { Effect: s.effect || "Allow" }; if (s.actions) o.Action = s.actions.length === 1 ? s.actions[0] : s.actions; if (s.resources) o.Resource = s.resources.length === 1 ? s.resources[0] : s.resources;
+      var o = {}; if (s.sid) o.Sid = s.sid; o.Effect = s.effect || "Allow"; if (s.actions) o.Action = s.actions.length === 1 ? s.actions[0] : s.actions; if (s.resources) o.Resource = s.resources.length === 1 ? s.resources[0] : s.resources;
       if (s.principals) { o.Principal = {}; s.principals.forEach(function (p) { o.Principal[p.type] = (p.identifiers || []).length === 1 ? p.identifiers[0] : p.identifiers; }); }
+      if (s.condition) { o.Condition = {}; s.condition.forEach(function (c) { (o.Condition[c.test] = o.Condition[c.test] || {})[c.variable] = (c.values || []).length === 1 ? c.values[0] : c.values; }); }
       return o;
     });
     var json = JSON.stringify({ Version: attrs.version || "2012-10-17", Statement: stmts }, null, 2);

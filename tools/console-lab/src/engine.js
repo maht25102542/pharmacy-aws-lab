@@ -7,6 +7,9 @@ var POLICY_DEF = {
   AmazonEC2ContainerRegistryPowerUser: { desc: "Provides full access to Amazon EC2 Container Registry repositories, but does not allow repository deletion or policy changes.", actions: ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:GetRepositoryPolicy", "ecr:DescribeRepositories", "ecr:ListImages", "ecr:DescribeImages", "ecr:BatchGetImage", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:ListTagsForResource", "ecr:DescribeImageScanFindings", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"] },
   AmazonEC2ContainerRegistryReadOnly: { desc: "Provides read-only access to Amazon EC2 Container Registry repositories.", actions: ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:GetRepositoryPolicy", "ecr:DescribeRepositories", "ecr:ListImages", "ecr:DescribeImages", "ecr:BatchGetImage", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:ListTagsForResource", "ecr:DescribeImageScanFindings"] },
   AmazonSSMManagedInstanceCore: { desc: "The policy for Amazon EC2 Role to enable AWS Systems Manager service core functionality.", actions: ["ssm:DescribeAssociation", "ssm:GetDeployablePatchSnapshotForInstance", "ssm:GetDocument", "ssm:DescribeDocument", "ssm:GetManifest", "ssm:GetParameter", "ssm:GetParameters", "ssm:ListAssociations", "ssm:ListInstanceAssociations", "ssm:PutInventory", "ssm:PutComplianceItems", "ssm:PutConfigurePackageResult", "ssm:UpdateAssociationStatus", "ssm:UpdateInstanceAssociationStatus", "ssm:UpdateInstanceInformation", "ssmmessages:CreateControlChannel", "ssmmessages:CreateDataChannel", "ssmmessages:OpenControlChannel", "ssmmessages:OpenDataChannel", "ec2messages:AcknowledgeMessage", "ec2messages:DeleteMessage", "ec2messages:FailMessage", "ec2messages:GetEndpoint", "ec2messages:GetMessages", "ec2messages:SendReply"] },
+  AmazonEKSClusterPolicy: { desc: "This policy provides Kubernetes the permissions it requires to manage resources on your behalf.", actions: ["ec2:CreateNetworkInterface", "ec2:DescribeInstances", "elasticloadbalancing:*", "autoscaling:DescribeAutoScalingGroups"] },
+  AmazonEKSWorkerNodePolicy: { desc: "This policy allows Amazon EKS worker nodes to connect to Amazon EKS Clusters.", actions: ["ec2:DescribeInstances", "eks:DescribeCluster"] },
+  AmazonEKS_CNI_Policy: { desc: "This policy provides the Amazon VPC CNI Plugin (amazon-vpc-cni-k8s) the permissions it requires to modify the IP address configuration on your EKS worker nodes.", actions: ["ec2:AssignPrivateIpAddresses", "ec2:AttachNetworkInterface", "ec2:CreateNetworkInterface"] },
   AmazonS3ReadOnlyAccess: { desc: "Provides read only access to all buckets via the AWS Management Console. (คำอธิบายและเนื้อหายังไม่ได้ตรวจ)", actions: null },
   CloudWatchAgentServerPolicy: { desc: "Permissions required to use the CloudWatch agent on servers. (คำอธิบายและเนื้อหายังไม่ได้ตรวจ)", actions: null }
 };
@@ -65,7 +68,8 @@ function ensureState() {
   if (!S.nats) S.nats = [];
   if (!S.faults) S.faults = {};
   ghInit();
-  ["users", "eips", "policies"].forEach(function (k) { if (!S[k]) S[k] = []; });
+  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs"].forEach(function (k) { if (!S[k]) S[k] = []; });
+  if (!S.cfCache) S.cfCache = {};
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
   S.insts.forEach(function (i) { if (!i.volId) i.volId = rid("vol"); if (i.eipId === undefined) i.eipId = null; });
@@ -272,11 +276,11 @@ API.createKey = function (o) {
 API.createRole = function (o) {
   var n = o.name || "", er = {};
   if (o.entity !== "AWS service") er.entity = "จำลองเฉพาะ AWS service";
-  if (o.usecase !== "EC2") er.usecase = "จำลองเฉพาะ use case EC2";
+  if (o.usecase !== "EC2" && o.usecase !== "EKS") er.usecase = "จำลองเฉพาะ use case EC2 และ EKS";
   if (!n) er.name = "ต้องกรอก Role name"; else if (n.length > 64) er.name = "ยาวได้ไม่เกิน 64 ตัวอักษร"; else if (!/^[A-Za-z0-9+=,.@_-]+$/.test(n)) er.name = "ใช้ได้เฉพาะตัวอักษร ตัวเลข และ + = , . @ _ -";
   else if (S.roles.some(function (r) { return r.name.toLowerCase() === n.toLowerCase(); })) er.name = "มี role ชื่อนี้แล้ว (ชื่อซ้ำกันไม่ได้ แม้ต่างกันแค่ตัวพิมพ์ใหญ่เล็ก)";
   if (Object.keys(er).length) return { errors: er };
-  var r = { id: rid("role"), name: n, desc: o.desc || "", policies: (o.policies || []).slice(), profile: n }; S.roles.push(r); return { res: r };
+  var eksRole = o.usecase === "EKS", r = { id: rid("role"), name: n, desc: o.desc || "", policies: eksRole ? ["AmazonEKSClusterPolicy"] : (o.policies || []).slice(), profile: eksRole ? "" : n, trustSvc: eksRole ? "eks.amazonaws.com" : "ec2.amazonaws.com" }; S.roles.push(r); return { res: r };
 };
 API.createRepo = function (o) {
   var m = ecrName(o.name || ""); if (m) return E("name", m);
@@ -375,13 +379,13 @@ function sshCheck(inst, heldKey) {
   return { steps: steps, out: out, kind: timeout ? "timeout" : booting ? "refused" : (out.indexOf("Permission denied") >= 0 ? "denied" : "ok") };
 }
 function sessionCheck(inst) {
-  var steps = [], role = inst.profile ? S.roles.filter(function (r) { return r.profile === inst.profile; })[0] : null;
+  var steps = [], role = mgInstRole(inst);
   steps.push({ ok: inst.state === "running", t: "เครื่องกำลังรัน", d: inst.state });
   steps.push({ ok: !!role, t: "เครื่องผูก IAM instance profile", d: role ? role.name : "ไม่มี instance profile (Session Manager ต้องใช้ role)" });
   var pol = !!role && role.policies.indexOf("AmazonSSMManagedInstanceCore") >= 0;
   steps.push({ ok: pol, t: "role มีสิทธิ์ SSM (AmazonSSMManagedInstanceCore)", d: pol ? "มี" : "ไม่มี policy นี้ SSM Agent จะไม่ออนไลน์" });
   var net = internetOut(inst);
-  steps.push({ ok: net, t: "เครื่องออกไปหา SSM ได้ (ผ่าน internet gateway)", d: net ? "ได้" : "ออกอินเทอร์เน็ตไม่ได้ (ต้องมี public IP + เส้นทางออก + SG ขาออก หรือใช้ VPC endpoint ซึ่งไม่จำลอง)" });
+  steps.push({ ok: net, t: "เครื่องออกไปหา SSM ได้ (ผ่าน NAT gateway หรือ internet gateway)", d: net ? "ได้" : "ออกอินเทอร์เน็ตไม่ได้ (ต้องมี public IP + เส้นทางออก + SG ขาออก หรือใช้ VPC endpoint ซึ่งไม่จำลอง)" });
   var ok = steps.every(function (x) { return x.ok; });
   return { steps: steps, ok: ok, out: ok ? "Session started (Session Manager) ไม่ต้องเปิด port 22 และไม่ต้องมีกุญแจ" : "Your instance isn't connected to Session Manager (SSM Agent not online / ไม่มีสิทธิ์)" };
 }
@@ -603,7 +607,7 @@ function delPlan(kind, id) {
     P.title = "Release Elastic IP address (" + ep.ip + ")"; P.crumb = "EC2 › Elastic IPs › Release"; P.button = "Release"; P.done = "Release แล้ว";
     if (ep.instId) P.blockers.push("ยังผูกกับเครื่อง " + nm(find(S.insts, ep.instId)) + " ต้อง Disassociate ก่อน");
     P.note = "เอกสาร: Elastic IP คิดค่าใช้จ่ายทั้งตอนใช้งานและตอนว่าง (ไม่ผูกกับอะไร) ถ้าไม่ใช้แล้วให้ release";
-  } else return null;
+  } else if (!mgDelPlan(kind, id, P)) return null;
   return P;
 }
 function vname0(v) { return v.name || v.id; }
@@ -622,11 +626,14 @@ API.del = function (kind, id, word) {
   else if (kind === "inst") API.instState(id, "terminate");
   else if (kind === "repo") S.repos = S.repos.filter(function (x) { return x.id !== id; });
   else if (kind === "eip") S.eips = S.eips.filter(function (x) { return x.id !== id; });
+  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac)$/.test(kind)) return mgDelDo(kind, id);
   return { res: true };
 };
 
 // ---- lab checker (compares the console state with what the Terraform lab builds)
 function checks() {
+  if (isManagedLab()) return checksManaged();
+  if (isStaticLab()) return checksStatic();
   var out = [];
   function add(ok, label, hint) { out.push({ ok: !!ok, label: label, hint: hint || "" }); }
   var vpc = byName(S.vpcs, "pharmacy-vpc");
@@ -704,9 +711,25 @@ var HCL_INFO = {
   nat: [3, "NAT gateway", "ให้เครื่องใน private subnet ออกอินเทอร์เน็ตได้ (ขาเข้าจากเน็ตเข้าไม่ได้)", "VPC → NAT gateways → Create NAT gateway", "Subnet (public), Elastic IP, Internet gateway"],
   rtb: [4, "Route table", "ตารางเส้นทาง เช่น 0.0.0.0/0 → ออกประตู (IGW หรือ NAT)", "VPC → Route tables → Create route table → Edit routes", "VPC, Internet gateway / NAT gateway"],
   instance: [3, "EC2 instance", "เครื่อง VM จริง", "EC2 → Instances → Launch instances", "Subnet, Security group, Key pair, Instance profile"],
-  alb: [3, "Load balancer (ALB)", "ตัวกระจาย traffic เข้าหน้าเว็บ", "EC2 → Load Balancers → Create load balancer → Application Load Balancer", "Subnet (2 AZ), Security group"],
+  alb: [3, "Load balancer (ALB)", "ตัวกระจาย traffic เข้าหน้าเว็บ", "EC2 → Load Balancers → Create load balancer → Application Load Balancer", "Subnet (public ครบ 3 AZ), Security group"],
   rtba: [5, "ผูก subnet กับ route table", "บอกว่าซอยไหนใช้ตารางเส้นทางไหน (ลืมแล้ว timeout)", "VPC → Route tables → เลือกตาราง → Subnet associations → Edit subnet associations", "Route table, Subnet"],
   tgatt: [5, "ลงทะเบียนเครื่องใน target group", "ระบุว่าเครื่องไหน port ไหนรับ traffic", "EC2 → Target Groups → เลือกกลุ่ม → Register targets", "Target group, EC2 instance"],
+  s3: [1, "S3 bucket", "ที่เก็บไฟล์เว็บ (ส่วนตัว) · ชื่อต้องไม่ซ้ำทั้งโลก", "S3 › Buckets › Create bucket", ""],
+  pab: [2, "Block public access", "ปิดไม่ให้ใครเปิด bucket เป็นสาธารณะโดยไม่ตั้งใจ", "S3 › bucket › Permissions › Block public access", "S3 bucket"],
+  obj: [3, "ไฟล์ใน bucket", "index.html และไฟล์เว็บ (ของจริง aws s3 sync จากขั้น build)", "S3 › bucket › Objects › Upload", "S3 bucket"],
+  oac: [1, "Origin access control (OAC)", "ใบอนุญาตให้ CloudFront เซ็นคำขอไปอ่าน S3 ส่วนตัว", "CloudFront › Origin access › Create control setting", ""],
+  zone: [1, "Route 53 hosted zone", "โซน DNS ของโดเมน", "Route 53 › Hosted zones › Create hosted zone", ""],
+  cert: [1, "ACM certificate", "ใบรับรอง HTTPS ฟรี (CloudFront ต้องอยู่ us-east-1)", "ACM › Request certificate", ""],
+  certrec: [3, "CNAME ตรวจสอบใบรับรอง", "พิสูจน์ว่าเราเป็นเจ้าของโดเมน", "ACM › เลือกใบรับรอง › Create records in Route 53", "Route 53 zone, ACM certificate"],
+  certval: [4, "รอใบรับรอง Issued", "ไม่รอ = CloudFront ใช้ใบรับรองที่ยังไม่ Issued ไม่ได้", "ACM › Certificates › Status = Issued", "CNAME ตรวจสอบ"],
+  cfd: [5, "CloudFront distribution", "CDN: แคชหน้าเว็บใกล้ผู้ใช้ + HTTPS + โดเมนของเรา", "CloudFront › Distributions › Create distribution", "S3 bucket, OAC, ใบรับรอง (Issued)"],
+  s3pol: [6, "Bucket policy", "อนุญาตเฉพาะ CloudFront ตัวนี้อ่านไฟล์ (AWS:SourceArn)", "S3 › bucket › Permissions › Bucket policy", "CloudFront distribution"],
+  r53: [6, "Route 53 record (alias)", "ให้ชื่อเว็บชี้ไปที่ CloudFront", "Route 53 › Hosted zones › Create record", "Route 53 zone, CloudFront distribution"],
+  eks: [4, "EKS cluster", "Kubernetes แบบ managed: AWS ดูแล control plane (API server, etcd) ให้", "EKS → Clusters → Create cluster", "Subnet (private ครบ 3 AZ), IAM role (EKS cluster), NAT gateway"],
+  dbsg: [3, "DB subnet group", "บอก RDS ว่าวาง DB ในซอยไหนได้บ้าง (ต้องครอบ ≥ 2 AZ)", "RDS → Subnet groups → Create DB subnet group", "Subnet (private)"],
+  ng: [5, "EKS node group", "เครื่อง worker ของ cluster (Auto Scaling group) กระจายคนละ AZ", "EKS → Clusters → เลือก cluster → Compute → Add node group", "EKS cluster, IAM role (node), Subnet, NAT / Route table"],
+  rds: [5, "RDS database", "ฐานข้อมูลแบบ managed: Multi-AZ มี standby คนละ AZ ให้ + backup", "RDS → Databases → Create database", "DB subnet group, Security group"],
+  asgatt: [6, "ผูก ASG กับ target group", "node ใหม่ของ node group ลงทะเบียนเข้า ALB เอง", "EC2 → Auto Scaling Groups → Integrations → Load balancing", "EKS node group, Target group"],
   listener: [5, "Listener", "ALB ฟัง port ไหนแล้วส่งไป target group ไหน", "EC2 → Load Balancers → Create → ส่วน Listeners and routing", "Load balancer, Target group"]
 };
 function hcm(k, what) { var d = HCL_INFO[k]; return "# ── ขั้นที่ " + d[0] + " │ " + d[1] + (what ? " : " + what : "") + "\n# คืออะไร: " + d[2] + "\n# กดที่: " + d[3] + (d[4] ? "\n# ต้องมีก่อน: " + d[4] : "") + "\n"; }
@@ -721,7 +744,7 @@ function hcl() {
   var rt = S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }); reg(rt, "aws_route_table");
   var sg = S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }); reg(sg, "aws_security_group");
   reg(S.keys, "aws_key_pair"); reg(S.roles, "aws_iam_role"); reg(S.repos, "aws_ecr_repository");
-  var is = liveInsts(); is.forEach(function (i, ix) { map[i.id] = "aws_instance." + slug((i.name || "instance") + (is.filter(function (j) { return j.name === i.name; }).length > 1 ? "_" + (ix + 1) : "")); });
+  var is = liveInsts().filter(function (i) { return !i.nodeRole; }); is.forEach(function (i, ix) { map[i.id] = "aws_instance." + slug((i.name || "instance") + (is.filter(function (j) { return j.name === i.name; }).length > 1 ? "_" + (ix + 1) : "")); });
   reg(S.tgs, "aws_lb_target_group"); reg(S.albs, "aws_lb");
   function ref(id, attr) { return map[id] ? map[id] + "." + (attr || "id") : '"' + id + '"'; }
   function tags(t) { var a = t.filter(function (x) { return x.k; }); return a.length ? "  tags = { " + a.map(function (x) { return x.k + ' = "' + x.v + '"'; }).join(", ") + " }\n" : ""; }
@@ -744,9 +767,9 @@ function hcl() {
   });
   S.keys.forEach(function (k) {  if (k.imported) o.push(hcm("key", k.name) + 'resource "aws_key_pair" "' + slug(k.name) + '" {\n  key_name   = "' + k.name + '"\n  public_key = file("~/.ssh/' + k.name + '.pub")\n}'); });
   S.roles.forEach(function (r) {
-    o.push(hcm("role", r.name) + 'resource "aws_iam_role" "' + slug(r.name) + '" {\n  name               = "' + r.name + '"\n  assume_role_policy = data.aws_iam_policy_document.ec2_assume.json   # console เขียน trust policy ให้เอง ต้องเขียนเองใน Terraform\n}');
+    o.push(hcm("role", r.name) + 'resource "aws_iam_role" "' + slug(r.name) + '" {\n  name               = "' + r.name + '"\n  assume_role_policy = data.aws_iam_policy_document.' + (r.trustSvc === "eks.amazonaws.com" ? "eks" : "ec2") + '_assume.json   # console เขียน trust policy ให้เอง ต้องเขียนเองใน Terraform\n}');
      r.policies.forEach(function (p) { o.push(hcm("attach", p) + 'resource "aws_iam_role_policy_attachment" "' + slug(r.name + "_" + p) + '" {\n  role       = ' + ref(r.id, "name") + '\n  policy_arn = "arn:aws:iam::aws:policy/' + p + '"\n}'); });
-    o.push(hcm("profile", r.name) + 'resource "aws_iam_instance_profile" "' + slug(r.name) + '" {\n  name = "' + r.name + '"\n  role = ' + ref(r.id, "name") + "\n}");
+    if (r.profile) o.push(hcm("profile", r.name) + 'resource "aws_iam_instance_profile" "' + slug(r.name) + '" {\n  name = "' + r.name + '"\n  role = ' + ref(r.id, "name") + "\n}");
   });
    S.repos.forEach(function (r) { o.push(hcm("ecr", r.name) + 'resource "aws_ecr_repository" "' + slug(r.name) + '" {\n  name = "' + r.name + '"\n}'); });
   is.forEach(function (i) {
@@ -754,12 +777,13 @@ function hcl() {
   });
   S.tgs.forEach(function (t) {
     o.push(hcm("tg", t.name) + 'resource "aws_lb_target_group" "' + slug(t.name) + '" {\n  port     = ' + t.port + '\n  protocol = "' + t.proto + '"\n  vpc_id   = ' + ref(t.vpcId) + '\n  health_check { path = "' + t.hcPath + '" }\n}');
-     t.targets.forEach(function (x) { o.push(hcm("tgatt", t.name + " ← " + ((find(S.insts, x.instId) || {}).name || "")) + 'resource "aws_lb_target_group_attachment" "' + slug(t.name + "_" + (find(S.insts, x.instId) || {}).name) + '" {\n  target_group_arn = ' + ref(t.id, "arn") + "\n  target_id        = " + ref(x.instId) + "\n  port             = " + x.port + "\n}"); });
+     t.targets.filter(function (x) { return !(find(S.insts, x.instId) || {}).nodeRole; }).forEach(function (x) { o.push(hcm("tgatt", t.name + " ← " + ((find(S.insts, x.instId) || {}).name || "")) + 'resource "aws_lb_target_group_attachment" "' + slug(t.name + "_" + (find(S.insts, x.instId) || {}).name) + '" {\n  target_group_arn = ' + ref(t.id, "arn") + "\n  target_id        = " + ref(x.instId) + "\n  port             = " + x.port + "\n}"); });
   });
   S.albs.forEach(function (a) {
     o.push(hcm("alb", a.name) + 'resource "aws_lb" "' + slug(a.name) + '" {\n  name               = "' + a.name + '"\n  load_balancer_type = "application"\n  internal           = ' + (a.scheme === "Internal") + "\n  security_groups    = [" + a.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n  subnets            = [" + a.subnetIds.map(function (id) { return ref(id); }).join(", ") + "]\n}");
      a.listeners.forEach(function (l) { o.push(hcm("listener", a.name + ":" + l.port) + 'resource "aws_lb_listener" "' + slug(a.name + "_" + l.port) + '" {\n  load_balancer_arn = ' + ref(a.id, "arn") + "\n  port              = " + l.port + '\n  protocol          = "HTTP"\n  default_action {\n    type             = "forward"\n    target_group_arn = ' + ref(l.tgId, "arn") + "\n  }\n}"); });
   });
+  mgHcl(o, ref, map); stHcl(o, ref);
   return o.length ? "# อ่านยังไง: แต่ละก้อนมีป้าย \"ขั้นที่ N\" = ลำดับที่ Terraform สร้าง (เลขเท่ากันสร้างพร้อมกันได้)\n# \"กดที่\" = เมนูใน console ที่ทำสิ่งเดียวกัน · \"ต้องมีก่อน\" = อ้างถึงอะไร (เลื่อนดูแผนภาพด้านบนของหน้านี้)\n\n" + o.join("\n\n") : "# ยังไม่มีอะไรให้แปลง ลองสร้าง VPC หรือกดโหลดตัวอย่างในแท็บ 'ตัวอย่างสำเร็จรูป'";
 }
 
@@ -887,12 +911,21 @@ function hclPlan() {
   S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }).forEach(function (g) { add("sg", g.name); });
   S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }).forEach(function (r) { add("rtb", r.name || r.id); r.assoc.forEach(function (sid) { add("rtba", nm(r) + "↔" + nm(find(S.subnets, sid))); }); });
   S.keys.forEach(function (k) { if (k.imported) add("key", k.name); });
-  S.roles.forEach(function (r) { add("role", r.name); add("profile", r.name); r.policies.forEach(function (p) { add("attach", p); }); });
+  S.roles.forEach(function (r) { add("role", r.name); if (r.profile) add("profile", r.name); r.policies.forEach(function (p) { add("attach", p); }); });
   S.repos.forEach(function (r) { add("ecr", r.name); });
-  liveInsts().forEach(function (i) { add("instance", i.name || i.id); });
-  S.tgs.forEach(function (t) { add("tg", t.name); t.targets.forEach(function (x) { add("tgatt", t.name + "←" + ((find(S.insts, x.instId) || {}).name || "")); }); });
+  liveInsts().filter(function (i) { return !i.nodeRole; }).forEach(function (i) { add("instance", i.name || i.id); });
+  S.tgs.forEach(function (t) { add("tg", t.name); t.targets.filter(function (x) { return !(find(S.insts, x.instId) || {}).nodeRole; }).forEach(function (x) { add("tgatt", t.name + "←" + ((find(S.insts, x.instId) || {}).name || "")); }); });
   S.albs.forEach(function (a) { add("alb", a.name); a.listeners.forEach(function (l) { add("listener", ":" + l.port); }); });
-  var layers = [[], [], [], [], []];
+  S.dbsg.forEach(function (g) { add("dbsg", g.name); });
+  S.eks.forEach(function (c) { add("eks", c.name); });
+  S.ngs.forEach(function (g) { add("ng", g.cluster + "/" + g.name); });
+  S.rds.forEach(function (r) { add("rds", r.id); });
+  S.asgs.forEach(function (a) { a.tgArns.forEach(function (arn) { add("asgatt", a.ng + " → " + ((byArnTg(arn) || {}).name || "")); }); });
+  S.buckets.forEach(function (b) { add("s3", b.name); add("pab", b.name); b.objects.forEach(function (x) { add("obj", b.name + "/" + x.key); }); if (b.policy) add("s3pol", b.name); });
+  S.oacs.forEach(function (a) { add("oac", a.name); }); S.zones.forEach(function (z) { add("zone", z.name); z.records.filter(function (r) { return r.alias; }).forEach(function (r) { add("r53", r.name); }); });
+  S.certs.forEach(function (c) { add("cert", c.names[0]); c.records.forEach(function (r) { add("certrec", r.name); }); add("certval", c.names[0]); }); S.cfds.forEach(function (d) { add("cfd", d.comment || d.id); });
+  var layers = [[], [], [], [], [], [], []];
   Object.keys(acc).forEach(function (k) { var d = HCL_INFO[k]; layers[d[0] - 1].push({ key: k, label: d[1], names: acc[k], needs: d[4], where: d[3] }); });
+  while (layers.length > 5 && !layers[layers.length - 1].length) layers.pop(); // แบบ managed มี 6 ขั้น แบบ VM มี 5
   return layers;
 }

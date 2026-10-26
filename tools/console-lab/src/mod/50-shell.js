@@ -16,10 +16,11 @@ function shTerraform(a) {
   var sub = a[0], dir = S.laptop.cwd, cli = {}, auto = false, rest = [];
   for (var i = 1; i < a.length; i++) { if (a[i] === "-auto-approve") auto = true; else if (a[i] === "-var" && a[i + 1]) { var kv = a[++i].split("="); cli[kv[0]] = kv.slice(1).join("="); } else if (/^-var=/.test(a[i])) { var kv2 = a[i].slice(5).split("="); cli[kv2[0]] = kv2.slice(1).join("="); } else rest.push(a[i]); }
   if (!sub) return { lines: ["Usage: terraform [global options] <subcommand> [args]", "", "  init, validate, plan, apply, destroy, output, state"] };
+  tfUseDir(dir);
   if (sub === "init") return { lines: tfInitCmd(dir, a.indexOf("-upgrade") >= 0) };
   if (sub === "validate") return { lines: tfValidateCmd(dir) };
   // state เก็บในโฟลเดอร์ที่ terraform รัน (terraform.tfstate): อยู่นอกโฟลเดอร์ที่มี .tf จึงไม่เจอ state
-  var hasState = dir === REPO + "/terraform";
+  var hasState = tfIsDir(dir);
   if (sub === "output") return { lines: hasState ? tfOutputCmd(rest[0]) : ["╷", "│ Warning: No outputs found", "│ ", "│ The state file either has no outputs defined, or all the defined outputs are empty. Please define an output in your configuration with the `output` keyword and run `terraform refresh` for it to become available. If you are using interpolation, please verify the interpolated value is available.", "╵"] };
   if (sub === "state") return { lines: !hasState ? ["No state file was found!", "", "State management commands require a state file. Run this command", "in a directory where Terraform has been run or use the -state flag", "to point the command to a specific state location."] : rest[0] === "list" ? tfStateList() : rest[0] === "show" ? tfStateShow(rest[1] || "") : ["Usage: terraform state <list|show>"] };
   if (sub !== "plan" && sub !== "apply" && sub !== "destroy") return { lines: ["Terraform has no command named \"" + sub + "\"."] };
@@ -54,7 +55,8 @@ function shAws(a) {
   }
   if (op === "ec2 describe-instances") return need("ec2:DescribeInstances", "DescribeInstances", function () { return ["{", '    "Reservations": [', S.insts.filter(function (i) { return i.state !== "terminated"; }).map(function (i) { return '        { "InstanceId": "' + i.id + '", "Name": "' + i.name + '", "State": "' + i.state + '", "PublicIp": "' + (i.publicIp || "") + '", "PrivateIp": "' + i.privateIp + '" }'; }).join(",\n"), "    ]", "}"]; });
   if (op === "ecr describe-repositories") return need("ecr:DescribeRepositories", "DescribeRepositories", function () { return ["{", '    "repositories": [', S.repos.map(function (r) { return '        { "repositoryName": "' + r.name + '" }'; }).join(",\n"), "    ]", "}"]; });
-  return { lines: ["aws: คำสั่งนี้ยังไม่จำลอง (มี: configure, sts get-caller-identity, ec2 describe-instances, ecr describe-repositories)"] };
+  var mg = shAwsManaged(a, w, need); if (mg) return mg;
+  return { lines: ["aws: คำสั่งนี้ยังไม่จำลอง (มี: configure, sts get-caller-identity, ec2 describe-instances, ecr describe-repositories, eks update-kubeconfig / list-clusters, ssm start-session, rds describe-db-instances, secretsmanager get-secret-value) · kubectl get nodes / pods / ns"] };
 }
 function shSsh(a) {
   var key = null, tgt = null, jump = null; for (var i = 0; i < a.length; i++) { if (a[i] === "-i") key = a[++i]; else if (a[i] === "-J") jump = a[++i]; else if (a[i][0] !== "-") tgt = a[i]; }
@@ -85,7 +87,7 @@ function shRun(line) {
   if (c === "help") return { lines: SH_HELP };
   if (c === "clear") return { lines: [], clear: true };
   if (c === "pwd") return { lines: [L.cwd] };
-  if (c === "echo") return { lines: [a.join(" ")] };
+  if (c === "echo") { var ri = a.indexOf(">") >= 0 ? a.indexOf(">") : a.indexOf(">>"); if (ri >= 0 && a[ri + 1]) { var rt = a.slice(0, ri).join(" ") + "\n", pth = a[ri + 1]; fsWrite(pth, a[ri] === ">>" ? (fsRead(pth) || "") + rt : rt); return { lines: [] }; } return { lines: [a.join(" ")] }; }
   if (c === "cd") { var d = normPath(a[0] || "~"); if (!fsIsDir(d)) return shErr("cd", a[0] + ": No such file or directory"); L.cwd = d; return { lines: [] }; }
   if (c === "ls") { var long = a.some(function (x) { return /^-.*l/.test(x); }), all = a.some(function (x) { return /^-.*a/.test(x); }), t = a.filter(function (x) { return x[0] !== "-"; })[0] || "."; var p = normPath(t); if (fsRead(p) !== null) return { lines: [t] }; if (!fsIsDir(p)) return shErr("ls", "cannot access '" + t + "': No such file or directory"); return { lines: shFmtLs(p, long, all) }; }
   if (c === "cat") { var o = []; for (var i = 0; i < a.length; i++) { var f = fsRead(a[i]); if (f === null) o.push("cat: " + a[i] + ": No such file or directory"); else o.push(f.replace(/\n$/, "")); } return { lines: o }; }
@@ -123,6 +125,8 @@ function shRun(line) {
   if (c === "ssh") return shSsh(a);
   if (c === "git") return { lines: gitCmd(a, L.cwd) };
   if (c === "aws") return shAws(a);
+  if (c === "kubectl") return shKubectl(a);
+  if (c === "dig" || c === "nslookup") return shDig(a);
   if (c === "terraform") return shTerraform(a);
   if (c === "ansible-inventory") return { lines: a.indexOf("--graph") >= 0 ? ansGraph() : ["ใช้ --graph (จำลองแค่แบบนี้)"] };
   if (c === "ansible") { var mi = a.indexOf("-m"); if (mi < 0 || a[mi + 1] !== "ping") return { lines: ["ansible: จำลองเฉพาะ -m ping"] }; return { lines: ansPing(a[0]) }; }

@@ -41,7 +41,7 @@ function tfLoad(files) {
       if (it.type === "variable") cfg.vars[l[0]] = { name: l[0], file: fn, line: it.line, attrs: tfAttrsOf(it.body) };
       else if (it.type === "locals") it.body.forEach(function (a) { if (a.kind === "attr") cfg.locals[a.name] = { name: a.name, file: fn, line: a.line, expr: a.expr }; });
       else if (it.type === "output") cfg.outputs[l[0]] = { name: l[0], file: fn, line: it.line, attrs: tfAttrsOf(it.body) };
-      else if (it.type === "provider") cfg.providers[l[0]] = { file: fn, line: it.line, body: it.body };
+      else if (it.type === "provider") { var al = it.body.filter(function (x) { return x.kind === "attr" && x.name === "alias"; })[0], an = ""; try { an = al ? hclEval(al.expr, { file: fn, vars: {}, lookup: function () { throw new Error("x"); }, child: function () { return this; } }) : ""; } catch (e0) { an = ""; } cfg.providers[l[0] + (an ? "." + an : "")] = { file: fn, line: it.line, body: it.body }; }
       else if (it.type === "terraform") cfg.terraform = { file: fn, line: it.line, body: it.body };
       else if (it.type === "resource" || it.type === "data") {
         var addr = (it.type === "data" ? "data." : "") + l[0] + "." + l[1], tbl = it.type === "data" ? cfg.data : cfg.res;
@@ -76,6 +76,7 @@ function tfValidate(cfg) {
     var n = cfg.res[a], sc = TF_SCHEMA[n.type];
     if (!sc) { err(n, n.line, "Invalid resource type", "The provider " + (/^local_/.test(n.type) ? "hashicorp/local" : "hashicorp/aws") + " does not support resource type \"" + n.type + "\" (หรือชนิดนี้ Console Lab ยังไม่ได้จำลอง ชนิดที่จำลอง: " + Object.keys(TF_SCHEMA).join(", ") + ")."); return; }
     tfCheckBody(cfg, n, n.body, sc, "", err);
+    var pv = n.attrs.provider; if (pv && pv.expr && pv.expr.t === "attr" && pv.expr.e && pv.expr.e.t === "ref" && !cfg.providers[pv.expr.e.n + "." + pv.expr.n]) err(n, pv.line, "Reference to undeclared provider", "There is no explicit declaration for local provider name \"" + pv.expr.e.n + "." + pv.expr.n + "\" (ต้องมี provider \"" + pv.expr.e.n + "\" { alias = \"" + pv.expr.n + "\" })");
   });
   Object.keys(cfg.data).forEach(function (a) {
     var n = cfg.data[a], sc = TF_DATA_SCHEMA[n.type];
@@ -105,6 +106,8 @@ function tfNodeDeps(cfg, node) {
   var d = [];
   (function walk(items) { items.forEach(function (i) { if (i.kind === "attr") d = d.concat(hclDeps(i.expr)); else walk(i.body); }); })(node.body);
   var depsOn = node.attrs.depends_on; if (depsOn) d = d.concat(hclDeps(depsOn.expr));
+  // local.xxx ที่อ้าง resource อื่น: ต้องรอ resource นั้นด้วย (ตามไปอ่านนิพจน์ของ local ต่อ)
+  var lseen = {}; for (var li = 0; li < d.length; li++) { var lm = /^local\.([^.\[]+)/.exec(d[li]); if (lm && cfg.locals[lm[1]] && !lseen[lm[1]]) { lseen[lm[1]] = 1; d = d.concat(hclDeps(cfg.locals[lm[1]].expr)); } }
   var seen = {}; return d.filter(function (x) { if (seen[x] || x === node.addr || /^(var|local)\./.test(x)) return false; if (!cfg.res[x] && !cfg.data[x]) return false; seen[x] = 1; return true; });
 }
 function tfOrder(cfg) {

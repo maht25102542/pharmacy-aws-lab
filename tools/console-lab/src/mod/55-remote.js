@@ -3,7 +3,7 @@
 function rmHas(i, n) { var d = ansVm(i).done; return Object.keys(d).some(function (k) { var t = k.split(":").slice(2).join(":"); return t === n || t.indexOf(n + "#") === 0; }); }
 function rmHost(i) { return "ip-" + i.privateIp.replace(/\./g, "-"); }
 function rmInst() { return S.laptop.remote ? find(S.insts, S.laptop.remote) : null; }
-function rmPrompt(i) { return "ubuntu@" + rmHost(i) + ":" + (S.laptop.rcwd || "~") + "$ "; }
+function rmPrompt(i) { return S.laptop.via === "ssm" ? "sh-5.2$ " : "ubuntu@" + rmHost(i) + ":" + (S.laptop.rcwd || "~") + "$ "; }
 function rmRole(i) { return ansTag(i, "Role"); }
 function rmFirst(role) { return S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === role; })[0]; }
 // ArgoCD ลงครั้งเดียวผ่านเครื่อง server แรก แต่เป็นของทั้ง cluster prd: kubectl จาก server ไหนก็เห็น
@@ -51,7 +51,7 @@ function remoteRun(i, line) {
   if (/argocd-initial-admin-secret/.test(line) && /(kubectl|k3s)/.test(line)) { if (rmRole(i) !== "k8s_server" || !rmArgo()) return { lines: ["Error from server (NotFound): namespaces \"argocd\" not found"] }; return { lines: [/base64\s+-d/.test(line) ? argoPwdOf(i) : "(base64)"] }; }
   var a = shTok(line); if (!a.length) return { lines: [] };
   var sudo = false; if (a[0] === "sudo") { sudo = true; a.shift(); } var c = a.shift() || "", r = rmRole(i);
-  if (c === "exit" || c === "logout") { S.laptop.remote = null; S.laptop.rcwd = "~"; return { lines: ["logout", "Connection to " + i.publicIp + " closed."] }; }
+  if (c === "exit" || c === "logout") { var viaS = S.laptop.via === "ssm"; S.laptop.remote = null; S.laptop.rcwd = "~"; S.laptop.via = ""; return { lines: viaS ? ["", "Exiting session with sessionId: " + (S.laptop.sid || "session") + "."] : ["logout", "Connection to " + (i.publicIp || i.privateIp) + " closed."] }; }
   if (c === "clear") return { lines: [], clear: true };
   if (c === "help") return { lines: ["คำสั่งใน VM (จำลอง): whoami hostname pwd cd ls [-a] cat systemctl status <svc> docker ps curl -s localhost:<port> k3s kubectl get nodes|ns|pods mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" exit"] };
   if (c === "whoami") return { lines: [sudo ? "root" : "ubuntu"] };

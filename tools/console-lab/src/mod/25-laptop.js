@@ -35,8 +35,8 @@ function fsIsDir(p) { p = normPath(p); if (p === "/") return true; var pre = p +
 function fsList(dir) {
   dir = normPath(dir); var pre = dir === "/" ? "/" : dir + "/", seen = {}, out = [];
   Object.keys(fsAll()).forEach(function (k) { if (k.indexOf(pre) !== 0) return; var rest = k.slice(pre.length), name = rest.split("/")[0], isDir = rest.indexOf("/") >= 0; if (!seen[name]) { seen[name] = 1; out.push({ name: name, dir: isDir }); } });
-  if (S.tf.inited && dir === REPO + "/terraform" && !seen[".terraform"]) out.push({ name: ".terraform", dir: true });
-  if (S.tf.inited && dir === REPO + "/terraform" && !seen[".terraform.lock.hcl"]) out.push({ name: ".terraform.lock.hcl", dir: false });
+  if (S.tf.inited && dir === (S.tfCur || REPO + "/terraform") && !seen[".terraform"]) out.push({ name: ".terraform", dir: true });
+  if (S.tf.inited && dir === (S.tfCur || REPO + "/terraform") && !seen[".terraform.lock.hcl"]) out.push({ name: ".terraform.lock.hcl", dir: false });
   return out.sort(function (a, b) { return a.name < b.name ? -1 : 1; });
 }
 function tfFilesIn(dir) {

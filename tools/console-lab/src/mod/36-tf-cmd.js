@@ -1,5 +1,13 @@
 // ===== คำสั่ง terraform ที่เรียกจากเทอร์มินัล (ไม่มี DOM) =====
 function tfDir() { return S.laptop.cwd; }
+// terraform แต่ละโฟลเดอร์มี state ของตัวเอง (terraform/ กับ terraform-managed/ ไม่ปนกัน) · สลับ S.tf ตามโฟลเดอร์ที่รันอยู่
+function tfIsDir(dir) { return dir === REPO + "/terraform" || dir === REPO + "/terraform-managed" || dir.indexOf(REPO + "/labs/") === 0 && dir.split("/").length === (REPO + "/labs/x").split("/").length; }
+function tfUseDir(dir) {
+  if (!tfIsDir(dir)) return;
+  if (!S.tfDirs) S.tfDirs = {}; if (!S.tfCur) S.tfCur = REPO + "/terraform";
+  if (S.tfCur === dir) return;
+  S.tfDirs[S.tfCur] = S.tf; S.tf = S.tfDirs[dir] || { inited: false, state: {}, serial: 0, outputs: {} }; S.tfCur = dir;
+}
 function tfInitCmd(dir, upgrade) {
   var files = tfFilesIn(dir), out = [];
   if (!Object.keys(files).length) return ["Terraform initialized in an empty directory!", "", "The directory has no Terraform configuration files. You may begin working", "with Terraform immediately by creating Terraform configuration files."];

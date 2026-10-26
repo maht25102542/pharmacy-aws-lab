@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -454,6 +454,103 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   const d = L.readyBuild("dev"); assert(d.every(x => x.result === "SUCCESS") && L.readyState().dev, "build dev ทั้ง 2 job ผ่าน"); assert.strictEqual(L.webOpen("http://" + r.alb + ":8080").site, "app", "เว็บ dev เปิดได้");
   assert.strictEqual(L.webOpen("http://" + r.alb).site, "alb503", "prd ยังไม่ปล่อย");
   const p = L.readyBuild("prd"); assert(p.every(x => x.result === "SUCCESS") && L.readyState().prd, "ปล่อย prd ผ่าน (ยืนยันให้)"); assert.strictEqual(L.webOpen("http://" + r.alb).site, "app", "เว็บ prd เปิดได้"); }
+
+// ---- ระบบแบบ managed: EKS + RDS + SSM (terraform-managed/)
+{
+  L.buildManaged("managed");
+  const cm = L.checks(); assert(L.isManagedLab() && cm.length >= 20 && cm.every(c => c.ok), "managed lab ต้องผ่านทุกข้อ: " + cm.filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(L.S.insts.filter(i => i.nodeRole && i.state === "running").length === 3 && L.S.eks.length === 1 && L.S.rds[0].multiAz, "node ×3 + EKS + RDS Multi-AZ");
+  const nd = L.S.insts.filter(i => i.nodeRole), azs = new Set(nd.map(i => i.az)); assert(azs.size === 3, "node กระจาย 3 AZ");
+  assert(L.albHealth(L.S.albs[0]).every(r => r.ok) && L.albHealth(L.S.albs[0]).length === 9, "ALB healthy 9 target (3 TG × 3 node)");
+  assert(L.S.insts.every(i => !i.publicIp), "ไม่มีเครื่องไหนมี public IP");
+  assert(!L.sessionCheck(L.S.insts.find(i => i.name === "pharmacy-jenkins")).steps.some(x => !x.ok), "SSM ผ่านทุกขั้น (role + NAT)");
+  const code = L.hcl(); assert(/aws_eks_cluster/.test(code) && /aws_db_instance/.test(code) && /aws_autoscaling_attachment/.test(code) && !/aws_instance" "pharmacy_eks/.test(code), "HCL มี EKS/RDS/ASG attach และไม่เขียน node เป็น aws_instance");
+  assert(L.hclPlan().length === 6, "แบบ managed มี 6 ขั้น");
+  assert(L.API.rdsFailover("pharmacy-db").res && L.rdsReach(nd[0], L.S.rds[0]), "failover แล้ว node ยังต่อ endpoint เดิมได้");
+  const d1 = L.API.del("rds", "pharmacy-db", "delete me"); assert(!d1.errors, JSON.stringify(d1));
+  L.buildManaged("managed-nonat"); assert(L.sessionCheck(L.S.insts.find(i => i.name === "pharmacy-jenkins")).ok === false && !L.checks().every(c => c.ok), "ไม่มี NAT: SSM ต้องออฟไลน์");
+  L.buildManaged("managed-badrole");
+  const vv = L.S.vpcs.find(v => v.name === "pharmacy-vpc"), prv = L.S.subnets.filter(s => /private/.test(s.name)).map(s => s.id), rcl = L.S.roles.find(r => r.name === "pharmacy-eks-cluster");
+  const ce = L.API.createEks({ name: "pharmacy-eks", roleArn: rcl.name, subnetIds: prv, cidrs: ["198.51.100.7/32"] }); assert(!ce.errors, JSON.stringify(ce.errors));
+  const ngBad = L.API.createNodegroup({ cluster: "pharmacy-eks", name: "n", roleArn: "pharmacy-eks-node", subnetIds: prv, desired: 3, min: 3, max: 3 });
+  assert(/NodeCreationFailure.*AmazonEKS_CNI_Policy/.test(ngBad.errors._create), "role ขาด CNI → NodeCreationFailure");
+  assert(L.API.createEks({ name: "x", roleArn: "pharmacy-jenkins", subnetIds: prv }).errors.roleArn, "role ที่ไม่ trust EKS ต้อง error");
+  assert(L.API.createEks({ name: "y", roleArn: rcl.name, subnetIds: [prv[0]] }).errors.subnetIds, "subnet AZ เดียวต้อง error");
+  const sgOne = L.API.createDbSubnetGroup({ name: "g1", subnetIds: [prv[0]] }); assert(/at least 2 AZs/.test(sgOne.errors.subnetIds), "DB subnet group ต้องครอบ 2 AZ");
+  const sgOk = L.API.createDbSubnetGroup({ name: "g2", subnetIds: prv }).res;
+  assert(L.API.createRds({ id: "Bad_Name", engine: "mariadb", cls: "db.t4g.small", storage: 20, user: "u", manage: true, subnetGroup: sgOk.name }).errors.id, "ชื่อ DB ผิดกฎ");
+  assert(L.API.createRds({ id: "ok-db", engine: "mariadb", cls: "db.t4g.small", storage: 10, user: "u", manage: true, subnetGroup: sgOk.name }).errors.storage, "storage < 20 ต้อง error");
+  assert(L.API.createRds({ id: "ok-db", engine: "mariadb", cls: "db.t4g.small", storage: 20, user: "u", password: "short", subnetGroup: sgOk.name }).errors.password, "รหัสผ่านสั้นต้อง error");
+  void vv;
+}
+// ---- Terraform แบบ managed: รันโค้ดจริงใน terraform-managed/ ผ่านเทอร์มินัลจำลอง
+{
+  L.fresh(); const u2 = L.API.createUser({ name: "tf-admin", policies: ["AdministratorAccess"] }).res, k2 = L.API.createAccessKey(u2.id, "CLI", "");
+  function shm(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  shm("aws configure", [k2.res.id, k2.secret, "ap-southeast-1", "json"]);
+  shm("cd ~/Desktop/work/pharmacy-aws-lab/terraform"); shm("terraform init");
+  assert(/Apply complete! Resources: 59 added/.test(shm("terraform apply", ["198.51.100.7/32", "yes"])), "แบบ VM ยัง apply ได้ 59");
+  shm("cd ../terraform-managed"); shm("terraform init");
+  assert(/ชื่อนี้แล้ว|already exists/i.test(shm("terraform apply", ["198.51.100.7/32", "yes"])), "apply สองชุดใน account เดียวกัน: ชื่อ resource ต้องชนกัน");
+  shm("cd ../terraform"); assert(/Destroy complete! Resources: 59 destroyed/.test(shm("terraform destroy -auto-approve")), "destroy แบบ VM");
+  shm("cd ../terraform-managed"); shm("terraform destroy -auto-approve");
+  const apm = shm("terraform apply", ["198.51.100.7/32", "yes"]); assert(/Apply complete! Resources: 57 added/.test(apm), apm.slice(-500));
+  assert(/db_endpoint = /.test(shm("terraform output")) && /aws_eks_cluster.main/.test(shm("terraform state list")), "output/state ของ managed แยกจากแบบ VM");
+  assert(L.checks().every(c => c.ok), "หลัง apply managed ตัวตรวจต้องผ่าน: " + L.checks().filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(/No changes/.test(shm("terraform plan", ["198.51.100.7/32"])), "plan ซ้ำต้องไม่มีอะไรเปลี่ยน (idempotent)");
+  assert(/ยังไม่มี kubeconfig/.test(shm("kubectl get nodes")), "ยังไม่ update-kubeconfig ต้องต่อไม่ได้");
+  assert(/Added new context/.test(shm("aws eks update-kubeconfig --region ap-southeast-1 --name pharmacy-eks")), "update-kubeconfig");
+  const kn = shm("kubectl get nodes"); assert((kn.match(/ Ready /g) || []).length === 3, "kubectl get nodes ต้องเห็น 3 node Ready: " + kn);
+  const jid = L.S.insts.find(i => i.name === "pharmacy-jenkins" && i.state === "running").id;
+  assert(/Starting session/.test(shm("aws ssm start-session --target " + jid)), "ssm start-session ต้องเข้าได้"); assert(/ip-10-0-/.test(shm("hostname")) && /Exiting session/.test(shm("exit")), "อยู่ใน session แล้วพิมพ์ hostname/exit ได้");
+  assert(/Port 8080 opened/.test(shm("aws ssm start-session --target " + jid + " --document-name AWS-StartPortForwardingSession --parameters portNumber=8080,localPortNumber=8080")), "port forward");
+  assert(/"MultiAZ": true/.test(shm("aws rds describe-db-instances")) && /SecretString/.test(shm("aws secretsmanager get-secret-value --secret-id " + L.S.rds[0].secretArn)), "rds / secret");
+  assert(/TargetNotConnected/.test(shm("aws ssm start-session --target i-doesnotexist")), "target ผิดต้อง error");
+  L.S.eks[0].cidrs = ["203.0.113.0/24"]; assert(/i\/o timeout/.test(shm("kubectl get nodes")), "IP ไม่อยู่ใน allowlist ต้อง timeout"); L.S.eks[0].cidrs = ["198.51.100.7/32"];
+  assert(/Destroy complete! Resources: 57 destroyed/.test(shm("terraform destroy -auto-approve")), "destroy managed");
+  shm("cd ../terraform"); assert(!/pharmacy-vpc/.test(shm("terraform state list")), "state ของแบบ VM ไม่ปนกับของ managed");
+}
+
+// ---- use case 1: เว็บ static (S3 + CloudFront + Route 53 + ACM) แยก dev / prd
+{
+  L.buildStatic("static"); const cs = L.checksStatic();
+  assert(L.isStaticLab() && cs.length >= 18 && cs.every(c => c.ok), "static lab ต้องผ่านทุกข้อ: " + cs.filter(c => !c.ok).map(c => c.label).join(" | "));
+  const q1 = L.cfRequest("www.pharmacy.example.com", "/", "https"); assert(q1.status === 200 && /PRD/.test(q1.body) && q1.headers["x-cache"] === "Hit from cloudfront", "prd ต้องเปิดได้และเป็น cache hit (lab โหลดไว้แล้ว 1 ครั้ง)");
+  assert(/DEV/.test(L.cfRequest("dev.pharmacy.example.com", "/", "https").body), "dev ต้องเป็นอีกหน้า");
+  assert(L.cfRequest("www.pharmacy.example.com", "/", "http").status === 301, "http ต้อง redirect เป็น https");
+  const nf = L.cfRequest("www.pharmacy.example.com", "/missing.html", "https"); assert(nf.status === 403 && /ListBucket/.test(nf.notes.join()), "ไฟล์ไม่มี = 403 (ไม่ใช่ 404)");
+  assert(L.cfRequest("nohost.example.org", "/", "https").err === "DNS_PROBE_FINISHED_NXDOMAIN", "โดเมนที่ไม่มี zone ต้อง NXDOMAIN");
+  L.buildStatic("static-403"); const e1 = L.cfRequest("www.pharmacy.example.com", "/", "https"); assert(e1.status === 403 && /SourceArn/.test(e1.notes.join()) && L.cfRequest("dev.pharmacy.example.com", "/", "https").status === 200, "policy ผิด distribution: prd 403 แต่ dev ปกติ");
+  L.buildStatic("static-cert"); assert(L.S.cfds.every(d => !d.aliases.length) && L.S.certs[0].region === "ap-southeast-1", "static-cert: ใบรับรองผิด region");
+  const bn = "pharmacy-web-prd-000000000000", oac = L.S.oacs[0];
+  const ce = L.API.createCfd({ comment: "x", origins: [{ id: "o", domain: bn + ".s3.ap-southeast-1.amazonaws.com", oacId: oac.id }], aliases: ["www.pharmacy.example.com"], certArn: L.S.certs[0].arn });
+  assert(/InvalidViewerCertificate.*us-east-1/.test(ce.errors.cert), "ใบรับรองผิด region ต้อง error: " + JSON.stringify(ce.errors));
+  assert(L.API.createCfd({ comment: "x", origins: [{ id: "o", domain: bn + ".s3.ap-southeast-1.amazonaws.com" }], aliases: ["www.pharmacy.example.com"] }).errors.cert.indexOf("InvalidViewerCertificate") === 0, "alias ไม่มีใบรับรอง");
+  L.buildStatic("static-cert-pending"); assert(L.acmStatus(L.S.certs[0]) === "PENDING_VALIDATION" && L.API.createCfd({ comment: "x", origins: [{ id: "o", domain: "a.s3.amazonaws.com" }], aliases: ["www.pharmacy.example.com"], certArn: L.S.certs[0].arn }).errors.cert, "ยังไม่สร้าง CNAME = Pending validation ใช้กับ CloudFront ไม่ได้");
+  L.buildStatic("static-stale"); const st1 = L.cfRequest("www.pharmacy.example.com", "/", "https"); assert(/version 2/.test(st1.body) && /Hit/.test(st1.headers["x-cache"]) && /version 3/.test(L.bucketByName("pharmacy-web-prd-000000000000").objects[0].body), "แคชค้างเวอร์ชันเก่า");
+  const prdD = L.S.cfds.find(d => d.aliases[0].startsWith("www")); L.API.createInvalidation(prdD.id, ["/*"]); assert(/version 3/.test(L.cfRequest("www.pharmacy.example.com", "/", "https").body), "invalidation แล้วต้องเห็นของใหม่");
+  assert(L.API.createInvalidation(prdD.id, ["index.html"]).errors.paths, "path ไม่มี / นำหน้าต้อง error");
+  assert(L.API.createBucket({ name: "Bad_Name", region: "ap-southeast-1" }).errors.name && L.API.createBucket({ name: "pharmacy", region: "ap-southeast-1" }).errors.name, "ชื่อ bucket ผิดกฎ / ซ้ำทั้งโลก");
+  assert(/BlockPublicPolicy/.test(L.API.putBucketPolicy("pharmacy-web-prd-000000000000", JSON.stringify({ Version: "2012-10-17", Statement: [{ Effect: "Allow", Principal: "*", Action: "s3:GetObject", Resource: "arn:aws:s3:::pharmacy-web-prd-000000000000/*" }] })).errors.policy), "policy public ถูกบล็อกโดย Block public access");
+  L.buildStatic("static-base"); assert(!L.checksStatic().every(c => c.ok) && L.S.zones.length === 1 && L.acmStatus(L.S.certs[0]) === "ISSUED", "static-base: มีโซน+ใบรับรอง Issued แต่ยังไม่มี bucket/CloudFront");
+}
+// ---- Terraform labs/01-static-site รันในเทอร์มินัลจำลอง
+{
+  L.fresh(); const u3 = L.API.createUser({ name: "tf-admin", policies: ["AdministratorAccess"] }).res, k3 = L.API.createAccessKey(u3.id, "CLI", "");
+  function shs(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  shs("aws configure", [k3.res.id, k3.secret, "ap-southeast-1", "json"]);
+  shs("cd ~/Desktop/work/pharmacy-aws-lab/labs/01-static-site"); shs("terraform init");
+  const ps = shs("terraform plan"); assert(/Plan: 18 to add/.test(ps), ps.slice(-400));
+  const as = shs("terraform apply", ["yes"]); assert(/Apply complete! Resources: 18 added/.test(as), as.slice(-600));
+  assert(L.checksStatic().every(c => c.ok), "หลัง apply lab static ต้องผ่านทุกข้อ: " + L.checksStatic().filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(/No changes/.test(shs("terraform plan")), "plan ซ้ำต้องไม่มีอะไรเปลี่ยน");
+  assert(/version 1/.test(L.cfRequest("www.pharmacy.example.com", "/", "https").body), "เปิดเว็บ prd ได้หลัง apply");
+  assert(/upload: .* to s3:\/\/pharmacy-web-prd/.test((shs("mkdir dist"), shs("echo '<h1>v2</h1>' > dist/index.html"), shs("aws s3 sync dist s3://pharmacy-web-prd-000000000000"))), "aws s3 sync");
+  assert(/version 1/.test(L.cfRequest("www.pharmacy.example.com", "/", "https").body), "sync แล้วแต่ยังเห็นของเก่า (cache)");
+  assert(/InProgress/.test(shs("aws cloudfront create-invalidation --distribution-id " + L.S.cfds.find(d => d.aliases[0].startsWith("www")).id + " --paths /*")) && /v2/.test(L.cfRequest("www.pharmacy.example.com", "/", "https").body), "สั่ง invalidation แล้วเห็นของใหม่");
+  assert(/ALIAS/.test(shs("dig www.pharmacy.example.com")) && /NXDOMAIN/.test(shs("dig nohost.example.org")), "dig");
+  assert(/Destroy complete! Resources: 18 destroyed/.test(shs("terraform destroy -auto-approve")), "destroy lab static");
+}
 console.log("ok");
 
 // ---- ตัวอย่างสำเร็จรูป Ansible

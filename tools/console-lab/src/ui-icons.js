@@ -1,0 +1,8 @@
+// ===== โลโก้จริง: ไอคอนบริการ AWS (AWS Architecture Icons) และโลโก้เครื่องมือ (Simple Icons) =====
+var SVC_ICO = { VPC: "vpc", EC2: "ec2", IAM: "iam", ECR: "ecr", EKS: "eks", RDS: "rds", SSM: "ssm", S3: "s3", CloudFront: "cloudfront", "Route 53": "route53", ACM: "acm" };
+var SVC_NAME = { VPC: "VPC", EC2: "EC2", IAM: "IAM", ECR: "ECR", EKS: "EKS", RDS: "RDS", SSM: "Systems Manager", S3: "S3", CloudFront: "CloudFront", "Route 53": "Route 53", ACM: "Certificate Manager" };
+function awsIco(key, size, style) { var src = AWS_ICONS[key]; return src ? h("img", { src: src, width: String(size || 20), height: String(size || 20), alt: "", "aria-hidden": "true", style: style || "" }) : null; }
+function brandIco(key, size) { var src = BRAND_ICONS[key]; return src ? h("img", { src: src, width: String(size || 20), height: String(size || 20), alt: "", "aria-hidden": "true", style: "vertical-align:middle" }) : null; }
+(function () { var l = document.getElementById("awslogo"); if (l && AWS_ICONS.awslogo) { l.textContent = ""; l.appendChild(h("img", { src: AWS_ICONS.awslogo, alt: "aws" })); } })();
+// ไอคอนในแผนภาพ SVG (วางที่มุมซ้ายบนของกล่อง)
+function svgIco(key, x, y, size) { var src = AWS_ICONS[key] || BRAND_ICONS[key]; return src ? sv("image", { href: src, x: x, y: y, width: size, height: size }) : null; }

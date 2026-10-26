@@ -23,6 +23,14 @@ function webOpen(raw) {
   var m = /^(https?):\/\/([^\/:]+)(?::(\d+))?(\/.*)?$/i.exec(u); if (!m) return { err: "ERR_INVALID_URL", title: "URL ไม่ถูกต้อง", steps: [] };
   var host = m[2], port = +m[3] || (/^https/i.test(m[1]) ? 443 : 80), alb = S.albs.filter(function (a) { return a.dns === host; })[0];
   if (/^(www\.)?github\.com$/i.test(host)) return { site: "github", host: host, path: String(m[4] || "/").split("?")[0].replace(/\/+$/, "") || "/" };
+  if (S.cfds.length || S.zones.length) {
+    var rs = dnsResolve(host);
+    if (rs.kind === "cloudfront" || /\.cloudfront\.net$/.test(host) || S.zones.some(function (z) { return host === z.name || host.slice(-z.name.length - 1) === "." + z.name; })) {
+      var scheme = /^https/i.test(m[1]) ? "https" : "http", pth = m[4] || "/", hops = [], q = cfRequest(host, pth, scheme);
+      for (var hp = 0; hp < 3 && q.status === 301 && q.location; hp++) { hops.push(scheme + "://" + host + pth + " → " + q.location); scheme = "https"; q = cfRequest(host, pth, "https"); }
+      return { site: "cf", host: host, path: pth, scheme: scheme, req: q, hops: hops };
+    }
+  }
   if (alb) {
     if (albPhase(alb) === "provisioning") return { err: "ERR_NAME_NOT_RESOLVED", host: host, steps: [{ ok: false, t: "ALB สถานะ Active", d: "ยัง Provisioning (~3 นาที) DNS ยังไม่พร้อม" }] };
     var l = alb.listeners.filter(function (x) { return x.port === port; })[0];
