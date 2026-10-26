@@ -130,6 +130,6 @@ PAGES["conn-authorize"] = function () {
   var c = S.conns.filter(function (x) { return x.name === UI.params.id; })[0]; if (!c) return h("p", { text: "ไม่พบ connection" });
   return formPage({ name: "conn-authorize-" + c.name, crumb: "Connections › " + c.name + " › Connect to GitHub", title: "Connect to GitHub", back: "conns", lead: "จำลองหน้า GitHub: ติดตั้ง AWS Connector for GitHub ให้ account/org ของคุณ แล้วเลือก repo ที่อนุญาต",
     init: function () { return { app: "install", scope: "selected" }; }, sections: function () { return [{ t: "GitHub app", f: [{ id: "app", type: "radio", label: "AWS Connector for GitHub", opts: function () { return [["install", "Install a new app (เลือก account/org ของ GitHub)"]]; } }, { id: "scope", type: "radio", label: "Repository access", opts: function () { return [["selected", "Only select repositories"], ["all", "All repositories"]]; } }] }]; },
-    submit: "Connect", onSubmit: function () { var r = API.authorizeConnection(c.name); return r.errors ? r : { msg: "Connection " + c.name + " เป็น Available แล้ว", next: "conns" }; } });
+    submit: "Complete connection", onSubmit: function () { var r = API.authorizeConnection(c.name); return r.errors ? r : { msg: "Connection " + c.name + " เป็น Available แล้ว", next: "conns" }; } });
 };
 ["pipes", "cbps", "conns"].forEach(function (k) { PAGES[k] = function () { return listPage(LISTS[k]()); }; });

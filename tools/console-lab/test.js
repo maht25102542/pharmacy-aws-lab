@@ -673,7 +673,7 @@ console.log("ok");
   const rel = L.API.startPipeline("pharmacy-api"); assert(rel.res.status === "InProgress" && rel.res.stages[3].status === "Waiting" && rel.res.stages[4].status === "NotRun", "release ใหม่หยุดรออนุมัติ");
   assert(L.API.approveStage("pharmacy-api", rel.res.id, false, "ไม่ผ่าน").res.status === "Failed", "reject = Failed");
   const bad = (k) => { L.buildCd(k); return L.cdPipe("pharmacy-api").execs[0]; };
-  let ex = bad("cd-conn"); assert(ex.status === "Failed" && /connection is not in the Available status/.test(ex.stages[0].actions[0].err) && ex.stages[1].status === "NotRun", "conn PENDING: Source ล้ม");
+  let ex = bad("cd-conn"); assert(ex.status === "Failed" && /Connection is not available/.test(ex.stages[0].actions[0].err) && ex.stages[1].status === "NotRun", "conn PENDING: Source ล้ม");
   L.API.authorizeConnection("pharmacy-github"); L.API.retryStage("pharmacy-api", L.cdPipe("pharmacy-api").execs[0].id, 0); ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.stages[0].status === "Succeeded" && ex.stages[3].status === "Waiting", "authorize แล้ว retry ผ่านจนถึง Approve");
   ex = bad("cd-docker"); assert(ex.stages[1].status === "Failed" && /Cannot connect to the Docker daemon/.test(L.cdProj("pharmacy-api-build").builds[0].logs.join("\n")), "ไม่เปิด privileged: docker daemon");
   L.API.updateCbProject("pharmacy-api-build", { privileged: true }); L.API.retryStage("pharmacy-api", L.cdPipe("pharmacy-api").execs[0].id, 1); assert(L.cdPipe("pharmacy-api").execs[0].stages[2].status === "Succeeded", "เปิด privileged แล้ว retry Build ผ่านถึง deploy dev");
@@ -688,7 +688,7 @@ console.log("ok");
   L.buildEcs("ecs"); function sh6(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
   sh6("cd ~/Desktop/work/pharmacy-aws-lab/labs/04-cicd"); sh6("terraform init"); const pl4 = sh6("terraform plan"); assert(/Plan: 9 to add/.test(pl4), pl4.slice(-600));
   const ap4 = sh6("terraform apply", ["yes"]); assert(/Apply complete! Resources: 9 added/.test(ap4), ap4.slice(-900));
-  ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.status === "Failed" && /not in the Available status/.test(ex.stages[0].actions[0].err) && /PENDING/.test(sh6("terraform output connection_status")), "apply แล้ว connection ยัง PENDING: execution แรกล้มที่ Source");
+  ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.status === "Failed" && /Connection is not available/.test(ex.stages[0].actions[0].err) && /PENDING/.test(sh6("terraform output connection_status")), "apply แล้ว connection ยัง PENDING: execution แรกล้มที่ Source");
   assert(/"status": "Failed"/.test(sh6("aws codepipeline get-pipeline-state --name pharmacy-api")), "get-pipeline-state");
   L.API.authorizeConnection("pharmacy-github"); sh6("aws codepipeline start-pipeline-execution --name pharmacy-api"); ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.stages[3].status === "Waiting", "authorize แล้ว release ใหม่ผ่านถึง Approve: " + JSON.stringify(ex.stages.map(s => s.status)));
   L.API.approveStage("pharmacy-api", ex.id, true, ""); assert(L.cdPipe("pharmacy-api").execs[0].status === "Succeeded" && L.checksCd().filter(c => /Approve|prd|DeployPrd/.test(c.label)).every(c => c.ok), "อนุมัติแล้ว prd ผ่าน");

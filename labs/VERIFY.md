@@ -2,6 +2,13 @@
 
 ตัวจำลองเขียนจากเอกสาร + ความจำ ยังไม่เคยเทียบกับ AWS จริง · รัน lab จริงแล้วเทียบคำตอบตามนี้ ถ้าไม่ตรงให้แก้ที่ `tools/console-lab/src/mod/` (ข้อความ error) แล้วแจ้งในตารางท้ายไฟล์
 
+## Lab 2 (labs/02-ecs-fargate) — ยืนยันจากเอกสาร/Knowledge Center แล้ว
+| ทำ | ควรเห็นจริง | ในตัวจำลอง | ยืนยัน |
+|---|---|---|---|
+| private subnet ไม่มี NAT/endpoint | task STOPPED: `ResourceInitializationError: unable to pull secrets or registry auth: The task cannot pull registry auth from Amazon ECR: …` | ตรง | ✅ [Knowledge Center](https://www.repost.aws/knowledge-center/ecs-image-pull-error-ecr) |
+| image tag ไม่มีใน ECR | `CannotPullContainerError: pull image manifest has been retried 5 time(s): failed to resolve ref <uri>: <uri>: not found` | ตรง | ✅ [Knowledge Center](https://repost.aws/knowledge-center/ecs-pull-container-error) · [ECS docs](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_cannot_pull_image.html) |
+| ทางออกอื่นแทน NAT | VPC endpoints: `ecr.dkr`, `ecr.api` (interface) + `s3` (gateway) (+ `secretsmanager`, `logs` ถ้าใช้) | **ไม่จำลอง** (ตัวจำลองมีแค่ NAT / public IP) | — |
+
 ## Lab 3 (labs/03-serverless)
 | ทำ | ควรเห็นจริง | ในตัวจำลอง |
 |---|---|---|
@@ -12,16 +19,20 @@
 | ปุ่ม Test Lambda เมื่อ error | `errorMessage` / `errorType` / `stackTrace` + REPORT | ตรงตามนี้ (stackTrace เป็นตัวอย่าง) |
 | สร้าง Lambda ทันทีหลังสร้าง role | บางครั้ง `InvalidParameterValueException: The role defined for the function cannot be assumed by Lambda` (IAM propagation) | **ไม่จำลอง** (ในตัวจำลองผ่านเสมอ ถ้า trust ถูก) |
 
-## Lab 4 (labs/04-cicd) — ข้อความทั้งหมดมาจากความจำ (ค้นเว็บยืนยันไม่ได้ตอนเขียน) ตรวจก่อนเชื่อ
-| ทำ | ควรเห็นจริง | ในตัวจำลอง |
-|---|---|---|
-| execution แรกหลัง apply (connection Pending) | Source ล้ม · ข้อความเกี่ยวกับ connection ไม่ใช่สถานะ Available | `Unable to use Connection: <arn>. The connection is not in the Available status` (ถ้อยคำอาจต่าง) |
-| CodeBuild ไม่ privileged | log: `Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?` | ตรงตามนี้ (ข้อความนี้เจอบ่อยมาก) |
-| role CodeBuild ไม่มี ECR | `AccessDeniedException … ecr:GetAuthorizationToken` / `denied: … ecr:InitiateLayerUpload` | ตรงตามนี้ |
-| imagedefinitions.json ชื่อ container ผิด | Deploy ล้ม (ข้อความจริงอาจเป็นเรื่อง task definition / container) | `Unable to find container named 'app' in task definition …` (**ไม่แน่ใจถ้อยคำ**) |
-| ไม่มี iam:PassRole | `… is not authorized to perform: iam:PassRole on resource: arn:aws:iam::…:role/…` | ตรงตามนี้ |
-| authorize connection นอก Terraform แล้ว plan | `Objects have changed outside of Terraform` (connection_status PENDING → AVAILABLE) | ตรงตามนี้ |
-| ขั้น Approve | execution หยุดรอ · ปุ่ม Review → Approve/Reject | ตรงตามนี้ |
+## Lab 4 (labs/04-cicd) — ค้นเว็บยืนยันแล้วบางส่วน (อ้างอิงท้ายตาราง)
+| ทำ | ควรเห็นจริง | ในตัวจำลอง | ยืนยัน |
+|---|---|---|---|
+| connection ที่ Terraform/CloudFormation สร้าง | สถานะ PENDING เสมอ ต้องทำต่อใน console: Update pending connection → ติดตั้ง GitHub app → Complete connection | ตรง | ✅ เอกสาร AWS/Pulumi |
+| execution แรกหลัง apply (connection Pending) | Source ล้ม · ข้อความแนว `Connection is not available.` | `Connection is not available. (<arn> …Pending…)` | ⚠️ บล็อกคู่มือ ไม่ใช่เอกสารทางการ |
+| role pipeline ไม่มี `codestar-connections:UseConnection` | `Unable to use Connection: <arn>. The provided role does not have sufficient permissions.` | ตรง | ✅ หลายรายงานตรงกัน |
+| CodeBuild ไม่ privileged | log: `Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?` | ตรง | ✅ ข้อความมาตรฐาน Docker |
+| role CodeBuild ไม่มี ECR | `AccessDeniedException … ecr:GetAuthorizationToken` / `denied: … ecr:InitiateLayerUpload` | ตรง | ✅ รูปแบบ IAM มาตรฐาน |
+| imagedefinitions.json `name` ไม่ตรง container | Deploy ล้ม · เอกสาร: `name` ต้องตรงชื่อ container ใน task definition (case-sensitive) | `Unable to find container named 'app' in task definition …` | ❌ **ถ้อยคำจริงไม่ทราบ** ดู Details ใน console จริงแล้วแก้ |
+| ไม่มี iam:PassRole | `… is not authorized to perform: iam:PassRole on resource: arn:aws:iam::…:role/<execution role>` (เห็นชื่อ role ที่ต้อง pass) | ตรง | ✅ รูปแบบเดียวกับรายงาน ECS อื่น |
+| authorize connection นอก Terraform แล้ว plan | `Objects have changed outside of Terraform` (connection_status PENDING → AVAILABLE) | ตรง | ✅ พฤติกรรม Terraform |
+| ขั้น Approve | execution หยุดรอ · Review → Approve/Reject | ตรง | ✅ |
+
+แหล่ง: [Update a pending connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections-update.html) · [CloudFormation Connection](https://docs.amazonaws.cn/AWSCloudFormation/latest/UserGuide/aws-resource-codestarconnections-connection.html) · [Pulumi codestarconnections](https://www.pulumi.com/registry/packages/aws/api-docs/codestarconnections/connection/) · [imagedefinitions.json reference](https://docs.aws.amazon.com/codepipeline/latest/userguide/file-reference.html) · [UseConnection permission](https://haydnjmorris.medium.com/solving-permissions-error-with-aws-codepipeline-c93cfc000285)
 
 ## ที่ยังต่างจากของจริงแน่นอน
 - เวลา: ของจริง ALB/NAT/RDS/CloudFront ใช้เวลาหลายนาที ตัวจำลองมี "ความเร็ว" ให้เลือกแต่ไม่แม่นเป๊ะ

@@ -89,7 +89,7 @@ function cdSource(p, ad, ex, role) {
   var c = cdConn(ad.cfg.ConnectionArn), sess = "pipeline-" + cdHex(6);
   if (!c) return { err: "Unable to use Connection: " + ad.cfg.ConnectionArn + ". The connection does not exist (ถูกลบ หรือ ARN ผิด)" };
   if (!iamCan(role, "codestar-connections:UseConnection", c.arn)) return { err: "Unable to use Connection: " + c.arn + ". The provided role does not have sufficient permissions." };
-  if (c.status !== "AVAILABLE") return { err: "Unable to use Connection: " + c.arn + ". The connection is not in the Available status (สถานะตอนนี้ " + c.status + " · ไป Settings › Connections › Update pending connection)" };
+  if (c.status !== "AVAILABLE") return { err: "Connection is not available. (" + c.arn + " อยู่ในสถานะ " + c.status + " · ไป Developer Tools › Settings › Connections › Update pending connection แล้ว Complete connection)" };
   if (!iamCan(role, "s3:PutObject", cdBucketArn(p.bucket) + "/x")) return { err: "The provided role does not have sufficient permissions to write to the artifact bucket " + p.bucket + " (" + cdNotAuth(role, "s3:PutObject", cdBucketArn(p.bucket) + "/x", sess).split(" because")[0] + ")" };
   ex.art.source = { commit: ex.commit, repo: ad.cfg.FullRepositoryId, branch: ad.cfg.BranchName };
   return { ok: true, summary: ad.cfg.FullRepositoryId + "@" + ad.cfg.BranchName + " · " + ex.commit.slice(0, 8) + " " + ex.msg };
