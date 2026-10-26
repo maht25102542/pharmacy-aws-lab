@@ -180,9 +180,9 @@ function dnsResolve(host) {
   host = String(host || "").toLowerCase();
   var d0 = S.cfds.filter(function (d) { return d.domain === host; })[0]; if (d0) return { kind: "cloudfront", dist: d0, chain: [host + " → " + d0.domain] };
   var best = S.zones.filter(function (z) { return host === z.name || host.slice(-z.name.length - 1) === "." + z.name; }).sort(function (a, b) { return b.name.length - a.name.length; })[0];
-  if (!best) return { kind: "nxdomain", chain: [], why: "ไม่มี hosted zone ที่ครอบ " + host + " (หรือยังไม่ได้ตั้ง NS ที่ผู้ขายโดเมนให้ชี้มาที่ Route 53)" };
+  if (!best) return { kind: "nxdomain", chain: [], why: "ไม่มี hosted zone ที่ครอบ " + host + " (หรือยังไม่ได้ตั้ง NS ที่ผู้ขายโดเมนให้ชี้มาที่ Route 53)" + (S.zones.length ? " · zone ที่มีอยู่: " + S.zones.map(function (z) { return z.name; }).join(", ") + " → ชื่อโดเมนต้องลงท้ายด้วยชื่อ zone (เช่น zone cafe.example.com ถึงจะครอบ www.cafe.example.com)" : " · ยังไม่มี hosted zone เลย (Route 53 › Create hosted zone)") };
   var rec = best.records.filter(function (r) { return r.name === host + "." && (r.type === "A" || r.type === "CNAME"); })[0];
-  if (!rec) return { kind: "nxdomain", chain: [], why: "โซน " + best.name + " ไม่มี record ชื่อ " + host };
+  if (!rec) return { kind: "nxdomain", chain: [], why: "โซน " + best.name + " ไม่มี record ชื่อ " + host + " · record ที่มี: " + (best.records.filter(function (r) { return r.type === "A" || r.type === "CNAME"; }).map(function (r) { return r.name.replace(/\.$/, "") + " (" + r.type + ")"; }).join(", ") || "ไม่มีเลย") + " → ถ้าชื่อเต็มซ้ำสองรอบ แปลว่าใส่ชื่อเต็มในช่อง Record name (ใส่แค่ www)" };
   var target = rec.alias || (rec.values || [])[0] || "", t2 = target.replace(/\.$/, ""), d = S.cfds.filter(function (x) { return x.domain === t2; })[0];
   if (d) return { kind: "cloudfront", dist: d, chain: [host + " → " + (rec.alias ? "ALIAS " : "CNAME ") + d.domain], zone: best };
   return { kind: "other", chain: [host + " → " + target], zone: best };
