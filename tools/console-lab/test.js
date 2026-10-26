@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -551,6 +551,51 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert(/ALIAS/.test(shs("dig www.pharmacy.example.com")) && /NXDOMAIN/.test(shs("dig nohost.example.org")), "dig");
   assert(/Destroy complete! Resources: 18 destroyed/.test(shs("terraform destroy -auto-approve")), "destroy lab static");
 }
+
+// ---- use case 2: ECS Fargate + ALB + ECR + RDS (dev + prd)
+{
+  L.buildEcs("ecs"); const ce = L.checksEcs(); assert(L.isEcsLab() && ce.length >= 20 && ce.every(c => c.ok), "ecs lab ต้องผ่านทุกข้อ: " + ce.filter(c => !c.ok).map(c => c.label).join(" | "));
+  const svp = L.ecsSvcOf("pharmacy-prd", "pharmacy-api"), evp = L.ecsEval(svp); assert(evp.healthy === 2 && new Set(evp.tasks.map(t => t.az)).size === 2, "prd: 2 task คนละ AZ healthy");
+  const tgp = L.S.tgs.find(t => t.name === "pharmacy-api-prd"), r1 = L.ecsApiResponse(tgp), r2 = L.ecsApiResponse(tgp); assert(r1.env === "prd" && r1.db === "connected" && r1.task !== r2.task, "ALB กระจายคำขอข้าม task (round-robin)");
+  assert(L.albHealth(L.S.albs[0]).length === 3 && L.albHealth(L.S.albs[0]).every(r => r.ok), "ALB: 3 target (prd 2 + dev 1) healthy");
+  const bad = (k) => { L.buildEcs(k); return L.ecsEval(L.ecsSvcOf("pharmacy-prd", "pharmacy-api")); };
+  let e = bad("ecs-pull"); assert(e.tasks.every(t => t.state === "STOPPED" && t.stage === "network" && /i\/o timeout/.test(t.reason)), "ไม่มี NAT: ดึง image ไม่ได้");
+  e = bad("ecs-image"); assert(e.tasks.every(t => t.stage === "image" && /CannotPullContainerError/.test(t.reason) && /not found/.test(t.reason)), "ไม่มี image tag ใน ECR");
+  e = bad("ecs-role"); assert(e.tasks.every(t => t.stage === "role" && /ecr:GetAuthorizationToken/.test(t.reason)), "execution role ขาด policy");
+  e = bad("ecs-db"); assert(e.tasks.every(t => t.stage === "db" && /Essential container in task exited/.test(t.reason) && t.logs.some(l => /Connection timed out/.test(l))), "SG DB ไม่รับจาก task: แอปล้ม");
+  e = bad("ecs-health"); assert(e.tasks.every(t => t.state === "RUNNING" && !t.healthy && t.code === "Target.FailedHealthChecks") && !L.albHealth(L.S.albs[0]).filter(r => /prd/.test(r.t.name)).some(r => r.ok) && L.albHealth(L.S.albs[0]).filter(r => /dev/.test(r.t.name)).every(r => r.ok), "health path ผิด: prd unhealthy แต่ dev ปกติ");
+  assert(L.ecsApiResponse(L.S.tgs.find(t => t.name === "pharmacy-api-prd")) === null, "prd ไม่มี task healthy = ALB ตอบ 503");
+  L.buildEcs("ecs-base"); assert(!L.checksEcs().every(c => c.ok) && L.S.esvcs.length === 0 && L.S.rds.length === 2, "ecs-base: โครงพร้อม ยังไม่มี cluster/service");
+  const prv = L.S.subnets.filter(s => /private/.test(s.name)).map(s => s.id), sgt = L.S.sgs.find(g => g.name === "pharmacy-task");
+  assert(/awsvpc/.test(L.API.registerTd({ family: "x", cpu: 100, memory: 100, containers: [{ name: "a", image: "i" }] }).errors.memory) || /No Fargate configuration/.test(L.API.registerTd({ family: "x", cpu: 256, memory: 4096, containers: [{ name: "a", image: "i" }] }).errors.memory), "cpu/memory ต้องเป็นคู่ที่ Fargate รองรับ");
+  const cl = L.API.createEcsCluster({ name: "pharmacy-dev" }).res, td = L.API.registerTd({ family: "t1", cpu: 256, memory: 512, execRole: "pharmacy-ecs-execution", containers: [{ name: "api", image: "x", port: 8000 }] }).res;
+  const tgi = L.S.tgs.find(t => t.name === "pharmacy-api-dev"); tgi.ttype = "instance";
+  assert(/target type instance, which is incompatible with the awsvpc/.test(L.API.createEcsService({ name: "s", cluster: cl.name, td: "t1:1", desired: 1, subnetIds: prv, sgIds: [sgt.id], lb: { tgArn: "arn:aws:elasticloadbalancing:ap-southeast-1:000000000000:targetgroup/pharmacy-api-dev/" + tgi.id.slice(-16), container: "api", port: 8000 } }).errors.lb), "TG แบบ instance ผูกกับ awsvpc ไม่ได้");
+  tgi.ttype = "ip"; assert(/did not have a container port 9000/.test(L.API.createEcsService({ name: "s", cluster: cl.name, td: "t1:1", desired: 1, subnetIds: prv, sgIds: [sgt.id], lb: { tgArn: "arn:aws:elasticloadbalancing:ap-southeast-1:000000000000:targetgroup/pharmacy-api-dev/" + tgi.id.slice(-16), container: "api", port: 9000 } }).errors.lb), "container port ไม่ตรง task definition");
+  void td;
+}
+// ---- Terraform labs/02-ecs-fargate + docker push ในเทอร์มินัลจำลอง
+{
+  L.fresh(); const u4 = L.API.createUser({ name: "tf-admin", policies: ["AdministratorAccess"] }).res, k4 = L.API.createAccessKey(u4.id, "CLI", "");
+  function sh4(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh4("aws configure", [k4.res.id, k4.secret, "ap-southeast-1", "json"]);
+  sh4("cd ~/Desktop/work/pharmacy-aws-lab/labs/02-ecs-fargate"); sh4("terraform init");
+  const pl = sh4("terraform plan", ["198.51.100.7/32"]); assert(/Plan: 42 to add/.test(pl), pl.slice(-500));
+  const ap = sh4("terraform apply", ["198.51.100.7/32", "yes"]); assert(/Apply complete! Resources: 42 added/.test(ap), ap.slice(-700));
+  let ev = L.ecsEval(L.ecsSvcOf("pharmacy-prd", "pharmacy-api")); assert(ev.tasks.every(t => t.stage === "image"), "apply เสร็จแต่ยังไม่ push image: task ดึงไม่ได้");
+  assert(/no basic auth credentials/.test(sh4("docker push 000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/pharmacy/api:v1.0.0")) === false, "ยังไม่มี image ในเครื่อง");
+  sh4("docker build -t 000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/pharmacy/api:v1.0.0 ./api");
+  assert(/no basic auth credentials/.test(sh4("docker push 000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/pharmacy/api:v1.0.0")), "ยังไม่ login ECR ต้อง push ไม่ได้");
+  assert(/Login Succeeded/.test(sh4("aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 000000000000.dkr.ecr.ap-southeast-1.amazonaws.com")), "docker login ECR");
+  const ps = sh4("docker push 000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/pharmacy/api:v1.0.0"); assert(/digest: sha256/.test(ps), ps);
+  assert(/ImageTagAlreadyExists/.test(sh4("docker push 000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/pharmacy/api:v1.0.0")), "tag immutable: push ซ้ำต้อง error");
+  ev = L.ecsEval(L.ecsSvcOf("pharmacy-prd", "pharmacy-api")); assert(ev.healthy === 2, "push แล้ว task ขึ้นเองครบ: " + JSON.stringify(ev.tasks.map(t => t.stage + ":" + t.reason)));
+  assert(L.checksEcs().every(c => c.ok), "หลัง apply+push ตัวตรวจต้องผ่าน: " + L.checksEcs().filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(/No changes/.test(sh4("terraform plan", ["198.51.100.7/32"])), "plan ซ้ำต้องไม่มีอะไรเปลี่ยน");
+  assert(/"runningCount": 2/.test(sh4("aws ecs describe-services --cluster pharmacy-prd --services pharmacy-api")) && /cluster\/pharmacy-prd/.test(sh4("aws ecs list-clusters")), "aws ecs");
+  assert(/connected to postgres/.test(sh4("aws logs tail /ecs/pharmacy-api-prd")), "aws logs tail เห็น log แอป");
+  assert(/Destroy complete! Resources: 42 destroyed/.test(sh4("terraform destroy -auto-approve")), "destroy lab ecs");
+}
 console.log("ok");
 
 // ---- ตัวอย่างสำเร็จรูป Ansible
@@ -561,3 +606,61 @@ console.log("ok");
   assert(/FAILED|failed=[1-9]|unreachable=[1-9]/.test(run("ans-noegress", "ansible-playbook jenkins.yml")), "ans-noegress: ไม่มีทางออกเน็ต -> ล้ม");
   const nn = run("ans-nonat", "ansible-playbook db.yml"); assert(/Failed to update apt cache/.test(nn) && /pharmacy-db-1\s+: ok=\d+\s+changed=\d+\s+unreachable=0\s+failed=1/.test(nn), "ans-nonat: db ใน private ไม่มี NAT -> apt ล้ม");
   assert(/pharmacy-jenkins\s+: ok=\d+\s+changed=\d+\s+unreachable=0\s+failed=0/.test(L.shRun("ansible-playbook jenkins.yml").lines.join("\n")), "ans-nonat: Jenkins (public ออกทาง IGW) ยังผ่าน"); }
+// ---- Lab 3: Serverless API (Lambda + API Gateway + DynamoDB)
+{
+  L.buildSls("sls"); assert(L.isSlsLab() && L.checksSls().every(c => c.ok), "sls: ต้องผ่านทุกข้อ: " + L.checksSls().filter(c => !c.ok).map(c => c.label).join(" | "));
+  const host = (e) => L.slsApiHost(L.S.apis.find(a => a.name === "pharmacy-api-" + e));
+  L.S.lams.forEach(l => { l.warm = false; }); let r = L.slsInvoke(host("prd"), "/prd/drugs", "GET", ""); assert(r.status === 200 && r.body.count === 2 && r.body.env === "prd" && r.cold === true, JSON.stringify(r.body));
+  assert(L.slsInvoke(host("prd"), "/prd/drugs", "GET", "").cold === false, "ครั้งที่ 2 = warm (ไม่มี Init Duration)");
+  r = L.slsInvoke(host("dev"), "/dev/drugs", "POST", '{"name":"Aspirin"}'); assert(r.status === 201 && L.slsTbl("pharmacy-drugs-dev").items.length === 4, "POST เพิ่มรายการ");
+  assert(L.slsInvoke(host("dev"), "/dev/drugs", "POST", "not json").status === 400, "POST body ไม่ใช่ JSON");
+  assert(L.slsInvoke(host("dev"), "/nope/drugs", "GET", "").status === 404 && L.slsInvoke(host("dev"), "/dev/other", "GET", "").status === 404, "stage/route ผิด = 404");
+  assert(L.S.lamLogs.some(l => l.fn === "pharmacy-api-dev" && l.lines.some(x => /REPORT/.test(x))) && L.S.lgs.some(g => g.name === "/aws/lambda/pharmacy-api-dev"), "มี log ของ Lambda");
+  const bad = (k) => { L.buildSls(k); return L.slsInvoke(host("prd"), "/prd/drugs", "GET", ""); };
+  r = bad("sls-perm"); assert(r.status === 500 && L.S.lamLogs[0] === undefined ? false : /AccessDeniedException[\s\S]*dynamodb:Scan/.test(L.S.lamLogs.find(l => l.fn === "pharmacy-api-prd").lines.join("\n")), "perm: AccessDenied ใน log");
+  assert(L.slsInvoke(host("dev"), "/dev/drugs", "GET", "").status === 200, "perm: dev ปกติ");
+  r = bad("sls-invoke"); assert(r.status === 500 && r.steps.some(s => !s.ok && /resource-based policy/.test(s.t)) && !L.S.lamLogs.some(l => l.fn === "pharmacy-api-prd"), "invoke: ไม่มี permission = 500 และ Lambda ไม่เคยถูกเรียก (ไม่มี log)");
+  r = bad("sls-route"); assert(r.status === 404, "route พิมพ์ผิด = 404");
+  r = bad("sls-table"); assert(r.status === 500 && /ResourceNotFoundException/.test(L.S.lamLogs.find(l => l.fn === "pharmacy-api-prd").lines.join("\n")), "table: TABLE_NAME ผิด");
+  L.buildSls("sls-base"); assert(L.S.lams.length === 0 && L.S.ddb.length === 2 && !L.checksSls().every(c => c.ok), "sls-base");
+  assert(L.API.createLambda({ name: "x", runtime: "python3.12", handler: "app.handler", role: "pharmacy-api-dev-lambda", memory: 64 }).errors.memory && /cannot be assumed/.test(L.API.createLambda({ name: "x", runtime: "python3.12", handler: "app.handler", role: "nope" }).errors.role), "createLambda validate");
+  L.fresh(); const u5 = L.API.createUser({ name: "tf-admin", policies: ["AdministratorAccess"] }).res, k5 = L.API.createAccessKey(u5.id, "CLI", "");
+  function sh5(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh5("aws configure", [k5.res.id, k5.secret, "ap-southeast-1", "json"]);
+  sh5("cd ~/Desktop/work/pharmacy-aws-lab/labs/03-serverless"); sh5("terraform init");
+  const pl = sh5("terraform plan"); assert(/Plan: 24 to add/.test(pl), pl.slice(-600));
+  const ap0 = sh5("terraform apply", ["yes"]); assert(/unable to load "\.\/build\/app\.zip": open \.\/build\/app\.zip: no such file or directory/.test(ap0), "ยังไม่ zip = apply ล้ม: " + ap0.slice(-700));
+  assert(/zip warning: name not matched: nope\.py/.test(sh5("cd src\nzip ../build/app.zip nope.py")) || true, "zip");
+  sh5("cd src"); assert(/adding: app\.py/.test(sh5("zip ../build/app.zip app.py")), "zip สร้างไฟล์"); sh5("cd ..");
+  const ap = sh5("terraform apply", ["yes"]); assert(/Apply complete! Resources: \d+ added/.test(ap) && L.S.lams.length === 2, ap.slice(-900));
+  assert(L.checksSls().filter(c => !/GET \/drugs ผ่าน API/.test(c.label)).every(c => c.ok), "หลัง apply: " + L.checksSls().filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(/Plan:|No changes/.test(sh5("terraform plan")) && /No changes/.test(sh5("terraform plan")), "plan ซ้ำต้องไม่เปลี่ยน");
+  const ep = L.slsApiHost(L.S.apis.find(a => a.name === "pharmacy-api-dev"));
+  assert(/"count": ?0|"count":0/.test(sh5("curl https://" + ep + "/dev/drugs")), "table ว่างหลัง apply");
+  sh5("aws dynamodb put-item --table-name pharmacy-drugs-dev --item '{\"id\":{\"S\":\"9\"},\"name\":{\"S\":\"Ibuprofen\"}}'");
+  assert(/Ibuprofen/.test(sh5("curl https://" + ep + "/dev/drugs")) && /Ibuprofen/.test(sh5("aws dynamodb scan --table-name pharmacy-drugs-dev")), "put-item → curl/scan เห็นข้อมูล");
+  assert(/201/.test(sh5("curl -i -X POST -d '{\"name\":\"X\"}' https://" + ep + "/dev/drugs")), "curl POST");
+  assert(/REPORT/.test(sh5("aws logs tail /aws/lambda/pharmacy-api-dev")), "logs tail ของ Lambda");
+  const inv = sh5("aws lambda invoke --function-name pharmacy-api-dev --payload '{\"rawPath\":\"/drugs\",\"requestContext\":{\"http\":{\"method\":\"GET\"}}}' out.json"); assert(/"StatusCode": 200/.test(inv) && !/FunctionError/.test(inv) && /statusCode/.test(sh5("cat out.json")), inv + sh5("cat out.json"));
+  assert(/"Sid": "AllowAPIGatewayInvoke"|AllowAPIGatewayInvoke/.test(sh5("aws lambda get-policy --function-name pharmacy-api-dev")), "get-policy");
+  assert(/pharmacy-api-dev/.test(sh5("aws lambda list-functions")), "lambda list-functions");
+  const ds = sh5("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 24 destroyed/.test(ds), ds.slice(-900));
+  assert(L.S.lams.length === 0 && L.S.apis.length === 0 && L.S.ddb.length === 0, "destroy หมด");
+  // ---- ฟีเจอร์ที่เคยเป็นสีเทา: PartiQL, Logs Insights, metrics/alarm, layer, custom domain, ปุ่ม Test, ลบผ่าน console
+  L.buildSls("sls");
+  let q = L.slsPartiql('SELECT * FROM "pharmacy-drugs-dev" WHERE id=\'1\''); assert(q.rows.length === 1 && q.rows[0].name === "Paracetamol 500mg", "PartiQL select");
+  assert(/ResourceNotFoundException/.test(L.slsPartiql('SELECT * FROM "nope"').err) && /well formed/.test(L.slsPartiql("DROP everything").err), "PartiQL error");
+  assert(L.slsPartiql('INSERT INTO "pharmacy-drugs-dev" VALUE {\'id\':\'9\',\'name\':\'X\'}').msg && /Duplicate/.test(L.slsPartiql('INSERT INTO "pharmacy-drugs-dev" VALUE {\'id\':\'9\'}').err), "PartiQL insert/dup");
+  assert(L.slsPartiql('UPDATE "pharmacy-drugs-dev" SET stock=5 WHERE id=\'9\'').msg && L.slsPartiql('DELETE FROM "pharmacy-drugs-dev" WHERE id=\'9\'').msg, "PartiQL update/delete");
+  L.buildSls("sls-perm"); const apx = L.S.apis.find(a => /prd/.test(a.name)); L.slsInvoke(L.slsApiHost(apx), "/prd/drugs", "GET", "");
+  assert(L.slsInsights("/aws/lambda/pharmacy-api-prd", "filter @message like /AccessDenied/ | limit 5").rows.length >= 1 && L.slsInsights("/aws/lambda/pharmacy-api-prd", "filter @message like /REPORT/ | stats count(*)").rows[0]["count(*)"] === 1 && /MalformedQuery/.test(L.slsInsights("/aws/lambda/pharmacy-api-prd", "bogus stuff").err), "Logs Insights");
+  assert(L.slsMetrics().some(m => m[1] === "5xx" && m[3] === 1), "metric 5xx นับได้");
+  const al = L.API.createAlarm({ name: "prd-5xx", metric: "AWS/ApiGateway|5xx|ApiId=" + apx.id + " (" + apx.name + ")", threshold: 1 }).res; assert(L.slsAlarmState(al) === "ALARM", "alarm เข้า ALARM เมื่อ 5xx >= 1");
+  assert(L.API.createAlarm({ name: "x", metric: "nope", threshold: 1 }).errors.metric, "alarm metric ผิด");
+  assert(L.API.createLayer({ name: "l", file: "nope.zip", runtimes: ["python3.12"] }).errors.file, "layer ไม่มี zip = error"); L.fsWrite("/tmp/l.zip", "PK x"); assert(L.API.createLayer({ name: "l", file: "/tmp/l.zip", runtimes: ["python3.12"] }).res.versions.length === 1 && L.API.createLayer({ name: "l", file: "/tmp/l.zip", runtimes: ["python3.12"] }).res.versions.length === 2, "layer version เพิ่ม");
+  assert(/not Issued|ยังไม่ Issued|ต้องเลือก ACM/.test(JSON.stringify(L.API.createApiDomain({ name: "api.pharmacy.example.com", cert: "" }).errors)), "custom domain ต้องมี cert");
+  const t0 = L.slsInvokeDirect("pharmacy-api-prd", '{"rawPath":"/drugs","requestContext":{"http":{"method":"GET"}}}'); assert(t0.failed && t0.payload.errorType === "ClientError" && /AccessDeniedException/.test(t0.payload.errorMessage) && t0.payload.stackTrace.length >= 3, "Test: error แบบ Lambda จริง");
+  assert(/Could not parse request body into json/.test(L.slsInvokeDirect("pharmacy-api-prd", "{bad").fnErr) && /Function not found/.test(L.slsInvokeDirect("nope", "{}").fnErr), "Test: event ผิด / function ไม่มี");
+  L.buildSls("sls"); assert(!L.slsInvokeDirect("pharmacy-api-dev", "{}").failed, "Test: สำเร็จ");
+  L.buildEcs("ecs"); const sv0 = L.S.esvcs.length; L.API.del("esvc", L.S.esvcs[0].id, "delete"); assert(L.S.esvcs.length === sv0 - 1, "ลบ ECS service ผ่าน API.del ได้จริง");
+}

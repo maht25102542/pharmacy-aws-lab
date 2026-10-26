@@ -19,3 +19,6 @@ labs/**/*.tfstate
 labs/**/*.tfstate.*
 labs/**/terraform.tfvars
 labs/**/.terraform.lock.hcl
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -80,7 +80,7 @@ function stDelPlan(kind, id, P) {
     var o = S.oacs.filter(function (x) { return x.id === id; })[0]; if (!o) return false;
     P.title = "Delete OAC " + o.name; P.crumb = "CloudFront › Origin access › Delete"; P.word = "delete"; P.done = "ลบ OAC แล้ว";
     S.cfds.filter(function (d3) { return d3.origins.some(function (g) { return g.oacId === o.id; }); }).forEach(function (d3) { P.blockers.push("ใช้อยู่กับ distribution " + d3.id); });
-  } else return false;
+  } else return ecsDelPlan(kind, id, P);
   return true;
 }
 function stDelDo(kind, id) {
@@ -89,7 +89,7 @@ function stDelDo(kind, id) {
   if (kind === "zone") return API.deleteZone(id);
   if (kind === "cert") return API.deleteCert(id);
   if (kind === "oac") { S.oacs = S.oacs.filter(function (o) { return o.id !== id; }); return { res: true }; }
-  return { res: true };
+  return ecsDelDo(kind, id);
 }
 
 // ---------- HCL จากของที่กดใน console ----------
@@ -143,7 +143,7 @@ function shAwsStatic(a, w, need) {
   if (op === "cloudfront list-distributions") return need("cloudfront:ListDistributions", "ListDistributions", function () { return ["{", '    "DistributionList": { "Items": [', S.cfds.map(function (d) { return '        { "Id": "' + d.id + '", "DomainName": "' + d.domain + '", "Aliases": [' + d.aliases.map(function (x) { return '"' + x + '"'; }).join(", ") + '], "Status": "Deployed", "Enabled": ' + d.enabled + " }"; }).join(",\n"), "    ] }", "}"]; });
   if (op === "route53 list-hosted-zones") return need("route53:ListHostedZones", "ListHostedZones", function () { return ["{", '    "HostedZones": [', S.zones.map(function (z) { return '        { "Id": "/hostedzone/' + z.id + '", "Name": "' + z.name + '.", "ResourceRecordSetCount": ' + z.records.length + " }"; }).join(",\n"), "    ]", "}"]; });
   if (op === "acm list-certificates") return need("acm:ListCertificates", "ListCertificates", function () { var rg = arg("--region") || (S.laptop.awsRegion || REGION); return ["{", '    "CertificateSummaryList": [', S.certs.filter(function (c) { return c.region === rg; }).map(function (c) { return '        { "CertificateArn": "' + c.arn + '", "DomainName": "' + c.names[0] + '", "Status": "' + acmStatus(c) + '" }'; }).join(",\n"), "    ]", "}"].concat(rg === REGION && S.certs.some(function (c) { return c.region === "us-east-1"; }) ? ["(ใบรับรองของ CloudFront อยู่ us-east-1 · ลอง --region us-east-1)"] : []); });
-  return null;
+  return shAwsEcs(a, w, need);
 }
 function shDig(a) {
   var host = a.filter(function (x) { return x[0] !== "-" && x !== "dig" && x !== "nslookup" && x !== "A"; })[0];

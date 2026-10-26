@@ -223,6 +223,7 @@ var HCL_FUNCS = {
   upper: function (a) { return String(a[0]).toUpperCase(); }, lower: function (a) { return String(a[0]).toLowerCase(); },
   max: function (a) { return Math.max.apply(null, a); }, min: function (a) { return Math.min.apply(null, a); },
   jsonencode: function (a) { return JSON.stringify(a[0]); }, replace: function (a) { return String(a[0]).split(a[1]).join(a[2]); },
+  split: function (a) { return String(a[1]).split(a[0]); }, format: function (a) { var i = 1; return String(a[0]).replace(/%[sdv%]/g, function (m) { return m === "%%" ? "%" : String(a[i++]); }); }, startswith: function (a) { return String(a[0]).indexOf(a[1]) === 0; }, trimprefix: function (a) { var t = String(a[0]); return t.indexOf(a[1]) === 0 ? t.slice(a[1].length) : t; },
   trimspace: function (a) { return String(a[0]).trim(); }, basename: function (a) { return String(a[0]).split("/").pop(); },
   pathexpand: function (a, c) { return String(a[0]).replace(/^~/, (c && c.home) || "/home/swd"); },
   file: function (a, c) { var v = c && c.readFile ? c.readFile(a[0]) : null; if (v === null || v === undefined) throw new Error("Invalid value for \"path\" parameter: no file exists at " + a[0] + "; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource."); return v; }

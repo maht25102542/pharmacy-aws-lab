@@ -10,6 +10,11 @@ var POLICY_DEF = {
   AmazonEKSClusterPolicy: { desc: "This policy provides Kubernetes the permissions it requires to manage resources on your behalf.", actions: ["ec2:CreateNetworkInterface", "ec2:DescribeInstances", "elasticloadbalancing:*", "autoscaling:DescribeAutoScalingGroups"] },
   AmazonEKSWorkerNodePolicy: { desc: "This policy allows Amazon EKS worker nodes to connect to Amazon EKS Clusters.", actions: ["ec2:DescribeInstances", "eks:DescribeCluster"] },
   AmazonEKS_CNI_Policy: { desc: "This policy provides the Amazon VPC CNI Plugin (amazon-vpc-cni-k8s) the permissions it requires to modify the IP address configuration on your EKS worker nodes.", actions: ["ec2:AssignPrivateIpAddresses", "ec2:AttachNetworkInterface", "ec2:CreateNetworkInterface"] },
+  AWSLambdaBasicExecutionRole: { desc: "Provides write permissions to CloudWatch Logs.", actions: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"] },
+  AmazonDynamoDBFullAccess: { desc: "Provides full access to Amazon DynamoDB via the AWS Management Console. (ของจริงควรเขียน policy เฉพาะ table)", actions: ["dynamodb:*"] },
+  AmazonDynamoDBReadOnlyAccess: { desc: "Provides read only access to Amazon DynamoDB via the AWS Management Console.", actions: ["dynamodb:BatchGetItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:DescribeTable", "dynamodb:ListTables"] },
+  AmazonECSTaskExecutionRolePolicy: { desc: "Provides access to other AWS service resources that are required to run Amazon ECS tasks (pull images from ECR, write CloudWatch Logs).", actions: ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage", "logs:CreateLogStream", "logs:PutLogEvents"] },
+  SecretsManagerReadWrite: { desc: "Provides read/write access to AWS Secrets Manager via the AWS Management Console. (ของจริงควรเขียน policy เฉพาะ secret)", actions: ["secretsmanager:*"] },
   AmazonS3ReadOnlyAccess: { desc: "Provides read only access to all buckets via the AWS Management Console. (คำอธิบายและเนื้อหายังไม่ได้ตรวจ)", actions: null },
   CloudWatchAgentServerPolicy: { desc: "Permissions required to use the CloudWatch agent on servers. (คำอธิบายและเนื้อหายังไม่ได้ตรวจ)", actions: null }
 };
@@ -68,7 +73,7 @@ function ensureState() {
   if (!S.nats) S.nats = [];
   if (!S.faults) S.faults = {};
   ghInit();
-  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs"].forEach(function (k) { if (!S[k]) S[k] = []; });
+  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs", "ecsc", "tds", "esvcs", "lgs", "ddb", "lams", "apis", "lperms", "lamLogs", "layers", "adoms", "alarms"].forEach(function (k) { if (!S[k]) S[k] = []; });
   if (!S.cfCache) S.cfCache = {};
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
@@ -107,7 +112,7 @@ function ecrName(n) {
 
 // ---- security group rules
 function typeRule(t, port) {
-  var m = { "SSH": [22, 22], "HTTP": [80, 80], "HTTPS": [443, 443], "MYSQL/Aurora": [3306, 3306] };
+  var m = { "SSH": [22, 22], "HTTP": [80, 80], "HTTPS": [443, 443], "MYSQL/Aurora": [3306, 3306], "PostgreSQL": [5432, 5432] };
   if (m[t]) return { proto: "tcp", from: m[t][0], to: m[t][1] };
   if (t === "All traffic") return { proto: "-1", from: 0, to: 65535 };
   var p = String(port || "").split("-"); var a = +p[0], b = p.length > 1 ? +p[1] : +p[0];
@@ -276,11 +281,11 @@ API.createKey = function (o) {
 API.createRole = function (o) {
   var n = o.name || "", er = {};
   if (o.entity !== "AWS service") er.entity = "จำลองเฉพาะ AWS service";
-  if (o.usecase !== "EC2" && o.usecase !== "EKS") er.usecase = "จำลองเฉพาะ use case EC2 และ EKS";
+  if (o.usecase !== "EC2" && o.usecase !== "EKS" && o.usecase !== "ECS" && o.usecase !== "Lambda") er.usecase = "จำลองเฉพาะ use case EC2, EKS, ECS และ Lambda";
   if (!n) er.name = "ต้องกรอก Role name"; else if (n.length > 64) er.name = "ยาวได้ไม่เกิน 64 ตัวอักษร"; else if (!/^[A-Za-z0-9+=,.@_-]+$/.test(n)) er.name = "ใช้ได้เฉพาะตัวอักษร ตัวเลข และ + = , . @ _ -";
   else if (S.roles.some(function (r) { return r.name.toLowerCase() === n.toLowerCase(); })) er.name = "มี role ชื่อนี้แล้ว (ชื่อซ้ำกันไม่ได้ แม้ต่างกันแค่ตัวพิมพ์ใหญ่เล็ก)";
   if (Object.keys(er).length) return { errors: er };
-  var eksRole = o.usecase === "EKS", r = { id: rid("role"), name: n, desc: o.desc || "", policies: eksRole ? ["AmazonEKSClusterPolicy"] : (o.policies || []).slice(), profile: eksRole ? "" : n, trustSvc: eksRole ? "eks.amazonaws.com" : "ec2.amazonaws.com" }; S.roles.push(r); return { res: r };
+  var eksRole = o.usecase === "EKS", r = { id: rid("role"), name: n, desc: o.desc || "", policies: eksRole ? ["AmazonEKSClusterPolicy"] : (o.policies || []).slice(), profile: eksRole || o.usecase === "ECS" || o.usecase === "Lambda" ? "" : n, trustSvc: eksRole ? "eks.amazonaws.com" : o.usecase === "ECS" ? "ecs-tasks.amazonaws.com" : o.usecase === "Lambda" ? "lambda.amazonaws.com" : "ec2.amazonaws.com" }; S.roles.push(r); return { res: r };
 };
 API.createRepo = function (o) {
   var m = ecrName(o.name || ""); if (m) return E("name", m);
@@ -325,7 +330,7 @@ API.createTg = function (o) {
   if (!find(S.vpcs, o.vpcId)) er.vpcId = "ต้องเลือก VPC";
   if (o.hcPath && o.hcPath.charAt(0) !== "/") er.hcPath = "Health check path ต้องขึ้นต้นด้วย /";
   if (Object.keys(er).length) return { errors: er };
-  var t = { id: rid("tg"), name: o.name, port: port, proto: o.proto || "HTTP", vpcId: o.vpcId, hcPath: o.hcPath || "/", targets: [] };
+  var t = { id: rid("tg"), name: o.name, port: port, proto: o.proto || "HTTP", vpcId: o.vpcId, hcPath: o.hcPath || "/", targets: [], ttype: o.targetType || "instance" };
   (o.targets || []).forEach(function (x) { t.targets.push({ instId: x.instId, port: +x.port || port }); });
   S.tgs.push(t); return { res: t };
 };
@@ -404,7 +409,9 @@ function albHealth(alb) {
   var rows = [], prov = albPhase(alb) === "provisioning", azs = alb.subnetIds.map(function (id) { var x = find(S.subnets, id); return x && x.az; });
   alb.listeners.forEach(function (l) {
     var t = find(S.tgs, l.tgId); if (!t) return;
-    if (!t.targets.length) rows.push({ l: l, t: t, none: true });
+    var ecsT = ecsAlbTargets(t);
+    ecsT.forEach(function (e) { var tk = e.task, st2 = tk.healthy ? "healthy" : "unhealthy", cd = tk.healthy ? "" : (tk.code || "Target.FailedHealthChecks"); rows.push({ l: l, t: t, inst: { name: "task " + tk.id.slice(0, 8) + " (" + tk.ip + ")", az: tk.az }, port: e.port, state: prov ? "initial" : st2, ok: !prov && tk.healthy, code: cd, why: cd ? cd + ": " + (tk.why || "Health checks failed") : "" }); });
+    if (!t.targets.length && !ecsT.length) rows.push({ l: l, t: t, none: true });
     t.targets.forEach(function (x) {
       var inst = find(S.insts, x.instId), st = "healthy", code = "", desc = "";
       if (prov && inst && inst.state !== "stopped" && inst.state !== "terminated") { st = "initial"; code = "Elb.InitialHealthChecking"; desc = "Initial health checks in progress"; }
@@ -626,7 +633,7 @@ API.del = function (kind, id, word) {
   else if (kind === "inst") API.instState(id, "terminate");
   else if (kind === "repo") S.repos = S.repos.filter(function (x) { return x.id !== id; });
   else if (kind === "eip") S.eips = S.eips.filter(function (x) { return x.id !== id; });
-  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac)$/.test(kind)) return mgDelDo(kind, id);
+  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm)$/.test(kind)) return mgDelDo(kind, id);
   return { res: true };
 };
 
@@ -634,6 +641,8 @@ API.del = function (kind, id, word) {
 function checks() {
   if (isManagedLab()) return checksManaged();
   if (isStaticLab()) return checksStatic();
+  if (isEcsLab()) return checksEcs();
+  if (isSlsLab()) return checksSls();
   var out = [];
   function add(ok, label, hint) { out.push({ ok: !!ok, label: label, hint: hint || "" }); }
   var vpc = byName(S.vpcs, "pharmacy-vpc");
@@ -725,6 +734,17 @@ var HCL_INFO = {
   cfd: [5, "CloudFront distribution", "CDN: แคชหน้าเว็บใกล้ผู้ใช้ + HTTPS + โดเมนของเรา", "CloudFront › Distributions › Create distribution", "S3 bucket, OAC, ใบรับรอง (Issued)"],
   s3pol: [6, "Bucket policy", "อนุญาตเฉพาะ CloudFront ตัวนี้อ่านไฟล์ (AWS:SourceArn)", "S3 › bucket › Permissions › Bucket policy", "CloudFront distribution"],
   r53: [6, "Route 53 record (alias)", "ให้ชื่อเว็บชี้ไปที่ CloudFront", "Route 53 › Hosted zones › Create record", "Route 53 zone, CloudFront distribution"],
+  lg: [1, "CloudWatch log group", "ที่เก็บ log ของคอนเทนเนอร์ (awslogs)", "CloudWatch › Logs › Log groups › Create log group", ""],
+  ddb: [1, "DynamoDB table", "ฐานข้อมูล NoSQL แบบ serverless: จ่ายตามจำนวนคำขอ ไม่มีเซิร์ฟเวอร์ให้ดูแล", "DynamoDB › Tables › Create table", ""],
+  lamfn: [4, "Lambda function", "โค้ดที่ AWS รันให้เมื่อมีคำขอเข้ามา (ไม่มีเครื่อง) จ่ายตามเวลาที่ทำงานจริง", "Lambda › Functions › Create function", "IAM role (lambda), DynamoDB table, log group"],
+  apigw: [2, "API Gateway (HTTP API)", "ประตูหน้าบ้าน: รับคำขอ HTTPS จากเน็ตแล้วส่งต่อให้ Lambda", "API Gateway › Create API › HTTP API", ""],
+  apiint: [5, "API integration", "บอก API ว่าเส้นทางนี้ต้องเรียก Lambda ตัวไหน", "API Gateway › Integrations › Create", "API, Lambda function"],
+  apiroute: [6, "API route", "จับคู่ METHOD + path (GET /drugs) เข้ากับ integration", "API Gateway › Routes › Create", "API integration"],
+  apistage: [6, "API stage", "สภาพแวดล้อมของ API (dev / prd) ที่ได้ URL ของตัวเอง", "API Gateway › Stages › Create", "API"],
+  lamperm: [6, "Lambda permission", "อนุญาตให้ API Gateway เรียก Lambda (resource-based policy)", "Lambda › Configuration › Permissions › Add permission", "Lambda function, API"],
+  ecsc: [1, "ECS cluster", "กลุ่มที่รวม service ของ Fargate (ไม่มีเครื่องให้ดูแล)", "ECS › Clusters › Create cluster", ""],
+  ecstd: [4, "ECS task definition", "แม่แบบของคอนเทนเนอร์: image, CPU/RAM, port, env, secret, log, role", "ECS › Task definitions › Create new task definition", "IAM role (execution/task), ECR repo, log group, RDS (DB_HOST/secret)"],
+  ecssvc: [6, "ECS service", "รักษาจำนวน task ตาม desired + ผูก ALB + วาง task ใน subnet/SG ที่กำหนด", "ECS › Cluster › Services › Create", "ECS cluster, task definition, target group + listener, subnet, SG, NAT"],
   eks: [4, "EKS cluster", "Kubernetes แบบ managed: AWS ดูแล control plane (API server, etcd) ให้", "EKS → Clusters → Create cluster", "Subnet (private ครบ 3 AZ), IAM role (EKS cluster), NAT gateway"],
   dbsg: [3, "DB subnet group", "บอก RDS ว่าวาง DB ในซอยไหนได้บ้าง (ต้องครอบ ≥ 2 AZ)", "RDS → Subnet groups → Create DB subnet group", "Subnet (private)"],
   ng: [5, "EKS node group", "เครื่อง worker ของ cluster (Auto Scaling group) กระจายคนละ AZ", "EKS → Clusters → เลือก cluster → Compute → Add node group", "EKS cluster, IAM role (node), Subnet, NAT / Route table"],
@@ -783,7 +803,7 @@ function hcl() {
     o.push(hcm("alb", a.name) + 'resource "aws_lb" "' + slug(a.name) + '" {\n  name               = "' + a.name + '"\n  load_balancer_type = "application"\n  internal           = ' + (a.scheme === "Internal") + "\n  security_groups    = [" + a.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n  subnets            = [" + a.subnetIds.map(function (id) { return ref(id); }).join(", ") + "]\n}");
      a.listeners.forEach(function (l) { o.push(hcm("listener", a.name + ":" + l.port) + 'resource "aws_lb_listener" "' + slug(a.name + "_" + l.port) + '" {\n  load_balancer_arn = ' + ref(a.id, "arn") + "\n  port              = " + l.port + '\n  protocol          = "HTTP"\n  default_action {\n    type             = "forward"\n    target_group_arn = ' + ref(l.tgId, "arn") + "\n  }\n}"); });
   });
-  mgHcl(o, ref, map); stHcl(o, ref);
+  mgHcl(o, ref, map); stHcl(o, ref); ecsHcl(o, ref); slsHcl(o, ref);
   return o.length ? "# อ่านยังไง: แต่ละก้อนมีป้าย \"ขั้นที่ N\" = ลำดับที่ Terraform สร้าง (เลขเท่ากันสร้างพร้อมกันได้)\n# \"กดที่\" = เมนูใน console ที่ทำสิ่งเดียวกัน · \"ต้องมีก่อน\" = อ้างถึงอะไร (เลื่อนดูแผนภาพด้านบนของหน้านี้)\n\n" + o.join("\n\n") : "# ยังไม่มีอะไรให้แปลง ลองสร้าง VPC หรือกดโหลดตัวอย่างในแท็บ 'ตัวอย่างสำเร็จรูป'";
 }
 
@@ -924,6 +944,8 @@ function hclPlan() {
   S.buckets.forEach(function (b) { add("s3", b.name); add("pab", b.name); b.objects.forEach(function (x) { add("obj", b.name + "/" + x.key); }); if (b.policy) add("s3pol", b.name); });
   S.oacs.forEach(function (a) { add("oac", a.name); }); S.zones.forEach(function (z) { add("zone", z.name); z.records.filter(function (r) { return r.alias; }).forEach(function (r) { add("r53", r.name); }); });
   S.certs.forEach(function (c) { add("cert", c.names[0]); c.records.forEach(function (r) { add("certrec", r.name); }); add("certval", c.names[0]); }); S.cfds.forEach(function (d) { add("cfd", d.comment || d.id); });
+  S.lgs.forEach(function (g) { add("lg", g.name); }); S.ecsc.forEach(function (c) { add("ecsc", c.name); }); S.tds.forEach(function (t) { add("ecstd", t.id); }); S.esvcs.forEach(function (x) { add("ecssvc", x.cluster + "/" + x.name); });
+  S.ddb.forEach(function (t) { add("ddb", t.name); }); S.lams.forEach(function (l) { add("lamfn", l.name); }); S.apis.forEach(function (a) { add("apigw", a.name); a.integrations.forEach(function (i) { add("apiint", a.name + "/" + i.id); }); a.routes.forEach(function (r) { add("apiroute", a.name + " " + r.key); }); a.stages.forEach(function (s) { add("apistage", a.name + "/" + s.name); }); }); S.lperms.forEach(function (p) { add("lamperm", p.fn + " ← " + p.principal); });
   var layers = [[], [], [], [], [], [], []];
   Object.keys(acc).forEach(function (k) { var d = HCL_INFO[k]; layers[d[0] - 1].push({ key: k, label: d[1], names: acc[k], needs: d[4], where: d[3] }); });
   while (layers.length > 5 && !layers[layers.length - 1].length) layers.pop(); // แบบ managed มี 6 ขั้น แบบ VM มี 5

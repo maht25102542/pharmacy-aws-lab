@@ -56,6 +56,121 @@ UC.push({
   ]
 });
 
+UC.push({
+  id: "ecs", no: 2, title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
+  tag: "ทีมเล็ก-กลางนิยม · ได้ container โดยไม่ต้องดูแล Kubernetes หรือเครื่อง",
+  intro: [
+    ["ใช้ทำอะไร", "#2b6cb0", "รัน **backend API ที่เป็น container** (Django/Node/Go) โดย **ไม่ต้องมีเครื่อง** ไม่ต้องดูแล k8s · AWS รัน task ให้ตาม CPU/RAM ที่ขอ · มี **ALB** กระจายโหลด + **RDS** เก็บข้อมูล"],
+    ["ใครใช้", "#1d8102", "ทีมที่อยากได้ container แต่ไม่อยากแบก Kubernetes (EKS) · เหมาะ API ทั่วไป · ถ้าต้องการ ecosystem k8s ค่อยย้ายไป EKS"],
+    ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = 1 task เล็ก DB single-AZ พอร์ต 8080 · prd = 2 task ใหญ่กว่า DB **Multi-AZ** พอร์ต 80 · แต่ละ env มี cluster / service / target group / DB ของตัวเอง ใช้ VPC + ECR ร่วมกัน"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① task อยู่ **private subnet** ออกเน็ตผ่าน **NAT** (ไปดึง ECR/Secrets/Logs) ② image ต้อง **docker push** ก่อนสร้าง service ③ **execution role** ≠ task role ④ target group ต้องเป็นแบบ **IP** ⑤ SG ต่อกันเป็นสาย: ALB → task → DB ⑥ health check path ต้องตรงกับที่แอปตอบ"]
+  ],
+  envs: [["", "dev", "prd"], ["เข้า API", "ALB :8080", "ALB :80"], ["Task (Fargate)", "1 task · 0.25 vCPU / 0.5 GB", "2 task · 0.5 vCPU / 1 GB"], ["RDS Postgres 16", "db.t4g.micro · single-AZ", "db.t4g.small · Multi-AZ"], ["ECS cluster", "pharmacy-dev", "pharmacy-prd"], ["ใช้ร่วมกัน", "VPC 3 AZ + NAT · ECR repo pharmacy/api · ALB", "เหมือน dev"]],
+  nodes: [
+    { id: "user", x: 24, y: 160, w: 120, h: 64, t: "ผู้ใช้ / frontend", s: "GET /api/…", c: "#2a4a7a" },
+    { id: "alb", ico: "alb", x: 220, y: 150, w: 170, h: 80, t: "ALB (public)", s: "dev :8080 · prd :80", c: "#8c4fff" },
+    { id: "task", ico: "ecs", x: 480, y: 150, w: 200, h: 90, t: "ECS Fargate tasks", s: "private subnet · port 8000", c: "#d9480f" },
+    { id: "rds", ico: "rds", x: 780, y: 150, w: 210, h: 80, t: "RDS Postgres", s: "SG: รับจาก task เท่านั้น", c: "#2e6bd0" },
+    { id: "ecr", ico: "ecr", x: 480, y: 30, w: 200, h: 64, t: "ECR (pharmacy/api)", s: "image v1.0.0", c: "#d9480f" },
+    { id: "nat", ico: "natgw", x: 220, y: 320, w: 170, h: 64, t: "NAT Gateway", s: "ทางออกเน็ตของ task", c: "#0d7c8f" },
+    { id: "log", ico: "cloudwatch", x: 780, y: 320, w: 210, h: 64, t: "CloudWatch Logs", s: "/ecs/pharmacy-api-env", c: "#c2185b" },
+    { id: "ci", ico: "github", x: 480, y: 320, w: 200, h: 64, t: "laptop / CI", s: "docker build + push", c: "#475569" }
+  ],
+  links: [["user", "alb"], ["alb", "task"], ["task", "rds"], ["task", "nat"], ["nat", "ecr"], ["task", "log"], ["ci", "ecr"]],
+  scenes: [
+    { t: "ส่งภาพขึ้น ECR ก่อน", on: ["ci", "ecr"], flow: [["ci", "docker build/tag"], ["ecr", "docker push v1.0.0"]], rows: [["เกิดอะไร", "#475569", "login ECR → build → push · repo เป็น **IMMUTABLE** (tag เดิมเขียนทับไม่ได้) · ต้องมี image ก่อนสร้าง service"]] },
+    { t: "Service เริ่ม task", on: ["task", "ecr", "nat"], flow: [["task", "Fargate เริ่ม task"], ["nat", "ออกเน็ต"], ["ecr", "ดึง image"], ["task", "แอปเริ่ม"]], rows: [["เกิดอะไร", "#d9480f", "Fargate ใช้ **execution role** ดึง image ผ่าน **NAT** (task อยู่ private subnet) แล้วรันคอนเทนเนอร์"]] },
+    { t: "แอปต่อฐานข้อมูล", on: ["task", "rds"], flow: [["task", "อ่าน DB_PASSWORD"], ["rds", "รับ :5432"], ["task", "connected"]], rows: [["เกิดอะไร", "#2e6bd0", "รหัสผ่านมาจาก **Secrets Manager** (RDS สร้างให้) · SG ของ DB รับ 5432 จาก SG ของ task เท่านั้น"]] },
+    { t: "ALB health check", on: ["alb", "task"], flow: [["alb", "GET /healthz"], ["task", "200"]], rows: [["เกิดอะไร", "#8c4fff", "target group (แบบ IP) ตรวจ `/healthz` · ผ่านแล้วถึงรับ traffic · ไม่ผ่าน = ECS ฆ่า task แล้วเริ่มใหม่วน"]] },
+    { t: "คำขอจากผู้ใช้", on: ["user", "alb", "task", "rds"], flow: [["user", "GET /api/drugs"], ["alb", "เลือก task"], ["task", "query"], ["rds", "ข้อมูล"], ["user", "200 JSON"]], rows: [["เกิดอะไร", "#1d8102", "ALB กระจายไป task ตัวใดตัวหนึ่ง · ที่ Browser ลองกด Go ซ้ำ จะเห็น `task`/`az` สลับกัน (prd มี 2 task)"]] },
+    { t: "ส่ง log ไป CloudWatch", on: ["task", "log"], flow: [["task", "stdout"], ["log", "log stream"]], rows: [["เกิดอะไร", "#c2185b", "awslogs driver ส่ง stdout ไป **log group** · 1 task = 1 stream · ไม่มี log group/สิทธิ์ = ไม่เห็น log"]] },
+    { t: "เคส error 1: task ดึง image ไม่ได้", on: ["task", "nat", "ecr"], bad: ["nat"], flow: [["task", "ขอ image"], ["nat", "✗ ไม่มีทาง/ไม่มี image"]], rows: [["อาการ", "#c62828", "task STOPPED วนซ้ำ · `ResourceInitializationError` (ไม่มี NAT) หรือ `CannotPullContainerError` (ไม่มี tag)"], ["สาเหตุ", "#a85a00", "route 0.0.0.0/0 → NAT หาย · หรือยังไม่ docker push"]] },
+    { t: "เคส error 2: role ขาดสิทธิ์", on: ["task", "ecr"], bad: ["task"], flow: [["task", "ใช้ execution role"], ["ecr", "✗ AccessDenied"]], rows: [["อาการ", "#c62828", "ดึง image/secret ไม่ได้ ทั้งที่เน็ตปกติ"], ["สาเหตุ", "#a85a00", "execution role ไม่มี AmazonECSTaskExecutionRolePolicy"]] },
+    { t: "เคส error 3: แอปต่อ DB ไม่ได้", on: ["task", "rds"], bad: ["rds"], flow: [["task", "connect :5432"], ["rds", "✗ SG ไม่รับ"]], rows: [["อาการ", "#c62828", "task เริ่มแล้วล้ม ใน Logs เจอ connection timeout"], ["สาเหตุ", "#a85a00", "SG ของ DB รับจาก SG ผิดตัว (เช่นของ ALB) แทนที่จะเป็นของ task"]] },
+    { t: "เคส error 4: health check ไม่ผ่าน", on: ["alb", "task"], bad: ["task"], flow: [["alb", "GET /health"], ["task", "✗ 404"]], rows: [["อาการ", "#c62828", "task ขึ้นแล้วถูกฆ่าซ้ำ · Events: failed ELB health checks"], ["สาเหตุ", "#a85a00", "target group ตรวจ path ที่แอปไม่มี (/health ≠ /healthz)"]] }
+  ],
+  tf: [
+    { type: "aws_ecr_repository", name: "api", file: "labs/02-ecs-fargate/ecr.tf", console: ["ECR › Private repositories › Create repository", "Repository name = pharmacy/api · Tag immutability = Enabled"], err: "push tag เดิมซ้ำ = ImageTagAlreadyExistsException" },
+    { type: "aws_security_group", name: "alb", file: "labs/02-ecs-fargate/security.tf", console: ["EC2 › Security Groups › Create", "Inbound: HTTP 80 / Custom TCP 8080 จาก Anywhere"], err: "ไม่เปิด port = เปิด ALB ไม่ติด (timeout)" },
+    { type: "aws_security_group", name: "task", file: "labs/02-ecs-fargate/security.tf", console: ["EC2 › Security Groups › Create", "Inbound: Custom TCP 8000 · Source = Security group ของ ALB"], err: "Source ผิด = ALB เข้า task ไม่ได้ (Target.Timeout)" },
+    { type: "aws_security_group", name: "db", file: "labs/02-ecs-fargate/security.tf", console: ["EC2 › Security Groups › Create", "Inbound: PostgreSQL 5432 · Source = Security group ของ task"], err: "ชี้ SG ผิดตัว = แอปต่อ DB ไม่ได้ (เคส ecs-db)" },
+    { type: "aws_iam_role", name: "execution", file: "labs/02-ecs-fargate/iam.tf", console: ["IAM › Roles › Create role", "AWS service › Elastic Container Service Task › แนบ AmazonECSTaskExecutionRolePolicy (+ SecretsManagerReadWrite)"], err: "ไม่มี policy = ดึง image ไม่ได้ (เคส ecs-role)" },
+    { type: "aws_iam_role", name: "task", file: "labs/02-ecs-fargate/iam.tf", console: ["IAM › Roles › Create role", "AWS service › Elastic Container Service Task (ไม่แนบ policy ก็ได้)"], err: "ใช้ role นี้แทน execution role ไม่ได้ · มันคนละหน้าที่" },
+    { type: "aws_db_instance", name: "db", file: "labs/02-ecs-fargate/rds.tf", console: ["RDS › Databases › Create database", "PostgreSQL 16 · Templates dev/test หรือ prod · Multi-AZ · Manage master credentials in Secrets Manager"], err: "ลืมเลือก SG = ต่อไม่ได้ · ชื่อ DB ซ้ำ = DBInstanceAlreadyExists" },
+    { type: "aws_lb", name: "main", file: "labs/02-ecs-fargate/alb.tf", console: ["EC2 › Load Balancers › Create › Application Load Balancer", "Internet-facing · VPC · 3 public subnet · SG ของ ALB"], err: "ใช้ private subnet = เปิดจากเน็ตไม่ได้" },
+    { type: "aws_lb_target_group", name: "api", file: "labs/02-ecs-fargate/alb.tf", console: ["EC2 › Target Groups › Create", "Target type = IP addresses · port 8000 · Health check path = /healthz"], err: "เลือก Instance = ผูกกับ Fargate ไม่ได้ · path ผิด = unhealthy (เคส ecs-health)" },
+    { type: "aws_lb_listener", name: "api", file: "labs/02-ecs-fargate/alb.tf", console: ["ALB › Listeners › Add listener", "HTTP :80 (prd) / :8080 (dev) → Forward to target group"], err: "ไม่มี listener = สร้าง service ผูก TG ไม่ได้" },
+    { type: "aws_cloudwatch_log_group", name: "api", file: "labs/02-ecs-fargate/ecs.tf", console: ["CloudWatch › Log groups › Create log group", "Name = /ecs/pharmacy-api-dev · Retention 2 weeks"], err: "ไม่ตั้ง retention = เก็บตลอด (ค่าใช้จ่ายสะสม)" },
+    { type: "aws_ecs_cluster", name: "main", file: "labs/02-ecs-fargate/ecs.tf", console: ["ECS › Clusters › Create cluster", "Cluster name · Infrastructure = AWS Fargate"], err: "ลบ cluster ที่ยังมี service = ClusterContainsServicesException" },
+    { type: "aws_ecs_task_definition", name: "api", file: "labs/02-ecs-fargate/ecs.tf", console: ["ECS › Task definitions › Create new task definition", "Fargate · CPU/Memory · Execution role · Container: image URI, port 8000, env, secrets, awslogs"], err: "CPU/Memory คู่ผิด = InvalidParameter · image tag ไม่มี = CannotPullContainerError" },
+    { type: "aws_ecs_service", name: "api", file: "labs/02-ecs-fargate/ecs.tf", console: ["ECS › Cluster › Services › Create", "Task definition · Desired tasks · private subnets + SG ของ task · Public IP off · Load balancer = ALB + target group"], err: "private subnet ไม่มี NAT = task ดึง image ไม่ได้ (เคส ecs-pull)" }
+  ],
+  errors: [
+    { load: "ecs-pull", t: "task ดึง image ไม่ได้ (private subnet ไม่มี NAT)", sym: "service ไม่ stable · task STOPPED วนซ้ำ · ResourceInitializationError", find: "ECS › cluster › service › Health → ขั้น ✗ 'Task ออกเน็ตได้' → VPC › Route tables ของ private ไม่มี 0.0.0.0/0 → NAT", fix: "เพิ่ม route 0.0.0.0/0 → NAT Gateway ที่ private route table แล้ว Update service (Force new deployment)" },
+    { load: "ecs-image", t: "image tag ไม่มีใน ECR", sym: "CannotPullContainerError … not found", find: "ECR › pharmacy/api › Images ไม่มี v1.0.0 (ดู Health ขั้น ✗ Image)", fix: "Laptop: docker login → build → tag → push v1.0.0 แล้วรอ ECS ลองใหม่" },
+    { load: "ecs-role", t: "execution role ขาด AmazonECSTaskExecutionRolePolicy", sym: "ดึง image/ข้อมูล secret ไม่ได้ AccessDenied", find: "Health ขั้น ✗ Execution role → IAM › Roles › pharmacy-ecs-execution › Permissions", fix: "IAM › Add permissions › Attach policies › AmazonECSTaskExecutionRolePolicy" },
+    { load: "ecs-db", t: "SG ของ DB ไม่รับจาก task", sym: "task เริ่มแล้วล้ม · Logs: connection timeout", find: "Service › Logs / Health ขั้น ✗ ต่อฐานข้อมูล → EC2 › SG ของ DB › Inbound", fix: "แก้ Source ของกฎ PostgreSQL 5432 เป็น SG ของ task (ไม่ใช่ของ ALB)" },
+    { load: "ecs-health", t: "prd health check path ผิด (/health)", sym: "task ขึ้นแต่ถูกฆ่าซ้ำ · Events: failed ELB health checks · เปิด API ไม่ติด", find: "EC2 › Target Groups › prd › Health checks · Targets แสดง unhealthy 404", fix: "แก้ Health check path เป็น /healthz" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด (dev + prd)", function () { buildEcs("ecs"); UI.sel = {}; flash("ok", "โหลด use case 2 แล้ว"); go("ecsc", {}, "ECS"); }], ["โหลดแบบสร้างเอง (มีเครือข่าย/ECR/ALB/RDS/role)", function () { buildEcs("ecs-base"); UI.sel = {}; UI.form = null; flash("ok", "โหลดแล้ว: เริ่มที่ CloudWatch › สร้าง log group แล้ว ECS › cluster › task definition › service"); go("lg-create", {}, "CloudWatch"); }]],
+  errGo: function (e) { buildEcs(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปดู ECS › cluster › service › Health"); go("ecsc", {}, "ECS"); }
+});
+
+UC.push({
+  id: "sls", no: 3, title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
+  intro: [
+    ["ใช้ทำอะไร", "#2b6cb0", "ทำ **API ที่ไม่มีเครื่อง** เลย: ผู้ใช้เรียก **API Gateway** → ปลุก **Lambda** รันโค้ดแค่ตอนมีคำขอ → อ่าน/เขียน **DynamoDB** · ไม่มีอะไรให้ patch/scale · ไม่มีคำขอ = ไม่เสียเงิน"],
+    ["ใครใช้", "#1d8102", "ทีมที่อยากส่งงานเร็ว · API ภายในองค์กร · งาน event (อัปโหลด, ตั้งเวลา) · ระบบที่ traffic กระชากเป็นช่วง ๆ · ข้อจำกัด: cold start, เวลารันสูงสุด 15 นาที, ติด lock-in กับ AWS"],
+    ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = Lambda 128 MB, ไม่เปิด PITR, log เก็บ 7 วัน · prd = 256 MB, **เปิด point-in-time recovery**, log 30 วัน · แต่ละ env มี **API + Lambda + role + table ของตัวเอง** (ไม่ปนข้อมูลกัน)"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① Lambda ใช้ **execution role** (สิทธิ์ของโค้ด) ② API Gateway ต้องมี **permission** ถึงเรียก Lambda ได้ (console ใส่ให้เอง · Terraform ต้องเขียนเอง) ③ route key ต้องตรงทั้ง METHOD และ path ④ ตัวแปร `TABLE_NAME` ชี้ table ⑤ 500 จาก API Gateway ไม่บอกสาเหตุ ต้องไล่ log ใน CloudWatch ⑥ ปลุกครั้งแรก = cold start"]
+  ],
+  envs: [["", "dev", "prd"], ["URL", "https://<id>.execute-api…/dev/drugs", "https://<id>.execute-api…/prd/drugs"], ["Lambda", "python3.12 · 128 MB · 10 s", "python3.12 · 256 MB · 10 s"], ["DynamoDB", "pharmacy-drugs-dev · on-demand · ไม่มี PITR", "pharmacy-drugs-prd · on-demand · เปิด PITR"], ["Log (CloudWatch)", "เก็บ 7 วัน", "เก็บ 30 วัน"], ["role ของ Lambda", "pharmacy-api-dev-lambda (แตะได้แค่ table dev)", "pharmacy-api-prd-lambda (แตะได้แค่ table prd)"]],
+  nodes: [
+    { id: "user", x: 24, y: 160, w: 120, h: 64, t: "ผู้ใช้ / frontend", s: "GET /prd/drugs", c: "#2a4a7a" },
+    { id: "api", ico: "apigw", x: 220, y: 150, w: 180, h: 80, t: "API Gateway (HTTP)", s: "stage · route · integration", c: "#c2185b" },
+    { id: "fn", ico: "lambda", x: 490, y: 150, w: 190, h: 80, t: "Lambda", s: "python3.12 · app.handler", c: "#d9480f" },
+    { id: "ddb", ico: "dynamodb", x: 780, y: 150, w: 210, h: 80, t: "DynamoDB", s: "pharmacy-drugs-env", c: "#2e6bd0" },
+    { id: "role", ico: "iam", x: 490, y: 30, w: 190, h: 64, t: "IAM role (Lambda)", s: "log + แตะเฉพาะ table นี้", c: "#1d8102" },
+    { id: "log", ico: "cloudwatch", x: 490, y: 320, w: 190, h: 64, t: "CloudWatch Logs", s: "/aws/lambda/…", c: "#c2185b" },
+    { id: "ci", ico: "github", x: 220, y: 320, w: 180, h: 64, t: "laptop / CI", s: "zip + terraform apply", c: "#475569" }
+  ],
+  links: [["user", "api"], ["api", "fn"], ["fn", "ddb"], ["fn", "role"], ["fn", "log"], ["ci", "fn"]],
+  scenes: [
+    { t: "ปล่อยโค้ด: zip + apply", on: ["ci", "fn"], flow: [["ci", "zip app.py"], ["fn", "สร้าง function"]], rows: [["เกิดอะไร", "#475569", "zip โค้ด → `terraform apply` สร้าง table, role, function, API · เปลี่ยนโค้ด = อัปโหลด zip ใหม่ (ไม่ต้อง deploy เครื่อง)"]] },
+    { t: "คำขอเข้า API Gateway", on: ["user", "api"], flow: [["user", "GET /prd/drugs"], ["api", "จับ stage + route"]], rows: [["เกิดอะไร", "#c2185b", "API Gateway ดู **stage** (prd) แล้วหา **route** `GET /drugs` · ไม่ตรง = 404 `{\"message\":\"Not Found\"}`"]] },
+    { t: "API Gateway ปลุก Lambda", on: ["api", "fn"], flow: [["api", "invoke"], ["fn", "cold start (ครั้งแรก)"]], rows: [["เกิดอะไร", "#d9480f", "ตรวจ **permission** ว่า API นี้เรียก Lambda นี้ได้ → สร้าง execution environment (ครั้งแรกช้า = cold start) แล้วรัน `handler`"]] },
+    { t: "Lambda อ่าน DynamoDB", on: ["fn", "role", "ddb"], flow: [["fn", "สวม role"], ["role", "อนุญาต Scan"], ["ddb", "scan table"], ["fn", "ได้รายการ"]], rows: [["เกิดอะไร", "#2e6bd0", "โค้ดอ่าน `TABLE_NAME` → เรียก DynamoDB ด้วยสิทธิ์ของ **role** (ไม่ใช่สิทธิ์ผู้ใช้) · role แตะได้เฉพาะ table ของ env นี้"]] },
+    { t: "ตอบกลับ + เขียน log", on: ["fn", "log", "api", "user"], flow: [["fn", "return 200"], ["log", "START/END/REPORT"], ["api", "ส่งต่อ"], ["user", "200 JSON"]], rows: [["เกิดอะไร", "#1d8102", "Lambda คืน JSON → API Gateway ส่งให้ผู้ใช้ · ทุกคำขอเขียน log (Duration, Memory, Init Duration ถ้า cold) ไป CloudWatch"]] },
+    { t: "dev vs prd: แยกกันจริง", on: ["user", "api", "fn", "ddb"], flow: [["user", "/dev/drugs"], ["api", "API dev"], ["fn", "Lambda dev"], ["ddb", "table dev"]], rows: [["เกิดอะไร", "#7d4acf", "`/dev/…` ใช้ API + Lambda + table ของ **dev** เท่านั้น · ข้อมูลทดสอบไม่ปนกับ prd · role ของ dev แตะ table prd ไม่ได้"]] },
+    { t: "เคส error 1: Lambda ไม่มีสิทธิ์ DynamoDB", on: ["fn", "role", "ddb"], bad: ["role"], flow: [["fn", "Scan"], ["role", "✗ AccessDenied"]], rows: [["อาการ", "#c62828", "ผู้ใช้เห็นแค่ `500 Internal Server Error` · ใน log: `AccessDeniedException … not authorized to perform dynamodb:Scan`"], ["สาเหตุ", "#a85a00", "role ไม่มี policy แตะ table (หรือชี้ ARN ผิด table)"]] },
+    { t: "เคส error 2: API Gateway เรียก Lambda ไม่ได้", on: ["api", "fn"], bad: ["fn"], flow: [["api", "invoke"], ["fn", "✗ ไม่มี permission"]], rows: [["อาการ", "#c62828", "500 เหมือนกัน แต่ **Lambda ไม่มี log เลย** (ไม่เคยถูกเรียก) · Monitor แสดง Invocations = 0"], ["สาเหตุ", "#a85a00", "ไม่มี `aws_lambda_permission` (console ใส่ให้เอง ตอนเขียน Terraform ลืมบ่อย)"]] },
+    { t: "เคส error 3: route/stage ไม่ตรง → 404", on: ["user", "api"], bad: ["api"], flow: [["user", "GET /prd/drugs"], ["api", "✗ ไม่มี route"]], rows: [["อาการ", "#c62828", "`404 {\"message\":\"Not Found\"}` ตั้งแต่ API Gateway (ยังไม่ถึง Lambda)"], ["สาเหตุ", "#a85a00", "route key พิมพ์ผิด (`GET /drug`) หรือ URL ขาดชื่อ stage"]] },
+    { t: "เคส error 4: TABLE_NAME ผิด", on: ["fn", "ddb"], bad: ["ddb"], flow: [["fn", "scan pharmacy-drug-prd"], ["ddb", "✗ ไม่มี table"]], rows: [["อาการ", "#c62828", "500 · ใน log: `ResourceNotFoundException: Requested resource not found`"], ["สาเหตุ", "#a85a00", "environment variable ชี้ชื่อ table ผิด (พิมพ์เองแทนที่จะอ้างจาก resource)"]] }
+  ],
+  tf: [
+    { type: "aws_dynamodb_table", name: "drugs", file: "labs/03-serverless/dynamodb.tf", console: ["DynamoDB › Tables › Create table", "Table name · Partition key (id, String) · Capacity mode = On-demand · Turn on point-in-time recovery (prd)"], err: "ชื่อซ้ำ = ResourceInUseException · hash_key ไม่อยู่ใน attribute = ValidationException" },
+    { type: "aws_iam_role", name: "lambda", file: "labs/03-serverless/iam.tf", console: ["IAM › Roles › Create role", "AWS service › Lambda (trust lambda.amazonaws.com)"], err: "trust ผิด = Lambda สร้างไม่ได้ ('role cannot be assumed by Lambda')" },
+    { type: "aws_iam_role_policy_attachment", name: "logs", file: "labs/03-serverless/iam.tf", console: ["IAM › role › Add permissions › Attach policies", "AWSLambdaBasicExecutionRole (หรือติ๊กตอนสร้าง function แบบ 'Create a new role')"], err: "ไม่แนบ = function ทำงานแต่ไม่มี log" },
+    { type: "aws_iam_role_policy", name: "ddb", file: "labs/03-serverless/iam.tf", console: ["IAM › role › Add permissions › Create inline policy", "Service DynamoDB · Actions Scan/GetItem/PutItem · Resources = ARN ของ table"], err: "ขาด/ผิด table = AccessDeniedException ใน log (เคส sls-perm)" },
+    { type: "aws_cloudwatch_log_group", name: "api", file: "labs/03-serverless/lambda.tf", console: ["CloudWatch › Log groups › Create log group", "ชื่อ /aws/lambda/<ชื่อ function> · Retention (console สร้างให้เองแต่ Never expire)"], err: "ไม่สร้างเอง = Lambda สร้างให้ตอนเรียกครั้งแรก เก็บตลอดไป" },
+    { type: "aws_lambda_function", name: "api", file: "labs/03-serverless/lambda.tf", console: ["Lambda › Functions › Create function", "Author from scratch · Runtime · Execution role · (Configuration) Memory/Timeout · Environment variables TABLE_NAME · Code: Upload .zip"], err: "TABLE_NAME พิมพ์ผิด = 500 (เคส sls-table)" },
+    { type: "aws_apigatewayv2_api", name: "api", file: "labs/03-serverless/apigw.tf", console: ["API Gateway › Create API › HTTP API › Build", "API name"], err: "เลือก REST API แทน HTTP = คนละ resource (aws_api_gateway_*) แพงกว่า" },
+    { type: "aws_apigatewayv2_integration", name: "lambda", file: "labs/03-serverless/apigw.tf", console: ["API Gateway › Integrations › Create", "Integration type = Lambda function · เลือก function (payload 2.0)"], err: "ใส่ ARN ผิดรูปแบบ = BadRequest · ใช้ function ARN แทน invoke_arn" },
+    { type: "aws_apigatewayv2_route", name: "get_drugs", file: "labs/03-serverless/apigw.tf", console: ["API Gateway › Routes › Create", "Method GET · path /drugs · แล้ว Attach integration"], err: "key พิมพ์ผิด = 404 (เคส sls-route) · route ไม่ attach integration = 500" },
+    { type: "aws_apigatewayv2_stage", name: "env", file: "labs/03-serverless/apigw.tf", console: ["API Gateway › Stages › Create", "Stage name (dev/prd) · Enable automatic deployment"], err: "ขาดชื่อ stage ใน URL = 404" },
+    { type: "aws_lambda_permission", name: "apigw", file: "labs/03-serverless/lambda.tf", console: ["Lambda › Configuration › Permissions › Resource-based policy › Add permissions", "(console ใส่ให้อัตโนมัติตอนผูก API) · Principal apigateway.amazonaws.com · Source ARN = execute-arn ของ API"], err: "ขาด = 500 และ Lambda ไม่มี log (เคส sls-invoke)" }
+  ],
+  errors: [
+    { load: "sls-perm", t: "Lambda ไม่มีสิทธิ์ DynamoDB (prd)", sym: "prd เปิดแล้ว 500 Internal Server Error · dev ปกติ", find: "Browser (ดูขั้นตอน) → CloudWatch › /aws/lambda/pharmacy-api-prd › log stream: AccessDeniedException … dynamodb:Scan → IAM › role pharmacy-api-prd-lambda › Permissions", fix: "เพิ่ม inline policy: dynamodb:Scan/GetItem/PutItem บน ARN ของ table prd (Terraform: aws_iam_role_policy)" },
+    { load: "sls-invoke", t: "API Gateway เรียก Lambda ไม่ได้ (ลืม permission)", sym: "500 เหมือนกัน แต่ Lambda ไม่มี log · Monitor: Invocations = 0", find: "Browser ขั้น ✗ 'Lambda อนุญาต API Gateway เรียก' → Lambda › Configuration › Permissions › Resource-based policy ว่าง", fix: "Add permissions: principal apigateway.amazonaws.com + Source ARN ของ API (Terraform: aws_lambda_permission)" },
+    { load: "sls-route", t: "route พิมพ์ผิด → 404", sym: "404 {\"message\":\"Not Found\"} ตั้งแต่ API Gateway", find: "API Gateway › API › Routes: เห็น GET /drug (ตกตัว s) ไม่ตรง GET /drugs", fix: "แก้ route key ใน Terraform/console ให้ตรง แล้ว apply (auto-deploy มีผลทันที)" },
+    { load: "sls-table", t: "TABLE_NAME ผิดชื่อ table", sym: "500 · log: ResourceNotFoundException: Requested resource not found", find: "Lambda › Configuration › Environment variables: TABLE_NAME=pharmacy-drug-prd (ตกตัว s) เทียบกับ DynamoDB › Tables", fix: "ใช้ aws_dynamodb_table.drugs[each.key].name แทนการพิมพ์เอง" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด (dev + prd)", function () { buildSls("sls"); UI.sel = {}; flash("ok", "โหลด use case 3 แล้ว"); go("apis", {}, "API Gateway"); }], ["โหลดแบบสร้างเอง (มี table/role/log group)", function () { buildSls("sls-base"); UI.sel = {}; UI.form = null; flash("ok", "โหลดแล้ว: สร้าง Lambda → API Gateway → Add permission เอง แล้วเปิดที่ Browser"); go("lam-create", {}, "Lambda"); }]],
+  errGo: function (e) { buildSls(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปเปิด API ที่ Browser"); go("browser", {}, "Browser"); var a = S.apis.filter(function (x) { return /prd/.test(x.name); })[0]; if (a) { W.addr = "https://" + slsApiHost(a) + "/prd/drugs"; wbGo(W.addr); } }
+});
+
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
 function ucNodeBox(svg, n, tx) {
   var ic = n.ico ? svgIco(n.ico, n.x + 8, n.y + 8, 30) : null, ox = ic ? 22 : 0, g = sv("g", {}, [sv("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10, fill: "#fff", stroke: n.c, "stroke-width": 2 }), tx(n.x + n.w / 2 + ox, n.y + 22, n.t, { a: "middle", b: 1, c: n.c, sz: 13 }), tx(n.x + n.w / 2 + ox, n.y + 40, n.s, { a: "middle", sz: 10, c: "#64748b" })]); if (ic) g.appendChild(ic);
@@ -96,7 +211,7 @@ function ucErrTable(u) {
   u.errors.forEach(function (e) {
     w.appendChild(h("div", { style: "border:1px solid #c6282855;border-left:5px solid #c62828;border-radius:10px;padding:10px 14px;background:#c628280a" }, [h("div", { style: "font-weight:800;color:#c62828;margin-bottom:6px", text: e.t }),
       h("div", { cls: "ic" }, [["อาการ", "#c62828", e.sym], ["ไล่หา", "#2b6cb0", e.find], ["แก้", "#1d8102", e.fix]].map(function (x) { return h("div", { cls: "ic-row", style: "--c:" + x[1] }, [h("div", { cls: "ic-lb", text: x[0] }), h("div", { cls: "ic-tx" }, rich(x[2]))]); })),
-      h("button", { cls: "btn pri", type: "button", text: "โหลดเคสนี้", onclick: function () { try { buildStatic(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปเปิดเว็บที่ Browser"); go("browser", {}, "Browser"); W.addr = "https://www.pharmacy.example.com"; wbGo(W.addr); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } })]));
+      h("button", { cls: "btn pri", type: "button", text: "โหลดเคสนี้", onclick: function () { try { if (u.errGo) { u.errGo(e); return; } buildStatic(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปเปิดเว็บที่ Browser"); go("browser", {}, "Browser"); W.addr = "https://www.pharmacy.example.com"; wbGo(W.addr); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } })]));
   });
   return w;
 }
@@ -107,9 +222,10 @@ function ucTab() {
   cb.appendChild(h("div", { cls: "hint", style: "margin:0 0 10px", text: u.tag + " · โค้ดจริง: " + u.dir + "/ (ผ่าน terraform validate)" }));
   cb.appendChild(infoCard(u.intro));
   var loadBar = h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0" }, [h("button", { cls: "btn pri", type: "button", text: "โหลดตัวอย่างครบทั้งชุด", onclick: function () { buildStatic("static"); UI.sel = {}; flash("ok", "โหลด use case 1 แล้ว"); go("cfds", {}, "CloudFront"); } }), h("button", { cls: "btn", type: "button", text: "โหลดแบบสร้างเอง (มีโซน + ใบรับรอง)", onclick: function () { buildStatic("static-base"); UI.sel = {}; flash("ok", "โหลดแล้ว: เริ่มที่ S3 › Create bucket"); go("bucket-create", {}, "S3"); } }), h("button", { cls: "btn", type: "button", text: "รัน Terraform ใน Terminal", onclick: function () { go("term", {}, "Laptop"); S.laptop.cwd = REPO + "/" + u.dir; flash("ok", "ไปที่ " + u.dir + " แล้ว: terraform init → terraform apply"); render(); } })]);
+  if (u.loadBtns) loadBar = h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0" }, u.loadBtns.map(function (b, i) { return h("button", { cls: "btn" + (i ? "" : " pri"), type: "button", text: b[0], onclick: function () { try { b[1](); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } }); }));
   cb.appendChild(loadBar);
   var f1 = fold("ucenv", "dev vs prd: ต่างกันตรงไหน"); f1.appendChild(h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, u.envs[0].map(function (x, i) { return h("th", { style: i === 1 ? "color:#0f9d8a" : i === 2 ? "color:#c0392b" : "", text: x || "รายการ" }); }))]), h("tbody", {}, u.envs.slice(1).map(function (r) { var tds = [h("td", { style: "font-weight:700", text: r[0] }), h("td", { colspan: r[2] ? null : "2", text: r[1] })]; if (r[2]) tds.push(h("td", { text: r[2] })); return h("tr", {}, tds); }))])])); cb.appendChild(f1);
-  var f2 = fold("ucanim", "diagram + แอนิเมชัน: ใครคุยกับใคร (ปกติ 7 ฉาก + error 3 ฉาก)"); f2.appendChild(ucAnim(u)); cb.appendChild(f2);
+  var f2 = fold("ucanim", "diagram + แอนิเมชัน: ใครคุยกับใคร (ปกติ " + u.scenes.filter(function (x) { return !/error/.test(x.t); }).length + " ฉาก + error " + u.scenes.filter(function (x) { return /error/.test(x.t); }).length + " ฉาก)"); f2.appendChild(ucAnim(u)); cb.appendChild(f2);
   var f3 = fold("uctf", "โค้ด Terraform เทียบกับการกดบน AWS console (เลือก resource ทางซ้าย)"); f3.appendChild(ucTfTable(u)); cb.appendChild(f3);
   var f4 = fold("ucerr", "เคส error " + u.errors.length + " แบบ: อาการ → ไล่หา → แก้ (กดโหลดแล้วลองเอง)"); f4.appendChild(ucErrTable(u)); cb.appendChild(f4);
   return cb;

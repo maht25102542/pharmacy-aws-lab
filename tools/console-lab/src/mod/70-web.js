@@ -22,6 +22,7 @@ function webOpen(raw) {
   if (!/^https?:\/\//i.test(u)) u = "http://" + u;
   var m = /^(https?):\/\/([^\/:]+)(?::(\d+))?(\/.*)?$/i.exec(u); if (!m) return { err: "ERR_INVALID_URL", title: "URL ไม่ถูกต้อง", steps: [] };
   var host = m[2], port = +m[3] || (/^https/i.test(m[1]) ? 443 : 80), alb = S.albs.filter(function (a) { return a.dns === host; })[0];
+  if (/\.execute-api\./.test(host)) { var sr = slsInvoke(host, m[4] || "/", "GET", ""); return sr.err ? sr : { site: "apigw", host: host, path: m[4] || "/", res: sr }; }
   if (/^(www\.)?github\.com$/i.test(host)) return { site: "github", host: host, path: String(m[4] || "/").split("?")[0].replace(/\/+$/, "") || "/" };
   if (S.cfds.length || S.zones.length) {
     var rs = dnsResolve(host);
@@ -37,6 +38,7 @@ function webOpen(raw) {
     if (!l) return { err: "ERR_CONNECTION_REFUSED", host: host, steps: [{ ok: false, t: "ALB มี listener พอร์ต " + port, d: "ไม่มี" }] };
     var h = albHealth(alb).filter(function (r) { return r.l === l && r.state === "healthy"; });
     var tgp = find(S.tgs, l.tgId);
+    if (tgp && tgp.ttype === "ip") { var ar = ecsApiResponse(tgp), pth2 = String(m[4] || "/").split("?")[0]; return ar ? { site: "api", host: host, path: pth2, json: pth2 === "/healthz" ? { status: "ok" } : ar, health: pth2 === "/healthz" } : { site: "alb503", host: host }; }
     return h.length ? { site: tgp && tgp.port === 30443 ? "argocd" : "app", host: host } : { site: "alb503", host: host };
   }
   var inst = S.insts.filter(function (i) { return i.state !== "terminated" && (i.publicIp === host || i.privateIp === host); })[0];

@@ -156,7 +156,7 @@ var TF_PROV = {
     update: function (st, d) { var r = find(S.roles, st.sim.role); r.desc = d.description || ""; },
     del: function (st) {
       var r = find(S.roles, st.sim.role); if (!r) return;
-      if (r.policies.length) throw TfAwsError("deleting IAM Role (" + r.name + ")", "IAM", "DeleteRole", "DeleteConflict", "Cannot delete entity, must detach all policies first.");
+      if (r.policies.length || (r.inline || []).length) throw TfAwsError("deleting IAM Role (" + r.name + ")", "IAM", "DeleteRole", "DeleteConflict", "Cannot delete entity, must detach all policies first.");
       if (r.profile) throw TfAwsError("deleting IAM Role (" + r.name + ")", "IAM", "DeleteRole", "DeleteConflict", "Cannot delete entity, must remove roles from instance profile first.");
       S.roles = S.roles.filter(function (x) { return x.id !== r.id; });
     },
@@ -242,7 +242,7 @@ var TF_PROV = {
     act: "elasticloadbalancing:CreateTargetGroup", svc: "Elastic Load Balancing v2", op: "CreateTargetGroup",
     create: function (c) {
       var a = c.attrs, label = "creating ELBv2 Target Group (" + a.name + ")", hc = (a.health_check || [{}])[0];
-      var t = tfOk(API.createTg({ name: a.name, port: a.port, proto: a.protocol, vpcId: a.vpc_id, hcPath: hc.path || "/", targets: [] }), label, "Elastic Load Balancing v2", "CreateTargetGroup"); tfPutTags(t, Object.assign({}, c.tags, { Name: undefined }));
+      var t = tfOk(API.createTg({ name: a.name, port: a.port, proto: a.protocol, vpcId: a.vpc_id, hcPath: hc.path || "/", targets: [], targetType: a.target_type }), label, "Elastic Load Balancing v2", "CreateTargetGroup"); tfPutTags(t, Object.assign({}, c.tags, { Name: undefined }));
       var arn = arnOf("tg", t.id, t.name); return { id: arn, computed: { id: arn, arn: arn, name: t.name }, sim: { tg: t.id } };
     },
     update: function () {},

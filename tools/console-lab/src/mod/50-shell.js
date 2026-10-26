@@ -56,7 +56,7 @@ function shAws(a) {
   if (op === "ec2 describe-instances") return need("ec2:DescribeInstances", "DescribeInstances", function () { return ["{", '    "Reservations": [', S.insts.filter(function (i) { return i.state !== "terminated"; }).map(function (i) { return '        { "InstanceId": "' + i.id + '", "Name": "' + i.name + '", "State": "' + i.state + '", "PublicIp": "' + (i.publicIp || "") + '", "PrivateIp": "' + i.privateIp + '" }'; }).join(",\n"), "    ]", "}"]; });
   if (op === "ecr describe-repositories") return need("ecr:DescribeRepositories", "DescribeRepositories", function () { return ["{", '    "repositories": [', S.repos.map(function (r) { return '        { "repositoryName": "' + r.name + '" }'; }).join(",\n"), "    ]", "}"]; });
   var mg = shAwsManaged(a, w, need); if (mg) return mg;
-  return { lines: ["aws: คำสั่งนี้ยังไม่จำลอง (มี: configure, sts get-caller-identity, ec2 describe-instances, ecr describe-repositories, eks update-kubeconfig / list-clusters, ssm start-session, rds describe-db-instances, secretsmanager get-secret-value) · kubectl get nodes / pods / ns"] };
+  return { lines: ["aws: คำสั่งนี้ยังไม่จำลอง (มี: configure, sts get-caller-identity, ec2 describe-instances, ecr describe-repositories, eks update-kubeconfig / list-clusters, ssm start-session, rds describe-db-instances, secretsmanager get-secret-value, s3 ls/cp/sync, cloudfront create-invalidation, route53/acm list, ecs list/describe/update-service, logs tail) · docker build/tag/push · kubectl get nodes / pods / ns"] };
 }
 function shSsh(a) {
   var key = null, tgt = null, jump = null; for (var i = 0; i < a.length; i++) { if (a[i] === "-i") key = a[++i]; else if (a[i] === "-J") jump = a[++i]; else if (a[i][0] !== "-") tgt = a[i]; }
@@ -82,6 +82,7 @@ function shSsh(a) {
 }
 function shRun(line) {
   var ri = rmInst(); if (ri) return remoteRun(ri, line);
+  if (/\|\s*docker\s+login/.test(line)) return shDockerLogin(line);
   var a = shTok(line); if (!a.length) return { lines: [] };
   var c = a.shift(), L = S.laptop;
   if (c === "help") return { lines: SH_HELP };
@@ -126,6 +127,9 @@ function shRun(line) {
   if (c === "git") return { lines: gitCmd(a, L.cwd) };
   if (c === "aws") return shAws(a);
   if (c === "kubectl") return shKubectl(a);
+  if (c === "docker") return shDocker(a);
+  if (c === "curl") return shCurl(a);
+  if (c === "zip") return shZip(a);
   if (c === "dig" || c === "nslookup") return shDig(a);
   if (c === "terraform") return shTerraform(a);
   if (c === "ansible-inventory") return { lines: a.indexOf("--graph") >= 0 ? ansGraph() : ["ใช้ --graph (จำลองแค่แบบนี้)"] };
