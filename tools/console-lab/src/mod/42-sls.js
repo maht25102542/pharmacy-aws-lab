@@ -93,12 +93,7 @@ API.createApiQuick = function (o) {
 };
 
 // ---------- สิทธิ์ DynamoDB ของ role ----------
-function slsCan(role, action, arn) {
-  if (!role) return false; var ps = role.policies || [];
-  if (ps.indexOf("AdministratorAccess") >= 0 || ps.indexOf("AmazonDynamoDBFullAccess") >= 0) return true;
-  if (ps.indexOf("AmazonDynamoDBReadOnlyAccess") >= 0 && /^dynamodb:(Scan|Query|GetItem|BatchGetItem|Describe)/.test(action)) return true;
-  return (role.inline || []).some(function (p) { return [].concat(p.doc.Statement || []).some(function (s) { if (s.Effect !== "Allow") return false; var acts = [].concat(s.Action || []), rs = [].concat(s.Resource || []); return acts.some(function (x) { return x === "*" || x === "dynamodb:*" || x.toLowerCase() === action.toLowerCase(); }) && rs.some(function (r) { return r === "*" || r === arn || (r.slice(-1) === "*" && arn.indexOf(r.slice(0, -1)) === 0); }); }); });
-}
+function slsCan(role, action, arn) { return iamCan(role, action, arn); }
 function slsHasLogs(role) { return !!role && (role.policies.indexOf("AWSLambdaBasicExecutionRole") >= 0 || role.policies.indexOf("AdministratorAccess") >= 0); }
 
 // ---------- จำลองคำขอผ่าน API Gateway ----------

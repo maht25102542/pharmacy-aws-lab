@@ -107,7 +107,7 @@ PAGES["ecs-svc-edit"] = function () {
 };
 
 // ---------- CloudWatch Logs ----------
-function lgStreams(g) { var out = S.lamLogs.filter(function (x) { return x.group === g.name; }).map(function (x) { return { name: x.stream, t: { logs: x.lines } }; }); S.esvcs.forEach(function (s) { var td = ecsTdByRef(s.td); if (!td || td.containers[0].logGroup !== g.name) return; ecsEval(s).tasks.forEach(function (t) { out.push({ name: (td.containers[0].logPrefix || "api") + "/" + td.containers[0].name + "/" + t.id.slice(0, 12), t: t }); }); }); return out; }
+function lgStreams(g) { var cbm = /^\/aws\/codebuild\/(.+)$/.exec(g.name), cbp = cbm && cdProj(cbm[1]), cbo = cbp ? cbp.builds.map(function (b) { return { name: b.id.split(":").pop(), t: { logs: b.logs } }; }) : []; var out = cbo.concat(S.lamLogs.filter(function (x) { return x.group === g.name; }).map(function (x) { return { name: x.stream, t: { logs: x.lines } }; })); S.esvcs.forEach(function (s) { var td = ecsTdByRef(s.td); if (!td || td.containers[0].logGroup !== g.name) return; ecsEval(s).tasks.forEach(function (t) { out.push({ name: (td.containers[0].logPrefix || "api") + "/" + td.containers[0].name + "/" + t.id.slice(0, 12), t: t }); }); }); return out; }
 LISTS.lgs = function () {
   return ({ key: "lgs", kind: "lg", title: "Log groups", crumb: "CloudWatch › Log groups", create: [{ label: "Create log group", page: "lg-create" }], actions: [{ label: "Delete log group(s)", page: "del", kind: "lg" }],
     detail: function (g) { return [["Log group", g.name], ["ARN", "arn:aws:logs:" + REGION + ":" + ACCOUNT + ":log-group:" + g.name], ["Retention", g.retention ? g.retention + " days" : "Never expire"], ["Log streams", String(lgStreams(g).length)], ["Creation time", stFmt(g.born)]]; },

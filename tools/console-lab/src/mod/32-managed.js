@@ -233,7 +233,7 @@ function mgDelPlan(kind, id, P) {
   return true;
 }
 function mgDelDo(kind, id) {
-  var r; if (/^(bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm)$/.test(kind)) { r = stDelDo(kind, id); return r && r.errors ? r : { res: true }; }
+  var r; if (/^(bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn)$/.test(kind)) { r = stDelDo(kind, id); return r && r.errors ? r : { res: true }; }
   if (kind === "eks") r = API.deleteEks(id); else if (kind === "ng") { var g = S.ngs.filter(function (x) { return x.id === id; })[0]; r = API.deleteNodegroup(g.cluster, g.name); }
   else if (kind === "rds") r = API.deleteRds(id, true); else if (kind === "dbsg") r = API.deleteDbSubnetGroup(id);
   return r && r.errors ? r : { res: true };

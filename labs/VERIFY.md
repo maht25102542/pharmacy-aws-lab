@@ -12,6 +12,17 @@
 | ปุ่ม Test Lambda เมื่อ error | `errorMessage` / `errorType` / `stackTrace` + REPORT | ตรงตามนี้ (stackTrace เป็นตัวอย่าง) |
 | สร้าง Lambda ทันทีหลังสร้าง role | บางครั้ง `InvalidParameterValueException: The role defined for the function cannot be assumed by Lambda` (IAM propagation) | **ไม่จำลอง** (ในตัวจำลองผ่านเสมอ ถ้า trust ถูก) |
 
+## Lab 4 (labs/04-cicd) — ข้อความทั้งหมดมาจากความจำ (ค้นเว็บยืนยันไม่ได้ตอนเขียน) ตรวจก่อนเชื่อ
+| ทำ | ควรเห็นจริง | ในตัวจำลอง |
+|---|---|---|
+| execution แรกหลัง apply (connection Pending) | Source ล้ม · ข้อความเกี่ยวกับ connection ไม่ใช่สถานะ Available | `Unable to use Connection: <arn>. The connection is not in the Available status` (ถ้อยคำอาจต่าง) |
+| CodeBuild ไม่ privileged | log: `Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?` | ตรงตามนี้ (ข้อความนี้เจอบ่อยมาก) |
+| role CodeBuild ไม่มี ECR | `AccessDeniedException … ecr:GetAuthorizationToken` / `denied: … ecr:InitiateLayerUpload` | ตรงตามนี้ |
+| imagedefinitions.json ชื่อ container ผิด | Deploy ล้ม (ข้อความจริงอาจเป็นเรื่อง task definition / container) | `Unable to find container named 'app' in task definition …` (**ไม่แน่ใจถ้อยคำ**) |
+| ไม่มี iam:PassRole | `… is not authorized to perform: iam:PassRole on resource: arn:aws:iam::…:role/…` | ตรงตามนี้ |
+| authorize connection นอก Terraform แล้ว plan | `Objects have changed outside of Terraform` (connection_status PENDING → AVAILABLE) | ตรงตามนี้ |
+| ขั้น Approve | execution หยุดรอ · ปุ่ม Review → Approve/Reject | ตรงตามนี้ |
+
 ## ที่ยังต่างจากของจริงแน่นอน
 - เวลา: ของจริง ALB/NAT/RDS/CloudFront ใช้เวลาหลายนาที ตัวจำลองมี "ความเร็ว" ให้เลือกแต่ไม่แม่นเป๊ะ
 - ตัวเลข Duration / Init Duration / Max Memory Used เป็นค่าสุ่มแบบคงที่ ไม่ใช่การวัดจริง

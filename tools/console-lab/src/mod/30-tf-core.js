@@ -123,11 +123,11 @@ function tfOrder(cfg) {
 // ---- ค่า unknown / การประเมิน
 function tfHasUnknown(v) { if (isUnknown(v)) return true; if (Array.isArray(v)) return v.some(tfHasUnknown); if (v && typeof v === "object") return Object.keys(v).some(function (k) { return k.indexOf("__") !== 0 && tfHasUnknown(v[k]); }); return false; }
 function tfStrip(v) { if (isUnknown(v)) return "(known after apply)"; if (Array.isArray(v)) return v.map(tfStrip); if (v && typeof v === "object") { var o = {}; Object.keys(v).forEach(function (k) { if (k.indexOf("__") !== 0) o[k] = tfStrip(v[k]); }); return o; } return v; }
-function tfEvalBody(items, ctx) {
+function tfEvalBody(items, ctx, nested) {
   var o = {};
   items.forEach(function (it) {
-    if (it.kind === "attr") { if (TF_META.indexOf(it.name) >= 0 && !ctx.keepMeta) return; o[it.name] = hclEval(it.expr, ctx); }
-    else { if (TF_META.indexOf(it.type) >= 0) return; (o[it.type] = o[it.type] || []).push(tfEvalBody(it.body, ctx)); }
+    if (it.kind === "attr") { if (!nested && TF_META.indexOf(it.name) >= 0 && !ctx.keepMeta) return; o[it.name] = hclEval(it.expr, ctx); }
+    else { if (!nested && TF_META.indexOf(it.type) >= 0) return; (o[it.type] = o[it.type] || []).push(tfEvalBody(it.body, ctx, true)); }
   });
   return o;
 }

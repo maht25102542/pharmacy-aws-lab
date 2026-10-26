@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -664,3 +664,35 @@ console.log("ok");
   L.buildSls("sls"); assert(!L.slsInvokeDirect("pharmacy-api-dev", "{}").failed, "Test: สำเร็จ");
   L.buildEcs("ecs"); const sv0 = L.S.esvcs.length; L.API.del("esvc", L.S.esvcs[0].id, "delete"); assert(L.S.esvcs.length === sv0 - 1, "ลบ ECS service ผ่าน API.del ได้จริง");
 }
+// ---- Lab 4: CI/CD (CodePipeline + CodeBuild → ECR → ECS dev → อนุมัติ → prd)
+{
+  L.buildCd("cd"); let pp = L.cdPipe("pharmacy-api");
+  assert(L.checksCd().every(c => c.ok), "cd: ต้องผ่านทุกข้อ: " + L.checksCd().filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(L.S.repos[0].images.length === 2 && L.S.esvcs.every(s => !/:1$/.test(s.td)), "image ใหม่ถูก push และทั้ง dev/prd ใช้ revision ใหม่");
+  const first = pp.execs[0].stages[1].actions[0]; assert(/Build 1 succeeded/.test(first.summary), first.summary);
+  const rel = L.API.startPipeline("pharmacy-api"); assert(rel.res.status === "InProgress" && rel.res.stages[3].status === "Waiting" && rel.res.stages[4].status === "NotRun", "release ใหม่หยุดรออนุมัติ");
+  assert(L.API.approveStage("pharmacy-api", rel.res.id, false, "ไม่ผ่าน").res.status === "Failed", "reject = Failed");
+  const bad = (k) => { L.buildCd(k); return L.cdPipe("pharmacy-api").execs[0]; };
+  let ex = bad("cd-conn"); assert(ex.status === "Failed" && /connection is not in the Available status/.test(ex.stages[0].actions[0].err) && ex.stages[1].status === "NotRun", "conn PENDING: Source ล้ม");
+  L.API.authorizeConnection("pharmacy-github"); L.API.retryStage("pharmacy-api", L.cdPipe("pharmacy-api").execs[0].id, 0); ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.stages[0].status === "Succeeded" && ex.stages[3].status === "Waiting", "authorize แล้ว retry ผ่านจนถึง Approve");
+  ex = bad("cd-docker"); assert(ex.stages[1].status === "Failed" && /Cannot connect to the Docker daemon/.test(L.cdProj("pharmacy-api-build").builds[0].logs.join("\n")), "ไม่เปิด privileged: docker daemon");
+  L.API.updateCbProject("pharmacy-api-build", { privileged: true }); L.API.retryStage("pharmacy-api", L.cdPipe("pharmacy-api").execs[0].id, 1); assert(L.cdPipe("pharmacy-api").execs[0].stages[2].status === "Succeeded", "เปิด privileged แล้ว retry Build ผ่านถึง deploy dev");
+  ex = bad("cd-ecr"); assert(ex.stages[1].status === "Failed" && /ecr:GetAuthorizationToken/.test(L.cdProj("pharmacy-api-build").builds[0].logs.join("\n")), "role CodeBuild ไม่มี ECR");
+  L.S.roles.find(r => r.name === "pharmacy-codebuild").policies.push("AmazonEC2ContainerRegistryPowerUser"); L.API.retryStage("pharmacy-api", L.cdPipe("pharmacy-api").execs[0].id, 1); assert(L.cdPipe("pharmacy-api").execs[0].stages[1].status === "Succeeded", "แนบ ECR PowerUser แล้ว retry ผ่าน");
+  ex = bad("cd-deploy"); assert(ex.stages[2].status === "Failed" && /Unable to find container named 'app'/.test(ex.stages[2].actions[0].err), "CONTAINER_NAME ผิด");
+  ex = bad("cd-pass"); assert(ex.stages[2].status === "Failed" && /iam:PassRole/.test(ex.stages[2].actions[0].err), "ไม่มี iam:PassRole");
+  L.buildCd("cd-base"); assert(!L.cdPipe("pharmacy-api") && L.cdProj("pharmacy-api-build") && !L.checksCd().every(c => c.ok), "cd-base: ยังไม่มี pipeline");
+  assert(/does not exist/.test(L.API.createPipeline({ name: "x", role: "pharmacy-pipeline", bucket: "nope", stages: [] }).errors.bucket) && /missing required configuration 'BranchName'/.test(L.API.createPipeline({ name: "x", role: "pharmacy-pipeline", bucket: "pharmacy-pipeline-000000000000", stages: [{ name: "Source", actions: [{ name: "s", category: "Source", provider: "CodeStarSourceConnection", cfg: { ConnectionArn: "a", FullRepositoryId: "b" } }] }, { name: "B", actions: [{ name: "b", category: "Build", provider: "CodeBuild", cfg: { ProjectName: "p" } }] }] }).errors.stages), "createPipeline validate");
+  assert(/CodeBuild is not authorized to perform: sts:AssumeRole/.test(L.API.createCbProject({ name: "zz", role: "pharmacy-pipeline", image: "aws/codebuild/standard:7.0" }).errors.role), "createCbProject: role trust ผิด");
+  // Terraform labs/04-cicd บน ECS จาก lab 02
+  L.buildEcs("ecs"); function sh6(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh6("cd ~/Desktop/work/pharmacy-aws-lab/labs/04-cicd"); sh6("terraform init"); const pl4 = sh6("terraform plan"); assert(/Plan: 9 to add/.test(pl4), pl4.slice(-600));
+  const ap4 = sh6("terraform apply", ["yes"]); assert(/Apply complete! Resources: 9 added/.test(ap4), ap4.slice(-900));
+  ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.status === "Failed" && /not in the Available status/.test(ex.stages[0].actions[0].err) && /PENDING/.test(sh6("terraform output connection_status")), "apply แล้ว connection ยัง PENDING: execution แรกล้มที่ Source");
+  assert(/"status": "Failed"/.test(sh6("aws codepipeline get-pipeline-state --name pharmacy-api")), "get-pipeline-state");
+  L.API.authorizeConnection("pharmacy-github"); sh6("aws codepipeline start-pipeline-execution --name pharmacy-api"); ex = L.cdPipe("pharmacy-api").execs[0]; assert(ex.stages[3].status === "Waiting", "authorize แล้ว release ใหม่ผ่านถึง Approve: " + JSON.stringify(ex.stages.map(s => s.status)));
+  L.API.approveStage("pharmacy-api", ex.id, true, ""); assert(L.cdPipe("pharmacy-api").execs[0].status === "Succeeded" && L.checksCd().filter(c => /Approve|prd|DeployPrd/.test(c.label)).every(c => c.ok), "อนุมัติแล้ว prd ผ่าน");
+  const pl5 = sh6("terraform plan"); assert(/Objects have changed outside of Terraform/.test(pl5) && /connection_status = "PENDING" -> "AVAILABLE"/.test(pl5) && !/Plan: \d+ to (add|change|destroy)/.test(pl5), "authorize นอก Terraform: เห็นแค่ drift ของ connection_status ไม่มี resource เปลี่ยน" + pl5.slice(-900));
+  const ds4 = sh6("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 9 destroyed/.test(ds4), ds4.slice(-700));
+}
+

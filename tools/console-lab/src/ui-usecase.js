@@ -171,6 +171,60 @@ UC.push({
   errGo: function (e) { buildSls(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปเปิด API ที่ Browser"); go("browser", {}, "Browser"); var a = S.apis.filter(function (x) { return /prd/.test(x.name); })[0]; if (a) { W.addr = "https://" + slsApiHost(a) + "/prd/drugs"; wbGo(W.addr); } }
 });
 
+UC.push({
+  id: "cd", no: 4, title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
+  tag: "ปล่อยของอัตโนมัติ ไม่ต้อง docker build/push เอง · ต่อยอดจาก use case 2",
+  intro: [
+    ["ใช้ทำอะไร", "#2b6cb0", "แทนที่ที่ต้อง `docker build/push` และกด update service เอง: push โค้ดขึ้น GitHub → **CodePipeline** ดึงโค้ด → **CodeBuild** build + push image ขึ้น ECR → deploy **ECS dev** → **คนอนุมัติ** → deploy **ECS prd**"],
+    ["ใครใช้", "#1d8102", "ทีมที่ใช้ AWS ล้วน (ไม่อยากดูแล Jenkins เอง) · เทียบกับ lab หลัก: Jenkins + ArgoCD ทำงานแบบเดียวกันแต่ต้องดูแลเครื่อง · ที่นี่ทุกอย่างเป็น managed"],
+    ["dev vs prd", "#c0392b", "pipeline เดียวส่งไปทั้งสอง env ตามลำดับ: **dev อัตโนมัติ** → ตรวจ → **กด Approve** → prd · image ตัวเดียวกัน (tag = commit 8 ตัว) ไม่ build ใหม่ระหว่าง env · rollback = Release change ของ commit เก่า"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① GitHub **connection** ต้อง authorize ใน console (Terraform ทำให้ไม่ได้ ติด Pending) ② CodeBuild ต้องเปิด **Privileged** ถึงจะ docker build ได้ ③ role ของ CodeBuild ต้องมี **ECR** เอง ④ ขั้น Deploy ต้อง **iam:PassRole** ⑤ `CONTAINER_NAME` ใน build ต้องตรงชื่อ container ใน task definition ⑥ ล้มที่ขั้นไหน กด **Retry stage** ได้หลังแก้"]
+  ],
+  envs: [["", "dev", "prd"], ["ทริกเกอร์", "อัตโนมัติหลัง Build ผ่าน", "หลังคนกด Approve"], ["ECS cluster / service", "pharmacy-dev / pharmacy-api", "pharmacy-prd / pharmacy-api"], ["Image", "pharmacy/api:<commit 8 ตัว>", "ตัวเดียวกับที่ dev ทดสอบ"], ["Task definition", "สร้าง revision ใหม่ทุกครั้ง", "สร้าง revision ใหม่ทุกครั้ง"], ["ใช้ร่วมกัน", "bucket artifact · connection · CodeBuild project · pipeline เดียว", "เหมือน dev"]],
+  nodes: [
+    { id: "gh", ico: "github", x: 24, y: 40, w: 150, h: 64, t: "GitHub", s: "push → main", c: "#475569" },
+    { id: "pipe", ico: "codepipeline", x: 250, y: 150, w: 190, h: 80, t: "CodePipeline", s: "Source → Build → Deploy", c: "#2e7d32" },
+    { id: "build", ico: "codebuild", x: 520, y: 30, w: 190, h: 70, t: "CodeBuild", s: "docker build + push", c: "#c2185b" },
+    { id: "ecr", ico: "ecr", x: 800, y: 30, w: 190, h: 70, t: "ECR pharmacy/api", s: "tag = commit", c: "#d9480f" },
+    { id: "dev", ico: "ecs", x: 520, y: 170, w: 190, h: 70, t: "ECS dev", s: "service pharmacy-api", c: "#d9480f" },
+    { id: "human", x: 520, y: 300, w: 190, h: 64, t: "คนอนุมัติ", s: "Review → Approve", c: "#7d4acf" },
+    { id: "prd", ico: "ecs", x: 800, y: 300, w: 190, h: 70, t: "ECS prd", s: "service pharmacy-api", c: "#d9480f" },
+    { id: "iam", ico: "iam", x: 250, y: 320, w: 190, h: 64, t: "IAM roles", s: "codebuild · pipeline", c: "#1d8102" }
+  ],
+  links: [["gh", "pipe"], ["pipe", "build"], ["build", "ecr"], ["pipe", "dev"], ["dev", "human"], ["human", "prd"], ["iam", "pipe"], ["ecr", "dev"]],
+  scenes: [
+    { t: "push โค้ด → pipeline เริ่ม", on: ["gh", "pipe"], flow: [["gh", "git push main"], ["pipe", "Source: ดึง commit"]], rows: [["เกิดอะไร", "#2e7d32", "pipeline ใช้ **connection** ดึงโค้ดจาก GitHub (ต้อง Available) เก็บเป็น artifact ใน S3 · ใช้ role ของ pipeline"]] },
+    { t: "CodeBuild: build + push image", on: ["pipe", "build", "ecr"], flow: [["pipe", "StartBuild"], ["build", "ecr login + docker build"], ["ecr", "docker push :<commit>"], ["pipe", "imagedefinitions.json"]], rows: [["เกิดอะไร", "#c2185b", "CodeBuild รัน buildspec: login ECR → `docker build` (ต้อง Privileged) → push tag = commit 8 ตัว → เขียน `imagedefinitions.json` {name, imageUri}"]] },
+    { t: "Deploy dev: ECS ใช้ image ใหม่", on: ["pipe", "dev", "ecr"], flow: [["pipe", "Deploy (ECS)"], ["dev", "register task def ใหม่"], ["ecr", "ดึง image ใหม่"], ["dev", "rolling update → stable"]], rows: [["เกิดอะไร", "#d9480f", "action ECS อ่าน imagedefinitions.json → สร้าง **task definition revision ใหม่** (เปลี่ยนแค่ image ของ container ชื่อนั้น) → update service → รอ steady state"]] },
+    { t: "รออนุมัติ", on: ["dev", "human"], flow: [["dev", "dev พร้อมให้ตรวจ"], ["human", "เปิด dev ตรวจ → Approve"]], rows: [["เกิดอะไร", "#7d4acf", "stage Approve หยุดรอ · คนตรวจที่ dev (Browser: เปิด ALB :8080) แล้วกด **Review → Approve** (หรือ Reject = จบ Failed)"]] },
+    { t: "Deploy prd: image ตัวเดียวกัน", on: ["human", "prd", "ecr"], flow: [["human", "Approved"], ["prd", "register task def ใหม่"], ["ecr", "ดึง image เดิม"], ["prd", "stable (2 tasks)"]], rows: [["เกิดอะไร", "#1d8102", "prd ได้ image **ตัวเดียวกับที่ dev ทดสอบ** (ไม่ build ใหม่) · prd มี 2 task กระจาย AZ"]] },
+    { t: "Rollback = release commit เก่า", on: ["gh", "pipe", "prd"], flow: [["gh", "เลือก commit เก่า"], ["pipe", "Release change"], ["prd", "task def กลับ image เดิม"]], rows: [["เกิดอะไร", "#475569", "ECR เก็บ image เก่าไว้ (tag ไม่ซ้ำ) · ปล่อย commit ก่อนหน้าผ่าน pipeline เดิม = rollback ที่ตรวจสอบย้อนหลังได้"]] },
+    { t: "เคส error 1: connection ยัง Pending", on: ["gh", "pipe"], bad: ["gh"], flow: [["gh", "ขอโค้ด"], ["pipe", "✗ connection Pending"]], rows: [["อาการ", "#c62828", "ขั้น Source ล้มทันที `The connection is not in the Available status`"], ["สาเหตุ", "#a85a00", "Terraform/console สร้าง connection แล้วไม่ได้ authorize กับ GitHub"]] },
+    { t: "เคส error 2: docker daemon / ECR", on: ["pipe", "build", "ecr"], bad: ["build"], flow: [["pipe", "StartBuild"], ["build", "✗ docker / ECR"]], rows: [["อาการ", "#c62828", "`Cannot connect to the Docker daemon` (ไม่เปิด Privileged) หรือ `AccessDeniedException … ecr:GetAuthorizationToken` (role ไม่มี ECR)"], ["แก้", "#1d8102", "เปิด Privileged / แนบสิทธิ์ ECR แล้ว Retry stage Build"]] },
+    { t: "เคส error 3: deploy ไม่ผ่าน (container name)", on: ["pipe", "dev"], bad: ["dev"], flow: [["pipe", "Deploy"], ["dev", "✗ container ไม่ตรง"]], rows: [["อาการ", "#c62828", "build ผ่านแต่ Deploy dev: `Unable to find container named 'app' in task definition`"], ["สาเหตุ", "#a85a00", "CONTAINER_NAME ใน CodeBuild ไม่ตรงชื่อ container ใน task definition (api)"]] },
+    { t: "เคส error 4: iam:PassRole", on: ["iam", "pipe", "dev"], bad: ["iam"], flow: [["pipe", "RegisterTaskDefinition"], ["iam", "✗ PassRole ถูกปฏิเสธ"]], rows: [["อาการ", "#c62828", "Deploy dev: `not authorized to perform: iam:PassRole on resource: …role/pharmacy-ecs-execution`"], ["สาเหตุ", "#a85a00", "ECS ต้อง 'ส่งต่อ' execution/task role เดิมให้ revision ใหม่ role ของ pipeline ต้องมีสิทธิ์นี้"]] }
+  ],
+  tf: [
+    { type: "aws_s3_bucket", name: "artifacts", file: "labs/04-cicd/artifacts.tf", console: ["S3 › Create bucket (หรือให้ CodePipeline wizard สร้าง default bucket ให้)", "Bucket name · Block all public access"], err: "pipeline หา bucket ไม่เจอ = InvalidStructureException" },
+    { type: "aws_codestarconnections_connection", name: "github", file: "labs/04-cicd/artifacts.tf", console: ["Developer Tools › Settings › Connections › Create connection", "Provider = GitHub · Connection name · Connect to GitHub → Install a new app → Connect"], err: "Terraform สร้างได้แค่ Pending (เคส cd-conn)" },
+    { type: "aws_iam_role", name: "codebuild", file: "labs/04-cicd/iam.tf", console: ["IAM › Roles › Create role", "AWS service › CodeBuild (trust codebuild.amazonaws.com)"], err: "trust ผิด = CodeBuild is not authorized to perform: sts:AssumeRole" },
+    { type: "aws_iam_role_policy", name: "codebuild", file: "labs/04-cicd/iam.tf", console: ["IAM › role › Add permissions", "log + s3 artifact + ECR (login + push) — console wizard ให้แค่ log+s3"], err: "ขาด ECR = AccessDeniedException (เคส cd-ecr)" },
+    { type: "aws_codebuild_project", name: "build", file: "labs/04-cicd/codebuild.tf", console: ["CodeBuild › Build projects › Create project", "Source: No source (CodePipeline) · Environment: managed image + Privileged ✓ · Service role · env vars ECR_REPO_URL / CONTAINER_NAME · Buildspec"], err: "ไม่ติ๊ก Privileged = Cannot connect to the Docker daemon (เคส cd-docker)" },
+    { type: "aws_iam_role", name: "pipeline", file: "labs/04-cicd/iam.tf", console: ["IAM › Roles › Create role", "AWS service › CodePipeline (หรือให้ wizard สร้าง service role ให้)"], err: "trust ผิด = CodePipeline is not authorized to perform AssumeRole" },
+    { type: "aws_iam_role_policy", name: "pipeline", file: "labs/04-cicd/iam.tf", console: ["IAM › role › Add permissions › Create inline policy", "s3 · codestar-connections:UseConnection · codebuild:StartBuild · ecs:* · iam:PassRole"], err: "ขาด PassRole = Deploy ล้ม (เคส cd-pass)" },
+    { type: "aws_codepipeline", name: "api", file: "labs/04-cicd/pipeline.tf", console: ["CodePipeline › Pipelines › Create pipeline", "Settings → Source (GitHub connection, repo, branch) → Build (CodeBuild) → Deploy (ECS: cluster, service, imagedefinitions.json) → เพิ่ม stage Approve + Deploy prd"], err: "รัน execution แรกให้เองทันที · ไม่ใส่ depends_on policy = execution แรกล้มสิทธิ์ไม่พอ" }
+  ],
+  errors: [
+    { load: "cd-conn", t: "GitHub connection ยัง Pending", sym: "pipeline ล้มทันทีที่ขั้น Source", find: "CodePipeline › pipeline › Source › Details · Settings › Connections: Status = Pending", fix: "Connections › Update pending connection › Connect → แล้ว Retry stage / Release change" },
+    { load: "cd-docker", t: "CodeBuild ไม่เปิด Privileged mode", sym: "ขั้น Build ล้ม · log: Cannot connect to the Docker daemon at unix:///var/run/docker.sock", find: "pipeline › Build › View build logs · CodeBuild › project › Configuration: Privileged = Disabled", fix: "Edit environment → ติ๊ก Privileged แล้ว Retry stage (Terraform: privileged_mode = true)" },
+    { load: "cd-ecr", t: "role ของ CodeBuild ไม่มีสิทธิ์ ECR", sym: "ขั้น Build ล้มตอน login ECR · AccessDeniedException ecr:GetAuthorizationToken", find: "View build logs → IAM › role pharmacy-codebuild › Permissions", fix: "แนบ AmazonEC2ContainerRegistryPowerUser (หรือ inline เฉพาะ repo) แล้ว Retry stage Build" },
+    { load: "cd-deploy", t: "CONTAINER_NAME ไม่ตรง task definition", sym: "Build ผ่าน แต่ Deploy dev ล้ม: Unable to find container named 'app'", find: "Deploy dev › Details · CodeBuild › Configuration: CONTAINER_NAME=app เทียบกับ ECS › Task definitions › Container name", fix: "แก้ CONTAINER_NAME = api แล้ว Release change (build ใหม่เพื่อให้ imagedefinitions.json ถูก)" },
+    { load: "cd-pass", t: "role ของ pipeline ไม่มี iam:PassRole", sym: "Deploy dev ล้ม: not authorized to perform: iam:PassRole", find: "Deploy dev › Details → IAM › role pharmacy-pipeline › inline policy: ไม่มี iam:PassRole", fix: "เพิ่ม iam:PassRole บน role pharmacy-ecs-* แล้ว Retry stage" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด (build → dev → prd สำเร็จ)", function () { buildCd("cd"); UI.sel = {}; flash("ok", "โหลด use case 4 แล้ว"); go("pipes", {}, "CodePipeline"); }], ["โหลดแบบสร้างเอง (มี role/connection/build project)", function () { buildCd("cd-base"); UI.sel = {}; UI.form = null; flash("ok", "โหลดแล้ว: ไป CodePipeline › Create pipeline"); go("pipe-create", {}, "CodePipeline"); }]],
+  errGo: function (e) { buildCd(e.load); UI.sel = { pipes: "pharmacy-api" }; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว เปิด pipeline ดูขั้นที่ล้ม"); go("pipes", {}, "CodePipeline"); }
+});
+
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
 function ucNodeBox(svg, n, tx) {
   var ic = n.ico ? svgIco(n.ico, n.x + 8, n.y + 8, 30) : null, ox = ic ? 22 : 0, g = sv("g", {}, [sv("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10, fill: "#fff", stroke: n.c, "stroke-width": 2 }), tx(n.x + n.w / 2 + ox, n.y + 22, n.t, { a: "middle", b: 1, c: n.c, sz: 13 }), tx(n.x + n.w / 2 + ox, n.y + 40, n.s, { a: "middle", sz: 10, c: "#64748b" })]); if (ic) g.appendChild(ic);

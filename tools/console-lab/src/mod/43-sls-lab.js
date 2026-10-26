@@ -50,10 +50,10 @@ function slsDelPlan(kind, id, P) {
   else if (kind === "layer") { var ly = S.layers.filter(function (x) { return x.id === id; })[0]; if (!ly) return false; P.title = "Delete layer " + ly.name; P.crumb = "Lambda › Layers › Delete"; P.word = "delete"; P.done = "ลบ layer ทุก version แล้ว"; }
   else if (kind === "adom") { var d0 = S.adoms.filter(function (x) { return x.id === id; })[0]; if (!d0) return false; P.title = "Delete domain name " + d0.name; P.crumb = "API Gateway › Custom domain names › Delete"; P.word = "confirm"; P.done = "ลบ custom domain แล้ว"; }
   else if (kind === "alarm") { var al = S.alarms.filter(function (x) { return x.id === id; })[0]; if (!al) return false; P.title = "Delete alarm " + al.name; P.crumb = "CloudWatch › Alarms › Delete"; P.word = "delete"; P.done = "ลบ alarm แล้ว"; }
-  else return false; return true;
+  else return cdDelPlan(kind, id, P); return true;
 }
 function slsDelDo(kind, id) {
-  if (kind === "layer") return API.deleteLayer(id); if (kind === "adom") return API.deleteApiDomain(id); if (kind === "alarm") { S.alarms = S.alarms.filter(function (x) { return x.id !== id; }); return { res: true }; } if (kind === "lam") return API.deleteLambda(id); if (kind === "api") return API.deleteApi(id); if (kind === "ddb") return API.deleteDdbTable(id); return { res: true }; }
+  if (kind === "layer") return API.deleteLayer(id); if (kind === "adom") return API.deleteApiDomain(id); if (kind === "alarm") { S.alarms = S.alarms.filter(function (x) { return x.id !== id; }); return { res: true }; } if (/^(pipe|cbp|conn)$/.test(kind)) return cdDelDo(kind, id); if (kind === "lam") return API.deleteLambda(id); if (kind === "api") return API.deleteApi(id); if (kind === "ddb") return API.deleteDdbTable(id); return { res: true }; }
 
 // ---------- HCL จากของที่กดใน console ----------
 function slsHcl(o, ref) {
@@ -104,7 +104,7 @@ function shAwsSls(a, w, need) {
     return ["{", '    "Statement": ' + JSON.stringify(JSON.stringify({ Sid: arg("--statement-id"), Effect: "Allow", Principal: { Service: arg("--principal") }, Action: arg("--action") || "lambda:InvokeFunction", Resource: slsFnArn(fnN) })), "}"];
   });
   if (op === "dynamodb execute-statement") return need("dynamodb:PartiQLSelect", "ExecuteStatement", function () { var r = slsPartiql(arg("--statement")); if (r.err) return ["", "An error occurred (" + r.err.split(":")[0] + ") when calling the ExecuteStatement operation: " + r.err.replace(/^[A-Za-z]+: /, "")]; return ["{", '    "Items": [' + (r.rows || []).map(function (it) { var o = {}; Object.keys(it).forEach(function (k) { o[k] = slsTyped(it[k]); }); return JSON.stringify(o); }).join(", ") + "]", "}"]; });
-  return null;
+  return shAwsCd(a, w, need);
 }
 function shZip(a) {
   var args = a.filter(function (x) { return x[0] !== "-"; }); if (args.length < 2) return { lines: ["zip error: Nothing to do! (" + (args[0] || "") + ")"] };
