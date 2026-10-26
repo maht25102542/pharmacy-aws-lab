@@ -721,7 +721,7 @@ console.log("ok");
 // ---- สถานะ transitional ของ EKS / node group / CloudFront (โหมดเหมือนจริง)
 {
   L.buildManaged("managed"); L.S.speed = "real"; const ek = L.S.eks[0], ng = L.S.ngs[0];
-  ek.born = Date.now(); assert(L.eksPhase(ek) === "CREATING" && /not in ACTIVE state/.test(L.API.createNodegroup({ cluster: ek.name, name: "x2", roleArn: ng.roleArn, subnetIds: ng.subnetIds, desired: 1, min: 1, max: 1 }).errors.cluster), "cluster Creating: เพิ่ม node group ไม่ได้");
+  ek.born = Date.now(); assert(L.eksPhase(ek) === "CREATING" && /invalid given the state of the cluster/.test(L.API.createNodegroup({ cluster: ek.name, name: "x2", roleArn: ng.roleArn, subnetIds: ng.subnetIds, desired: 1, min: 1, max: 1 }).errors.cluster), "cluster Creating: เพิ่ม node group ไม่ได้");
   ek.born = Date.now() - 10 * 60000; assert(L.eksPhase(ek) === "ACTIVE", "EKS Active หลัง ~9 นาที");
   ng.born = Date.now(); assert(L.ngPhase(ng) === "CREATING", "node group Creating"); ng.born = Date.now() - 3 * 60000; assert(L.ngPhase(ng) === "ACTIVE", "node group Active หลัง ~2.5 นาที");
   L.buildStatic("static"); L.S.speed = "real"; const cf = L.S.cfds[0]; cf.touched = Date.now(); assert(L.cfPhase(cf) === "Deploying", "CloudFront Deploying");

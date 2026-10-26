@@ -27,7 +27,7 @@
 | role pipeline ไม่มี `codestar-connections:UseConnection` | `Unable to use Connection: <arn>. The provided role does not have sufficient permissions.` | ตรง | ✅ หลายรายงานตรงกัน |
 | CodeBuild ไม่ privileged | log: `Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?` | ตรง | ✅ ข้อความมาตรฐาน Docker |
 | role CodeBuild ไม่มี ECR | `AccessDeniedException … ecr:GetAuthorizationToken` / `denied: … ecr:InitiateLayerUpload` | ตรง | ✅ รูปแบบ IAM มาตรฐาน |
-| imagedefinitions.json `name` ไม่ตรง container | Deploy ล้ม · เอกสาร: `name` ต้องตรงชื่อ container ใน task definition (case-sensitive) | `Unable to find container named 'app' in task definition …` + ต่อท้ายว่าข้อความนี้ตัวจำลองเขียนเอง | ❌ **ถ้อยคำจริงไม่ทราบ** ค้นเว็บ 3 รอบ (รวมแบบ extended) ไม่พบข้อความจริงในเอกสาร/ฟอรัมสาธารณะ ต้องดู Details ของ action ใน console จริงแล้วแก้ที่ `src/mod/44-cicd.js` (ค้นคำว่า "Unable to find container") |
+| imagedefinitions.json `name` ไม่ตรง container | Deploy ล้ม · เอกสาร: `name` ต้องตรงชื่อ container ใน task definition (case-sensitive) | `Unable to find container named 'app' in task definition …` + ต่อท้ายว่าข้อความนี้ตัวจำลองเขียนเอง | ❌ **ไม่ทราบทั้งถ้อยคำและพฤติกรรม**: เปิดอ่านหน้า [Troubleshooting](https://docs.aws.amazon.com/codepipeline/latest/userguide/troubleshooting.html) และ [file-reference](https://docs.aws.amazon.com/codepipeline/latest/userguide/file-reference.html) แล้ว ไม่มีรายการเรื่องชื่อ container ไม่ตรง (มีแต่ `Exception while trying to read the task definition artifact file` ของ CodeDeployToECS) · ของจริงอาจ **สำเร็จแต่ image ไม่เปลี่ยน** ต้องทดลองจริงแล้วแก้ `src/mod/44-cicd.js` (ค้น "Unable to find container") |
 | ไม่มี iam:PassRole | `… is not authorized to perform: iam:PassRole on resource: arn:aws:iam::…:role/<execution role>` (เห็นชื่อ role ที่ต้อง pass) | ตรง | ✅ รูปแบบเดียวกับรายงาน ECS อื่น |
 | authorize connection นอก Terraform แล้ว plan | `Objects have changed outside of Terraform` (connection_status PENDING → AVAILABLE) | ตรง | ✅ พฤติกรรม Terraform |
 | ขั้น Approve | execution หยุดรอ · Review → Approve/Reject | ตรง | ✅ |
@@ -62,3 +62,14 @@
 
 ## แท็บ/หน้าที่เป็น "คำอธิบาย" ไม่ใช่ข้อมูลจริง
 แท็บที่ console จริงมีแต่ lab ไม่มีข้อมูลส่วนนั้น (ไม่ได้ซ่อน/ปิดสีเทาแล้ว แต่แสดงข้อความบอกชัด): Flow logs, CIDR reservations, Sharing (RAM), Last Accessed (Access Advisor), Revoke sessions, Zero-ETL, Data migrations (DMS), S3 Management/Access Points, DNSSEC, WAF/Logging ของ CloudFront, Scheduled tasks ของ ECS, Applications/Code signing ของ Lambda ฯลฯ · ที่มีข้อมูลจริง: Tags, Monitoring/Metrics (ค่าสะสมของ lab), Lambda Versions/Aliases, API CORS/Authorization, DynamoDB Indexes (GSI) + Deletion protection, EKS Resources/Nodes/Update history, Network ACL (default), pipeline Triggers
+
+## ตัวเลขเวลา: เอกสาร AWS บอกอะไรจริง ๆ (เปิดอ่านแล้ว)
+| เรื่อง | เอกสารระบุ | ตัวจำลองใช้ |
+|---|---|---|
+| EKS cluster | "Cluster provisioning takes several minutes." (ไม่ระบุตัวเลข) | ~9 นาที (จากความจำ) |
+| RDS | "it can take several minutes for the new instance to be available" | 6 / 12 นาที (จากความจำ) |
+| ACM DNS validation | "might continue to display … Pending validation for up to 30 minutes" · หมดเวลาที่ 72 ชม. | ~2.5 นาที (อยู่ในช่วงที่เอกสารยอมรับ) |
+| CloudFront invalidation | ส่งไปทุก edge "within a few seconds" แล้วแต่ละ edge เริ่มทันที (ไม่ระบุเวลาจบ) | ~1 นาที (จากความจำ) |
+| CloudFront Deploying | ไม่ระบุตัวเลข | ~4 นาที (จากความจำ) |
+| NAT gateway / ALB | ไม่ระบุตัวเลข (ALB: พร้อมเมื่อมี healthy target ครบทุก AZ) | ~1 / ~3 นาที (จากความจำ) |
+สรุป: เอกสารยืนยันเฉพาะ "หลายนาที" และ ACM "สูงสุด 30 นาที" ตัวเลขอื่นเป็นค่ากลางที่ผมประมาณ ไม่มีแหล่งทางการ
