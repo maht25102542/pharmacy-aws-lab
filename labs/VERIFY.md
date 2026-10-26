@@ -7,7 +7,7 @@
 |---|---|---|---|
 | private subnet ไม่มี NAT/endpoint | task STOPPED: `ResourceInitializationError: unable to pull secrets or registry auth: The task cannot pull registry auth from Amazon ECR: …` | ตรง | ✅ [Knowledge Center](https://www.repost.aws/knowledge-center/ecs-image-pull-error-ecr) |
 | image tag ไม่มีใน ECR | `CannotPullContainerError: pull image manifest has been retried 5 time(s): failed to resolve ref <uri>: <uri>: not found` | ตรง | ✅ [Knowledge Center](https://repost.aws/knowledge-center/ecs-pull-container-error) · [ECS docs](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_cannot_pull_image.html) |
-| ทางออกอื่นแทน NAT | VPC endpoints: `ecr.dkr`, `ecr.api` (interface) + `s3` (gateway) (+ `secretsmanager`, `logs` ถ้าใช้) · interface ต้อง private DNS + SG รับ 443 จาก task | จำลองแล้ว (scenario `ecs-vpce*`) · ข้อความ timeout ของ s3/logs/secretsmanager เรียบเรียงจากรูปแบบข้อความจริง ไม่ใช่ถอดคำต่อคำ | ⚠️ [guide](https://dev.to/danquack/private-fargate-deployment-with-vpc-endpoints-1h0p) |
+| ทางออกอื่นแทน NAT (ยืนยันแล้ว: เอกสาร AWS ระบุว่า `i/o timeout` / `context deadline exceeded` ใน ResourceInitializationError = ปัญหา network ระหว่าง task กับบริการ · [เอกสาร](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/resource-initialization-error.html)) | VPC endpoints: `ecr.dkr`, `ecr.api` (interface) + `s3` (gateway) (+ `secretsmanager`, `logs` ถ้าใช้) · interface ต้อง private DNS + SG รับ 443 จาก task | จำลองแล้ว (scenario `ecs-vpce*`) · ข้อความ timeout ของ s3/logs/secretsmanager เรียบเรียงจากรูปแบบข้อความจริง ไม่ใช่ถอดคำต่อคำ | ⚠️ [guide](https://dev.to/danquack/private-fargate-deployment-with-vpc-endpoints-1h0p) |
 
 ## Lab 3 (labs/03-serverless)
 | ทำ | ควรเห็นจริง | ในตัวจำลอง |
@@ -58,7 +58,7 @@
 | ACM DNS validation | หลังเจอ CNAME รอ ~2.5 นาทีก่อน Issued (terraform รอใน aws_acm_certificate_validation) | ของจริงมัก 1-30 นาที |
 | terraform destroy | RDS ~4 นาที · EKS ~5 นาที · node group ~3 นาที · CloudFront ~7 นาที (ต้อง disable ก่อน) · NAT ~1 นาที · ECS service ~1.5 นาที | แสดง `Still destroying…` |
 | terraform apply | EKS ~9 นาที · RDS ~6/13 นาที · CloudFront ~4 นาที · interface endpoint ~90 วินาที ฯลฯ | แสดง `Still creating…` ตามเวลา |
-ที่ยังไม่มีสถานะ transitional: การลบ resource ใน console (RDS/EKS ฯลฯ หายทันที) — เฉพาะ `terraform destroy` ที่หน่วงเวลา
+| ลบ RDS / EKS / node group ใน console | แสดง Deleting ~4 / ~5 / ~3 นาที แล้วหาย · สร้างชื่อเดิมระหว่างนั้นไม่ได้ (`…AlreadyExists`) | ลบ resource อื่นใน console ยังหายทันที |
 
 ## แท็บ/หน้าที่เป็น "คำอธิบาย" ไม่ใช่ข้อมูลจริง
 แท็บที่ console จริงมีแต่ lab ไม่มีข้อมูลส่วนนั้น (ไม่ได้ซ่อน/ปิดสีเทาแล้ว แต่แสดงข้อความบอกชัด): Flow logs, CIDR reservations, Sharing (RAM), Last Accessed (Access Advisor), Revoke sessions, Zero-ETL, Data migrations (DMS), S3 Management/Access Points, DNSSEC, WAF/Logging ของ CloudFront, Scheduled tasks ของ ECS, Applications/Code signing ของ Lambda ฯลฯ · ที่มีข้อมูลจริง: Tags, Monitoring/Metrics (ค่าสะสมของ lab), Lambda Versions/Aliases, API CORS/Authorization, DynamoDB Indexes (GSI) + Deletion protection, EKS Resources/Nodes/Update history, Network ACL (default), pipeline Triggers

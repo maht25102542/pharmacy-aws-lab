@@ -44,7 +44,7 @@ API.deleteEks = function (name) {
 };
 API.createNodegroup = function (o) {
   var er = {}, c = byName(S.eks, o.cluster), n = String(o.name || "");
-  if (!c) er.cluster = "ResourceNotFoundException: No cluster found for name: " + (o.cluster || ""); else if (eksPhase(c) !== "ACTIVE") er.cluster = "ResourceInUseException: Cluster '" + c.name + "' is not in ACTIVE state (โหมดเหมือนจริง: EKS ใช้ ~9 นาทีสร้าง control plane)";
+  if (!c) er.cluster = "ResourceNotFoundException: No cluster found for name: " + (o.cluster || ""); else if (eksPhase(c) !== "ACTIVE") er.cluster = "ResourceInUseException: Cluster '" + c.name + "' is not in ACTIVE state (โหมดเหมือนจริง: EKS ใช้ ~9 นาทีสร้าง control plane) [ข้อความนี้ตัวจำลองเขียนเอง: ถ้อยคำจริงของ AWS ไม่ทราบ]";
   if (!n) er.name = "ต้องกรอกชื่อ node group"; else if (!/^[0-9A-Za-z][A-Za-z0-9\-_]*$/.test(n) || n.length > 63) er.name = "InvalidParameterException: ชื่อ node group ใช้ได้เฉพาะตัวอักษร ตัวเลข - _ ไม่เกิน 63 ตัว";
   else if (c && S.ngs.some(function (g) { return g.cluster === c.name && g.name === n; })) er.name = "ResourceInUseException: NodeGroup already exists with name " + n + " and cluster name " + c.name;
   var role = roleByRef(o.roleArn), sns = (o.subnetIds || []).map(function (id) { return find(S.subnets, id); }).filter(Boolean);

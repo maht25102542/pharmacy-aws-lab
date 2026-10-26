@@ -42,3 +42,24 @@ TF_SCHEMA.aws_dynamodb_table.inPlace.push("deletion_protection_enabled", "global
   p.update = function (st, d) { ou(st, d); var t = slsTbl(st.sim.name); if (t && d.deletion_protection_enabled !== undefined) t.protect = !!d.deletion_protection_enabled; };
   var od = p.del; p.del = function (st) { var r = API.deleteDdbTable(st.sim.name); if (r.errors) throw TfAwsError("deleting DynamoDB Table (" + st.sim.name + ")", "DynamoDB", "DeleteTable", "ValidationException", String(r.errors._).replace(/^[A-Za-z]+: /, "")); void od; };
 })();
+
+// ===== การลบแบบมีสถานะ Deleting ในโหมด "เหมือนจริง" (RDS ~4 นาที · EKS ~5 นาที · node group ~3 นาที) =====
+// วิธี: ลบจริงทันที (logic ที่พึ่งมันเห็นว่าหายแล้ว) แต่เก็บ "ผี" ไว้แสดงเป็น Deleting ในรายการ และกันสร้างชื่อเดิมซ้ำจนกว่าจะครบเวลา
+function ghostPrune() { if (!S.ghosts) S.ghosts = []; var now = Date.now(); S.ghosts = S.ghosts.filter(function (g) { return g.until > now; }); }
+function ghostRows(kind) { ghostPrune(); return S.ghosts.filter(function (g) { return g.kind === kind; }).map(function (g) { return g.obj; }); }
+function ghostHas(kind, pred) { return ghostRows(kind).some(pred); }
+(function () {
+  function wrap(name, kind, secs, getObj) {
+    var o = API[name]; API[name] = function () {
+      var obj = getObj.apply(null, arguments), r = o.apply(null, arguments);
+      if (labReal() && r && r.res && obj) { ghostPrune(); obj.ghost = true; S.ghosts.push({ kind: kind, obj: obj, until: Date.now() + secs * 1000 }); }
+      return r;
+    };
+  }
+  wrap("deleteRds", "rds", 240, function (id) { return S.rds.filter(function (x) { return x.id === id; })[0]; });
+  wrap("deleteEks", "eks", 300, function (n) { return byName(S.eks, n); });
+  wrap("deleteNodegroup", "ng", 180, function (c, n) { return S.ngs.filter(function (x) { return x.cluster === c && x.name === n; })[0]; });
+  var cr = API.createRds; API.createRds = function (o) { if (ghostHas("rds", function (g) { return g.id === o.id; })) return E("id", "DBInstanceAlreadyExists: DB instance already exists (กำลัง Deleting)"); return cr(o); };
+  var ce = API.createEks; API.createEks = function (o) { if (ghostHas("eks", function (g) { return g.name === o.name; })) return E("name", "ResourceInUseException: Cluster already exists with name: " + o.name + " (กำลัง Deleting)"); return ce(o); };
+  var cn = API.createNodegroup; API.createNodegroup = function (o) { if (ghostHas("ng", function (g) { return g.cluster === o.cluster && g.name === o.name; })) return E("name", "ResourceInUseException: NodeGroup already exists with name " + o.name + " and cluster name " + o.cluster + " (กำลัง Deleting)"); return cn(o); };
+})();

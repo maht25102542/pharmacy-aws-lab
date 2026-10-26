@@ -2389,7 +2389,7 @@ API.deleteEks = function (name) {
 };
 API.createNodegroup = function (o) {
   var er = {}, c = byName(S.eks, o.cluster), n = String(o.name || "");
-  if (!c) er.cluster = "ResourceNotFoundException: No cluster found for name: " + (o.cluster || ""); else if (eksPhase(c) !== "ACTIVE") er.cluster = "ResourceInUseException: Cluster '" + c.name + "' is not in ACTIVE state (โหมดเหมือนจริง: EKS ใช้ ~9 นาทีสร้าง control plane)";
+  if (!c) er.cluster = "ResourceNotFoundException: No cluster found for name: " + (o.cluster || ""); else if (eksPhase(c) !== "ACTIVE") er.cluster = "ResourceInUseException: Cluster '" + c.name + "' is not in ACTIVE state (โหมดเหมือนจริง: EKS ใช้ ~9 นาทีสร้าง control plane) [ข้อความนี้ตัวจำลองเขียนเอง: ถ้อยคำจริงของ AWS ไม่ทราบ]";
   if (!n) er.name = "ต้องกรอกชื่อ node group"; else if (!/^[0-9A-Za-z][A-Za-z0-9\-_]*$/.test(n) || n.length > 63) er.name = "InvalidParameterException: ชื่อ node group ใช้ได้เฉพาะตัวอักษร ตัวเลข - _ ไม่เกิน 63 ตัว";
   else if (c && S.ngs.some(function (g) { return g.cluster === c.name && g.name === n; })) er.name = "ResourceInUseException: NodeGroup already exists with name " + n + " and cluster name " + c.name;
   var role = roleByRef(o.roleArn), sns = (o.subnetIds || []).map(function (id) { return find(S.subnets, id); }).filter(Boolean);
@@ -4849,12 +4849,13 @@ TF_PROV.aws_vpc_endpoint = {
 function labReal() { return S.speed === "real"; }
 // ecs service: 0-45 วินาทีแรก task = PENDING (provision + ดึง image) · 45-75 วินาที RUNNING แต่ health check รอบแรกยังไม่ผ่าน
 function ecsWarm(svc) { if (!labReal()) return 0; var a = Date.now() - (svc.touched || svc.born || 0); return a < 45000 ? 1 : a < 75000 ? 2 : 0; }
-function rdsPhase(r) { if (!labReal() || !r.born) return "available"; return Date.now() - r.born < (r.multiAz ? 720000 : 360000) ? "creating" : "available"; }
-function eksPhase(c) { return labReal() && c.born && Date.now() - c.born < 540000 ? "CREATING" : "ACTIVE"; }
-function ngPhase(g) { return labReal() && g.born && Date.now() - g.born < 150000 ? "CREATING" : "ACTIVE"; }
+function rdsPhase(r) { if (r.ghost) return "deleting"; if (!labReal() || !r.born) return "available"; return Date.now() - r.born < (r.multiAz ? 720000 : 360000) ? "creating" : "available"; }
+function eksPhase(c) { if (c.ghost) return "DELETING"; return labReal() && c.born && Date.now() - c.born < 540000 ? "CREATING" : "ACTIVE"; }
+function ngPhase(g) { if (g.ghost) return "DELETING"; return labReal() && g.born && Date.now() - g.born < 150000 ? "CREATING" : "ACTIVE"; }
 function cfPhase(d) { return labReal() && d.touched && Date.now() - d.touched < 240000 ? "Deploying" : "Deployed"; }
 function labBusy() {
   if (!labReal()) return false;
+  if (S.ghosts && S.ghosts.length) { ghostPrune(); if (S.ghosts.length) return true; }
   return S.cfds.some(function (d) { return (d.invalidations || []).some(function (v) { return v.done === false; }); }) || S.certs.some(function (c) { return c.okAt && Date.now() - c.okAt < 150000; }) || S.eks.some(function (c) { return eksPhase(c) !== "ACTIVE"; }) || S.ngs.some(function (g) { return ngPhase(g) !== "ACTIVE"; }) || S.cfds.some(function (d) { return cfPhase(d) !== "Deployed"; }) || S.esvcs.some(function (s) { return ecsWarm(s); }) || S.rds.some(function (r) { return rdsPhase(r) !== "available"; }) || S.pipes.some(function (p) { return p.execs.some(function (e) { return e.cursor; }); });
 }
 // วินาทีที่ resource ใช้สร้างใน terraform apply (โหมดเหมือนจริง) · ค่าประมาณ
@@ -4918,6 +4919,27 @@ TF_SCHEMA.aws_dynamodb_table.inPlace.push("deletion_protection_enabled", "global
   p.create = function (c) { var r = oc(c), a = c.attrs, t = slsTbl(r.sim.name); t.protect = !!a.deletion_protection_enabled; (a.global_secondary_index || []).forEach(function (g) { var attr = (a.attribute || []).filter(function (x) { return x.name === g.hash_key; })[0]; var x = API.createGsi(t.name, { name: g.name, key: g.hash_key, keyType: attr ? attr.type : "S", projection: g.projection_type, rcu: g.read_capacity, wcu: g.write_capacity }); if (x.errors) throw TfAwsError("creating DynamoDB Table (" + a.name + ")", "DynamoDB", "CreateTable", "ValidationException", String(x.errors[Object.keys(x.errors)[0]]).replace(/^[A-Za-z]+: /, "")); }); return r; };
   p.update = function (st, d) { ou(st, d); var t = slsTbl(st.sim.name); if (t && d.deletion_protection_enabled !== undefined) t.protect = !!d.deletion_protection_enabled; };
   var od = p.del; p.del = function (st) { var r = API.deleteDdbTable(st.sim.name); if (r.errors) throw TfAwsError("deleting DynamoDB Table (" + st.sim.name + ")", "DynamoDB", "DeleteTable", "ValidationException", String(r.errors._).replace(/^[A-Za-z]+: /, "")); void od; };
+})();
+
+// ===== การลบแบบมีสถานะ Deleting ในโหมด "เหมือนจริง" (RDS ~4 นาที · EKS ~5 นาที · node group ~3 นาที) =====
+// วิธี: ลบจริงทันที (logic ที่พึ่งมันเห็นว่าหายแล้ว) แต่เก็บ "ผี" ไว้แสดงเป็น Deleting ในรายการ และกันสร้างชื่อเดิมซ้ำจนกว่าจะครบเวลา
+function ghostPrune() { if (!S.ghosts) S.ghosts = []; var now = Date.now(); S.ghosts = S.ghosts.filter(function (g) { return g.until > now; }); }
+function ghostRows(kind) { ghostPrune(); return S.ghosts.filter(function (g) { return g.kind === kind; }).map(function (g) { return g.obj; }); }
+function ghostHas(kind, pred) { return ghostRows(kind).some(pred); }
+(function () {
+  function wrap(name, kind, secs, getObj) {
+    var o = API[name]; API[name] = function () {
+      var obj = getObj.apply(null, arguments), r = o.apply(null, arguments);
+      if (labReal() && r && r.res && obj) { ghostPrune(); obj.ghost = true; S.ghosts.push({ kind: kind, obj: obj, until: Date.now() + secs * 1000 }); }
+      return r;
+    };
+  }
+  wrap("deleteRds", "rds", 240, function (id) { return S.rds.filter(function (x) { return x.id === id; })[0]; });
+  wrap("deleteEks", "eks", 300, function (n) { return byName(S.eks, n); });
+  wrap("deleteNodegroup", "ng", 180, function (c, n) { return S.ngs.filter(function (x) { return x.cluster === c && x.name === n; })[0]; });
+  var cr = API.createRds; API.createRds = function (o) { if (ghostHas("rds", function (g) { return g.id === o.id; })) return E("id", "DBInstanceAlreadyExists: DB instance already exists (กำลัง Deleting)"); return cr(o); };
+  var ce = API.createEks; API.createEks = function (o) { if (ghostHas("eks", function (g) { return g.name === o.name; })) return E("name", "ResourceInUseException: Cluster already exists with name: " + o.name + " (กำลัง Deleting)"); return ce(o); };
+  var cn = API.createNodegroup; API.createNodegroup = function (o) { if (ghostHas("ng", function (g) { return g.cluster === o.cluster && g.name === o.name; })) return E("name", "ResourceInUseException: NodeGroup already exists with name " + o.name + " and cluster name " + o.cluster + " (กำลัง Deleting)"); return cn(o); };
 })();
 
 // ---- mod/50-shell.js
@@ -8667,9 +8689,9 @@ function mgHint(text) { return { type: "custom", id: "h" + String(text).length, 
 LISTS["eks"] = function () {
   return ({ key: "eks", kind: "eks", title: "Clusters", crumb: "Amazon EKS › Clusters", create: [{ label: "Create cluster", page: "eks-create" }],
     actions: [{ label: "Add node group", page: "eks-ng-create" }, { label: "Delete cluster", page: "del", kind: "eks" }],
-    detail: function (c) { return [["Cluster name", c.name], ["Status", eksPhase(c) === "ACTIVE" ? okIco("Active") : tagp("Creating", "warn")], ["Kubernetes version", c.version], ["API server endpoint", c.endpoint], ["Cluster ARN", mgArn("eks", "cluster", c.name)], ["Cluster IAM role", c.roleArn], ["Cluster security group", c.sgId], ["VPC", vcol(c.vpcId)], ["Subnets", mgSubnetNames(c.subnetIds)], ["API endpoint access", (c.pub ? "Public" : "") + (c.pub && c.priv ? " and " : "") + (c.priv ? "Private" : "")], ["Public access source allowlist", c.pub ? c.cidrs.join(", ") : "-"], ["Authentication mode", c.authMode === "API" ? "EKS API" : "EKS API and ConfigMap"], ["Node groups", String(S.ngs.filter(function (g) { return g.cluster === c.name; }).length)], ["Created", mgAge(c)]]; },
-    rows: function () { return S.eks; },
-    cols: [["Cluster name", function (c) { return c.name; }], ["Status", function (c) { return eksPhase(c) === "ACTIVE" ? okIco("Active") : tagp("Creating", "warn"); }], ["Kubernetes version", function (c) { return c.version; }], ["Support period", function () { return "Standard support"; }], ["Provider", function () { return "EKS"; }], ["Endpoint access", function (c) { return (c.pub ? "Public" : "") + (c.pub && c.priv ? " + private" : c.priv ? "Private" : ""); }]] });
+    detail: function (c) { return [["Cluster name", c.name], ["Status", eksPhase(c) === "ACTIVE" ? okIco("Active") : tagp(eksPhase(c) === "DELETING" ? "Deleting" : "Creating", "warn")], ["Kubernetes version", c.version], ["API server endpoint", c.endpoint], ["Cluster ARN", mgArn("eks", "cluster", c.name)], ["Cluster IAM role", c.roleArn], ["Cluster security group", c.sgId], ["VPC", vcol(c.vpcId)], ["Subnets", mgSubnetNames(c.subnetIds)], ["API endpoint access", (c.pub ? "Public" : "") + (c.pub && c.priv ? " and " : "") + (c.priv ? "Private" : "")], ["Public access source allowlist", c.pub ? c.cidrs.join(", ") : "-"], ["Authentication mode", c.authMode === "API" ? "EKS API" : "EKS API and ConfigMap"], ["Node groups", String(S.ngs.filter(function (g) { return g.cluster === c.name; }).length)], ["Created", mgAge(c)]]; },
+    rows: function () { return S.eks.concat(ghostRows("eks")); },
+    cols: [["Cluster name", function (c) { return c.name; }], ["Status", function (c) { return eksPhase(c) === "ACTIVE" ? okIco("Active") : tagp(eksPhase(c) === "DELETING" ? "Deleting" : "Creating", "warn"); }], ["Kubernetes version", function (c) { return c.version; }], ["Support period", function () { return "Standard support"; }], ["Provider", function () { return "EKS"; }], ["Endpoint access", function (c) { return (c.pub ? "Public" : "") + (c.pub && c.priv ? " + private" : c.priv ? "Private" : ""); }]] });
 };
 PAGES["eks-create"] = function () {
   return formPage({ name: "eks-create", crumb: "Amazon EKS › Clusters › Create EKS cluster", title: "Configure cluster", back: "eks",
@@ -8696,9 +8718,9 @@ PAGES["eks-create"] = function () {
 LISTS["ngs"] = function () {
   return ({ key: "ngs", kind: "ng", title: "Node groups", crumb: "Amazon EKS › Node groups", create: [{ label: "Add node group", page: "eks-ng-create" }],
     actions: [{ label: "Delete node group", page: "del", kind: "ng" }],
-    detail: function (g) { var a = S.asgs.filter(function (x) { return x.name === g.asg; })[0]; return [["Node group name", g.name], ["Cluster", g.cluster], ["Status", ngPhase(g) === "ACTIVE" ? okIco("Active") : tagp("Creating", "warn")], ["Node IAM role", g.roleArn], ["Instance types", g.types.join(", ")], ["Desired / Min / Max", g.desired + " / " + g.min + " / " + g.max], ["Subnets", mgSubnetNames(g.subnetIds)], ["Auto Scaling group", g.asg], ["ผูก target group", a && a.tgArns.length ? a.tgArns.map(function (x) { return (byArnTg(x) || {}).name; }).join(", ") : "ยังไม่ได้ผูก (EC2 › Auto Scaling groups)"]]; },
-    rows: function () { return S.ngs; },
-    cols: [["Node group name", function (g) { return g.name; }], ["Cluster", function (g) { return g.cluster; }], ["Desired size", function (g) { return String(g.desired); }], ["AMI release version", function () { return "AL2023 (EKS optimized)"; }], ["Instance types", function (g) { return g.types.join(", "); }], ["Status", function (g) { return ngPhase(g) === "ACTIVE" ? okIco("Active") : tagp("Creating", "warn"); }]] });
+    detail: function (g) { var a = S.asgs.filter(function (x) { return x.name === g.asg; })[0]; return [["Node group name", g.name], ["Cluster", g.cluster], ["Status", ngPhase(g) === "ACTIVE" ? okIco("Active") : tagp(ngPhase(g) === "DELETING" ? "Deleting" : "Creating", "warn")], ["Node IAM role", g.roleArn], ["Instance types", g.types.join(", ")], ["Desired / Min / Max", g.desired + " / " + g.min + " / " + g.max], ["Subnets", mgSubnetNames(g.subnetIds)], ["Auto Scaling group", g.asg], ["ผูก target group", a && a.tgArns.length ? a.tgArns.map(function (x) { return (byArnTg(x) || {}).name; }).join(", ") : "ยังไม่ได้ผูก (EC2 › Auto Scaling groups)"]]; },
+    rows: function () { return S.ngs.concat(ghostRows("ng")); },
+    cols: [["Node group name", function (g) { return g.name; }], ["Cluster", function (g) { return g.cluster; }], ["Desired size", function (g) { return String(g.desired); }], ["AMI release version", function () { return "AL2023 (EKS optimized)"; }], ["Instance types", function (g) { return g.types.join(", "); }], ["Status", function (g) { return ngPhase(g) === "ACTIVE" ? okIco("Active") : tagp(ngPhase(g) === "DELETING" ? "Deleting" : "Creating", "warn"); }]] });
 };
 PAGES["eks-ng-create"] = function () {
   var pre = UI.params.id && byName(S.eks, UI.params.id) ? UI.params.id : (S.eks[0] || {}).name || "";
@@ -8733,8 +8755,8 @@ LISTS["rds"] = function () {
   return ({ key: "rds", kind: "rds", title: "Databases", crumb: "Amazon RDS › Databases", create: [{ label: "Create database", page: "rds-create" }],
     actions: [{ label: "Reboot with failover", btn: false, grp: "Actions", run: function (r) { return API.rdsFailover(r.id); }, msg: "สลับ standby เป็น writer แล้ว (endpoint เดิมไม่เปลี่ยน · ของจริงใช้เวลา ~1-2 นาที)", when: function (r) { return r.multiAz; } }, { label: "Delete", page: "del", kind: "rds" }],
     detail: function (r) { var reach = S.insts.filter(function (i) { return i.nodeRole && i.state === "running"; }), okN = reach.filter(function (i) { return rdsReach(i, r); }).length; return [["DB identifier", r.id], ["Status", okIco("Available")], ["Engine", r.engine + " " + r.version], ["DB instance class", r.cls], ["Storage", r.storage + " GiB gp3 · " + (r.encrypted ? "encrypted" : "not encrypted")], ["Multi-AZ", r.multiAz ? "Yes — primary " + r.az + " / standby " + r.standbyAz : "No (" + r.az + ")"], ["Endpoint", r.address], ["Port", String(r.port)], ["VPC / DB subnet group", vcol(r.vpcId) + " / " + r.subnetGroup], ["VPC security groups", r.sgIds.map(function (id) { return (find(S.sgs, id) || {}).name || id; }).join(", ")], ["Publicly accessible", r.publicly ? tagp("Yes", "bad") : "No"], ["Master credentials", r.manage ? "Managed in Secrets Manager: " + r.secretArn : "Self managed (" + r.user + ")"], ["Automated backups", r.backupDays + " days"], ["ต่อได้จาก EKS node", okN + " / " + reach.length + " node (SG 3306 + VPC เดียวกัน)"]]; },
-    rows: function () { return S.rds; },
-    cols: [["DB identifier", function (r) { return r.id; }], ["Status", function (r) { return rdsPhase(r) === "available" ? okIco("Available") : tagp("Creating", "warn"); }], ["Role", mgRdsRole], ["Engine", function (r) { return r.engine === "mariadb" ? "MariaDB" : r.engine === "mysql" ? "MySQL Community" : "PostgreSQL"; }], ["Region & AZ", function (r) { return r.az + (r.standbyAz ? " (standby " + r.standbyAz.replace(REGION, "") + ")" : ""); }], ["Size", function (r) { return r.cls; }], ["Endpoint", function (r) { return r.address; }]] });
+    rows: function () { return S.rds.concat(ghostRows("rds")); },
+    cols: [["DB identifier", function (r) { return r.id; }], ["Status", function (r) { return rdsPhase(r) === "available" ? okIco("Available") : tagp(rdsPhase(r) === "deleting" ? "Deleting" : "Creating", "warn"); }], ["Role", mgRdsRole], ["Engine", function (r) { return r.engine === "mariadb" ? "MariaDB" : r.engine === "mysql" ? "MySQL Community" : "PostgreSQL"; }], ["Region & AZ", function (r) { return r.az + (r.standbyAz ? " (standby " + r.standbyAz.replace(REGION, "") + ")" : ""); }], ["Size", function (r) { return r.cls; }], ["Endpoint", function (r) { return r.address; }]] });
 };
 PAGES["rds-create"] = function () {
   var dg = byName(S.dbsg, "pharmacy-db") || S.dbsg[0];

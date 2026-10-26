@@ -49,12 +49,13 @@ TF_PROV.aws_vpc_endpoint = {
 function labReal() { return S.speed === "real"; }
 // ecs service: 0-45 วินาทีแรก task = PENDING (provision + ดึง image) · 45-75 วินาที RUNNING แต่ health check รอบแรกยังไม่ผ่าน
 function ecsWarm(svc) { if (!labReal()) return 0; var a = Date.now() - (svc.touched || svc.born || 0); return a < 45000 ? 1 : a < 75000 ? 2 : 0; }
-function rdsPhase(r) { if (!labReal() || !r.born) return "available"; return Date.now() - r.born < (r.multiAz ? 720000 : 360000) ? "creating" : "available"; }
-function eksPhase(c) { return labReal() && c.born && Date.now() - c.born < 540000 ? "CREATING" : "ACTIVE"; }
-function ngPhase(g) { return labReal() && g.born && Date.now() - g.born < 150000 ? "CREATING" : "ACTIVE"; }
+function rdsPhase(r) { if (r.ghost) return "deleting"; if (!labReal() || !r.born) return "available"; return Date.now() - r.born < (r.multiAz ? 720000 : 360000) ? "creating" : "available"; }
+function eksPhase(c) { if (c.ghost) return "DELETING"; return labReal() && c.born && Date.now() - c.born < 540000 ? "CREATING" : "ACTIVE"; }
+function ngPhase(g) { if (g.ghost) return "DELETING"; return labReal() && g.born && Date.now() - g.born < 150000 ? "CREATING" : "ACTIVE"; }
 function cfPhase(d) { return labReal() && d.touched && Date.now() - d.touched < 240000 ? "Deploying" : "Deployed"; }
 function labBusy() {
   if (!labReal()) return false;
+  if (S.ghosts && S.ghosts.length) { ghostPrune(); if (S.ghosts.length) return true; }
   return S.cfds.some(function (d) { return (d.invalidations || []).some(function (v) { return v.done === false; }); }) || S.certs.some(function (c) { return c.okAt && Date.now() - c.okAt < 150000; }) || S.eks.some(function (c) { return eksPhase(c) !== "ACTIVE"; }) || S.ngs.some(function (g) { return ngPhase(g) !== "ACTIVE"; }) || S.cfds.some(function (d) { return cfPhase(d) !== "Deployed"; }) || S.esvcs.some(function (s) { return ecsWarm(s); }) || S.rds.some(function (r) { return rdsPhase(r) !== "available"; }) || S.pipes.some(function (p) { return p.execs.some(function (e) { return e.cursor; }); });
 }
 // วินาทีที่ resource ใช้สร้างใน terraform apply (โหมดเหมือนจริง) · ค่าประมาณ
