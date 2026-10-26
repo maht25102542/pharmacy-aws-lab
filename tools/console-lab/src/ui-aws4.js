@@ -9,7 +9,7 @@
 })();
 function ecsRoleOpts() { return [["", "เลือก role"]].concat(S.roles.filter(function (r) { return roleTrusts(r, "ecs-tasks.amazonaws.com"); }).map(function (r) { return [r.name, r.name + (r.policies.length ? "  (" + r.policies.length + " policies)" : "  (ไม่มี policy)")]; })); }
 function ecsTdOpts() { return [["", "เลือก task definition"]].concat(S.tds.map(function (t) { return [t.family + ":" + t.rev, t.family + ":" + t.rev + "  (" + t.cpu + " CPU / " + t.memory + " MiB)"]; })); }
-function ecsState(t) { return t.state === "STOPPED" ? tagp("STOPPED", "bad") : t.healthy ? okIco("RUNNING · Healthy") : tagp("RUNNING · Unhealthy", "warn"); }
+function ecsState(t) { return t.state === "PENDING" ? tagp("PENDING", "warn") : t.state === "STOPPED" ? tagp("STOPPED", "bad") : t.healthy ? okIco("RUNNING · Healthy") : tagp("RUNNING · Unhealthy", "warn"); }
 function ecsHealthTag(e) { return e.stable ? okIco("Stable") : tagp(e.svc.desired === 0 ? "Scaled to 0" : "Not stable", e.svc.desired === 0 ? "warn" : "bad"); }
 function ecsSteps(list) { return mgSteps(list); }
 
@@ -88,7 +88,8 @@ PAGES["ecs-svc"] = function () {
   var body = h("div", { cls: "card" }, [h("div", { cls: "cb" })]), cb = body.firstChild;
   if (tab === "health") {
     cb.appendChild(h("h3", { text: "Task health (" + e.tasks.length + ")" })); cb.appendChild(tbl(["Task", "Last status", "Availability Zone", "Private IP", "Target group health", "Stopped / unhealthy reason"], e.tasks.map(function (t) { return [t.id.slice(0, 12), ecsState(t), t.az, t.ip, t.state === "STOPPED" ? "-" : t.healthy ? okIco("healthy") : tagp("unhealthy · " + (t.code || ""), "bad"), t.state === "STOPPED" || !t.healthy ? t.reason + (t.why ? " · " + t.why : "") : "-"]; }), "desired = 0: ไม่มี task"));
-    var bad = e.tasks.filter(function (t) { return t.state === "STOPPED" || !t.healthy; })[0];
+    var bad = e.tasks.filter(function (t) { return (t.state === "STOPPED" || !t.healthy) && !t.warm; })[0];
+    if (e.tasks.some(function (t) { return t.warm; })) cb.appendChild(h("div", { cls: "alert info", text: "ⓘ task กำลังเริ่ม (โหมดความเร็ว “เหมือนจริง”): PENDING ~45 วินาที แล้วรอ health check รอบแรกอีก ~30 วินาที · หน้านี้รีเฟรชเอง" }));
     if (bad) { cb.appendChild(h("h3", { text: "ไล่หาสาเหตุ (ลำดับที่ Fargate ทำตอนเริ่ม task)" })); cb.appendChild(ecsSteps(bad.steps)); cb.appendChild(h("div", { cls: "hint", text: "ทางแก้ตามขั้นที่ ✗: role → IAM · ออกเน็ต → VPC route table / NAT · image → ECR + docker push · DB → SG ของ DB · health → target group path และ SG ของ task" })); }
     else if (e.tasks.length) cb.appendChild(h("div", { cls: "alert info", text: "ⓘ ทุกขั้นผ่าน: role → ออกเน็ต → image → secret → ต่อ DB → health check" }));
   } else if (tab === "tasks") cb.appendChild(tbl(["Task ID", "Last status", "Desired status", "Task definition", "Started", "Stop reason"], e.tasks.map(function (t) { return [t.id, t.state, "RUNNING", s.td, stFmt(s.born), t.state === "STOPPED" ? t.reason : "-"]; }), "ไม่มี task"));

@@ -132,7 +132,7 @@ function tfExec(o) {
             if (act === "create" || act === "replace") {
               if (act === "replace") { out.push(addr + ": Destroying... [id=" + old.id + "]"); pr.del(old); delete st[addr]; out.push(addr + ": Destruction complete after 0s"); }
               out.push(addr + ": Creating...");
-              var slow = { aws_lb: 190, aws_instance: 30, aws_nat_gateway: 100 }[node.type]; // ponytail: ระยะเวลาจากความจำ ไม่ใช่ค่าที่ยืนยัน
+              var slow = tfCreateSecs(node.type, attrs); // ponytail: ระยะเวลาจากความจำ ไม่ใช่ค่าที่ยืนยัน
               for (var se = 10; slow && se < slow; se += se < 60 ? 10 : 30) out.push(addr + ": Still creating... [" + se + "s elapsed]");
               var made = pr.create({ attrs: attrs, tags: tags, node: node, key: it.key });
               st[addr] = { type: node.type, name: node.name, key: it.key, id: made.id, cfg: tfStripCanon(tfCanon(node.type, attrs, tags, made.id)), computed: made.computed, sim: made.sim || {}, deps: node.deps || [], file: node.file, line: node.line };

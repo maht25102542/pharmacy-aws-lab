@@ -73,7 +73,7 @@ function ensureState() {
   if (!S.nats) S.nats = [];
   if (!S.faults) S.faults = {};
   ghInit();
-  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs", "ecsc", "tds", "esvcs", "lgs", "ddb", "lams", "apis", "lperms", "lamLogs", "layers", "adoms", "alarms", "conns", "cbps", "pipes"].forEach(function (k) { if (!S[k]) S[k] = []; });
+  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs", "ecsc", "tds", "esvcs", "lgs", "ddb", "lams", "apis", "lperms", "lamLogs", "layers", "adoms", "alarms", "conns", "cbps", "pipes", "vpces"].forEach(function (k) { if (!S[k]) S[k] = []; });
   if (!S.cfCache) S.cfCache = {};
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
@@ -633,7 +633,7 @@ API.del = function (kind, id, word) {
   else if (kind === "inst") API.instState(id, "terminate");
   else if (kind === "repo") S.repos = S.repos.filter(function (x) { return x.id !== id; });
   else if (kind === "eip") S.eips = S.eips.filter(function (x) { return x.id !== id; });
-  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn)$/.test(kind)) return mgDelDo(kind, id);
+  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn|vpce)$/.test(kind)) return mgDelDo(kind, id);
   return { res: true };
 };
 

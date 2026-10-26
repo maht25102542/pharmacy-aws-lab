@@ -12,7 +12,7 @@ function buildEcs(kind) {
   var g = ok(API.createIgw({ name: "pharmacy-igw" })); ok(API.attachIgw(g.id, v.id));
   var rt = ok(API.createRtb({ name: "pharmacy-public", vpcId: v.id })); ok(API.setRoutes(rt.id, [{ dest: "0.0.0.0/0", target: g.id }])); ok(API.setAssoc(rt.id, pub.map(function (s) { return s.id; })));
   var eip = ok(API.allocEip()), nat = { id: rid("nat"), name: "pharmacy-nat", vpcId: v.id, subnetId: pub[0].id, eipId: eip.id, state: "available", born: Date.now() }; S.nats.push(nat);
-  var rp = ok(API.createRtb({ name: "pharmacy-private", vpcId: v.id })); ok(API.setRoutes(rp.id, kind === "ecs-pull" ? [] : [{ dest: "0.0.0.0/0", target: nat.id }])); ok(API.setAssoc(rp.id, prv.map(function (s) { return s.id; })));
+  var rp = ok(API.createRtb({ name: "pharmacy-private", vpcId: v.id })); ok(API.setRoutes(rp.id, kind === "ecs-pull" || /^ecs-vpce/.test(kind) ? [] : [{ dest: "0.0.0.0/0", target: nat.id }])); ok(API.setAssoc(rp.id, prv.map(function (s) { return s.id; })));
   function R(type, port, k, src) { return { type: type, port: port, srcKind: k, src: src }; }
   var sg = {}; ["alb", "task", "db"].forEach(function (n) { sg[n] = ok(API.createSg({ name: "pharmacy-" + n, desc: "pharmacy " + n, vpcId: v.id, rows: [] })); });
   ok(API.setInbound(sg.alb.id, [R("HTTP", "", "Anywhere-IPv4"), R("Custom TCP", "8080", "My IP")]));
@@ -36,6 +36,11 @@ function buildEcs(kind) {
     var td = ok(API.registerTd({ family: "pharmacy-api-" + e, cpu: E2.cpu, memory: E2.memory, execRole: "pharmacy-ecs-execution", taskRole: "pharmacy-ecs-task", containers: [{ name: "api", image: ecsRepoUri() + ":v1.0.0", port: 8000, env: [{ name: "APP_ENV", value: e }, { name: "DB_HOST", value: dbs[e].address }], secrets: [{ name: "DB_PASSWORD", valueFrom: dbs[e].secretArn + ":password::" }], logGroup: "/ecs/pharmacy-api-" + e, logPrefix: "api" }] }));
     ok(API.createEcsService({ name: "pharmacy-api", cluster: cl.name, td: td.family + ":" + td.rev, desired: E2.tasks, subnetIds: prv.map(function (s) { return s.id; }), sgIds: [sg.task.id], publicIp: false, lb: { tgArn: arnOf("tg", tgs[e].id, tgs[e].name), container: "api", port: 8000 } }));
   });
+  if (/^ecs-vpce/.test(kind)) { // ไม่มี NAT: ใช้ VPC endpoints แทน (ecs-vpce-s3 ขาด gateway ของ S3 · ecs-vpce-logs ขาด endpoint ของ CloudWatch Logs)
+    var vsg = ok(API.createSg({ name: "pharmacy-vpce", desc: "pharmacy vpce", vpcId: v.id, rows: [] })); ok(API.setInbound(vsg.id, [R("HTTPS", "", "Security group", sg.task.id)]));
+    ["ecr.api", "ecr.dkr", "secretsmanager"].concat(kind === "ecs-vpce-logs" ? [] : ["logs"]).forEach(function (n) { ok(API.createVpce({ name: "pharmacy-" + n.replace(".", "-"), vpcId: v.id, service: "com.amazonaws." + REGION + "." + n, subnetIds: prv.map(function (s) { return s.id; }), sgIds: [vsg.id], privateDns: true })); });
+    if (kind !== "ecs-vpce-s3") ok(API.createVpce({ name: "pharmacy-s3", vpcId: v.id, service: "com.amazonaws." + REGION + ".s3", rtbIds: [rp.id] }));
+  }
   S.ecsKind = kind; void alb0;
 }
 
@@ -44,7 +49,7 @@ function checksEcs() {
   var sgn = function (n) { return byName(S.sgs, "pharmacy-" + n); }, alb = S.albs[0], repo = byName(S.repos, "pharmacy/api"), vpc = byName(S.vpcs, "pharmacy-vpc");
   var pr = [1, 2, 3].map(function (i) { return byName(S.subnets, "pharmacy-private-" + i); });
   add(vpc && pr.every(function (x) { return x; }) && S.nats.length, "VPC 3 AZ: private subnet ×3 + NAT gateway", "VPC → Create VPC / Subnets / NAT gateways");
-  add(pr.every(function (x) { return x && natRoute(subnetRtb(x)); }), "private route table มี 0.0.0.0/0 → NAT (task ดึง image ได้)", "VPC → Route tables → pharmacy-private → Edit routes");
+  add(pr.every(function (x) { return x && natRoute(subnetRtb(x)); }) || S.vpces.length >= 5, "task ในซอย private ออกหา ECR/Logs/Secrets ได้: route 0.0.0.0/0 → NAT หรือ VPC endpoints ครบ", "VPC → Route tables → pharmacy-private → Edit routes");
   add(sgn("alb") && sgn("task") && sgn("db"), "security group 3 ชั้น: alb / task / db", "EC2 → Security Groups");
   add(sgn("task") && alb && sgAllows([sgn("task").id], 8000, { sgIds: [sgn("alb").id] }), "SG task รับ port 8000 จาก SG ของ ALB", "pharmacy-task: Custom TCP 8000 ← pharmacy-alb");
   add(sgn("db") && sgn("task") && sgAllows([sgn("db").id], 5432, { sgIds: [sgn("task").id] }) && !sgAllows([sgn("db").id], 5432, { ip: "203.0.113.5" }), "SG DB รับ 5432 จาก SG ของ task เท่านั้น", "pharmacy-db: PostgreSQL ← pharmacy-task");

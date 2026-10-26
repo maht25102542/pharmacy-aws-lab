@@ -1392,7 +1392,7 @@ PAGES["faults"] = function () {
 
 // ---- Browser: เปิด URL ของ lab (Jenkins ฯลฯ) ผ่านเครือข่ายจำลอง
 var ITM = null;
-function instTick() { if (ITM || S.speed !== "real" || !(S.insts.some(function (i) { return instPhase(i).transient; }) || S.nats.some(function (n) { return natPhase(n) !== "available"; }) || S.albs.some(function (a) { return albPhase(a) !== "active"; }))) return; ITM = setTimeout(function () { ITM = null; render(); }, 3000); }
+function instTick() { if (ITM || S.speed !== "real" || !(S.insts.some(function (i) { return instPhase(i).transient; }) || S.nats.some(function (n) { return natPhase(n) !== "available"; }) || S.albs.some(function (a) { return albPhase(a) !== "active"; }) || labBusy())) return; ITM = setTimeout(function () { ITM = null; render(); }, 3000); }
 var WTM = null;
 function wbTick() {
   if (WTM || !S.jk || !S.jk.builds) return;
@@ -1687,6 +1687,9 @@ function labBody(tab) {
       ["ecs-image", "ECS ล้ม: image tag ไม่มีใน ECR", "ยังไม่ได้ docker push v1.0.0 · CannotPullContainerError", ""],
       ["ecs-role", "ECS ล้ม: execution role ขาด AmazonECSTaskExecutionRolePolicy", "ดึง image/เขียน log ไม่ได้ · แก้ที่ IAM", ""],
       ["ecs-db", "ECS ล้ม: SG ของ DB ไม่รับจาก task", "แอปต่อ Postgres ไม่ได้ ดู Logs ของ task", ""],
+      ["ecs-vpce", "ECS ไม่มี NAT: ใช้ VPC endpoints แทน (ผ่าน)", "private subnet ไม่มี 0.0.0.0/0 → NAT แต่มี endpoint **ecr.api + ecr.dkr + s3 (gateway) + logs + secretsmanager** · task ขึ้นปกติ · ถูกกว่า NAT ถ้า traffic น้อย", ""],
+      ["ecs-vpce-s3", "ECS ล้ม: มี endpoint ECR แต่ลืม S3 gateway endpoint", "ดึง manifest ได้แต่ดึง layer ไม่ได้ (layer อยู่บน S3) · `CannotPullContainerError … starport-layer-bucket … i/o timeout`", ""],
+      ["ecs-vpce-logs", "ECS ล้ม: ไม่มี endpoint ของ CloudWatch Logs", "task เริ่มไม่ได้เพราะ awslogs ต่อ logs. ไม่ได้ · `failed to validate logger args … i/o timeout`", ""],
       ["ecs-health", "ECS ล้ม: prd health check path ผิด (/health)", "task ขึ้นแต่ ALB ตรวจ /health ได้ 404 · ถูก stop วนซ้ำ", ""],
       ["sls", "Serverless API ครบทั้งชุด (dev + prd)", "สร้างตาม **labs/03-serverless/**: API Gateway (HTTP API) + **Lambda** + **DynamoDB** · เปิด `GET /drugs` ที่ Browser · ไม่มีเซิร์ฟเวอร์ให้ดูแลเลย", ""],
       ["sls-base", "Serverless: มี table/role/log group แล้วสร้าง Lambda + API เอง", "มี DynamoDB ×2 (+ข้อมูลตัวอย่าง), role ของ Lambda, log group · ลองสร้าง function → API → permission เอง", ""],

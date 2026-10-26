@@ -50,13 +50,13 @@ API.createEcsService = function (o) {
     else if (td && !td.containers.some(function (c) { return c.name === lb.container && c.port === lb.port; })) er.lb = "InvalidParameterException: The container " + lb.container + " did not have a container port " + lb.port + " defined. (ตรวจ container name และ port ใน task definition)";
   }
   if (Object.keys(er).length) return { errors: er };
-  var s = { id: cl.name + "/" + n, name: n, cluster: cl.name, td: td.family + ":" + td.rev, desired: +o.desired, subnetIds: sns.map(function (x) { return x.id; }), sgIds: sgs.map(function (g) { return g.id; }), publicIp: !!o.publicIp, lb: lb, born: Date.now(), tagMap: {}, vpcId: sns[0].vpcId };
+  var s = { id: cl.name + "/" + n, name: n, cluster: cl.name, td: td.family + ":" + td.rev, desired: +o.desired, subnetIds: sns.map(function (x) { return x.id; }), sgIds: sgs.map(function (g) { return g.id; }), publicIp: !!o.publicIp, lb: lb, born: Date.now(), touched: Date.now(), tagMap: {}, vpcId: sns[0].vpcId };
   S.esvcs.push(s); return { res: s };
 };
 API.updateEcsService = function (cluster, name, o) {
   var s = ecsSvcOf(cluster, name); if (!s) return E("_", "ServiceNotFoundException: Service not found.");
   if (o.desired !== undefined) { if (!(+o.desired >= 0 && +o.desired <= 100)) return E("desired", "InvalidParameterException: desired count ต้อง 0-100"); s.desired = +o.desired; }
-  if (o.td) { var td = ecsTdByRef(o.td); if (!td) return E("td", "InvalidParameterException: ไม่พบ task definition " + o.td); s.td = td.family + ":" + td.rev; }
+  if (o.td) { var td = ecsTdByRef(o.td); if (!td) return E("td", "InvalidParameterException: ไม่พบ task definition " + o.td); if (s.td !== td.family + ":" + td.rev) s.touched = Date.now(); s.td = td.family + ":" + td.rev; }
   if (o.sgIds) s.sgIds = o.sgIds.slice(); return { res: s };
 };
 API.deleteEcsService = function (cluster, name) { var s = ecsSvcOf(cluster, name); if (!s) return E("_", "ServiceNotFoundException: Service not found."); S.esvcs = S.esvcs.filter(function (x) { return x !== s; }); return { res: true }; };
@@ -75,9 +75,15 @@ function ecsDiagTask(svc, td, sn, idx) {
   steps.push({ ok: roleOk, t: "Execution role มีสิทธิ์ดึง image ECR + เขียน log", d: roleOk ? role.name + " (trust ecs-tasks + AmazonECSTaskExecutionRolePolicy)" : !role ? "ไม่พบ role " + (td.execRole || "(ไม่ได้ตั้ง)") : !roleTrusts(role, "ecs-tasks.amazonaws.com") ? "role " + role.name + " ไม่ได้เชื่อใจ ecs-tasks.amazonaws.com" : "role " + role.name + " ขาด AmazonECSTaskExecutionRolePolicy" });
   if (!roleOk) return fail("role", "ResourceInitializationError: unable to pull secrets or registry auth: execution resource retrieval failed: unable to retrieve ecr registry auth: service call has been retried 3 time(s): AccessDeniedException: User: arn:aws:sts::" + ACCOUNT + ":assumed-role/" + (role ? role.name : "(none)") + "/" + ecsHex(32) + " is not authorized to perform: ecr:GetAuthorizationToken on resource: * because no identity-based policy allows the ecr:GetAuthorizationToken action");
   // 2) เส้นทางออกเน็ต (ไปหา ECR / Secrets Manager / CloudWatch Logs)
-  var net = (!!svc.publicIp && hasIgwRoute(rt)) || natRoute(rt), eg = egressOpen(svc.sgIds);
-  steps.push({ ok: net && eg, t: "Task ออกเน็ตได้ (NAT หรือ public IP + IGW, SG ขาออกเปิด 443)", d: net && eg ? (natRoute(rt) ? "ผ่าน NAT" : "ผ่าน public IP + IGW") : !net ? "ซอย " + (sn ? sn.name : "?") + " ไม่มีเส้นทางออกเน็ต (ไม่มี NAT และไม่ได้ให้ public IP)" : "SG ของ task ไม่มีกฎขาออก" });
-  if (!(net && eg)) return fail("network", "ResourceInitializationError: unable to pull secrets or registry auth: The task cannot pull registry auth from Amazon ECR: There is a connection issue between the task and Amazon ECR. Check your task network configuration. RequestError: send request failed caused by: Post \"https://api.ecr." + REGION + ".amazonaws.com/\": dial tcp 52.77.84." + (10 + idx) + ":443: i/o timeout");
+  var net = (!!svc.publicIp && hasIgwRoute(rt)) || natRoute(rt), eg = egressOpen(svc.sgIds), viaVpce = false;
+  if (!net && eg && sn && S.vpces.some(function (v) { return v.vpcId === sn.vpcId; })) {
+    var miss = vpceNeeds(td).filter(function (n) { return !vpceReach(n, sn, svc.sgIds); });
+    steps.push({ ok: !miss.length, t: "Task ติดต่อบริการ AWS ผ่าน VPC endpoints (" + vpceNeeds(td).join(", ") + ")", d: miss.length ? "ขาด/ใช้ไม่ได้: " + miss.join(", ") + " (interface ต้อง private DNS + SG รับ 443 จาก SG ของ task · s3 ต้องเป็น gateway ที่ผูก route table ของ private subnet)" : "ครบ ไม่ต้องใช้ NAT" });
+    if (miss.length) return fail("network", vpceFailMsg(miss[0], "", c.image, idx));
+    viaVpce = true;
+  }
+  if (!viaVpce) steps.push({ ok: net && eg, t: "Task ออกเน็ตได้ (NAT หรือ public IP + IGW, SG ขาออกเปิด 443)", d: net && eg ? (natRoute(rt) ? "ผ่าน NAT" : "ผ่าน public IP + IGW") : !net ? "ซอย " + (sn ? sn.name : "?") + " ไม่มีเส้นทางออกเน็ต (ไม่มี NAT และไม่ได้ให้ public IP)" : "SG ของ task ไม่มีกฎขาออก" });
+  if (!viaVpce && !(net && eg)) return fail("network", "ResourceInitializationError: unable to pull secrets or registry auth: The task cannot pull registry auth from Amazon ECR: There is a connection issue between the task and Amazon ECR. Check your task network configuration. RequestError: send request failed caused by: Post \"https://api.ecr." + REGION + ".amazonaws.com/\": dial tcp 52.77.84." + (10 + idx) + ":443: i/o timeout");
   // 3) image มีใน ECR
   var repo = img ? S.repos.filter(function (r) { return r.name === img.repo; })[0] : null, has = !!repo && repo.images.some(function (x) { return x.tag === img.tag; });
   steps.push({ ok: has, t: "Image มีใน ECR (repo + tag)", d: has ? c.image : !img ? "image ไม่ใช่รูปแบบ ECR: " + c.image : !repo ? "ไม่มี repo " + img.repo : "repo " + img.repo + " ไม่มี tag " + img.tag + " (docker push ก่อน)" });
@@ -90,10 +96,10 @@ function ecsDiagTask(svc, td, sn, idx) {
   // 5) แอปเริ่มทำงานและต่อ DB
   var envDb = (c.env || []).filter(function (e) { return e.name === "DB_HOST"; })[0], db = envDb ? S.rds.filter(function (r) { return r.address === envDb.value; })[0] : null, hasPw = (c.secrets || []).some(function (x) { return x.name === "DB_PASSWORD"; });
   var dbOk = true, dbWhy = "ไม่ได้ตั้ง DB_HOST (แอปรันแบบไม่มีฐานข้อมูล)";
-  if (envDb) { if (!db) { dbOk = false; dbWhy = "DB_HOST " + envDb.value + " ไม่ตรงกับ RDS ใดเลย"; } else if (db.vpcId !== (sn && sn.vpcId) || !sgAllows(db.sgIds, db.port, { sgIds: svc.sgIds })) { dbOk = false; dbWhy = "SG ของ DB (" + db.id + ") ไม่รับ port " + db.port + " จาก SG ของ task"; } else if (!hasPw) { dbOk = false; dbWhy = "ไม่มี DB_PASSWORD (secret) ให้แอป login"; } else dbWhy = "ต่อ " + db.id + ":" + db.port + " ได้"; }
+  if (envDb) { if (!db) { dbOk = false; dbWhy = "DB_HOST " + envDb.value + " ไม่ตรงกับ RDS ใดเลย"; } else if (rdsPhase(db) !== "available") { dbOk = false; dbWhy = "RDS " + db.id + " ยังอยู่ในสถานะ Creating (โหมดเหมือนจริง: Multi-AZ ~12 นาที · single ~6 นาที)"; } else if (db.vpcId !== (sn && sn.vpcId) || !sgAllows(db.sgIds, db.port, { sgIds: svc.sgIds })) { dbOk = false; dbWhy = "SG ของ DB (" + db.id + ") ไม่รับ port " + db.port + " จาก SG ของ task"; } else if (!hasPw) { dbOk = false; dbWhy = "ไม่มี DB_PASSWORD (secret) ให้แอป login"; } else dbWhy = "ต่อ " + db.id + ":" + db.port + " ได้"; }
   steps.push({ ok: dbOk, t: "แอปต่อฐานข้อมูล (RDS) ได้ตอนเริ่ม", d: dbWhy });
   var hdr = ["INFO  starting pharmacy-api env=" + ((c.env || []).filter(function (e) { return e.name === "APP_ENV"; })[0] || { value: "?" }).value + " task=" + ecsTaskId(svc, idx).slice(0, 8)];
-  if (!dbOk) return fail("db", "Essential container in task exited", hdr.concat(!db ? ["ERROR could not translate host name \"" + (envDb ? envDb.value : "") + "\" to address: Name or service not known"] : !hasPw ? ["FATAL  password authentication failed for user \"pharmacy\""] : ["ERROR psycopg.OperationalError: connection to server at \"" + db.address + "\" (10.0.11.77), port " + db.port + " failed: Connection timed out (Is the server running on that host and accepting TCP/IP connections?)", "FATAL  cannot start: database unreachable (exit 1)"]));
+  if (!dbOk) return fail("db", "Essential container in task exited", hdr.concat(!db || rdsPhase(db) !== "available" ? ["ERROR could not translate host name \"" + (envDb ? envDb.value : "") + "\" to address: Name or service not known"] : !hasPw ? ["FATAL  password authentication failed for user \"pharmacy\""] : ["ERROR psycopg.OperationalError: connection to server at \"" + db.address + "\" (10.0.11.77), port " + db.port + " failed: Connection timed out (Is the server running on that host and accepting TCP/IP connections?)", "FATAL  cannot start: database unreachable (exit 1)"]));
   out.logs = hdr.concat(envDb ? ["INFO  connected to postgres " + db.address + ":" + db.port] : ["WARN  DB_HOST not set: running without database"], ["INFO  listening on :" + (c.port || 8000)]);
   // 6) ALB health check
   if (svc.lb) {
@@ -107,12 +113,12 @@ function ecsDiagTask(svc, td, sn, idx) {
   }
   return out;
 }
-function ecsEval(svc) {
+function ecsEval(svc, settled) {
   var td = ecsTdByRef(svc.td), tasks = [], n = svc.subnetIds.length || 1;
   if (!td) return { svc: svc, td: null, tasks: [], running: 0, healthy: 0, stopped: 0, events: ["(service " + svc.name + ") task definition " + svc.td + " ไม่พบ"] };
-  for (var i = 0; i < svc.desired; i++) { var sn = find(S.subnets, svc.subnetIds[i % n]), d = ecsDiagTask(svc, td, sn, i), cidr = sn ? parseCidr(sn.cidr) : null; d.id = ecsTaskId(svc, i); d.idx = i; d.subnet = sn; d.az = sn ? sn.az : ""; d.ip = cidr ? n2ip(cidr.base + 40 + i) : "-"; tasks.push(d); }
+  for (var i = 0; i < svc.desired; i++) { var sn = find(S.subnets, svc.subnetIds[i % n]), d = ecsDiagTask(svc, td, sn, i), cidr = sn ? parseCidr(sn.cidr) : null; d.id = ecsTaskId(svc, i); d.idx = i; d.subnet = sn; d.az = sn ? sn.az : ""; d.ip = cidr ? n2ip(cidr.base + 40 + i) : "-"; var wm = settled ? 0 : ecsWarm(svc); if (wm && d.state === "RUNNING" && d.healthy) { d.warm = true; d.healthy = false; if (wm === 1) { d.state = "PENDING"; d.reason = "Task is provisioning / pulling image (โหมดเหมือนจริง: รอ ~45 วินาที)"; } else { d.code = "Elb.InitialHealthChecking"; d.why = "Initial health checks in progress"; d.reason = "Target registration / initial health checks in progress"; } } tasks.push(d); }
   var running = tasks.filter(function (t) { return t.state === "RUNNING"; }).length, healthy = tasks.filter(function (t) { return t.state === "RUNNING" && t.healthy; }).length, events = [];
-  if (svc.desired) { var fa = tasks.filter(function (t) { return t.state === "STOPPED"; })[0], un = tasks.filter(function (t) { return t.state === "RUNNING" && !t.healthy; })[0];
+  if (svc.desired) { var fa = tasks.filter(function (t) { return t.state === "STOPPED"; })[0], un = tasks.filter(function (t) { return t.state === "RUNNING" && !t.healthy && !t.warm; })[0];
     events.push("(service " + svc.name + ") has started " + svc.desired + " tasks: " + tasks.map(function (t) { return "(task " + t.id.slice(0, 8) + ")"; }).join(" ") + ".");
     if (fa) events.unshift("(service " + svc.name + ") (task " + fa.id.slice(0, 8) + ") stopped: " + fa.reason + " · ECS จะลองใหม่ต่อเนื่อง (service ยังไม่ stable)");
     if (un) events.unshift("(service " + svc.name + ") (task " + un.id.slice(0, 8) + ") failed ELB health checks in (target-group " + svc.lb.tgArn.split("/")[1] + ") · ECS จะหยุด task แล้วเริ่มตัวใหม่วนไป");

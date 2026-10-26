@@ -113,7 +113,7 @@ API.createRds = function (o) {
   if (sg && sgs.some(function (g) { return g.vpcId !== sg.vpcId; })) er.sgIds = "InvalidParameterCombination: security group ต้องอยู่ VPC เดียวกับ DB subnet group";
   if (Object.keys(er).length) return { errors: er };
   var azs = azsOf(sg.subnetIds), pAz = azs[0], sAz = o.multiAz ? azs[1] : "";
-  var dflt = sg.vpcId ? defaultSg(sg.vpcId) : null, r = { id: id, engine: eng, version: o.version || RDS_ENGINES[eng][0], cls: o.cls, storage: st, multiAz: !!o.multiAz, subnetGroup: sg.name, vpcId: sg.vpcId, sgIds: sgs.length ? sgs.map(function (g) { return g.id; }) : (dflt ? [dflt.id] : []), user: o.user, manage: !!o.manage, secretArn: o.manage ? "arn:aws:secretsmanager:" + REGION + ":" + ACCOUNT + ":secret:rds!db-" + mgHex(8) + "-" + mgHex(4) + "-" + mgHex(4) + "-" + mgHex(4) + "-" + mgHex(12) + "-" + mgHex(6) : "", publicly: !!o.publicly, backupDays: o.backupDays === undefined ? 7 : +o.backupDays, encrypted: o.encrypted !== false, skipSnap: !!o.skipSnap, az: pAz, standbyAz: sAz, state: "available", address: id + ".c" + mgHex(11) + "." + REGION + ".rds.amazonaws.com", port: eng === "postgres" ? 5432 : 3306, dbName: o.dbName || "", tagMap: {} };
+  var dflt = sg.vpcId ? defaultSg(sg.vpcId) : null, r = { id: id, born: Date.now(), engine: eng, version: o.version || RDS_ENGINES[eng][0], cls: o.cls, storage: st, multiAz: !!o.multiAz, subnetGroup: sg.name, vpcId: sg.vpcId, sgIds: sgs.length ? sgs.map(function (g) { return g.id; }) : (dflt ? [dflt.id] : []), user: o.user, manage: !!o.manage, secretArn: o.manage ? "arn:aws:secretsmanager:" + REGION + ":" + ACCOUNT + ":secret:rds!db-" + mgHex(8) + "-" + mgHex(4) + "-" + mgHex(4) + "-" + mgHex(4) + "-" + mgHex(12) + "-" + mgHex(6) : "", publicly: !!o.publicly, backupDays: o.backupDays === undefined ? 7 : +o.backupDays, encrypted: o.encrypted !== false, skipSnap: !!o.skipSnap, az: pAz, standbyAz: sAz, state: "available", address: id + ".c" + mgHex(11) + "." + REGION + ".rds.amazonaws.com", port: eng === "postgres" ? 5432 : 3306, dbName: o.dbName || "", tagMap: {} };
   S.rds.push(r); return { res: r };
 };
 API.rdsFailover = function (id) { var r = S.rds.filter(function (x) { return x.id === id; })[0]; if (!r) return E("_", "DBInstanceNotFound: DBInstance " + id + " not found."); if (!r.multiAz) return E("_", "InvalidParameterCombination: Cannot failover a non-Multi-AZ instance"); var t = r.az; r.az = r.standbyAz; r.standbyAz = t; return { res: r }; };
@@ -233,7 +233,7 @@ function mgDelPlan(kind, id, P) {
   return true;
 }
 function mgDelDo(kind, id) {
-  var r; if (/^(bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn)$/.test(kind)) { r = stDelDo(kind, id); return r && r.errors ? r : { res: true }; }
+  var r; if (/^(bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn|vpce)$/.test(kind)) { r = stDelDo(kind, id); return r && r.errors ? r : { res: true }; }
   if (kind === "eks") r = API.deleteEks(id); else if (kind === "ng") { var g = S.ngs.filter(function (x) { return x.id === id; })[0]; r = API.deleteNodegroup(g.cluster, g.name); }
   else if (kind === "rds") r = API.deleteRds(id, true); else if (kind === "dbsg") r = API.deleteDbSubnetGroup(id);
   return r && r.errors ? r : { res: true };

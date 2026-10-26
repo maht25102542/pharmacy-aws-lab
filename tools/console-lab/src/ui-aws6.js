@@ -25,7 +25,7 @@ function cdStageCard(p, i, ex) {
   return card;
 }
 function cdPipeView(p) {
-  var ex = p.execs[0], wrap = h("div", {}), row = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:8px 0" });
+  cdTick(p); var ex = p.execs[0], wrap = h("div", {}), row = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:8px 0" });
   wrap.appendChild(h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px" }, [h("button", { cls: "btn pri", type: "button", text: "Release change", onclick: function () { var r = API.startPipeline(p.name); flash(r.errors ? "bad" : "ok", r.errors ? r.errors._ : "เริ่ม execution " + r.res.id.slice(0, 8) + " (commit " + r.res.commit.slice(0, 8) + ")"); render(); } }), h("span", { cls: "hint", style: "align-self:center", text: ex ? "execution ล่าสุด " + ex.id.slice(0, 8) + " · " + ex.status + " · commit " + ex.commit.slice(0, 8) : "ยังไม่เคยรัน" })]));
   p.stages.forEach(function (s, i) { row.appendChild(cdStageCard(p, i, ex)); if (i < p.stages.length - 1) row.appendChild(h("div", { style: "align-self:center;font-size:1.4rem;color:#5f6b7a", text: "→" })); });
   wrap.appendChild(row); return wrap;
@@ -33,7 +33,7 @@ function cdPipeView(p) {
 LISTS.pipes = function () {
   return ({ key: "pipes", kind: "pipe", title: "Pipelines", crumb: "CodePipeline › Pipelines", create: [{ label: "Create pipeline", page: "pipe-create" }], actions: [{ label: "Delete pipeline", page: "del", kind: "pipe" }],
     detail: function (p) { return [["Pipeline name", p.name], ["ARN", p.arn], ["Service role", p.role], ["Artifact store", "S3 · " + p.bucket], ["Stages", p.stages.map(function (s) { return s.name; }).join(" → ")], ["Latest execution", p.execs[0] ? p.execs[0].status : "-"]]; },
-    rows: function () { return S.pipes; },
+    rows: function () { S.pipes.forEach(cdTick); return S.pipes; },
     cols: [["Name", function (p) { return p.name; }], ["Latest execution status", function (p) { return p.execs[0] ? (p.execs[0].status === "Succeeded" ? okIco("Succeeded") : tagp(p.execs[0].status, p.execs[0].status === "Failed" ? "bad" : "warn")) : "-"; }], ["Latest source revisions", function (p) { return p.execs[0] ? p.execs[0].commit.slice(0, 8) : "-"; }], ["Most recent execution", function (p) { return p.execs[0] ? stFmt(p.execs[0].born) : "-"; }]] });
 };
 DET.pipe = [
@@ -133,3 +133,22 @@ PAGES["conn-authorize"] = function () {
     submit: "Complete connection", onSubmit: function () { var r = API.authorizeConnection(c.name); return r.errors ? r : { msg: "Connection " + c.name + " เป็น Available แล้ว", next: "conns" }; } });
 };
 ["pipes", "cbps", "conns"].forEach(function (k) { PAGES[k] = function () { return listPage(LISTS[k]()); }; });
+
+// ---------- VPC › Endpoints ----------
+(function () { var g = NAV.VPC.filter(function (x) { return x[0] === "PrivateLink and Lattice"; })[0]; if (!g) NAV.VPC.splice(2, 0, ["PrivateLink and Lattice", [["vpces", "Endpoints"]]]); LK.vpce = "vpces"; })();
+LISTS.vpces = function () {
+  return ({ key: "vpces", kind: "vpce", title: "Endpoints", crumb: "VPC › Endpoints", create: [{ label: "Create endpoint", page: "vpce-create" }], actions: [{ label: "Delete endpoint", page: "del", kind: "vpce" }],
+    detail: function (e) { return [["Endpoint ID", e.id], ["Service name", "com.amazonaws." + REGION + "." + e.service], ["Type", e.type], ["VPC", e.vpcId], ["Status", okIco("Available")], ["Subnets", e.subnetIds.join(", ") || "-"], ["Security groups", e.sgIds.join(", ") || "-"], ["Route tables", e.rtbIds.join(", ") || "-"], ["Private DNS names enabled", e.type === "Interface" ? (e.privateDns ? "Yes" : "No") : "-"]]; },
+    rows: function () { return S.vpces; },
+    cols: [["Name", function (e) { return e.name || "-"; }], ["VPC endpoint ID", function (e) { return e.id; }], ["Endpoint type", function (e) { return e.type; }], ["Service name", function (e) { return "com.amazonaws." + REGION + "." + e.service; }], ["Status", function () { return okIco("Available"); }]] });
+};
+PAGES["vpce-create"] = function () {
+  return formPage({ name: "vpce-create", crumb: "VPC › Endpoints › Create endpoint", title: "Create endpoint", back: "vpces", lead: "ตรงกับ aws_vpc_endpoint · ให้ task ใน private subnet คุยกับบริการ AWS โดยไม่ผ่านเน็ต/NAT · ECR ต้อง 3 ตัว: ecr.api + ecr.dkr (interface) + s3 (gateway) · ใช้ logs/secretsmanager เพิ่มถ้า task ใช้",
+    init: function () { var d = S.vpcs.filter(function (x) { return !x.isDefault; })[0]; return { name: "", service: "", vpcId: d ? d.id : mgVpcDefault(), subnetIds: [], sgIds: [], rtbIds: [], privateDns: true }; },
+    sections: function (V) { var type = VPCE_SVCS[vpceShort(V.service)]; return [
+      { t: "Endpoint settings", f: [{ id: "name", type: "text", label: "Name tag - optional", ph: "pharmacy-ecr-api" }, { id: "service", type: "select", label: "Service name", opts: function () { return [["", "เลือก service"]].concat(Object.keys(VPCE_SVCS).map(function (k) { return ["com.amazonaws." + REGION + "." + k, "com.amazonaws." + REGION + "." + k + " (" + VPCE_SVCS[k] + ")"]; })); } }, { id: "vpcId", type: "select", label: "VPC", opts: function () { return mgVpcOpts(); }, onchange: function (V2) { V2.subnetIds = []; V2.sgIds = []; V2.rtbIds = []; } }] },
+      { t: type === "Gateway" ? "Route tables" : "Network settings", f: type === "Gateway" ? [{ id: "rtbIds", type: "multi", label: "Route tables", desc: "route table ของ private subnet ที่ task อยู่ (จะเพิ่ม route ไป prefix list ของ S3 ให้)", opts: function (V2) { return S.rtbs.filter(function (r) { return r.vpcId === V2.vpcId; }).map(function (r) { return [r.id, (r.name || r.id) + " · " + r.id]; }); } }] : type === "Interface" ? [{ id: "privateDns", type: "check", text: "Enable DNS name (ต้องเปิด ไม่งั้น api.ecr.… ยังชี้ไป public IP ของ ECR)" }, { id: "subnetIds", type: "multi", label: "Subnets", opts: function (V2) { return mgSubnetOpts(V2); } }, { id: "sgIds", type: "multi", label: "Security groups", desc: "ต้องรับ HTTPS 443 จาก security group ของ task", opts: function (V2) { return sgOpts(V2.vpcId); } }] : [{ type: "custom", id: "hint", render: function () { return h("div", { cls: "hint", text: "เลือก service name ก่อน" }); } }] }]; },
+    submit: "Create endpoint", onSubmit: function (V) { var r = API.createVpce({ name: V.name, vpcId: V.vpcId, service: V.service, subnetIds: V.subnetIds, sgIds: V.sgIds, rtbIds: V.rtbIds, privateDns: V.privateDns }); if (r.errors) return r; UI.sel.vpces = r.res.id; return { msg: "สร้าง endpoint " + vpceShort(V.service) + " แล้ว (Available)", next: "vpces" }; } });
+};
+DET.vpce = [["info", "Details", det("vpce")], ["tags", "Tags", null]];
+PAGES.vpces = function () { return listPage(LISTS.vpces()); };

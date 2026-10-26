@@ -7,7 +7,7 @@
 |---|---|---|---|
 | private subnet ไม่มี NAT/endpoint | task STOPPED: `ResourceInitializationError: unable to pull secrets or registry auth: The task cannot pull registry auth from Amazon ECR: …` | ตรง | ✅ [Knowledge Center](https://www.repost.aws/knowledge-center/ecs-image-pull-error-ecr) |
 | image tag ไม่มีใน ECR | `CannotPullContainerError: pull image manifest has been retried 5 time(s): failed to resolve ref <uri>: <uri>: not found` | ตรง | ✅ [Knowledge Center](https://repost.aws/knowledge-center/ecs-pull-container-error) · [ECS docs](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_cannot_pull_image.html) |
-| ทางออกอื่นแทน NAT | VPC endpoints: `ecr.dkr`, `ecr.api` (interface) + `s3` (gateway) (+ `secretsmanager`, `logs` ถ้าใช้) | **ไม่จำลอง** (ตัวจำลองมีแค่ NAT / public IP) | — |
+| ทางออกอื่นแทน NAT | VPC endpoints: `ecr.dkr`, `ecr.api` (interface) + `s3` (gateway) (+ `secretsmanager`, `logs` ถ้าใช้) · interface ต้อง private DNS + SG รับ 443 จาก task | จำลองแล้ว (scenario `ecs-vpce*`) · ข้อความ timeout ของ s3/logs/secretsmanager เรียบเรียงจากรูปแบบข้อความจริง ไม่ใช่ถอดคำต่อคำ | ⚠️ [guide](https://dev.to/danquack/private-fargate-deployment-with-vpc-endpoints-1h0p) |
 
 ## Lab 3 (labs/03-serverless)
 | ทำ | ควรเห็นจริง | ในตัวจำลอง |
@@ -43,3 +43,14 @@
 ## ผลเทียบจริง (กรอกเมื่อทดสอบ)
 | วันที่ | lab | ข้อ | ผล | แก้แล้ว? |
 |---|---|---|---|---|
+
+## เวลา (โหมดความเร็ว "เหมือนจริง") — ค่าประมาณจากความจำ ไม่ได้วัด
+| resource | ตัวจำลองใช้ | หมายเหตุ |
+|---|---|---|
+| NAT gateway | ~60 วินาที (pending) | เดิม |
+| ALB | ~3 นาที (provisioning) | เดิม |
+| RDS single-AZ / Multi-AZ | ~6 / ~12 นาที (Creating: app ต่อ DB ไม่ได้) | ของจริง 5-20 นาที ขึ้นกับขนาด |
+| ECS service หลัง create/update | PENDING ~45 วินาที → health check รอบแรก ~30 วินาที | ขึ้นกับขนาด image |
+| CodePipeline ต่อขั้น | Source ~8 วินาที · Build ~100 วินาที · Deploy ECS ~80 วินาที | pipeline ผลคำนวณล่วงหน้าแต่เปิดเผยเมื่อครบเวลา (หน้ารีเฟรชเอง) |
+| terraform apply | EKS ~9 นาที · RDS ~6/13 นาที · CloudFront ~4 นาที · interface endpoint ~90 วินาที ฯลฯ | แสดง `Still creating…` ตามเวลา |
+ค่าที่ไม่ได้อยู่ในตาราง (EKS node, CloudFront deploy ฯลฯ ใน console) ยังไม่มีสถานะ transitional

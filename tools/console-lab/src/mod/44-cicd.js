@@ -70,20 +70,33 @@ API.approveStage = function (n, execId, ok, note) {
   else { a.status = "Failed"; a.err = "Rejected" + (note ? ": " + note : ""); a.summary = a.err; ex.stages[si].status = "Failed"; ex.status = "Failed"; }
   return { res: ex };
 };
-function cdRunFrom(p, ex, from) {
+function cdRunFrom(p, ex, from, fromJ) {
   var role = roleByRef(p.role);
   for (var i = from; i < p.stages.length; i++) {
     var sd = p.stages[i], sx = ex.stages[i]; sx.status = "InProgress";
-    for (var j = 0; j < sd.actions.length; j++) {
+    for (var j = (i === from ? fromJ || 0 : 0); j < sd.actions.length; j++) {
       var ad = sd.actions[j], ax = sx.actions[j]; ax.status = "InProgress"; ax.err = "";
       if (ad.provider === "Manual") { ax.status = "Waiting"; ax.summary = ad.cfg.CustomData || "Waiting for approval"; sx.status = "Waiting"; ex.status = "InProgress"; return; }
       var r = ad.provider === "CodeStarSourceConnection" ? cdSource(p, ad, ex, role) : ad.provider === "CodeBuild" ? cdBuildAction(p, ad, ex, role) : cdEcsDeploy(p, ad, ex, role);
-      ax.status = r.ok ? "Succeeded" : "Failed"; ax.summary = r.summary || ""; ax.err = r.ok ? "" : r.err; ax.buildId = r.buildId || ax.buildId;
-      if (!r.ok) { sx.status = "Failed"; ex.status = "Failed"; return; }
+      // โหมด "เหมือนจริง": ผลคำนวณไว้แล้วแต่ยังไม่เปิดเผยจนกว่าจะครบเวลาของ action นั้น (cdTick เป็นคนไล่ต่อ)
+      if (labReal()) { ex.cursor = { i: i, j: j, r: r, until: Date.now() + cdDurSecs(ad.provider) * 1000 }; ex.status = "InProgress"; return; }
+      cdApply(ax, r); if (!r.ok) { sx.status = "Failed"; ex.status = "Failed"; return; }
     }
     sx.status = "Succeeded";
   }
   ex.status = "Succeeded";
+}
+function cdApply(ax, r) { ax.status = r.ok ? "Succeeded" : "Failed"; ax.summary = r.summary || ""; ax.err = r.ok ? "" : r.err; ax.buildId = r.buildId || ax.buildId; }
+// เรียกทุกครั้งที่เปิดหน้า/คำสั่งที่ดูสถานะ pipeline: ถ้าถึงเวลาแล้วให้เปิดเผยผลของ action ที่ค้างอยู่แล้วไปต่อ
+function cdTick(p) {
+  p.execs.forEach(function (ex) {
+    var guard = 0;
+    while (ex.cursor && Date.now() >= ex.cursor.until && guard++ < 20) {
+      var c = ex.cursor, sx = ex.stages[c.i], ax = sx.actions[c.j], sd = p.stages[c.i]; ex.cursor = null; cdApply(ax, c.r);
+      if (!c.r.ok) { sx.status = "Failed"; ex.status = "Failed"; return; }
+      cdRunFrom(p, ex, c.i, c.j + 1);
+    }
+  });
 }
 function cdSource(p, ad, ex, role) {
   var c = cdConn(ad.cfg.ConnectionArn), sess = "pipeline-" + cdHex(6);
@@ -137,7 +150,7 @@ function cdEcsDeploy(p, ad, ex, role) {
   var cs = td.containers.map(function (c) { return Object.assign({}, c, { image: c.name === def.name ? def.imageUri : c.image, logGroup: c.logGroup }); });
   var nr = API.registerTd({ family: td.family, cpu: td.cpu, memory: td.memory, execRole: td.execRole, taskRole: td.taskRole, containers: cs }); if (nr.errors) return { err: "RegisterTaskDefinition failed: " + String(nr.errors[Object.keys(nr.errors)[0]]) };
   API.updateEcsService(cl, sn, { td: nr.res.id });
-  var e = ecsEval(svc), bad = e.tasks.filter(function (t) { return t.state === "STOPPED" || !t.healthy; })[0];
+  var e = ecsEval(svc, true), bad = e.tasks.filter(function (t) { return t.state === "STOPPED" || !t.healthy; })[0];
   if (!e.stable) return { err: "Deployment of " + sn + " did not reach a steady state (revision " + nr.res.id + ")" + (bad ? ": " + bad.reason : ""), summary: "" };
   return { ok: true, summary: "Deployed " + nr.res.id + " (" + def.imageUri.split(":").pop() + ") · " + e.healthy + "/" + svc.desired + " tasks healthy" };
 }

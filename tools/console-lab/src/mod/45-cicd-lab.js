@@ -31,7 +31,7 @@ function buildCd(kind) {
 function cdLatest(p) { return p && p.execs[0] || null; }
 function checksCd() {
   var out = []; function add(ok, label, hint) { out.push({ ok: !!ok, label: label, hint: hint || "" }); }
-  var b = S.buckets.filter(function (x) { return x.name === cdBucketName(); })[0], conn = S.conns[0], pr = cdProj("pharmacy-api-build"), p = cdPipe("pharmacy-api"), rb = roleByRef("pharmacy-codebuild"), rp = roleByRef("pharmacy-pipeline");
+  S.pipes.forEach(cdTick); var b = S.buckets.filter(function (x) { return x.name === cdBucketName(); })[0], conn = S.conns[0], pr = cdProj("pharmacy-api-build"), p = cdPipe("pharmacy-api"), rb = roleByRef("pharmacy-codebuild"), rp = roleByRef("pharmacy-pipeline");
   add(b && b.block.acls && b.block.policy, "S3 bucket เก็บ artifact (ส่วนตัว)", "S3 → Create bucket");
   add(conn && conn.status === "AVAILABLE", "GitHub connection สถานะ AVAILABLE (authorize แล้ว)", "Settings → Connections → Update pending connection");
   add(rb && roleTrusts(rb, "codebuild.amazonaws.com") && iamCan(rb, "ecr:GetAuthorizationToken", "*") && iamCan(rb, "ecr:PutImage", "arn:aws:ecr:" + REGION + ":" + ACCOUNT + ":repository/pharmacy/api"), "role CodeBuild: trust codebuild + login/push ECR", "IAM → role pharmacy-codebuild → แนบ AmazonEC2ContainerRegistryPowerUser");
@@ -50,9 +50,11 @@ function cdDelPlan(kind, id, P) {
   if (kind === "pipe") { var p = cdPipe(id); if (!p) return false; P.title = "Delete pipeline " + p.name; P.crumb = "CodePipeline › Pipelines › Delete"; P.word = "delete"; P.done = "ลบ pipeline แล้ว (ECS ที่ deploy ไปแล้วยังรันต่อ)"; }
   else if (kind === "cbp") { var c = cdProj(id); if (!c) return false; P.title = "Delete build project " + c.name; P.crumb = "CodeBuild › Build projects › Delete"; P.word = "delete"; P.done = "ลบ project แล้ว"; S.pipes.forEach(function (x) { if (x.stages.some(function (s) { return s.actions.some(function (a) { return a.cfg.ProjectName === c.name; }); })) P.note = "pipeline " + x.name + " ยังใช้ project นี้ ลบแล้วขั้น Build จะล้ม"; }); }
   else if (kind === "conn") { var n = S.conns.filter(function (x) { return x.id === id; })[0]; if (!n) return false; P.title = "Delete connection " + n.name; P.crumb = "Settings › Connections › Delete"; P.word = "delete"; P.done = "ลบ connection แล้ว"; S.pipes.forEach(function (x) { if (x.stages.some(function (s) { return s.actions.some(function (a) { return a.cfg.ConnectionArn === n.arn; }); })) P.note = "pipeline " + x.name + " ใช้ connection นี้อยู่ ลบแล้วขั้น Source จะล้ม"; }); }
+  else if (kind === "vpce") { var ve = S.vpces.filter(function (x) { return x.id === id; })[0]; if (!ve) return false; P.title = "Delete endpoint " + (ve.name || ve.id); P.crumb = "VPC › Endpoints › Delete"; P.word = "delete"; P.done = "ลบ endpoint แล้ว (task ที่พึ่งมันจะติดต่อ " + ve.service + " ไม่ได้ ถ้าไม่มี NAT)"; }
   else return false; return true;
 }
-function cdDelDo(kind, id) { if (kind === "pipe") return API.deletePipeline(id); if (kind === "cbp") return API.deleteCbProject(id); if (kind === "conn") return API.deleteConnection(id); return { res: true }; }
+function cdDelDo(kind, id) {
+  if (kind === "vpce") return API.deleteVpce(id); if (kind === "pipe") return API.deletePipeline(id); if (kind === "cbp") return API.deleteCbProject(id); if (kind === "conn") return API.deleteConnection(id); return { res: true }; }
 // ---------- HCL จากของที่กดใน console ----------
 function cdHcl(o, ref) {
   var sl = slug;
@@ -62,11 +64,11 @@ function cdHcl(o, ref) {
 }
 // ---------- คำสั่ง aws codepipeline / codebuild ----------
 function cdStateLines(p) {
-  var lines = ["{", '    "pipelineName": "' + p.name + '",', '    "stageStates": ['];
+  cdTick(p); var lines = ["{", '    "pipelineName": "' + p.name + '",', '    "stageStates": ['];
   p.stages.forEach(function (s, i) { var v = cdStageView(p, i); lines.push('        { "stageName": "' + s.name + '", "latestExecution": { "status": "' + v.status + '"' + (v.exec ? ', "pipelineExecutionId": "' + v.exec.id + '"' : "") + " }" + (v.err ? ', "error": ' + JSON.stringify(v.err) : "") + " }" + (i < p.stages.length - 1 ? "," : "")); });
   return lines.concat(["    ]", "}"]);
 }
-function cdStageView(p, i) { for (var k = 0; k < p.execs.length; k++) { var s = p.execs[k].stages[i]; if (s.status !== "NotRun") return { status: s.status, exec: p.execs[k], err: (s.actions.filter(function (a) { return a.err; })[0] || {}).err || "", actions: s.actions }; } return { status: "NotRun", exec: null, err: "", actions: p.stages[i].actions.map(function (a) { return { name: a.name, status: "NotRun", summary: "", err: "" }; }) }; }
+function cdStageView(p, i) { cdTick(p); for (var k = 0; k < p.execs.length; k++) { var s = p.execs[k].stages[i]; if (s.status !== "NotRun") return { status: s.status, exec: p.execs[k], err: (s.actions.filter(function (a) { return a.err; })[0] || {}).err || "", actions: s.actions }; } return { status: "NotRun", exec: null, err: "", actions: p.stages[i].actions.map(function (a) { return { name: a.name, status: "NotRun", summary: "", err: "" }; }) }; }
 function shAwsCd(a, w, need) {
   var op = a[0] + " " + a[1];
   function arg(n) { var i = a.indexOf(n); return i >= 0 ? a[i + 1] : ""; }
