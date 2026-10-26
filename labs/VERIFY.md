@@ -54,5 +54,11 @@
 | CodePipeline ต่อขั้น | Source ~8 วินาที · Build ~100 วินาที · Deploy ECS ~80 วินาที | pipeline ผลคำนวณล่วงหน้าแต่เปิดเผยเมื่อครบเวลา (หน้ารีเฟรชเอง) |
 | EKS cluster / node group | Creating ~9 นาที / ~2.5 นาที (สร้าง node group ตอน cluster ยัง Creating = `ResourceInUseException … not in ACTIVE state` ⚠️ ถ้อยคำจากความจำ) | ของจริง cluster ~10-15 นาที |
 | CloudFront | Deploying ~4 นาทีหลังสร้าง/แก้ แล้วเป็น Deployed | ของจริงมัก 3-10 นาที |
+| CloudFront invalidation | In progress ~1 นาที (แคชยังไม่ล้างระหว่างนั้น) แล้ว Completed | ของจริงมักไม่กี่สิบวินาที-นาที |
+| ACM DNS validation | หลังเจอ CNAME รอ ~2.5 นาทีก่อน Issued (terraform รอใน aws_acm_certificate_validation) | ของจริงมัก 1-30 นาที |
+| terraform destroy | RDS ~4 นาที · EKS ~5 นาที · node group ~3 นาที · CloudFront ~7 นาที (ต้อง disable ก่อน) · NAT ~1 นาที · ECS service ~1.5 นาที | แสดง `Still destroying…` |
 | terraform apply | EKS ~9 นาที · RDS ~6/13 นาที · CloudFront ~4 นาที · interface endpoint ~90 วินาที ฯลฯ | แสดง `Still creating…` ตามเวลา |
-ที่ยังไม่มีสถานะ transitional: ACM (ออกใบรับรองหลังสร้าง CNAME), invalidation ของ CloudFront, การลบ resource (destroy ใช้เวลาเท่ากันหมด)
+ที่ยังไม่มีสถานะ transitional: การลบ resource ใน console (RDS/EKS ฯลฯ หายทันที) — เฉพาะ `terraform destroy` ที่หน่วงเวลา
+
+## แท็บ/หน้าที่เป็น "คำอธิบาย" ไม่ใช่ข้อมูลจริง
+แท็บที่ console จริงมีแต่ lab ไม่มีข้อมูลส่วนนั้น (ไม่ได้ซ่อน/ปิดสีเทาแล้ว แต่แสดงข้อความบอกชัด): Flow logs, CIDR reservations, Sharing (RAM), Last Accessed (Access Advisor), Revoke sessions, Zero-ETL, Data migrations (DMS), S3 Management/Access Points, DNSSEC, WAF/Logging ของ CloudFront, Scheduled tasks ของ ECS, Applications/Code signing ของ Lambda ฯลฯ · ที่มีข้อมูลจริง: Tags, Monitoring/Metrics (ค่าสะสมของ lab), Lambda Versions/Aliases, API CORS/Authorization, DynamoDB Indexes (GSI) + Deletion protection, EKS Resources/Nodes/Update history, Network ACL (default), pipeline Triggers

@@ -45,7 +45,7 @@ API.updateLambda = function (n, o) {
   if (o.timeout !== undefined) { if (!(+o.timeout >= 1 && +o.timeout <= 900)) return E("timeout", "ValidationException: timeout ต้อง 1-900 วินาที"); l.timeout = +o.timeout; }
   if (o.env) l.env = Object.assign({}, o.env); if (o.handler) l.handler = o.handler;
   if (o.role) { var r = roleByRef(o.role); if (!r || !roleTrusts(r, "lambda.amazonaws.com")) return E("role", "InvalidParameterValueException: The role defined for the function cannot be assumed by Lambda."); l.role = r.name; }
-  l.warm = false; return { res: l }; // แก้ config = execution environment ใหม่ (cold start)
+  l.rev = (l.rev || 0) + 1; l.warm = false; return { res: l }; // แก้ config = execution environment ใหม่ (cold start)
 };
 API.deleteLambda = function (n) { if (!slsLam(n)) return E("_", "ResourceNotFoundException: Function not found: " + slsFnArn(n)); S.lams = S.lams.filter(function (x) { return x.name !== n; }); S.lperms = S.lperms.filter(function (p) { return p.fn !== n; }); return { res: true }; };
 API.addLambdaPermission = function (o) {

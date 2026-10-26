@@ -113,19 +113,25 @@ API.deleteCfd = function (id) {
   if (d.enabled) return E("_", "DistributionNotDisabled: The distribution you are trying to delete has not been disabled.");
   S.cfds = S.cfds.filter(function (x) { return x !== d; }); Object.keys(S.cfCache).forEach(function (k) { if (k.indexOf(id + "|") === 0) delete S.cfCache[k]; }); return { res: true };
 };
+function cfPurge(d, ps) { ps.forEach(function (p) { var pre = p.replace(/\*$/, ""); Object.keys(S.cfCache).forEach(function (k) { if (k.indexOf(d.id + "|") !== 0) return; var path = k.slice(d.id.length + 1); if (/\*$/.test(p) ? path.indexOf(pre) === 0 : path === p) delete S.cfCache[k]; }); }); }
+// invalidation จริงใช้เวลา ~1 นาที (โหมดเหมือนจริง): ระหว่างนั้นแคชยังอยู่ ครบเวลาแล้วค่อยล้าง
+function cfInvTick(d) { (d.invalidations || []).forEach(function (iv) { if (iv.done === false && (!labReal() || Date.now() - iv.at >= 60000)) { iv.done = true; iv.status = "Completed"; cfPurge(d, iv.paths); } }); }
 API.createInvalidation = function (id, paths) {
   var d = S.cfds.filter(function (x) { return x.id === id; })[0]; if (!d) return E("_", "NoSuchDistribution: The specified distribution does not exist.");
   var ps = (paths || []).map(function (p) { return String(p).trim(); }).filter(Boolean); if (!ps.length) return E("paths", "MissingRequiredParameter: ต้องระบุ path อย่างน้อย 1 อัน (เช่น /* หรือ /index.html)");
   var bad = ps.filter(function (p) { return p.charAt(0) !== "/"; }); if (bad.length) return E("paths", "InvalidArgument: Your request contains one or more invalid invalidation paths. (ต้องขึ้นต้นด้วย / : " + bad[0] + ")");
-  ps.forEach(function (p) { var pre = p.replace(/\*$/, ""); Object.keys(S.cfCache).forEach(function (k) { if (k.indexOf(id + "|") !== 0) return; var path = k.slice(id.length + 1); if (/\*$/.test(p) ? path.indexOf(pre) === 0 : path === p) delete S.cfCache[k]; }); });
-  var iv = { id: "I" + stAlnum(13, true), paths: ps, status: "Completed", at: Date.now() }; d.invalidations.unshift(iv); return { res: iv };
+  var iv = { id: "I" + stAlnum(13, true), paths: ps, status: "Completed", at: Date.now(), done: true }; d.invalidations.unshift(iv);
+  if (labReal()) { iv.status = "InProgress"; iv.done = false; } else cfPurge(d, ps);
+  return { res: iv };
 };
 
 // ---------- ACM ----------
 function acmStatus(c) {
   if (c.failed) return "FAILED";
   var ok = c.records.every(function (r) { return S.zones.some(function (z) { return z.records.some(function (x) { return x.type === "CNAME" && x.name.replace(/\.$/, "") === r.name.replace(/\.$/, "") && (x.values || []).map(function (v) { return v.replace(/\.$/, ""); }).indexOf(r.value.replace(/\.$/, "")) >= 0; }); }); });
-  return ok ? "ISSUED" : "PENDING_VALIDATION";
+  if (!ok) { c.okAt = 0; return "PENDING_VALIDATION"; }
+  if (labReal()) { if (!c.okAt) c.okAt = Date.now(); if (Date.now() - c.okAt < 150000) return "PENDING_VALIDATION"; } // ACM ออกใบรับรองหลังเจอ CNAME ~2-3 นาที (ค่าประมาณ)
+  return "ISSUED";
 }
 API.requestCert = function (o) {
   var er = {}, names = [String(o.domain || "")].concat((o.sans || []).filter(Boolean));
@@ -196,7 +202,7 @@ function cfRequest(host, path, scheme) {
   if (scheme === "http" && d.viewerProto === "redirect-to-https") return { status: 301, location: "https://" + host + path, headers: { server: "CloudFront", "x-cache": "Redirect from cloudfront" }, notes: ["Viewer protocol policy = Redirect HTTP to HTTPS"], dns: res, dist: d };
   if (scheme === "http" && d.viewerProto === "https-only") return { status: 403, type: "text/html", body: "<h1>403 ERROR</h1><p>The request could not be satisfied. (HTTPS only)</p>", headers: { server: "CloudFront" }, notes: ["https-only"], dns: res, dist: d };
   var p = path.split("?")[0] || "/"; if (p === "/" && d.defaultRoot) p = "/" + d.defaultRoot;
-  var ck = d.id + "|" + p, hit = S.cfCache[ck];
+  cfInvTick(d); var ck = d.id + "|" + p, hit = S.cfCache[ck];
   if (hit) return { status: hit.status, type: hit.type, body: hit.body, headers: { server: "CloudFront", "x-cache": "Hit from cloudfront", age: String(Math.max(1, Math.round((Date.now() - hit.at) / 1000))), etag: hit.etag }, notes: ["ได้จาก cache ของ edge (ไม่ไปถาม S3) · ถ้าเพิ่งอัปโหลดไฟล์ใหม่แล้วยังเห็นของเก่า = ต้อง Invalidation"], dns: res, dist: d, cached: true };
   var org = d.origins[0], b = cfOriginBucket(org || {}), key = p.replace(/^\//, "");
   function errPage(status) { var ep = d.errorPages.filter(function (e) { return +e.code === status; })[0]; if (!ep) return null; var r2 = originGet(ep.page); return r2 && r2.status === 200 ? { status: +ep.respCode || 200, type: r2.type, body: r2.body, headers: { server: "CloudFront", "x-cache": "Error from cloudfront" }, notes: ["Custom error response: " + status + " → " + ep.page + " (" + (ep.respCode || 200) + ")"], dns: res, dist: d } : null; }
@@ -310,6 +316,7 @@ TF_PROV.aws_acm_certificate_validation = {
   create: function (c) {
     var a = c.attrs, cert = S.certs.filter(function (q) { return q.arn === a.certificate_arn; })[0];
     if (!cert) throw TfAwsError("validating ACM Certificate (" + a.certificate_arn + ")", "ACM", "DescribeCertificate", "ResourceNotFoundException", "Could not find certificate " + a.certificate_arn);
+    acmStatus(cert); if (labReal() && cert.okAt) cert.okAt = Date.now() - 200000; // terraform รอ (Still creating…) จน ISSUED
     if (acmStatus(cert) !== "ISSUED") throw new Error("waiting for ACM Certificate (" + cert.arn + ") to be issued: timeout while waiting for state to become 'ISSUED' (last state: 'PENDING_VALIDATION', timeout: 1h15m0s)\n(สาเหตุที่พบบ่อย: ไม่ได้สร้าง CNAME ตรวจสอบใน Route 53 หรือโดเมนยังไม่ชี้ NS มาที่ hosted zone นี้)");
     return { id: stStamp(), computed: { id: stStamp() } };
   },

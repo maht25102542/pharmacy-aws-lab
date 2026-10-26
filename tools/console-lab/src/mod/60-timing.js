@@ -15,7 +15,8 @@ function timingPlan(lines) {
     else if (/^(changed|ok|failed|fatal|skipping|unreachable)[:!]? ?\[|^fatal:/.test(l)) {
       if (first) { var s = /^skipping/.test(l) ? 0.1 : /^ok/.test(l) && task !== "Gathering Facts" ? 1 : (TASK_SEC[task] != null ? TASK_SEC[task] : 2); ms = s * 1000; first = false; } else ms = 300;
     }
-    else if (/: Creating\.\.\.$/.test(l)) lastEl = 0;
+    else if (/: (?:Creating|Destroying)\.\.\.(?: \[id=.*\])?$/.test(l)) lastEl = 0;
+    else if ((m = /: Still destroying\.\.\. \[id=.*, (\d+)s elapsed\]/.exec(l))) { ms = Math.max(0, +m[1] - lastEl) * 1000; lastEl = +m[1]; }
     else if ((m = /: Still creating\.\.\. \[(\d+)s elapsed\]/.exec(l))) { ms = Math.max(0, +m[1] - lastEl) * 1000; lastEl = +m[1]; }
     else if ((m = /: (?:Creation|Destruction|Modifications) complete after (\d+)s/.exec(l))) { ms = Math.max(0.5, +m[1] - lastEl) * 1000; lastEl = 0; }
     d.push(ms);

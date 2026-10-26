@@ -179,7 +179,7 @@ function tfApplyDestroys(list, cfg, out) {
   list.sort(function (a, b) { return dp(b.addr) - dp(a.addr); });
   for (var i = 0; i < list.length; i++) {
     var a = list[i], s = S.tf.state[a.addr], pr = TF_PROV[s.type];
-    try { out.push(a.addr + ": Destroying... [id=" + s.id + "]"); pr.del(s); delete S.tf.state[a.addr]; out.push(a.addr + ": Destruction complete after 1s"); }
+    try { out.push(a.addr + ": Destroying... [id=" + s.id + "]"); var dsec = tfDestroySecs(s.type, s); for (var de = 10; dsec && de < dsec; de += de < 60 ? 10 : 30) out.push(a.addr + ": Still destroying... [id=" + s.id + ", " + de + "s elapsed]"); pr.del(s); delete S.tf.state[a.addr]; out.push(a.addr + ": Destruction complete after " + Math.max(1, dsec) + "s"); }
     catch (e) { return { e: e, node: { file: s.file, line: s.line, kind: "resource", type: s.type, name: s.name }, addr: a.addr, cfg: cfg }; }
   }
   return null;

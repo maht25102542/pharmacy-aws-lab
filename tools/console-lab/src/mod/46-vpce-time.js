@@ -55,7 +55,7 @@ function ngPhase(g) { return labReal() && g.born && Date.now() - g.born < 150000
 function cfPhase(d) { return labReal() && d.touched && Date.now() - d.touched < 240000 ? "Deploying" : "Deployed"; }
 function labBusy() {
   if (!labReal()) return false;
-  return S.eks.some(function (c) { return eksPhase(c) !== "ACTIVE"; }) || S.ngs.some(function (g) { return ngPhase(g) !== "ACTIVE"; }) || S.cfds.some(function (d) { return cfPhase(d) !== "Deployed"; }) || S.esvcs.some(function (s) { return ecsWarm(s); }) || S.rds.some(function (r) { return rdsPhase(r) !== "available"; }) || S.pipes.some(function (p) { return p.execs.some(function (e) { return e.cursor; }); });
+  return S.cfds.some(function (d) { return (d.invalidations || []).some(function (v) { return v.done === false; }); }) || S.certs.some(function (c) { return c.okAt && Date.now() - c.okAt < 150000; }) || S.eks.some(function (c) { return eksPhase(c) !== "ACTIVE"; }) || S.ngs.some(function (g) { return ngPhase(g) !== "ACTIVE"; }) || S.cfds.some(function (d) { return cfPhase(d) !== "Deployed"; }) || S.esvcs.some(function (s) { return ecsWarm(s); }) || S.rds.some(function (r) { return rdsPhase(r) !== "available"; }) || S.pipes.some(function (p) { return p.execs.some(function (e) { return e.cursor; }); });
 }
 // วินาทีที่ resource ใช้สร้างใน terraform apply (โหมดเหมือนจริง) · ค่าประมาณ
 function tfCreateSecs(type, attrs) {
@@ -66,3 +66,10 @@ function tfCreateSecs(type, attrs) {
 }
 // pipeline: ขั้นละกี่วินาทีในโหมดเหมือนจริง
 function cdDurSecs(provider) { return { CodeStarSourceConnection: 8, CodeBuild: 100, ECS: 80 }[provider] || 3; }
+
+// วินาทีที่ resource ใช้ตอน terraform destroy (โหมดเหมือนจริง) · ค่าประมาณ
+function tfDestroySecs(type, st) {
+  if (!labReal()) return 0;
+  var t = { aws_nat_gateway: 60, aws_lb: 15, aws_db_instance: 240, aws_eks_cluster: 300, aws_eks_node_group: 180, aws_cloudfront_distribution: 420, aws_ecs_service: 90, aws_vpc_endpoint: 60, aws_lambda_function: 5, aws_instance: 40, aws_acm_certificate: 5 }[type];
+  return t || 0;
+}

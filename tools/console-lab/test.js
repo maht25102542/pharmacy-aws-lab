@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -727,5 +727,25 @@ console.log("ok");
   L.buildStatic("static"); L.S.speed = "real"; const cf = L.S.cfds[0]; cf.touched = Date.now(); assert(L.cfPhase(cf) === "Deploying", "CloudFront Deploying");
   L.API.updateCfd(cf.id, { comment: "x" }); assert(L.cfPhase(cf) === "Deploying", "แก้ค่า = Deploying อีกรอบ"); cf.touched = Date.now() - 5 * 60000; assert(L.cfPhase(cf) === "Deployed", "Deployed หลัง ~4 นาที");
   L.S.speed = "instant"; assert(L.eksPhase({ born: Date.now() }) === "ACTIVE" && L.cfPhase({ touched: Date.now() }) === "Deployed", "โหมดทันที: ไม่มีสถานะรอ");
+}
+// ---- ส่วนที่เคยไม่สมบูรณ์: versions/aliases, CORS, GSI, deletion protection, ACM/invalidation/destroy เวลาเหมือนจริง
+{
+  L.buildSls("sls"); const fnm = "pharmacy-api-dev";
+  let v1 = L.API.publishVersion(fnm, "r1"); assert(v1.res.v === 1 && !v1.same, "publish version 1"); assert(L.API.publishVersion(fnm, "again").same === true, "ไม่เปลี่ยน = version เดิม");
+  L.API.updateLambda(fnm, { memory: 256 }); assert(L.API.publishVersion(fnm, "r2").res.v === 2, "แก้ config แล้ว publish = version 2");
+  assert(L.API.createAlias(fnm, { name: "live", version: "2" }).res.version === "2" && /already exists/.test(L.API.createAlias(fnm, { name: "live", version: "1" }).errors.name) && /Function not found/.test(L.API.createAlias(fnm, { name: "x", version: "9" }).errors.version) && L.API.createAlias(fnm, { name: "123", version: "1" }).errors.name, "alias");
+  const apiD = L.S.apis.find(a => /dev/.test(a.name));
+  assert(/ห้ามเป็น \*/.test(L.API.setApiCors(apiD.id, { origins: "*", credentials: true }).errors.origins) && /ไม่มี path/.test(L.API.setApiCors(apiD.id, { origins: "https://a.com/x" }).errors.origins) && L.API.setApiCors(apiD.id, { origins: "https://www.pharmacy.example.com", methods: "get, post", headers: "content-type", maxAge: 300 }).res.cors.methods[0] === "GET", "CORS");
+  assert(L.API.createGsi("pharmacy-drugs-dev", { name: "name-index", key: "name" }).res.status === "ACTIVE" && /already exists/.test(L.API.createGsi("pharmacy-drugs-dev", { name: "name-index", key: "name" }).errors.name), "GSI");
+  L.API.setDdbProtection("pharmacy-drugs-dev", true); assert(/protected against deletion/.test(L.API.deleteDdbTable("pharmacy-drugs-dev").errors._) && /protected against deletion/.test(L.API.del("ddb", "pharmacy-drugs-dev", "confirm").errors._ || ""), "deletion protection ลบไม่ได้");
+  L.API.setDdbProtection("pharmacy-drugs-dev", false); assert(L.API.deleteDdbTable("pharmacy-drugs-dev").res, "ปิด protection แล้วลบได้");
+  // ACM เวลาเหมือนจริง
+  L.buildStatic("static"); const cert = L.S.certs[0]; L.S.speed = "real"; cert.okAt = 0;
+  assert(L.acmStatus(cert) === "PENDING_VALIDATION" && cert.okAt, "real: เจอ CNAME แล้วยังไม่ Issued ทันที"); cert.okAt = Date.now() - 200000; assert(L.acmStatus(cert) === "ISSUED", "ผ่านไป ~2.5 นาที = Issued");
+  // invalidation เวลาเหมือนจริง: ระหว่างทำแคชยังอยู่
+  const cfd = L.S.cfds[0], host = cfd.aliases[0]; L.S.speed = "instant"; L.S.cfCache = {}; L.cfRequest(host, "/", "https"); assert(Object.keys(L.S.cfCache).length >= 1, "มีแคช");
+  L.S.speed = "real"; const iv = L.API.createInvalidation(cfd.id, ["/*"]).res; assert(iv.status === "InProgress" && Object.keys(L.S.cfCache).length >= 1, "InProgress: แคชยังไม่ล้าง");
+  iv.at = Date.now() - 61000; L.cfInvTick(cfd); assert(iv.status === "Completed" && Object.keys(L.S.cfCache).length === 0, "ครบ 1 นาที: Completed และล้างแคช");
+  assert(L.tfDestroySecs("aws_db_instance", {}) === 240 && L.tfDestroySecs("aws_s3_bucket", {}) === 0, "destroy durations"); L.S.speed = "instant"; assert(L.tfDestroySecs("aws_db_instance", {}) === 0, "โหมดทันที: ไม่หน่วง");
 }
 
