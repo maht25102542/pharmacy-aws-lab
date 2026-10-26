@@ -7,3 +7,15 @@ terraform/.terraform.lock.hcl
 
 # สร้างโดย Terraform
 ansible/group_vars/all/terraform.yml
+
+# Terraform ของโฟลเดอร์ใหม่
+terraform-managed/.terraform/
+terraform-managed/*.tfstate
+terraform-managed/*.tfstate.*
+terraform-managed/terraform.tfvars
+terraform-managed/.terraform.lock.hcl
+labs/**/.terraform/
+labs/**/*.tfstate
+labs/**/*.tfstate.*
+labs/**/terraform.tfvars
+labs/**/.terraform.lock.hcl

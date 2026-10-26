@@ -24,18 +24,20 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
 ทุกโฟลเดอร์ `vm-*` และ `repo-*` มีไฟล์ `WHERE.md` บอก path จริงของแต่ละไฟล์
 และบรรทัดแรกของไฟล์ตั้งค่าทุกไฟล์มีหมายเหตุ "ของจริงอยู่ที่"
 
-## เครื่องทั้งหมด (9 เครื่องในขนาดเต็ม)
+## เครื่องทั้งหมด (10 เครื่องในขนาดเต็ม, 3 AZ)
 
 | VM | จำนวน | ทำหน้าที่ | เทียบกับที่ INET |
 |---|---|---|---|
-| `pharmacy-jenkins` | 1 | รัน pipeline | Jenkins 1 เครื่อง |
-| `pharmacy-sonarqube` | 1 | ตรวจคุณภาพโค้ด | SonarQube |
-| `pharmacy-k8s-1` | 1 | Kubernetes server ของ prd, ArgoCD, รัน FE และ BE | เครื่อง ArgoCD และเครื่อง FE/BE |
-| `pharmacy-k8s-2`, `-3` | 2 | Kubernetes agent ของ prd, รัน FE และ BE | เครื่อง FE/BE |
-| `pharmacy-dev` | 1 | k3s เครื่องเดียว รัน FE และ BE ของ dev (ArgoCD ที่ k8s-1 คุมให้) | เครื่อง dev |
-| `pharmacy-db-1`, `-2`, `-3` | 3 | MariaDB Galera cluster | DB 3 เครื่อง |
+| `pharmacy-bastion` | 1 | ทางเข้า SSH ทางเดียว (public subnet) | bastion |
+| `pharmacy-jenkins` | 1 | รัน pipeline (public subnet) | Jenkins 1 เครื่อง |
+| `pharmacy-sonarqube` | 1 | ตรวจคุณภาพโค้ด (public subnet) | SonarQube |
+| `pharmacy-k8s-1`, `-2`, `-3` | 3 | k3s HA server ของ prd (1 ตัวต่อ AZ, private subnet) รัน FE/BE, ArgoCD อยู่ที่ k8s-1 | เครื่อง ArgoCD และ FE/BE |
+| `pharmacy-dev` | 1 | (private) k3s เครื่องเดียว รัน FE และ BE ของ dev (ArgoCD ที่ k8s-1 คุมให้) | เครื่อง dev |
+| `pharmacy-db-1`, `-2`, `-3` | 3 | MariaDB Galera cluster (private, 1 ตัวต่อ AZ) | DB 3 เครื่อง |
 
-นอกจาก VM ยังมี load balancer (ALB) 1 ตัว และที่เก็บ image (ECR) 2 repo
+นอกจาก VM ยังมี ALB 1 ตัว (:80 prd, :8080 dev, :8443 ArgoCD), NAT gateway 1 ตัว (ให้เครื่อง private ออกเน็ต) และ ECR 2 repo
+
+**เข้าเครื่อง private:** `ssh -J ubuntu@<bastion_ip> ubuntu@<private IP>` (SG ของทุกเครื่องรับ SSH จาก bastion เท่านั้น)
 
 **ต่างจาก INET ตรงไหน:** ที่นั่นแยก FE 3 เครื่อง และ BE 3 เครื่อง ที่นี่ใช้ 3 เครื่องร่วมกันเพื่อประหยัด
 โดย Kubernetes กระจาย FE และ BE อย่างละ 3 ตัวไปบนทั้ง 3 เครื่อง (prd) ส่วน dev แยกไปรันบน `pharmacy-dev` อีก cluster หนึ่ง
@@ -61,7 +63,7 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
                     อ่าน manifest แล้วปรับทั้ง 2 cluster (prd: k8s-*, dev: pharmacy-dev)
                                   │
                                   ▼
-ผู้ใช้ ──▶ ALB :80 ──▶ frontend x3 ──▶ backend x3 ──▶ VM pharmacy-db-1,2,3
+ผู้ใช้ ──▶ ALB :80 (3 AZ) ──▶ frontend x3 ──▶ backend x3 ──▶ VM pharmacy-db-1,2,3
 ```
 
 ## สิ่งที่ต้องมีก่อนเริ่ม
@@ -128,14 +130,14 @@ ansible-playbook site.yml
 **SonarQube** เปิด `sonarqube_url` เข้าด้วย `admin` / `admin` แล้วเปลี่ยนรหัสผ่าน
 ไปที่ My Account > Security สร้าง token เก็บไว้
 
-**ArgoCD** SSH เข้า `pharmacy-k8s-1` แล้วดูรหัสผ่านเริ่มต้นและลงทะเบียนแอป:
+**ArgoCD** SSH เข้า `pharmacy-k8s-1` ผ่าน bastion แล้วดูรหัสผ่านเริ่มต้นและลงทะเบียนแอป:
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 kubectl apply -f https://raw.githubusercontent.com/YOUR_GITHUB_USER/pharmacy-manifests/main/argocd-apps/apps.yaml
 ```
 
-เปิด `argocd_url` (เบราว์เซอร์จะเตือนเรื่องใบรับรอง เพราะเป็นแบบออกเอง) เข้าด้วย `admin`
+เปิด `argocd_url` (ALB :8443 ต่อ HTTPS ไป NodePort 30443; เบราว์เซอร์จะเตือนเรื่องใบรับรอง เพราะเป็นแบบออกเอง) เข้าด้วย `admin`
 จะเห็น 4 แอป (dev 2 แอปชี้ไป cluster `pharmacy-dev` ที่ Ansible ลงทะเบียนให้แล้ว) สถานะยังไม่ปกติ เพราะยังไม่มี image จนกว่าจะปล่อยครั้งแรก
 
 **Jenkins** เปิด `jenkins_url` ดูรหัสผ่านเริ่มต้นด้วยคำสั่งนี้บน VM `pharmacy-jenkins`:
@@ -185,7 +187,7 @@ terraform destroy
 
 ## ค่าใช้จ่าย
 
-ขนาดเต็มคือ 9 เครื่องและ load balancer 1 ตัว ซึ่งคิดเงินรายชั่วโมงตลอดเวลาที่เปิด
+ขนาดเต็มคือ 10 เครื่อง, load balancer 1 ตัว และ NAT gateway 1 ตัว ซึ่งคิดเงินรายชั่วโมงตลอดเวลาที่เปิด
 ผมประมาณคร่าว ๆ ว่าราว 10 ดอลลาร์ต่อวันถ้าเปิดทิ้งไว้ (เช็กราคาปัจจุบันของ region ที่ใช้ก่อน)
 
 - ลองครั้งแรกด้วยขนาดประหยัด: ตั้ง `k8s_node_count = 1` และ `db_count = 1` ใน `terraform.tfvars`
@@ -193,11 +195,16 @@ terraform destroy
 - ตั้งการแจ้งเตือนงบประมาณใน AWS Budgets ไว้ก่อนเริ่ม
 - บัญชี Free plan อาจจำกัดขนาดเครื่องที่ใช้ได้ ถ้า apply แล้วติด ให้ลดขนาดใน `instance_types`
 
+## ทางเลือกแบบ managed (EKS + RDS + SSM)
+
+โฟลเดอร์ `terraform-managed/` คือระบบเดียวกันที่ใช้ EKS แทน k3s, RDS Multi-AZ แทน Galera, SSM แทน bastion
+ดูเทียบโค้ด/แอนิเมชันที่ Console Lab › Lab › เทียบ VM กับ Managed · ผ่าน `terraform validate` แล้วแต่ยังไม่เคย apply จริง · อย่า apply สองชุดใน account เดียวกัน
+
 ## จุดที่ตัดให้ง่ายกว่าระบบจริง
 
 | ในชุดนี้ | ระบบจริงควรเป็น |
 |---|---|
-| ทุกเครื่องมี public IP | เครื่องอยู่ใน subnet ส่วนตัว เข้าผ่าน bastion หรือ VPN |
+| NAT gateway ตัวเดียว (AZ a), Jenkins/SonarQube อยู่ public subnet | NAT 1 ตัวต่อ AZ, Jenkins/Sonar อยู่ private หลัง ALB |
 | HTTP | HTTPS พร้อมใบรับรอง |
 | รหัสผ่านเป็นข้อความใน `group_vars` | ansible-vault หรือ AWS Secrets Manager |
 | state ของ Terraform อยู่ในเครื่อง | เก็บบน S3 ให้ทีมใช้ร่วมกัน |

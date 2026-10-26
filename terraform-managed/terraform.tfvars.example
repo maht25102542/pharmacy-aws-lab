@@ -1,0 +1,2 @@
+# คัดลอกเป็น terraform.tfvars แล้วแก้
+my_ip = "1.2.3.4/32" # IP ของคุณ (curl ifconfig.me) ต้องลงท้าย /32
