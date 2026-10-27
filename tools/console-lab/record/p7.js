@@ -1,0 +1,24 @@
+const L=require("./lib.js");
+const B=(t,o)=>Object.assign({t,tag:"button"},o);
+const T=async(n=900)=>(await L.ev(`document.body.innerText`)).replace(/\s+/g," ").slice(150,150+n);
+(async()=>{
+ await L.start("file://"+require("path").resolve(__dirname,"../index.html"));
+ await L.ev(`buildApr("apr-base"); UI.sel={}; render(); 1`);
+ await L.click(B("Services")); await L.click(B("IAM",{starts:true})); await L.sleep(400);
+ console.log("I1",await L.where2());
+ await L.click(B("Roles")); await L.sleep(300); await L.click(B("Create role")); await L.sleep(400);
+ console.log("I2",await L.where2(), await T(700));
+ await L.pickBtn("EC2","App Runner"); await L.sleep(300);
+ console.log("U",await L.ev(`[].slice.call(document.querySelectorAll("main input[type=radio]")).map(e=>(e.parentElement.innerText||"").trim().slice(0,25)+"="+e.checked).join(" | ")`));
+ await L.click(B("Next")); await L.sleep(500);
+ await L.click(B("Next")); await L.sleep(500);
+ await L.pickBtn("— เลือกตัวอย่าง —","ไม่ระบุ"); await L.sleep(400); await L.type("main input[placeholder]","pharmacy-apprunner-ecr");
+ await L.click(B("Create role")); await L.sleep(600);
+ console.log("R",await L.where2(), await T(300));
+ await L.click(B("Services")); await L.sleep(400); console.log("MENU",await L.ev(`[].slice.call(document.querySelectorAll("button,a")).filter(e=>e.getBoundingClientRect().width>2&&/Runner|Container|ECS|Elastic Container/i.test(e.innerText)).map(e=>e.tagName+":"+e.innerText.trim().slice(0,40)).join(" | ")`)); await L.click(B("Containers")); await L.sleep(300); await L.click(B("App Runner",{starts:true})); await L.sleep(500);
+ console.log("A1",await L.where2(), await T(400));
+ await L.click(B("Create an App Runner service")); await L.sleep(600);
+ console.log("A2",await L.where2(), await T(1200));
+ console.log("A2in",await L.ev(`[].slice.call(document.querySelectorAll("main input,main textarea")).map(e=>e.tagName+":"+e.type+":"+(e.placeholder||"")+":"+(e.value||"").slice(0,30)).join(" | ")`));
+ await L.finish();
+})().catch(e=>{console.error("ERR",e.message);process.exit(1)});
