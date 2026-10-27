@@ -627,6 +627,14 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-rule .r1 { --c: #c62828; } .cd-rule .r2 { --c: #1d8102; }
 .cd-kpi { padding: 14px 16px 14px 20px; } .cd-call { padding-left: 24px; } .cd-guide .gc { padding-left: 20px; } .cd-rule > div { padding-left: 22px; } .uc-hero { padding-left: 24px; }
 .cd-kpi .l { font-size: 12.5px; font-weight: 600; letter-spacing: .01em; } .cd-kpi .v { margin: 4px 0 2px; font-size: 1.7rem; line-height: 1.15; } .cd-kpi .u { font-size: 12.5px; }
+
+/* ===== สเกลราคาแบบไล่เฉดสีต่อเนื่อง เขียว→แดง ===== */
+.cd-scale { position: relative; display: block !important; height: 14px !important; margin: 26px 0 6px !important; }
+.cd-scale .g { height: 100%; border-radius: 7px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+.cd-scale > i { position: absolute; top: 0; width: 2px; height: 100%; margin-left: -1px; background: var(--surface); opacity: .85; }
+.cd-scale > b { position: absolute; top: -5px; width: 4px; height: 24px; margin-left: -2px; border-radius: 2px; background: var(--fg); box-shadow: 0 0 0 2px var(--surface); }
+.cd-scale > b span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px; padding: 1px 8px; border-radius: 99px; background: var(--fg); color: var(--surface); font: 700 11.5px inherit; white-space: nowrap; }
+.cd-verdict .hd .lv { color: var(--c); }
 </style>
 
 <header class="top">

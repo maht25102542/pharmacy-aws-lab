@@ -96,6 +96,6 @@ var COSTD = {
 function costSum(items) { var hr = 0, mo = 0; items.forEach(function (x) { if (x.k === "hr") hr += x.r * x.q; if (x.k === "mo") mo += x.r * x.q; }); return { hr: hr, month: hr * COST_HRS + mo, perHours: function (n) { return hr * n + mo * (n / COST_HRS); } }; }
 
 // ตัดสินว่า "ราคานี้ถูก/ปกติ/แพง" เทียบเกณฑ์ของระบบประเภทเดียวกัน (กฎคร่าวๆ ไม่ใช่ราคาตลาดจริง)
-var COST_LV = [["ถูกมาก", "#0f766e"], ["ถูก", "#1d8102"], ["ปกติ", "#2b6cb0"], ["แพง", "#a85a00"], ["แพงเกินไป", "#c62828"]];
-function costVerdict(monthUsd, bench) { var i = 0; while (i < bench.length && monthUsd >= bench[i]) i++; return { i: i, label: COST_LV[i][0], color: COST_LV[i][1] }; }
+var COST_LV = [["ถูกมาก", "#0b7a43", "#22a559"], ["ถูก", "#4d7c0f", "#84b835"], ["ปกติ", "#a16207", "#f2b01e"], ["แพง", "#c2410c", "#f07a1a"], ["แพงเกินไป", "#b91c1c", "#dc3545"]]; // [ชื่อ, สีตัวอักษร, สีเติม] ไล่เขียว→แดง
+function costVerdict(monthUsd, bench) { var i = 0; while (i < bench.length && monthUsd >= bench[i]) i++; return { i: i, label: COST_LV[i][0], color: COST_LV[i][1], fill: COST_LV[i][2] }; }
 function costLabVerdict(fourHrUsd) { var b = fourHrUsd * COST_THB; return b < 5 ? COST_LV[0] : b < 60 ? COST_LV[1] : b < 300 ? COST_LV[2] : b < 1000 ? COST_LV[3] : COST_LV[4]; }

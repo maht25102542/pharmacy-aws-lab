@@ -3,7 +3,7 @@ function money(n) { return "$" + (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1)
 function moneyH(n) { return "$" + (n < 1 ? n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2)); }
 function bahtS(usd, perHr) { var b = usd * COST_THB; if (b <= 0) return "ฟรี"; if (b < (perHr ? 0.01 : 1)) return perHr ? "<฿0.01" : "<฿1"; return baht(usd).replace(/(\.\d)$/, "$1").replace(/^฿(\d)\.(\d)$/, function (m) { return perHr ? "฿" + b.toFixed(2) : m; }); }
 function usdS(n) { return n <= 0 ? "$0" : n < 0.01 ? "<$0.01" : money(n); }
-function riskOf(month) { var b = month * COST_THB; return b < 100 ? ["ต่ำ", "#1d8102", "แทบไม่มีโอกาสบิลบาน"] : b < 1500 ? ["กลาง", "#a85a00", "ลืมลบนานๆ เริ่มรู้สึก"] : ["สูง", "#c62828", "ลืมลบ 1 เดือน = บิลก้อนใหญ่"]; }
+function riskOf(month) { var b = month * COST_THB; return b < 100 ? ["ต่ำ", "#22a559", "แทบไม่มีโอกาสบิลบาน"] : b < 1500 ? ["กลาง", "#e08e0b", "ลืมลบนานๆ เริ่มรู้สึก"] : ["สูง", "#dc3545", "ลืมลบ 1 เดือน = บิลก้อนใหญ่"]; }
 function costTable(items) {
   var rows = items.map(function (x) {
     var per = x.k === "hr" ? moneyH(x.r * x.q) + "/ชม." + (x.q > 1 ? " (" + x.q + " ตัว)" : "") : x.k === "mo" ? money(x.r * x.q) + "/เดือน" : "ตามการใช้";
@@ -21,7 +21,8 @@ function costChips(items) {
 function costCaveat() { return h("p", { cls: "hint" }, rich("⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง · ยังไม่ยืนยันกับหน้า pricing ของ AWS (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. และ EKS $0.10/ชม.) → ตรวจที่ calculator.aws ก่อนตัดสินใจ · ค่าเงินบาทใช้อัตราสมมติ " + COST_THB + " บาท/ดอลลาร์ (ปรับที่ COST_THB)")); }
 function costVerdictCard(c, vd, lv) { // ราคานี้ถูก/ปกติ/แพง? พร้อมสเกลเทียบเกณฑ์
   var m = costSum(c.items).month, top = c.bench[c.bench.length - 1] * 1.4, pos = Math.min(m / top, 1) * 100, seg = [0].concat(c.bench).concat([top]);
-  var bar = h("div", { cls: "cd-scale", role: "img", "aria-label": "ราคานี้ถือว่า" + vd.label }, COST_LV.map(function (l, i) { return h("i", { style: "flex:" + (seg[i + 1] - seg[i]) + ";background:" + l[1] + (i === vd.i ? "" : ";opacity:.28"), title: l[0] + (i < c.bench.length ? " < " + baht(c.bench[i]) : " ≥ " + baht(c.bench[i - 1])) }); }).concat([h("b", { style: "left:" + pos + "%" })]));
+  var stops = COST_LV.map(function (l, i) { return l[2] + " " + (((seg[i] + seg[i + 1]) / 2) / top * 100).toFixed(1) + "%"; }).join(", ");
+  var bar = h("div", { cls: "cd-scale", role: "img", "aria-label": "ราคานี้ถือว่า" + vd.label }, [h("div", { cls: "g", style: "background:linear-gradient(90deg," + stops + ")" })].concat(c.bench.map(function (bv) { return h("i", { style: "left:" + (bv / top * 100) + "%", title: baht(bv) }); }), [h("b", { style: "left:" + pos + "%" }, [h("span", { text: bahtS(m) })])]));
   return h("div", { cls: "cd-verdict", style: "--c:" + vd.color }, [h("div", { cls: "hd" }, [h("span", { cls: "q", text: "ราคานี้ถือว่า" }), h("span", { cls: "lv", text: vd.label }), h("span", { cls: "q2", text: "(ใช้งานจริงทั้งเดือน)" })]), bar,
     h("div", { cls: "sc" }, COST_LV.map(function (l, i) { return h("span", { text: l[0], style: "flex:" + (seg[i + 1] - seg[i]) + (i === vd.i ? ";color:" + l[1] + ";font-weight:800" : "") }); })),
     h("ul", {}, [h("li", {}, [h("b", { text: "เทียบกับทั่วไป: " }), c.benchRef]), h("li", {}, [h("b", { text: "ความเห็น: " }), c.benchWhy]), h("li", {}, [h("b", { text: "ถ้าแค่ฝึก lab 4 ชม. แล้วลบ: " }), h("span", { style: "color:" + lv[1] + ";font-weight:800", text: lv[0] }), " (" + bahtS(costSum(c.items).perHours(4)) + ") — ถูกกว่ามากเทียบกับเปิดทิ้ง จึงต้อง destroy ทุกครั้ง"])])]);
@@ -46,7 +47,7 @@ function cdBars(labs) { // แท่งแนวนอนชุดเดีย�
   var rows = labs.slice().sort(function (a, b) { return b.s.month - a.s.month; }), max = Math.max.apply(null, rows.map(function (r) { return r.s.month; })) || 1;
   return h("div", { cls: "cd-bars", role: "img", "aria-label": "ค่าใช้จ่ายต่อเดือนของแต่ละ lab" }, rows.map(function (r) {
     var w = Math.max(r.s.month / max * 100, r.s.month > 0 ? 0.8 : 0);
-    return h("button", { type: "button", cls: "cd-row" + (CD_SEL.id === r.id ? " on" : ""), title: r.name + " · เปิดทิ้ง 1 เดือน " + baht(r.s.month) + " (" + money(r.s.month) + ") · ทำ 4 ชม. " + baht(r.s.perHours(4)), onclick: function () { CD_SEL.id = r.id; render(); } }, [h("span", { cls: "n" }, [r.name, r.bench ? (function () { var v = costVerdict(r.s.month, r.bench); return h("em", { cls: "vd", style: "--c:" + v.color, text: v.label }); })() : null].filter(Boolean)), h("span", { cls: "tr" }, [h("i", { style: "width:" + w + "%;background:" + r.color })]), h("span", { cls: "v" }, [h("b", { text: baht(r.s.month) }), h("small", { text: money(r.s.month) })])]);
+    return h("button", { type: "button", cls: "cd-row" + (CD_SEL.id === r.id ? " on" : ""), title: r.name + " · เปิดทิ้ง 1 เดือน " + baht(r.s.month) + " (" + money(r.s.month) + ") · ทำ 4 ชม. " + baht(r.s.perHours(4)), onclick: function () { CD_SEL.id = r.id; render(); } }, [h("span", { cls: "n" }, [r.name, r.bench ? (function () { var v = costVerdict(r.s.month, r.bench); return h("em", { cls: "vd", style: "--c:" + v.color, text: v.label }); })() : null].filter(Boolean)), h("span", { cls: "tr" }, [h("i", { style: "width:" + w + "%;background:" + (r.bench ? costVerdict(r.s.month, r.bench).fill : r.color) })]), h("span", { cls: "v" }, [h("b", { text: baht(r.s.month) }), h("small", { text: money(r.s.month) })])]);
   }));
 }
 function cdStack(lab) { // องค์ประกอบค่าใช้จ่ายของ lab ที่เลือก (เฉพาะรายการคงที่) · 4 อันดับแรก + อื่นๆ
