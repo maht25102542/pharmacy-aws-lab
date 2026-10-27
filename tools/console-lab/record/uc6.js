@@ -4,12 +4,45 @@ const step = async (n, f) => { for (let i = 0; i < 3; i++) { try { await f(); re
 const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { starts: true })); };
 (async () => {
   await L.start("file://" + require("path").resolve(__dirname, "../index.html"));
-  await L.plan([["EC2 เครื่อง", "EC2"], ["Elastic IP", "EC2"], ["Route 53", "Route 53"], ["เปิดเว็บ", "🌐"]]);
+  await L.plan([["เครือข่าย VPC", "VPC"], ["Security Group", "EC2"], ["Key pair", "EC2"], ["EC2 เครื่อง", "EC2"], ["Elastic IP", "EC2"], ["Route 53", "Route 53"], ["เปิดเว็บ", "🌐"]]);
   await L.cap("Use case 6 · เครื่องเดียว: EC2 + Docker Compose + Caddy", "use case หก แบบง่ายที่สุด รันทั้งระบบบนเครื่อง EC2 เครื่องเดียว ด้วย Docker Compose และ Caddy ที่ขอใบรับรอง HTTPS ให้อัตโนมัติ"); await L.hold(1);
-  await L.ev(`buildSingle("single-base"); UI.sel={}; render(); 1`);
-  await L.cap("เตรียมไว้แล้ว: VPC + public subnet + IGW, Security Group (80/443/22), key pair, hosted zone pharmacy.example.com", "ส่วนเครือข่ายเตรียมไว้ให้แล้ว คือ VPC กับ public subnet, Security Group ที่เปิดพอร์ต 80 443 และ 22, key pair และ hosted zone ของโดเมน"); await L.hold(1);
-  await L.intro(0, "EC2", "เครื่องเซิร์ฟเวอร์เสมือน", "นี่คือ อีซีทู เครื่องเซิร์ฟเวอร์เสมือนที่เราจะรันทั้งระบบ");
-  await L.cap("① EC2 › Instances › Launch instances", "เริ่มสร้างเครื่อง เปิด EC2 ไปที่ Instances แล้วกด Launch instances"); await svc("EC2"); await L.click(B("Instances")); await L.click(B("Launch instances")); await L.sleep(800);
+  await L.ev(`fresh(); UI.sel={}; render(); 1`);
+  // 0 เครือข่าย
+  await L.intro(0, "VPC", "เครือข่ายส่วนตัวของเรา", "เริ่มจากสร้างเครือข่าย VPC ให้เครื่องของเราอยู่ข้างใน");
+  await L.cap("① Services › Networking › VPC › Create VPC", "เปิดเมนู Services เลือกหมวด Networking แล้วเลือก VPC และกด Create VPC"); await svc("VPC", "Networking & Content Delivery"); await L.click(B("Create VPC", { nth: 0 }));
+  await L.cap("② เลือก 'VPC and more' → ชื่อ pharmacy-single · CIDR 10.0.0.0/16", "เลือก VPC and more เพื่อให้สร้าง subnet กับ internet gateway ให้ด้วย ตั้งชื่อ pharmacy single และช่วงไอพี สิบจุดศูนย์จุดศูนย์จุดศูนย์ สแลช สิบหก");
+  await step("vcard", async () => { await L.card("VPC and more"); });
+  await step("vname", async () => { await L.fill("Name tag auto-generation", "pharmacy-single"); });
+  await step("vcidr", async () => { await L.fill("IPv4 CIDR block", "10.0.0.0/16"); });
+  await L.cap("③ 1 AZ · public subnet 1 · private subnet 0 (เครื่องเดียวไม่ต้องการ NAT)", "ใช้โซนเดียว มี public subnet หนึ่งอัน ไม่ต้องมี private subnet เพราะเครื่องเดียวไม่ต้องใช้ NAT");
+  await step("vaz", async () => { await L.choose("Number of Availability Zones", "1"); });
+  await step("vpub", async () => { await L.choose("Number of public subnets", "1"); });
+  await step("vpriv", async () => { await L.choose("Number of private subnets", "0"); });
+  await L.cap("④ Create VPC → ได้ VPC + subnet + internet gateway + route table", "กด Create VPC ระบบสร้าง VPC subnet internet gateway และ route table ให้ครบ"); await L.click(B("Create VPC", { nth: 0 })); await L.hold(2);
+  await L.tick(0, "VPC พร้อมแล้ว", "เครือข่ายพร้อมแล้ว");
+  // 1 security group
+  await L.intro(1, "Security Group", "ไฟร์วอลล์ของเครื่อง", "ต่อมาสร้าง security group ซึ่งเป็นไฟร์วอลล์ของเครื่อง");
+  await L.cap("⑤ EC2 › Security Groups › Create security group", "เปิด EC2 ไปที่ Security Groups แล้วกด Create security group"); await svc("EC2", "Compute"); await L.click(B("Security Groups")); await L.click(B("Create security group", { nth: 0 }));
+  await L.cap("⑥ ชื่อ pharmacy-single-web · คำอธิบาย web · VPC ที่เพิ่งสร้าง", "ตั้งชื่อ pharmacy single web ใส่คำอธิบาย และเลือก VPC ที่เพิ่งสร้าง");
+  await step("sgn", async () => { await L.fill("Security group name", "pharmacy-single-web"); });
+  await step("sgd", async () => { await L.fill("Description", "web"); });
+  await L.cap("⑦ Inbound rules: HTTP 80 + HTTPS 443 จากทุกที่ · SSH 22 เฉพาะ IP เรา", "กฎขาเข้าสามข้อ เปิด HTTP พอร์ตแปดสิบ กับ HTTPS พอร์ตสี่ร้อยสี่สิบสามให้ทุกคน และ SSH พอร์ตยี่สิบสองเฉพาะไอพีของเรา พอร์ตแปดสิบต้องเปิด เพราะ Let's Encrypt ใช้ตรวจโดเมน");
+  for (let i = 0; i < 3; i++) { await L.click(B("Add rule", { nth: 0 })); await L.sleep(300); }
+  await step("r1t", async () => { await L.pickBtn("SSH", "HTTP"); }); await step("r1s", async () => { await L.pickBtn("My IP", "Anywhere-IPv4"); });
+  await step("r2t", async () => { await L.pickBtn("SSH", "HTTPS"); }); await step("r2s", async () => { await L.pickBtn("My IP", "Anywhere-IPv4"); });
+  await L.hold(1.5); await L.cap("⑧ Create security group", "กด Create security group"); await L.click(B("Create security group", { nth: 0 })); await L.hold(1.5);
+  await L.tick(1, "Security Group พร้อมแล้ว", "security group พร้อมแล้ว");
+  // 2 key pair
+  await L.intro(2, "Key pair", "กุญแจไว้ ssh เข้าเครื่อง", "ต่อมาสร้าง key pair เป็นกุญแจสำหรับ ssh เข้าเครื่อง");
+  await L.cap("⑨ EC2 › Key Pairs › Create key pair: ชื่อ pharmacy-single-admin · ED25519 · .pem", "ไปที่ Key Pairs กด Create key pair ตั้งชื่อ pharmacy single admin ชนิด ED25519 รูปแบบ pem"); await L.click(B("Key Pairs")); await L.click(B("Create key pair", { nth: 0 }));
+  await step("kn", async () => { await L.fill("Name", "pharmacy-single-admin"); });
+  await L.hold(1.2); await L.click(B("Create key pair", { nth: 0 })); await L.hold(1.8);
+  await L.tick(2, "Key pair พร้อมแล้ว", "ได้ key pair แล้ว ไฟล์ private key ถูกดาวน์โหลด ต้องเก็บไว้ให้ดี");
+  // zone (เดิม: เตรียมไว้) - สร้างจริงที่ Route 53
+  await L.cap("⑩ Route 53 › Hosted zones › Create hosted zone: pharmacy.example.com", "ที่ Route 53 สร้าง hosted zone ของโดเมนไว้ก่อน เพราะต้องมีที่ให้ใส่ record ทีหลัง"); await svc("Route 53 Scalable"); await L.click(B("Create hosted zone", { nth: 0 }));
+  await step("zn", async () => { await L.fill("Domain name", "pharmacy.example.com"); }); await L.click(B("Create hosted zone", { nth: 0 })); await L.hold(1.5);
+  await L.intro(3, "EC2", "เครื่องเซิร์ฟเวอร์เสมือน", "ทีนี้ถึงตัวเครื่อง EC2");
+  await L.cap("⑪ EC2 › Instances › Launch instances", "เริ่มสร้างเครื่อง เปิด EC2 ไปที่ Instances แล้วกด Launch instances"); await svc("EC2"); await L.click(B("Instances")); await L.click(B("Launch instances")); await L.sleep(800);
   await L.cap("② ตั้งชื่อเครื่อง pharmacy-single", "ตั้งชื่อเครื่องว่า pharmacy single");
   await step("name", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); });
   await step("name2", async () => { await L.sleep(400); await L.type("main input[placeholder]", "pharmacy-single"); });
@@ -19,20 +52,20 @@ const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { st
   await step("key", async () => { await L.pick(B("Proceed without", { starts: true }), "pharmacy-single-admin"); });
   await L.cap("⑤ Network settings › Edit: เลือก VPC + public subnet ของเรา (ไม่ใช่ default)", "ตั้งค่าเครือข่าย กด Edit แล้วเลือก VPC กับ public subnet ของเรา ไม่ใช่ default");
   await step("edit", async () => { await L.click(B("Edit")); await L.pick(B("vpc-", { starts: true }), "pharmacy-single-vpc"); });
-  await step("subnet", async () => { await L.pick(B("No preference"), "pharmacy-single-public"); });
+  await step("subnet", async () => { await L.pick(B("No preference"), "pharmacy-single-subnet-public1"); });
   await L.cap("⑥ Security group: เลือก pharmacy-single-web (เปิด 80 + 443 + 22) เอา default ออก", "เลือก Security Group ของเรา ที่เปิดพอร์ต 80 กับ 443 ให้ทุกคน และเอาอันเริ่มต้นออก");
   await step("sg", async () => { await L.click("main input[type=checkbox]:not(:checked)"); await L.click("main input[type=checkbox]:checked"); });
   await L.cap("⑦ User data: สคริปต์ cloud-init (ติดตั้ง docker → เขียน compose + Caddyfile → docker compose up) รันครั้งเดียวตอนบูตแรก", "ช่อง user data ใส่สคริปต์ที่ติดตั้ง docker เขียนไฟล์ compose กับ Caddyfile แล้วสั่ง docker compose up จุดสำคัญคือสคริปต์นี้รันครั้งเดียวตอนบูตแรกเท่านั้น");
   await step("ud", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); });
   await step("ud2", async () => { await L.sleep(400); await L.type("main textarea", await L.ev(`singleUserData("single")`)); });
   await L.hold(1.5); await L.cap("⑧ Launch instance", "กด Launch instance"); await L.click(B("Launch instance", { nth: 0 })); await L.hold(2);
-  await L.tick(0, "เครื่อง Running", "เครื่องรันแล้ว"); await L.intro(1, "Elastic IP", "ไอพีคงที่", "นี่คือ Elastic IP ไอพีสาธารณะที่คงที่");
+  await L.tick(3, "เครื่อง Running", "เครื่องรันแล้ว"); await L.intro(4, "Elastic IP", "ไอพีคงที่", "นี่คือ Elastic IP ไอพีสาธารณะที่คงที่");
   await L.cap("⑨ Elastic IPs › Allocate: IP คงที่ ไม่เปลี่ยนเมื่อ stop/start", "ต่อมาขอ Elastic IP เพื่อให้ไอพีคงที่ ไม่เปลี่ยนเมื่อหยุดแล้วเปิดเครื่องใหม่ ไม่งั้น DNS จะชี้ผิด");
   await L.click(B("Elastic IPs")); await L.click(B("Allocate Elastic IP address")); await L.click(B("Allocate")); await L.hold(1);
   await L.cap("⑩ เลือก Elastic IP › Actions › Associate Elastic IP address › เครื่อง pharmacy-single", "เลือก Elastic IP แล้วเมนู Actions กด Associate เลือกเครื่อง pharmacy single");
   await L.click({ t: "eipalloc-", starts: true, tag: "a,button,td,span" }); await L.click(B("Actions")); await L.click(B("Associate Elastic IP address"));
   await step("assoc", async () => { await L.pickBtn("Choose an instance", "pharmacy-single"); }); await L.click(B("Associate", { nth: 0 })); await L.hold(1);
-  await L.tick(1, "Elastic IP ผูกแล้ว", "ผูกไอพีกับเครื่องเรียบร้อย"); await L.intro(2, "Route 53", "DNS ชี้ชื่อโดเมน", "นี่คือ Route 53 บริการ DNS ชี้ชื่อโดเมนมาที่ไอพีของเรา");
+  await L.tick(4, "Elastic IP ผูกแล้ว", "ผูกไอพีกับเครื่องเรียบร้อย"); await L.intro(5, "Route 53", "DNS ชี้ชื่อโดเมน", "นี่คือ Route 53 บริการ DNS ชี้ชื่อโดเมนมาที่ไอพีของเรา");
   const ip = await L.ev(`S.eips[0].ip||S.eips[0].publicIp||""`).catch(() => "");
   await L.cap("⑪ Route 53 › Create record: app → A ชี้ไป Elastic IP", "ไป Route 53 สร้าง record ชื่อ app แบบ A ชี้ไปที่ Elastic IP"); await svc("Route 53 Scalable");
   await L.click({ t: "pharmacy.example.com", starts: true, tag: "a,button,td" }); await L.click(B("Create record", { nth: 0 }));
@@ -42,11 +75,11 @@ const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { st
   await step("val", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); });
   await step("val2", async () => { await L.sleep(300); await L.type("main textarea, main input[placeholder]:not([placeholder=www])", ip); });
   await L.hold(1); await L.click(B("Create records")); await L.hold(1);
-  await L.tick(2, "DNS ชี้ถูกแล้ว", "DNS พร้อมแล้ว"); await L.intro(3, "Browser", "ทดสอบเปิดเว็บจริง", "มาทดสอบเปิดเว็บกัน");
+  await L.tick(5, "DNS ชี้ถูกแล้ว", "DNS พร้อมแล้ว"); await L.intro(6, "Browser", "ทดสอบเปิดเว็บจริง", "มาทดสอบเปิดเว็บกัน");
   await L.cap("⑫ เปิดเว็บที่แท็บ Browser → https://app.pharmacy.example.com", "ลองเปิดเว็บ ไปที่แท็บ Browser แล้วเข้า app จุด pharmacy จุด example จุด com"); await L.click(B("Browser", { nth: 0 }));
   await step("br", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "app.pharmacy.example.com"); });
   await L.click(B("Go")); await L.hold(2.5);
-  await L.tick(3, "เว็บเปิดได้ HTTPS", "เว็บเปิดได้แล้ว Caddy ขอใบรับรองจาก Let's Encrypt ให้อัตโนมัติ");
+  await L.tick(6, "เว็บเปิดได้ HTTPS", "เว็บเปิดได้แล้ว Caddy ขอใบรับรองจาก Let's Encrypt ให้อัตโนมัติ");
   await L.costScene("single", "เรื่องค่าใช้จ่าย เครื่องเดียวถูกและเดาง่ายที่สุด เปิดทิ้งหนึ่งเดือนประมาณยี่สิบห้าดอลลาร์ แต่ต้องรู้ว่าถ้าแค่หยุดเครื่อง ค่า EBS กับ Elastic IP ยังคิดอยู่ และ t3 โหมด Unlimited อาจมีค่า CPU เกินโควต้า ตั้ง Budget ไว้และเมื่อเลิกใช้ให้ release Elastic IP กับลบเครื่องจริง");
   await L.cap("✓ สำเร็จ: DNS → Elastic IP → EC2 (Caddy ออกใบรับรอง + app) ได้หน้าเว็บ HTTPS", "สรุป เครื่องเดียวรันได้ทั้งระบบ แต่ถ้าเครื่องดับเว็บก็ดับ และต้องดูแลเครื่องเอง"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase6.mp4"));

@@ -111,6 +111,38 @@ async function costScene(key, sayText) {
   await shot(2.5); const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.5);
   await ev(`document.getElementById("__cost").style.display="none"`);
 }
+
+// ---- ตัวช่วยกรอกฟอร์มแบบคลิกจริง: หาช่องจากข้อความ label ----
+// container ของช่อง (.f) ที่ label ขึ้นต้นด้วย label; ทำเครื่องหมาย element ที่ต้องการด้วย data-fx แล้วคลิก/พิมพ์ด้วยเมาส์-คีย์บอร์ดจริง
+async function fxMark(label, what) {
+  return await ev(`(function(label,what){ [].slice.call(document.querySelectorAll("[data-fx]")).forEach(function(e){e.removeAttribute("data-fx")});
+    var fs=[].slice.call(document.querySelectorAll("main .f")).filter(function(f){var l=f.querySelector(".l,label"); return l && (l.innerText||"").trim().replace(/\\s+/g," ").indexOf(label)===0;}); var f=fs[0]; if(!f) return "nofield";
+    var t = what==="btn" ? f.querySelector(".csel-btn") : f.querySelector("input[type=text],input:not([type]),input[type=search],textarea"); if(!t) return "notarget"; t.setAttribute("data-fx","1"); return "ok"; })(${JSON.stringify(label)},${JSON.stringify(what)})`);
+}
+// เติมช่องข้อความ: ถ้าเป็นช่องที่มี dropdown ตัวอย่าง ให้เปิดแล้วเลือก "ไม่ระบุ — พิมพ์เอง" ก่อน แล้วพิมพ์ค่า
+async function fill(label, value) {
+  let r = await fxMark(label, "in");
+  if (r !== "ok") { // ช่องแบบ sample: เปิด dropdown ก่อน
+    const b = await fxMark(label, "btn"); if (b !== "ok") throw new Error("ไม่พบช่อง " + label + " (" + r + "/" + b + ")");
+    await click("[data-fx]"); await sleep(150);
+    const op = await whereWait({ t: "ไม่ระบุ", starts: true, tag: ".csel-opt" }); if (!op) throw new Error("ไม่มีตัวเลือกพิมพ์เอง ใน " + label);
+    await moveTo(op); await shot(0.5);
+    await ev(`(function(){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").trim().indexOf("ไม่ระบุ")===0})[0]; ["mousedown","mouseup","click"].forEach(function(t){o.dispatchEvent(new MouseEvent(t,{bubbles:true}))}); })()`);
+    await sleep(350); r = await fxMark(label, "in"); if (r !== "ok") throw new Error("ไม่มีช่องพิมพ์ " + label);
+  }
+  await type("[data-fx]", value);
+}
+// เลือก dropdown ของช่องจาก label (custom .csel)
+async function choose(label, optText) {
+  const b = await fxMark(label, "btn"); if (b !== "ok") throw new Error("ไม่พบ dropdown " + label + " (" + b + ")");
+  await click("[data-fx]"); await sleep(150);
+  const op = await whereWait({ t: optText, starts: true, tag: ".csel-opt" }); if (!op) throw new Error("ไม่พบตัวเลือก " + optText);
+  await shot(0.4); await moveTo(op); await shot(0.6);
+  await ev(`(function(t){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").trim().indexOf(t)===0})[0]; ["mousedown","mouseup","click"].forEach(function(x){o.dispatchEvent(new MouseEvent(x,{bubbles:true}))}); })(${JSON.stringify(optText)})`);
+  await sleep(250);
+}
+// คลิกการ์ดตัวเลือก (rcard) ตามข้อความ
+async function card(text) { await click({ t: text, tag: "main .rcard", starts: true }); await sleep(300); }
 async function encode(out) { // เฟรม + เสียง → mp4
   const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.8);
   const list = frames.map(([f, s]) => `file '${f}'\nduration ${s.toFixed(3)}`).join("\n") + `\nfile '${frames[frames.length - 1][0]}'\n`; fs.writeFileSync(__dirname + "/list.txt", list);
@@ -124,4 +156,4 @@ async function encode(out) { // เฟรม + เสียง → mp4
   // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });
 }
-module.exports = { costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
+module.exports = { fill, choose, card, costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
