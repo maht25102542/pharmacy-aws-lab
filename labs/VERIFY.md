@@ -34,6 +34,18 @@
 
 แหล่ง: [Update a pending connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections-update.html) · [CloudFormation Connection](https://docs.amazonaws.cn/AWSCloudFormation/latest/UserGuide/aws-resource-codestarconnections-connection.html) · [Pulumi codestarconnections](https://www.pulumi.com/registry/packages/aws/api-docs/codestarconnections/connection/) · [imagedefinitions.json reference](https://docs.aws.amazon.com/codepipeline/latest/userguide/file-reference.html) · [UseConnection permission](https://haydnjmorris.medium.com/solving-permissions-error-with-aws-codepipeline-c93cfc000285)
 
+## Lab 5 (labs/05-github-actions) — อ่าน README ของ aws-actions/configure-aws-credentials แล้ว
+| ทำ | ควรเห็นจริง | ในตัวจำลอง | ยืนยัน |
+|---|---|---|---|
+| trust ไม่ตรง sub/aud | `Not authorized to perform sts:AssumeRoleWithWebIdentity` | ตรง | ✅ README ([aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials)) |
+| job ที่ใส่ `environment:` | sub มีส่วน `environment:<ชื่อ>` (README: "Workflows running in GitHub environments will include an environment:<ENVIRONMENT_NAME> stanza") | sub = `repo:O/R:environment:NAME` | ✅ ตามหลักการ (README ไม่เขียนรูปเต็ม) |
+| ไม่มี `permissions: id-token: write` | README บอกแค่ว่า "ต้องมี" ไม่มีข้อความ error | `Credentials could not be loaded, please check your action inputs: Could not load credentials from any providers` | ❌ **ไม่พบในเอกสาร** ถ้อยคำจากความจำ |
+| ไม่มี OIDC provider | README ไม่มีข้อความ | `No OpenIDConnect provider found in your account for https://token.actions.githubusercontent.com` | ❌ จากความจำ |
+| render task definition หา container ไม่เจอ | ไม่ทราบ | `Could not find container definition with matching name '…'` | ❌ จากความจำ |
+| deploy ไม่ stable | `Resource is not in the state servicesStable` | ตรง | ⚠️ จากความจำ (ข้อความของ ECS waiter) |
+| รูปแบบ sub รุ่นใหม่ | README ว่ามี "immutable sub" `repo:ORG@<org id>/REPO@<repo id>:…` (repo ใหม่/opt-in) ตัวจำลองใช้แบบเดิม `repo:ORG/REPO:…` | แบบเดิม | ⚠️ ถ้า repo ของคุณส่งแบบใหม่ trust แบบเดิมจะ `Not authorized…` ตรวจ token จริงก่อน |
+| `ForAllValues:` ใน trust | README เตือนว่าอย่าใช้ใน Allow (ผ่านได้เมื่อ claim หาย/พิมพ์ผิด) | ไม่จำลอง | ✅ README |
+
 ## ที่ยังต่างจากของจริงแน่นอน
 - เวลา: ของจริง ALB/NAT/RDS/CloudFront ใช้เวลาหลายนาที ตัวจำลองมี "ความเร็ว" ให้เลือกแต่ไม่แม่นเป๊ะ
 - ตัวเลข Duration / Init Duration / Max Memory Used เป็นค่าสุ่มแบบคงที่ ไม่ใช่การวัดจริง

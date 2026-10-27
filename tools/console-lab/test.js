@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -755,5 +755,33 @@ console.log("ok");
   assert(/DBInstanceAlreadyExists/.test(L.API.createRds({ id: rid0 }).errors.id), "สร้างชื่อเดิมระหว่าง Deleting ไม่ได้");
   L.S.ghosts[0].until = 0; assert(L.ghostRows("rds").length === 0, "ครบเวลาผีหาย");
   L.S.speed = "instant"; L.buildManaged("managed"); const r1 = L.S.rds[0].id; L.API.deleteRds(r1, true); assert(L.ghostRows("rds").length === 0, "โหมดทันที: หายเลย");
+}
+// ---- Lab 5: GitHub Actions + OIDC → ECR → ECS
+{
+  const rp = () => L.ghaRunsOf(L.S.gh.repos["pharmacy-backend"].user + "/pharmacy-backend");
+  L.buildGha("gha"); assert(L.isGhaLab() && L.checksGha().every(c => c.ok), "gha: ต้องผ่านทุกข้อ: " + L.checksGha().filter(c => !c.ok).map(c => c.label).join(" | "));
+  assert(rp().length === 2 && rp().every(r => r.status === "success") && L.S.gh.repos["pharmacy-backend"].files[".github/workflows/deploy.yml"].includes("id-token: write"), "dev + prd run สำเร็จ และ workflow อยู่ใน repo");
+  assert(L.S.repos[0].images.length === 3, "image sha + tag ถูก push (v1.0.0 เดิม + 2)");
+  const last = (k) => { L.buildGha(k); return rp(); };
+  let runs = last("gha-perm"); assert(runs[0].status === "failure" && /Could not load credentials/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มี id-token");
+  runs = last("gha-provider"); assert(runs[0].status === "failure" && /No OpenIDConnect provider found/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มี provider");
+  runs = last("gha-sub"); assert(runs.find(r => r.kind === "dev").status === "success" && runs.find(r => r.kind === "prd").status === "failure", "gha-sub: dev ผ่าน แต่ prd (environment) ล้ม");
+  const bad = runs.find(r => r.kind === "prd").jobs[0].steps.find(s => !s.ok); assert(/Not authorized to perform sts:AssumeRoleWithWebIdentity/.test(bad.log.join("\n")) && /environment:production/.test(bad.hint), "sub แบบ environment ไม่ตรง trust: " + bad.hint);
+  runs = last("gha-ecr"); assert(runs[0].status === "failure" && /denied: .*ecr:InitiateLayerUpload/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มีสิทธิ์ push ECR");
+  runs = last("gha-deploy"); assert(runs[0].status === "failure" && /matching name 'app'/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "container name ผิด");
+  runs = last("gha-pass"); assert(runs[0].status === "failure" && /iam:PassRole/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มี PassRole");
+  L.buildGha("gha-base"); assert(!L.ghaWf("YOUR_GITHUB_USER/pharmacy-backend") && !L.checksGha().every(c => c.ok), "gha-base: ยังไม่มี workflow");
+  const wr = L.API.saveWorkflow({ repo: "a/b", roleArn: "nope", pushBranch: "" }); assert(wr.errors.roleArn && wr.errors.pushBranch, "validate workflow");
+  assert(L.API.createOidcProvider({ url: "https://token.actions.githubusercontent.com", audience: "sts.amazonaws.com" }).res && /already exists/.test(L.API.createOidcProvider({ url: "https://token.actions.githubusercontent.com", audience: "sts.amazonaws.com" }).errors.url) && L.API.createOidcProvider({ url: "http://x", audience: "" }).errors.audience, "oidc validate");
+  assert(L.API.createRoleWeb({ name: "r", provider: "x", org: "" }).errors.provider, "role web ต้องเลือก provider");
+  // trust check ตรง ๆ
+  L.buildGha("gha"); const role = L.S.roles.find(r => r.name === "github-actions-deploy"); assert(L.ghaTrust(role, "repo:" + L.S.gh.repos["pharmacy-backend"].user + "/pharmacy-backend:environment:production", "sts.amazonaws.com").ok && !L.ghaTrust(role, "repo:other/x:ref:refs/heads/main", "sts.amazonaws.com").ok && !L.ghaTrust(role, "repo:" + L.S.gh.repos["pharmacy-backend"].user + "/pharmacy-backend:ref:refs/heads/main", "wrong-aud").ok, "ghaTrust");
+  // Terraform labs/05
+  L.buildEcs("ecs"); function sh7(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh7("cd ~/Desktop/work/pharmacy-aws-lab/labs/05-github-actions"); sh7("terraform init"); const pl = sh7("terraform plan"); assert(/Plan: 3 to add/.test(pl), pl.slice(-500));
+  const ap = sh7("terraform apply", ["yes"]); assert(/Apply complete! Resources: 3 added/.test(ap), ap.slice(-700));
+  const trole = L.S.roles.find(r => r.name === "github-actions-deploy"); assert(trole && L.ghaTrust(trole, "repo:YOUR_GITHUB_USER/pharmacy-backend:environment:production", "sts.amazonaws.com").ok && L.ghaTrust(trole, "repo:YOUR_GITHUB_USER/pharmacy-backend:ref:refs/heads/main", "sts.amazonaws.com").ok && !L.ghaTrust(trole, "repo:YOUR_GITHUB_USER/pharmacy-backend:ref:refs/tags/v1.1.0", "sts.amazonaws.com").ok, "role จาก Terraform: branch main + environment ผ่าน แต่ tag เปล่า ๆ ไม่ผ่าน");
+  assert(/No changes/.test(sh7("terraform plan")), "plan ซ้ำไม่เปลี่ยน");
+  const ds = sh7("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 3 destroyed/.test(ds), ds.slice(-500));
 }
 

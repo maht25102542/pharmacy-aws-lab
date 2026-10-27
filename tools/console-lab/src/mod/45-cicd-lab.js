@@ -51,9 +51,10 @@ function cdDelPlan(kind, id, P) {
   else if (kind === "cbp") { var c = cdProj(id); if (!c) return false; P.title = "Delete build project " + c.name; P.crumb = "CodeBuild › Build projects › Delete"; P.word = "delete"; P.done = "ลบ project แล้ว"; S.pipes.forEach(function (x) { if (x.stages.some(function (s) { return s.actions.some(function (a) { return a.cfg.ProjectName === c.name; }); })) P.note = "pipeline " + x.name + " ยังใช้ project นี้ ลบแล้วขั้น Build จะล้ม"; }); }
   else if (kind === "conn") { var n = S.conns.filter(function (x) { return x.id === id; })[0]; if (!n) return false; P.title = "Delete connection " + n.name; P.crumb = "Settings › Connections › Delete"; P.word = "delete"; P.done = "ลบ connection แล้ว"; S.pipes.forEach(function (x) { if (x.stages.some(function (s) { return s.actions.some(function (a) { return a.cfg.ConnectionArn === n.arn; }); })) P.note = "pipeline " + x.name + " ใช้ connection นี้อยู่ ลบแล้วขั้น Source จะล้ม"; }); }
   else if (kind === "vpce") { var ve = S.vpces.filter(function (x) { return x.id === id; })[0]; if (!ve) return false; P.title = "Delete endpoint " + (ve.name || ve.id); P.crumb = "VPC › Endpoints › Delete"; P.word = "delete"; P.done = "ลบ endpoint แล้ว (task ที่พึ่งมันจะติดต่อ " + ve.service + " ไม่ได้ ถ้าไม่มี NAT)"; }
-  else return false; return true;
+  else return ghaDelPlan(kind, id, P); return true;
 }
 function cdDelDo(kind, id) {
+  if (kind === "oidc") return ghaDelDo(kind, id);
   if (kind === "vpce") return API.deleteVpce(id); if (kind === "pipe") return API.deletePipeline(id); if (kind === "cbp") return API.deleteCbProject(id); if (kind === "conn") return API.deleteConnection(id); return { res: true }; }
 // ---------- HCL จากของที่กดใน console ----------
 function cdHcl(o, ref) {
