@@ -1,5 +1,5 @@
 // CDP driver จิ๋ว (ไม่ใช้ dependency): ขับ Chrome headless, ถ่ายเฟรม, ซ้อน cursor + caption
-const { spawn } = require("child_process"), fs = require("fs"), path = require("path");
+const { spawn, execFileSync } = require("child_process"), fs = require("fs"), path = require("path");
 const OUT = __dirname + "/frames", PORT = 20000 + Math.floor(Math.random() * 20000), PROF = "/tmp/claude-1000/recprof-" + process.pid;
 let ws, id = 0, pending = {}, chrome, frames = [], n = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -52,4 +52,54 @@ async function finish(name) {
   return frames.length;
 }
 async function where2() { return await ev(`(function(){var h=[].slice.call(document.querySelectorAll("h1")).filter(function(e){return e.getBoundingClientRect().width>2})[0];var fl=document.querySelector(".sb,.alert,[role=status]");return (h?h.innerText:"?")+" | "+(fl?fl.innerText.slice(0,100):"")+" | open="+document.querySelectorAll(".csel-list").length})()`); }
-module.exports = { pickBtn, where2, start, send, ev, shot, cap, click, type, pick, dump, text, hold, finish, sleep, where };
+
+// ---- เสียงบรรยาย (edge-tts) + ซิงก์กับเฟรม ----
+const crypto = require("crypto");
+const VENV = process.env.REC_VENV || "/tmp/claude-1000/-home-swd-Desktop-work-pharmacy-aws-lab/e26c2d62-bc7d-42b2-9d98-9b40ddadd580/scratchpad/venv";
+const EDGE = process.env.EDGE_TTS || VENV + "/bin/edge-tts", FFMPEG = process.env.FFMPEG || VENV + "/lib/python3.12/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2";
+const VOICE = process.env.REC_VOICE || "th-TH-PremwadeeNeural", ADIR = __dirname + "/audio";
+// edge-tts ปฏิเสธข้อความไทยปนอังกฤษบางแบบ → สะกดคำอังกฤษเป็นไทยก่อนส่ง (ยาวก่อนสั้น)
+const PHON = [["Let's Encrypt", "เล็ทส์เอ็นคริปต์"], ["Route 53", "รูทฟิฟตี้ทรี"], ["Security Group", "ซีเคียวริตี้กรุ๊ป"], ["Elastic IP", "อิลาสติกไอพี"], ["hosted zone", "โฮสต์โซน"], ["user data", "ยูสเซอร์ดาต้า"], ["key pair", "คีย์แพร์"], ["CloudFront", "คลาวด์ฟรอนท์"], ["cloud-init", "คลาวด์อินิท"], ["index.html", "อินเด็กซ์เอชทีเอ็มแอล"], ["Docker Compose", "ด็อกเกอร์คอมโพส"], ["docker compose", "ด็อกเกอร์คอมโพส"], ["t3.small", "ทีทรีสมอล"], ["Launch instance", "ลอนช์อินสแตนซ์"], ["Create", "ครีเอท"], ["bucket", "บักเก็ต"], ["Bucket", "บักเก็ต"], ["subnet", "ซับเน็ต"], ["Caddy", "แคดดี้"], ["Browser", "บราวเซอร์"], ["Services", "เซอร์วิส"], ["Upload", "อัปโหลด"], ["CNAME", "ซีเนม"], ["Alias", "อาเลียส"], ["alias", "อาเลียส"], ["record", "เรคคอร์ด"], ["Associate", "แอสโซซิเอท"], ["Allocate", "แอลโลเคท"], ["HTTPS", "เอชทีทีพีเอส"], ["DNS", "ดีเอ็นเอส"], ["EC2", "อีซีทู"], ["ACM", "เอซีเอ็ม"], ["OAC", "โอเอซี"], ["VPC", "วีพีซี"], ["IGW", "ไอจีดับเบิลยู"], ["SSH", "เอสเอสเอช"], ["SG", "เอสจี"], ["IP", "ไอพี"], ["S3", "เอสทรี"], ["app", "แอป"], ["user", "ยูสเซอร์"], ["dev", "เดฟ"], ["prd", "พีอาร์ดี"]];
+function phon(t) { PHON.forEach(([a, b]) => { t = t.split(a).join(b); }); return t.replace(/[①②③④⑤⑥⑦⑧⑨⑩⑪⑫✓→›·]/g, " ").replace(/\s+/g, " ").trim(); }
+function dur(f) { try { execFileSync(FFMPEG, ["-i", f], { stdio: "pipe" }); } catch (e) { const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(String(e.stderr)); if (m) return +m[1] * 3600 + +m[2] * 60 + +m[3]; } return 3; }
+function tts(text) {
+  fs.mkdirSync(ADIR, { recursive: true }); const p = phon(text), f = ADIR + "/" + crypto.createHash("sha1").update(VOICE + p).digest("hex").slice(0, 12) + ".mp3";
+  if (fs.existsSync(f) && fs.statSync(f).size > 0) return f;
+  for (let i = 0; i < 10; i++) { try { execFileSync(EDGE, ["--voice", VOICE, "--text", [p + ".", p, "ตอนนี้" + p + ".", p + "..."][i % 4], "--write-media", f], { stdio: "pipe" }); if (fs.statSync(f).size > 0) return f; } catch (e) {} execFileSync("sleep", [String(1 + i)]); }
+  const w = p.split(" "); if (w.length < 2) throw new Error("TTS ล้มเหลว: " + p);
+  const m = Math.ceil(w.length / 2), parts = [tts(w.slice(0, m).join(" ")), tts(w.slice(m).join(" "))], lst = f + ".txt"; // ตัดครึ่งแล้วต่อไฟล์
+  fs.writeFileSync(lst, parts.map((x) => `file '${x}'`).join("\n")); execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c:a", "libmp3lame", f]); return f;
+}
+const narr = [], total = () => frames.reduce((a, x) => a + x[1], 0);
+function padTo(t) { const need = t - total(); if (need > 0 && frames.length) frames[frames.length - 1][1] += need; }
+async function say(text) { // เริ่มพูดตอนนี้; ถ้าประโยคก่อนหน้ายังไม่จบ ให้ค้างเฟรมรอ
+  const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.3);
+  const f = tts(text); narr.push({ t0: total(), dur: dur(f), f });
+}
+async function cap2(t, s) { await cap(t); if (s) await say(s); }
+// ---- เช็กลิสต์บริการ + ติ๊กถูก ----
+async function plan(items) {
+  await ev(`(function(items){ var p=document.getElementById("__plan"); if(p)p.remove(); p=document.createElement("div"); p.id="__plan"; p.style.cssText="position:fixed;z-index:99997;left:0;right:0;bottom:52px;display:flex;gap:8px;padding:6px 12px;pointer-events:none;flex-wrap:wrap";
+    items.forEach(function(it,i){ var c=document.createElement("div"); c.dataset.i=i; c.style.cssText="display:flex;align-items:center;gap:7px;padding:4px 12px 4px 8px;border-radius:999px;background:#fff;border:2px solid #cbd5e1;font:600 14px 'IBM Plex Sans Thai',sans-serif;color:#334155;box-shadow:0 1px 4px rgba(0,0,0,.25)";
+      var ic=document.createElement("span"); ic.style.cssText="display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center"; if(SVC_ICO[it[1]]){ ic.appendChild(awsIco(SVC_ICO[it[1]],22)); } else ic.textContent=it[1];
+      var t=document.createElement("span"); t.textContent=it[0]; var k=document.createElement("span"); k.className="tk"; k.textContent="○"; k.style.cssText="font-size:16px;color:#94a3b8"; c.appendChild(ic); c.appendChild(t); c.appendChild(k); p.appendChild(c); }); document.body.appendChild(p); })(${JSON.stringify(items)})`);
+}
+async function cur(i) { await ev(`(function(i){ [].slice.call(document.querySelectorAll("#__plan > div")).forEach(function(c){ if(c.dataset.done)return; c.style.borderColor=(+c.dataset.i===i)?"#ec4899":"#cbd5e1"; }); })(${i})`); }
+async function tick(i, msg, sayText) { // ติ๊กถูก + ป้ายใหญ่กลางจอ
+  await ev(`(function(i,msg){ var c=document.querySelector('#__plan > div[data-i="'+i+'"]'); c.dataset.done=1; c.style.borderColor="#16a34a"; c.style.background="#dcfce7"; var k=c.querySelector(".tk"); k.textContent="✓"; k.style.color="#16a34a"; k.style.fontWeight="900"; k.style.fontSize="20px";
+    var t=document.getElementById("__toast"); if(!t){ t=document.createElement("div"); t.id="__toast"; t.style.cssText="position:fixed;z-index:99999;left:50%;top:84px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:12px 24px;border-radius:14px;background:#16a34a;color:#fff;font:700 24px 'IBM Plex Sans Thai',sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none"; document.body.appendChild(t); }
+    t.innerHTML=""; var ic=c.firstChild.cloneNode(true); ic.style.cssText="display:inline-flex;background:#fff;border-radius:8px;padding:4px;width:34px;height:34px;align-items:center;justify-content:center;font-size:22px"; var s=ic.querySelector("img"); if(s){ s.setAttribute("width",30); s.setAttribute("height",30); } t.appendChild(ic); var m=document.createElement("span"); m.textContent="✓ "+msg; t.appendChild(m); t.style.display="flex"; })(${i},${JSON.stringify(msg)})`);
+  if (sayText) await say(sayText);
+  await shot(1.6); await ev(`document.getElementById("__toast").style.display="none"`);
+}
+async function encode(out) { // เฟรม + เสียง → mp4
+  const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.8);
+  const list = frames.map(([f, s]) => `file '${f}'\nduration ${s.toFixed(3)}`).join("\n") + `\nfile '${frames[frames.length - 1][0]}'\n`; fs.writeFileSync(__dirname + "/list.txt", list);
+  const args = ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", __dirname + "/list.txt"];
+  narr.forEach((x) => args.push("-i", x.f));
+  const flt = narr.map((x, i) => `[${i + 1}:a]adelay=${Math.round(x.t0 * 1000)}|${Math.round(x.t0 * 1000)}[a${i}]`).join(";") + ";" + narr.map((x, i) => `[a${i}]`).join("") + `amix=inputs=${narr.length}:normalize=0:dropout_transition=0[aout]`;
+  if (narr.length) args.push("-filter_complex", flt, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "96k");
+  args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", out);
+  execFileSync(FFMPEG, args, { stdio: "inherit" });
+}
+module.exports = { say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
