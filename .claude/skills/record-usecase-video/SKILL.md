@@ -11,6 +11,7 @@ Drives `tools/console-lab/index.html` in headless Chrome over CDP, captures fram
 - Thai male voice `th-TH-NiwatNeural`, rate -15%, pitch -3Hz (user picked sample D; female was "robotic").
 - Bottom checklist chips with real AWS service logos; green tick + big green toast per finished service; blue toast (logo + name + one-line explanation, spoken) when each service starts.
 - Real clicks only for the main path; things not worth clicking (VPC, SG, ECR, RDS...) are pre-built by `buildXxx("<kind>-base")` and shown briefly, with the caption saying so.
+- Every main video ends with a cost scene before the final success caption: `await L.costScene("<COSTD key>", "<spoken summary>")` (big card with monthly/4-hour estimate, cost drivers, Budget + destroy reminder; data from `src/mod/61-cost-data.js`, same as the 💰 card in the use-case page). New lab → add a `COSTD.uc` entry, run `node tools/console-lab/gen-cost-md.js`.
 - Final frame must show success with all chips ticked and the site opened in the Browser tab.
 
 ## Steps
@@ -20,7 +21,7 @@ Drives `tools/console-lab/index.html` in headless Chrome over CDP, captures fram
 4. Run in background and watch the log: `(node ucN.js > /tmp/.../ucN.log; pkill -f "user-data-dir=/tmp/claude-1000/recpro[f]-"; echo finished >> log) &`. Delete the old log first (a stale `finished` fooled a monitor before). Never `pkill` a pattern that matches your own shell (use the `[f]` trick).
 5. Verify: extract the last frame and a middle frame with ffmpeg, look at them (chips all ticked, site opened). Check `Duration` and that the mp4 has an audio stream.
 6. Wire it: add `video: "videos/usecaseN-<x>.mp4"` to the UC object in `src/ui-usecase.js`. Use a NEW suffix letter whenever the file content changes (browser cache served an old silent file once). `node build.js && node test.js` must print exactly `ok` before commit/publish.
-7. Publish with `Artifact` (same url `https://claude.ai/artifact/XCkT2FwrBvVGruwYR6xCV6`), passing `files` mapping `videos/usecaseN-<x>.mp4|.webm|-opus.mp4` from the local files; set old suffix files to `null`. Commit with gitmoji + Co-Authored-By.
+7. Publish with `Artifact` (one publish accepts max 64 MB of files — publish in two batches when updating many videos) (same url `https://claude.ai/artifact/XCkT2FwrBvVGruwYR6xCV6`), passing `files` mapping `videos/usecaseN-<x>.mp4|.webm|-opus.mp4` from the local files; set old suffix files to `null`. Commit with gitmoji + Co-Authored-By.
 
 ## Gotchas learned
 - edge-tts randomly rejects some Thai+Latin strings: `lib.js` spells English terms in Thai (`PHON` map), appends "." and retries up to 10x, splits text as fallback. Add new English terms to `PHON` if one is read badly.
