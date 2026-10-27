@@ -1,6 +1,9 @@
 // ===== Cost & Bill management: การ์ดในหน้า use case ทุกใบ + หน้า Lab รวม =====
 function money(n) { return "$" + (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n)); }
 function moneyH(n) { return "$" + (n < 1 ? n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2)); }
+function bahtS(usd, perHr) { var b = usd * COST_THB; if (b <= 0) return "ฟรี"; if (b < (perHr ? 0.01 : 1)) return perHr ? "<฿0.01" : "<฿1"; return baht(usd).replace(/(\.\d)$/, "$1").replace(/^฿(\d)\.(\d)$/, function (m) { return perHr ? "฿" + b.toFixed(2) : m; }); }
+function usdS(n) { return n <= 0 ? "$0" : n < 0.01 ? "<$0.01" : money(n); }
+function riskOf(month) { var b = month * COST_THB; return b < 100 ? ["ต่ำ", "#1d8102", "แทบไม่มีโอกาสบิลบาน"] : b < 1500 ? ["กลาง", "#a85a00", "ลืมลบนานๆ เริ่มรู้สึก"] : ["สูง", "#c62828", "ลืมลบ 1 เดือน = บิลก้อนใหญ่"]; }
 function costTable(items) {
   var rows = items.map(function (x) {
     var per = x.k === "hr" ? moneyH(x.r * x.q) + "/ชม." + (x.q > 1 ? " (" + x.q + " ตัว)" : "") : x.k === "mo" ? money(x.r * x.q) + "/เดือน" : "ตามการใช้";
@@ -8,16 +11,17 @@ function costTable(items) {
     return h("tr", {}, [h("td", {}, [h("b", { text: x.n }), x.note ? h("div", { cls: "hint", style: "margin:2px 0 0", text: x.note }) : h("span")]), h("td", { text: x.k === "use" ? x.unit : per }), h("td", { style: "text-align:right;white-space:nowrap", text: mo }), h("td", { style: "text-align:center", text: x.idle ? "🔴 คิดเงิน" : "🟢 ไม่คิด" })]);
   });
   var s = costSum(items);
-  rows.push(h("tr", { style: "font-weight:700;background:var(--hl,#f3f6f9)" }, [h("td", { text: "รวมรายการคงที่ (ไม่รวมที่คิดตามการใช้)" }), h("td", { text: moneyH(s.hr) + "/ชม." }), h("td", { style: "text-align:right", text: baht(s.month) + " (" + money(s.month) + ")" }), h("td")]));
+  rows.push(h("tr", { cls: "cd-total" }, [h("td", { text: "รวมรายการคงที่ (ไม่รวมที่คิดตามการใช้)" }), h("td", { text: s.hr > 0 ? moneyH(s.hr) + "/ชม." : "–" }), h("td", { style: "text-align:right", text: baht(s.month) + " (" + money(s.month) + ")" }), h("td")]));
   return h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "รายการ" }), h("th", { text: "คิดตาม" }), h("th", { text: "≈ ต่อเดือน (730 ชม.)" }), h("th", { text: "ตอนไม่มีคนใช้" })])]), h("tbody", {}, rows)])]);
 }
 function costChips(items) {
-  var s = costSum(items), chip = function (lb, usd, c, suf) { return h("div", { cls: "cd-kpi", style: "--c:" + c }, [h("div", { cls: "l", text: lb }), h("div", { cls: "v" }, [baht(usd), suf ? h("small", { text: suf }) : null].filter(Boolean)), h("div", { cls: "u", text: "≈ " + money(usd) + " (USD)" })]); };
-  return h("div", { cls: "cd-kpis" }, [chip("เปิดทิ้งไว้ 1 เดือน", s.month, "#c62828"), chip("ทำ lab 4 ชั่วโมงแล้ว destroy", s.perHours(4), "#1d8102"), chip("ค่าคงที่ต่อชั่วโมง", s.hr, "#2b6cb0", "/ชม.")]);
+  var s = costSum(items), chip = function (lb, val, sub, c, suf) { return h("div", { cls: "cd-kpi", style: "--c:" + c }, [h("div", { cls: "l", text: lb }), h("div", { cls: "v" }, [val, suf ? h("small", { text: suf }) : null].filter(Boolean)), h("div", { cls: "u", text: sub })]); };
+  return h("div", { cls: "cd-kpis" }, [chip("เปิดทิ้งไว้ 1 เดือน", bahtS(s.month), "≈ " + usdS(s.month), "#c62828"), chip("ทำ lab 4 ชม. แล้ว destroy", bahtS(s.perHours(4)), "≈ " + usdS(s.perHours(4)), "#1d8102"), chip("ค่าคงที่ต่อชั่วโมง", bahtS(s.hr, true), "≈ " + usdS(s.hr), "#2b6cb0", s.hr > 0 ? "/ชม." : "")]);
 }
 function costCaveat() { return h("p", { cls: "hint" }, rich("⚠ ตัวเลขเป็น ==ประมาณการ== ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง · ยังไม่ยืนยันกับหน้า pricing ของ AWS (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. และ EKS $0.10/ชม.) → ตรวจที่ calculator.aws ก่อนตัดสินใจ · ค่าเงินบาทใช้อัตราสมมติ " + COST_THB + " บาท/ดอลลาร์ (ปรับที่ COST_THB)")); }
 function costBlock(c) {
-  var out = h("div", {}, [h("div", { cls: "alert", style: "margin:0 0 6px", text: "💰 " + c.big }), costChips(c.items), costTable(c.items)]);
+  var rk = riskOf(costSum(c.items).month);
+  var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items), costTable(c.items)]);
   if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#1d8102", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
   out.appendChild(costCaveat()); return out;
 }
