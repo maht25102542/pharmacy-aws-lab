@@ -2,6 +2,8 @@
 // ⚠ อัตราเป็น "ประมาณการ ap-southeast-1 (USD)" จากความจำ/บล็อกภายนอก ยังไม่ยืนยันกับหน้า pricing ของ AWS
 //   (ยืนยันแล้วเฉพาะ: public IPv4 $0.005/ชม. ตามประกาศ AWS ก.พ. 2024 · EKS control plane $0.10/ชม.) → ตรวจที่ https://calculator.aws ก่อนตัดสินใจ
 var COST_HRS = 730; // ชม./เดือน
+var COST_THB = 35; // อัตราสมมติ บาท/ดอลลาร์ (ไม่ใช่เรทจริง: แก้ตรงนี้ให้ตรงวันที่ดู)
+function baht(usd) { var b = usd * COST_THB; return "฿" + (b < 100 ? b.toFixed(b < 10 ? 1 : 0) : Math.round(b).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")); }
 var CR = { nat: 0.059, natGb: 0.045, ipv4: 0.005, alb: 0.0252, t3micro: 0.0132, t3small: 0.0264, t3medium: 0.0528, fgCpu: 0.0506, fgGb: 0.00553, eks: 0.10, rdsMicro: 0.02, rdsSmallMulti: 0.075, aprMemGb: 0.007, ebsGb: 0.1 };
 function cH(n, r, q, note, idle) { return { n: n, k: "hr", r: r, q: q || 1, note: note || "", idle: idle !== false }; }   // คิดต่อชั่วโมงที่เปิดอยู่
 function cM(n, usd, note, idle) { return { n: n, k: "mo", r: usd, q: 1, note: note || "", idle: idle !== false }; }    // คิดต่อเดือนคงที่

@@ -575,6 +575,31 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .vp-it.head { margin-top: 8px; } .vp-it.head .tx b { font-weight: 800; color: var(--accent); } .vp-it.head .tm { background: var(--accent); color: var(--accent-fg, #fff); }
 .vp-it.on { background: var(--accent-bg, rgba(236,72,153,.1)); box-shadow: inset 3px 0 0 var(--accent); } .vp-it.on .tx b { font-weight: 700; }
 @media (max-width: 980px) { .vp-layout.has-side { grid-template-columns: minmax(0, 1fr); } .vp-side { max-height: 320px; } }
+
+/* ===== หน้า use case: hero + แท็บ ===== */
+.uc-hero { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: center; margin: 14px 0 12px; padding: 16px 18px; border: 1px solid var(--line); border-left: 5px solid var(--uc); border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--uc) 9%, var(--surface)), var(--surface)); }
+.uc-hero .no { width: 46px; height: 46px; border-radius: 13px; background: var(--uc); color: #fff; display: grid; place-items: center; font: 800 22px var(--sans, inherit); }
+.uc-hero h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.01em; } .uc-hero p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+.uc-hero .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.uc-hero .mc { padding: 3px 11px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; } .uc-hero .mc.mono { font-family: var(--mono, monospace); font-weight: 500; color: var(--muted); }
+.uc-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 16px 0 14px; padding: 4px; border-radius: 12px; background: var(--hl, rgba(0,0,0,.05)); position: sticky; top: 0; z-index: 5; backdrop-filter: blur(6px); }
+.uc-tab { border: 0; padding: 8px 14px; border-radius: 9px; background: transparent; color: var(--muted); font: 600 13.5px inherit; cursor: pointer; white-space: nowrap; } .uc-tab:hover { color: var(--fg); background: var(--surface); }
+.uc-tab.on { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(16,24,40,.14); }
+.uc-pane { animation: ucin .18s ease-out; } @keyframes ucin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ===== cost dashboard ===== */
+.cd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 8px 0 14px; }
+.cd-kpi { padding: 12px 14px; border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; background: var(--surface); } .cd-kpi .l { font-size: 12.5px; color: var(--muted); } .cd-kpi .v { margin-top: 2px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.01em; color: var(--fg); } .cd-kpi .v small { margin-left: 4px; font-size: .8rem; font-weight: 600; color: var(--muted); } .cd-kpi .u { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.cd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 14px; align-items: start; } @media (max-width: 1100px) { .cd-grid { grid-template-columns: 1fr; } }
+.cd-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 14px 16px; } .cd-card h3 { margin: 0 0 10px; font-size: 1rem; }
+.cd-bars { display: flex; flex-direction: column; gap: 4px; }
+.cd-row { display: grid; grid-template-columns: 150px 1fr 96px; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--fg); font: inherit; font-size: 13px; text-align: left; cursor: pointer; } .cd-row:hover { background: var(--hl, rgba(0,0,0,.04)); } .cd-row.on { border-color: var(--accent); background: var(--accent-bg, rgba(236,72,153,.08)); }
+.cd-row .n { line-height: 1.3; } .cd-row .tr { height: 12px; border-radius: 0 6px 6px 0; background: var(--hl, rgba(0,0,0,.05)); } .cd-row .tr i { display: block; height: 100%; border-radius: 0 6px 6px 0; min-width: 2px; } .cd-row .v { text-align: right; line-height: 1.2; } .cd-row .v b { display: block; font-size: 13.5px; } .cd-row .v small { color: var(--muted); font-size: 11.5px; }
+.cd-panel .cd-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cd-panel .cd-kpi .v { font-size: 1.25rem; } @media (max-width: 1300px) { .cd-panel .cd-kpis { grid-template-columns: 1fr; } }
+.cd-panel .cd-ph { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; } .cd-panel .cd-ph b { display: block; font-size: 1.05rem; } .cd-panel .cd-ph small { color: var(--muted); font-size: 12.5px; }
+.cd-sub { margin: 4px 0 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.cd-stack .bar { display: flex; gap: 2px; height: 16px; margin-bottom: 10px; } .cd-stack .bar i { display: block; height: 100%; border-radius: 4px; min-width: 3px; }
+.cd-stack .lg { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 4px 14px; margin-bottom: 12px; } .cd-stack .lg > div { display: flex; align-items: center; gap: 8px; font-size: 12.5px; } .cd-stack .lg i { width: 10px; height: 10px; border-radius: 3px; flex: none; } .cd-stack .lg .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .cd-stack .lg small { color: var(--muted); width: 32px; text-align: right; }
 </style>
 
 <header class="top">
