@@ -109,5 +109,7 @@ async function encode(out) { // เฟรม + เสียง → mp4
   if (narr.length) args.push("-filter_complex", flt, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "96k");
   args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", "-movflags", "+faststart", out);
   execFileSync(FFMPEG, args, { stdio: "inherit" });
+  // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
+  execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });
 }
 module.exports = { intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
