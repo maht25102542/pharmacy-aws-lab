@@ -469,10 +469,10 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 /* ---- พื้นที่ของหน้าเว็บจำลอง (Jenkins / SonarQube / ArgoCD / GitHub / แอป): ระยะห่างเท่าการ์ดหน้าอื่น เนื้อหาไม่ชิดขอบ */
 .bwin { padding: 30px 48px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 1px 3px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.05); overflow-x: auto; }
 .bwin > .card { margin: 0; }
-/* ===== polish v2: Lab / Laptop / Browser (teal, ปุ่มโค้งมน, การ์ดเรียบ, ตารางโปร่ง, dropdown นุ่ม) ===== */
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#0f766e; --accent-bg:#e6f4f1; --accent-fg:#ffffff; --sh-1:0 1px 2px rgba(16,24,40,.05); --sh-2:0 14px 34px -20px rgba(30,41,59,.45); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#5fd0c4; --accent-bg:#10302d; --accent-fg:#04201d; } }
-:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#5fd0c4; --accent-bg:#10302d; --accent-fg:#04201d; }
+/* ===== polish v2: Lab / Laptop / Browser (pink, ปุ่มโค้งมน, การ์ดเรียบ, ตารางโปร่ง, dropdown นุ่ม) ===== */
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#db2777; --accent-bg:#fdeaf4; --accent-fg:#ffffff; --sh-1:0 1px 2px rgba(16,24,40,.05); --sh-2:0 14px 34px -20px rgba(30,41,59,.45); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#ff7ab8; --accent-bg:#3a1428; --accent-fg:#2a0a1a; } }
+:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#ff7ab8; --accent-bg:#3a1428; --accent-fg:#2a0a1a; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn { min-height: 36px; padding: 6px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--ctl-line); box-shadow: none; font-weight: 600; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn:hover:not(:disabled) { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri { color: var(--accent-fg); background: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
