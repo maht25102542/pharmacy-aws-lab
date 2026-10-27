@@ -513,6 +513,20 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .main details > summary::before { content: ""; width: 8px; height: 8px; border: 0; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); border-radius: 0; background: transparent; color: inherit; font-size: 0; transform: rotate(-45deg); transition: transform .15s, border-color .15s; margin: 0 4px 0 2px; }
 .main details[open] > summary::before { transform: rotate(45deg); border-color: var(--accent); background: transparent; }
 .main details > summary:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+/* ===== info rows + การ์ดเคส error: เรียบ แถวคั่นด้วยเส้นบาง ไม่มีกล่องสีซ้อนกล่อง ===== */
+.ic { display: block; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; margin: 0 0 16px; }
+.ic-row { grid-template-columns: 132px minmax(0, 1fr); gap: 16px; padding: 12px 16px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.ic-row + .ic-row { border-top: 1px solid var(--line); }
+.ic-lb { display: flex; align-items: flex-start; gap: 8px; font-weight: 600; font-size: .86rem; color: var(--fg); }
+.ic-lb::before { content: ""; flex: none; width: 8px; height: 8px; margin-top: .5em; border-radius: 50%; background: var(--c); }
+.uc-errs { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; }
+.uc-err { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px; background: var(--surface); }
+.uc-err-t { display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 4px; }
+.uc-err-t::before { content: "!"; flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--bad-bg); color: var(--bad); font-size: .75rem; font-weight: 800; }
+.uc-err .ic { border: 0; border-radius: 0; margin: 4px 0 10px; overflow: visible; }
+.uc-err .ic-row { padding: 8px 0; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; }
+.uc-err .btn { align-self: flex-start; margin-top: auto; }
+@media (max-width: 640px) { .uc-errs { grid-template-columns: 1fr; } }
 </style>
 
 <header class="top">

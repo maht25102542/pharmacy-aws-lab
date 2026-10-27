@@ -400,9 +400,9 @@ function ucTfTable(u) {
   list.appendChild(left); list.appendChild(right); box.appendChild(list); return box;
 }
 function ucErrTable(u) {
-  var w = h("div", { style: "display:grid;gap:10px" });
+  var w = h("div", { cls: "uc-errs" });
   u.errors.forEach(function (e) {
-    w.appendChild(h("div", { style: "border:1px solid #c6282855;border-left:5px solid #c62828;border-radius:10px;padding:10px 14px;background:#c628280a" }, [h("div", { style: "font-weight:800;color:#c62828;margin-bottom:6px", text: e.t }),
+    w.appendChild(h("div", { cls: "uc-err" }, [h("div", { cls: "uc-err-t", text: e.t }),
       h("div", { cls: "ic" }, [["อาการ", "#c62828", e.sym], ["ไล่หา", "#2b6cb0", e.find], ["แก้", "#1d8102", e.fix]].map(function (x) { return h("div", { cls: "ic-row", style: "--c:" + x[1] }, [h("div", { cls: "ic-lb", text: x[0] }), h("div", { cls: "ic-tx" }, rich(x[2]))]); })),
       h("button", { cls: "btn pri", type: "button", text: "โหลดเคสนี้", onclick: function () { try { if (u.errGo) { u.errGo(e); return; } buildStatic(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปเปิดเว็บที่ Browser"); go("browser", {}, "Browser"); W.addr = "https://www.pharmacy.example.com"; wbGo(W.addr); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } })]));
   });

@@ -346,7 +346,7 @@ function codeThemeSel() {
 // กล่องโค้ดสำเร็จรูป (ใช้ธีมที่เลือก + ไฮไลต์ตามชนิด): ใช้แทน <pre> ธรรมดาทุกที่ที่แสดงโค้ด
 function codePre(text, kind) {
   var T = JKX_THEME[JKX.theme] || JKX_THEME.github;
-  return h("div", { style: "font-family:var(--mono);font-size:.8rem;line-height:1.6;background:" + (T[1] === "transparent" ? "color-mix(in srgb, var(--accent) 8%, var(--surface))" : T[1]) + ";color:" + T[2] + ";border-radius:10px;padding:10px 0;overflow:auto;max-height:420px" + (T[1] === "transparent" ? ";border:1px solid color-mix(in srgb, var(--accent) 20%, transparent)" : "") }, String(text).split("\n").map(function (l, i) { return jkxLine(l, kind, i + 1); }));
+  return h("div", { style: "font-family:var(--mono);font-size:.8rem;line-height:1.6;background:" + (T[1] === "transparent" ? "var(--code-bg)" : T[1]) + ";color:" + T[2] + ";border-radius:10px;padding:10px 0;overflow:auto;max-height:420px" + (T[1] === "transparent" ? ";border:1px solid color-mix(in srgb, var(--accent) 20%, transparent)" : "") }, String(text).split("\n").map(function (l, i) { return jkxLine(l, kind, i + 1); }));
 }
 
 function jkxViewSel() {
