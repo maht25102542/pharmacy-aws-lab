@@ -423,9 +423,21 @@ function ucVideo(src) {
   // เซิร์ฟเวอร์ artifact ไม่รองรับ HTTP Range → ข้าม/ย้อนเวลาไม่ได้ ถ้าสตรีมตรงๆ จึงโหลดทั้งไฟล์เป็น blob ก่อน (~4 MB)
   var v = h("video", { controls: true, volume: 1, preload: "auto", style: "display:block;width:100%" });
   var note = h("div", { cls: "hint", style: "margin:6px 0", text: "กำลังโหลดวิดีโอ…" });
-  var webm = v.canPlayType('video/webm; codecs="vp9, opus"') !== "", file = webm ? src.replace(/\.mp4$/, ".webm") : src; // VS Code/Electron ถอดรหัส AAC ใน mp4 ไม่ได้ → ใช้ webm (VP9+Opus) ถ้า browser รองรับ
-  fetch(file).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(function (b) { v.src = URL.createObjectURL(new Blob([b], { type: webm ? "video/webm" : "video/mp4" })); note.remove(); })
-    .catch(function () { v.src = src; note.textContent = "โหลดแบบสตรีม (ข้ามช่วงเวลาอาจใช้ไม่ได้)"; });
+  // ลองไฟล์ตามลำดับ: webm (VP9+Opus) → mp4 (H.264+Opus) → mp4 (H.264+AAC); ข้ามไปตัวถัดไปเมื่อเล่นไม่ได้ หรือ browser ถอดรหัสเสียงไม่ได้ (VS Code/Electron มักไม่มี AAC)
+  var cands = [];
+  if (v.canPlayType('video/webm; codecs="vp9, opus"')) cands.push([src.replace(/\.mp4$/, ".webm"), "video/webm", "webm VP9+Opus"]);
+  if (v.canPlayType('video/mp4; codecs="avc1.64001f, opus"')) cands.push([src.replace(/\.mp4$/, "-opus.mp4"), "video/mp4", "mp4 H.264+Opus"]);
+  cands.push([src, "video/mp4", "mp4 H.264+AAC"]);
+  var ci = -1, usedLabel = "", resumeAt = 0, wasPlaying = false;
+  function loadNext(why) {
+    ci++; if (ci >= cands.length) { note.textContent = "เล่นวิดีโอไม่ได้ในโปรแกรมนี้ (" + (why || "ไม่ทราบสาเหตุ") + ") ลองเปิดหน้านี้ด้วย Chrome / Edge / Safari"; return; }
+    var c = cands[ci]; usedLabel = c[2]; note.textContent = "กำลังโหลดวิดีโอ (" + c[2] + ")…"; note.style.display = "";
+    fetch(c[0]).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); }).then(function (b) {
+      v.src = URL.createObjectURL(new Blob([b], { type: c[1] })); v.currentTime = resumeAt; note.style.display = "none"; if (wasPlaying) v.play().catch(function () {});
+    }).catch(function (e) { loadNext(c[2] + ": " + e.message); });
+  }
+  v.addEventListener("error", function () { resumeAt = v.currentTime || 0; loadNext(usedLabel + " เล่นไม่ได้ (code " + (v.error ? v.error.code : "?") + ")"); });
+  loadNext();
   var wrap = h("div", { style: "position:relative;width:100%;max-width:960px;border-radius:8px;overflow:hidden;background:#000" }, [v]);
   [-1, 1].forEach(function (dir) {
     var last = 0, tm = null;
@@ -458,9 +470,10 @@ function ucVideo(src) {
   var chk = 0; v.addEventListener("timeupdate", function () {
     if (chk || v.currentTime < 3) return; chk = 1;
     var n = v.webkitAudioDecodedByteCount, hasA = v.mozHasAudio;
+    if (!v.muted && v.volume > 0 && n === 0 && ci < cands.length - 1) { chk = 0; resumeAt = v.currentTime; wasPlaying = !v.paused; loadNext("ไม่มีเสียงจาก " + usedLabel); return; }
     if (v.muted || v.volume === 0) diag.textContent = "เสียงในวิดีโอ: ถูกปิดอยู่ (muted / volume 0) กดปุ่มลำโพงเพื่อเปิด";
     else if (n === 0 || hasA === false) diag.textContent = "เสียงในวิดีโอ: browser นี้ถอดรหัสเสียงของไฟล์ไม่ได้ (ลองใช้ Chrome/Edge/Safari ล่าสุด)";
-    else diag.textContent = "เสียงในวิดีโอ: ตรวจพบและกำลังเล่น" + (n ? " (" + n + " bytes)" : "") + " ถ้าไม่ได้ยิน ให้กด 'ทดสอบเสียงเครื่อง'";
+    else diag.textContent = "เสียงในวิดีโอ: ตรวจพบและกำลังเล่น [" + usedLabel + "]" + (n ? " (" + n + " bytes)" : "") + " ถ้าไม่ได้ยิน ให้กด 'ทดสอบเสียงเครื่อง'";
   });
   return h("div", {}, [note, wrap, h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" }, [mute, vs, beep, h("span", { cls: "hint", style: "margin:0", text: "ดับเบิลคลิก/แตะครึ่งขวาของจอ = ข้าม 5 วินาที · ครึ่งซ้าย = ย้อน 5 วินาที · คลิกเดียว = เล่น/หยุด" })]), diag]);
 }

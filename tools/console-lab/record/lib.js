@@ -109,6 +109,7 @@ async function encode(out) { // เฟรม + เสียง → mp4
   if (narr.length) args.push("-filter_complex", flt, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "96k");
   args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", "-movflags", "+faststart", out);
   execFileSync(FFMPEG, args, { stdio: "inherit" });
+  execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "copy", "-c:a", "libopus", "-b:a", "48k", "-movflags", "+faststart", out.replace(/\.mp4$/, "-opus.mp4")], { stdio: "inherit" }); // mp4 H.264 + Opus
   // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });
 }
