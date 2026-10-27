@@ -424,6 +424,18 @@ function ucVideo(src) {
     } });
     wrap.appendChild(z); wrap.appendChild(fl);
   });
+  // ปุ่มกลางจอ: ถอย 5 วิ / เล่น-หยุด / ข้าม 5 วิ (โชว์ตอนหยุดหรือขยับเมาส์)
+  function seek(d) { v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + d)); }
+  var bst = "pointer-events:auto;cursor:pointer;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font:700 15px sans-serif;display:flex;align-items:center;justify-content:center;";
+  var pp = h("button", { type: "button", "aria-label": "เล่น/หยุด", style: bst + "width:64px;height:64px;font-size:26px", text: "▶", onclick: function () { if (v.paused) v.play(); else v.pause(); } });
+  var cbar = h("div", { style: "position:absolute;left:0;right:0;top:0;bottom:48px;display:flex;align-items:center;justify-content:center;gap:22px;pointer-events:none;transition:opacity .25s" }, [
+    h("button", { type: "button", "aria-label": "ถอยหลัง 5 วินาที", style: bst + "width:52px;height:52px", text: "⏪ 5", onclick: function () { seek(-5); } }), pp,
+    h("button", { type: "button", "aria-label": "ข้ามไปข้างหน้า 5 วินาที", style: bst + "width:52px;height:52px", text: "5 ⏩", onclick: function () { seek(5); } })]);
+  var hideT = null;
+  function showBar() { cbar.style.opacity = 1; clearTimeout(hideT); if (!v.paused) hideT = setTimeout(function () { cbar.style.opacity = 0; }, 2500); }
+  v.addEventListener("play", function () { pp.textContent = "⏸"; showBar(); }); v.addEventListener("pause", function () { pp.textContent = "▶"; showBar(); });
+  wrap.addEventListener("mousemove", showBar); wrap.addEventListener("touchstart", showBar);
+  wrap.appendChild(cbar);
   var mute = h("button", { cls: "btn", type: "button", text: "🔊 เสียง: เปิด", onclick: function () { v.muted = !v.muted; mute.textContent = v.muted ? "🔇 เสียง: ปิด" : "🔊 เสียง: เปิด"; } });
   return h("div", {}, [wrap, h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" }, [mute, h("span", { cls: "hint", style: "margin:0", text: "ดับเบิลคลิก/แตะครึ่งขวาของจอ = ข้าม 5 วินาที · ครึ่งซ้าย = ย้อน 5 วินาที · คลิกเดียว = เล่น/หยุด" })])]);
 }
