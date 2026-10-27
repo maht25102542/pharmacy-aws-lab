@@ -594,7 +594,7 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 14px 16px; } .cd-card h3 { margin: 0 0 10px; font-size: 1rem; }
 .cd-bars { display: flex; flex-direction: column; gap: 4px; }
 .cd-row { display: grid; grid-template-columns: 200px 1fr 92px; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--fg); font: inherit; font-size: 13px; text-align: left; cursor: pointer; } .cd-row:hover { background: var(--hl, rgba(0,0,0,.04)); } .cd-row.on { border-color: var(--accent); background: var(--accent-bg, rgba(236,72,153,.08)); }
-.cd-row .n { line-height: 1.3; } .cd-row .tr { height: 12px; border-radius: 0 6px 6px 0; background: var(--hl, rgba(0,0,0,.05)); } .cd-row .tr i { display: block; height: 100%; border-radius: 0 6px 6px 0; min-width: 2px; } .cd-row .v { text-align: right; line-height: 1.2; } .cd-row .v b { display: block; font-size: 13.5px; } .cd-row .v small { color: var(--muted); font-size: 11.5px; }
+.cd-row .n { line-height: 1.3; } .cd-row .tr { height: 12px; border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--fg) 8%, var(--surface)); } .cd-row .tr i { display: block; height: 100%; border-radius: 0 6px 6px 0; min-width: 2px; } .cd-row .v { text-align: right; line-height: 1.2; } .cd-row .v b { display: block; font-size: 13.5px; } .cd-row .v small { color: var(--muted); font-size: 11.5px; }
 .cd-panel .cd-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cd-panel .cd-kpi .v { font-size: 1.25rem; } @media (max-width: 1000px) { .cd-panel .cd-kpis { grid-template-columns: 1fr; } }
 .cd-panel .cd-ph { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; } .cd-panel .cd-ph b { display: block; font-size: 1.05rem; } .cd-panel .cd-ph small { color: var(--muted); font-size: 12.5px; }
 .cd-sub { margin: 4px 0 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
@@ -620,6 +620,13 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-guide { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 16px; }
 .cd-guide .gc { border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; background: var(--surface); padding: 12px 14px; } .cd-guide .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .cd-guide .no { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; font: 800 12px inherit; } .cd-guide .hd b { font-size: .95rem; line-height: 1.3; } .cd-guide .bd { font-size: 13.5px; line-height: 1.65; color: var(--fg); }
 .cd-card .twrap td:last-child { white-space: nowrap; }
+
+/* การ์ดที่มีแถบสี: ใช้ ::before ที่ถูกตัดโดย overflow แทน border หนาด้านเดียว (border หนา + มุมโค้งเกิดขอบโก่งเป็นรอยโค้ง) */
+.cd-kpi, .cd-call, .cd-guide .gc, .cd-rule > div, .uc-hero { position: relative; overflow: hidden; border: 1px solid var(--line) !important; }
+.cd-kpi::before, .cd-call::before, .cd-guide .gc::before, .cd-rule > div::before, .uc-hero::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c, var(--uc, #64748b)); }
+.cd-rule .r1 { --c: #c62828; } .cd-rule .r2 { --c: #1d8102; }
+.cd-kpi { padding: 14px 16px 14px 20px; } .cd-call { padding-left: 24px; } .cd-guide .gc { padding-left: 20px; } .cd-rule > div { padding-left: 22px; } .uc-hero { padding-left: 24px; }
+.cd-kpi .l { font-size: 12.5px; font-weight: 600; letter-spacing: .01em; } .cd-kpi .v { margin: 4px 0 2px; font-size: 1.7rem; line-height: 1.15; } .cd-kpi .u { font-size: 12.5px; }
 </style>
 
 <header class="top">
