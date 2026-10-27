@@ -73,6 +73,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
   var roles = S.roles.map(function (r) { return ["arn:aws:iam::" + ACCOUNT + ":role/" + r.name, r.name]; });
   var form = h("div", { style: "border:1px solid " + GHB + ";border-radius:6px;padding:10px 14px;margin:0 0 12px" }, [
     h("b", { text: (w ? "Edit" : "Create") + " workflow · .github/workflows/deploy.yml" }),
+    h("label", { style: "display:flex;gap:8px;align-items:center;margin:8px 0" }, [h("input", { type: "checkbox", checked: cfg.immutable !== false, onchange: function (e) { cfg.immutable = e.target.checked; } }), h("span", { text: "repo สร้างหลัง 15 ก.ค. 2026 (token ส่ง sub แบบ immutable: repo:ORG@<id>/REPO@<id>:…)" })]),
     h("label", { style: "display:flex;gap:8px;align-items:center;margin:8px 0" }, [h("input", { type: "checkbox", checked: !!cfg.idToken, onchange: function (e) { cfg.idToken = e.target.checked; } }), h("span", { text: "permissions: id-token: write (ขอ ID token ให้ OIDC)" })]),
     fld("role-to-assume (ARN ของ role)", "roleArn", roles, "จากหน้า IAM › Roles หรือ output role_arn ของ terraform"),
     fld("on.push.branches (dev deploy อัตโนมัติ)", "pushBranch", [["main", "main"], ["develop", "develop"]]),

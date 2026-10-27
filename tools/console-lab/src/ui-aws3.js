@@ -230,7 +230,7 @@ DET.cert = [["details", "Details", det("cert")], ["domains", "Domains", function
 }]];
 
 // ---------- ตัวอย่างสำเร็จรูป: จัดหมวดหมู่ + ป้าย ปกติ / เคส error ----------
-var SCEN_ERR = ["noassoc", "wrongip", "ans-sg", "ans-nonat", "ans-noegress", "managed-badrole", "managed-nonat", "static-403", "static-cert", "static-cert-pending", "static-stale", "ecs-pull", "ecs-image", "ecs-role", "ecs-db", "ecs-health", "ecs-vpce-s3", "ecs-vpce-logs", "sls-perm", "sls-invoke", "sls-route", "sls-table", "cd-conn", "cd-docker", "cd-ecr", "cd-deploy", "cd-pass", "gha-perm", "gha-provider", "gha-sub", "gha-ecr", "gha-deploy", "gha-pass", "single-sg", "single-noup", "single-eip", "single-dns", "apr-role", "apr-tag", "apr-port", "apr-health"];
+var SCEN_ERR = ["noassoc", "wrongip", "ans-sg", "ans-nonat", "ans-noegress", "managed-badrole", "managed-nonat", "static-403", "static-cert", "static-cert-pending", "static-stale", "ecs-pull", "ecs-image", "ecs-role", "ecs-db", "ecs-health", "ecs-vpce-s3", "ecs-vpce-logs", "sls-perm", "sls-invoke", "sls-route", "sls-table", "cd-conn", "cd-docker", "cd-ecr", "cd-deploy", "cd-pass", "gha-perm", "gha-provider", "gha-sub", "gha-ecr", "gha-deploy", "gha-pass", "gha-immutable", "single-sg", "single-noup", "single-eip", "single-dns", "apr-role", "apr-tag", "apr-port", "apr-health"];
 var SCEN_CATS = [
   { t: "① Terraform พื้นฐาน + VM (lab หลัก)", c: "#0972d3", d: "VPC 3 AZ, EC2, ALB, ECR", re: /^(full|noassoc|wrongip|ecr)$/ },
   { t: "② ตั้งค่าเครื่องด้วย Ansible", c: "#8456ce", d: "inventory ผ่าน bastion, site.yml", re: /^ans/ },

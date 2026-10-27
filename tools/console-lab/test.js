@@ -765,6 +765,8 @@ console.log("ok");
   const last = (k) => { L.buildGha(k); return rp(); };
   let runs = last("gha-perm"); assert(runs[0].status === "failure" && /Could not load credentials/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มี id-token");
   runs = last("gha-provider"); assert(runs[0].status === "failure" && /No OpenIDConnect provider found/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มี provider");
+  runs = last("gha-immutable"); { const f = runs[0].jobs[0].steps.find(s => !s.ok); assert(runs[0].status === "failure" && /Not authorized/.test(f.log.join("\n")) && /@1234567\/pharmacy-backend@987654321/.test(f.hint), "immutable sub + trust เก่า = ล้ม"); }
+  { const role = L.S.roles.find(r => r.name === "github-actions-deploy"), u = L.S.gh.repos["pharmacy-backend"].user; role.trust.Statement[0].Condition.StringLike["token.actions.githubusercontent.com:sub"] = "repo:" + u + "@*/pharmacy-backend@*:*"; assert(L.ghaTrust(role, "repo:" + u + "@1234567/pharmacy-backend@987654321:ref:refs/heads/main", "sts.amazonaws.com").ok, "trust แบบ @* ผ่าน sub immutable"); }
   runs = last("gha-sub"); assert(runs.find(r => r.kind === "dev").status === "success" && runs.find(r => r.kind === "prd").status === "failure", "gha-sub: dev ผ่าน แต่ prd (environment) ล้ม");
   const bad = runs.find(r => r.kind === "prd").jobs[0].steps.find(s => !s.ok); assert(/Not authorized to perform sts:AssumeRoleWithWebIdentity/.test(bad.log.join("\n")) && /environment:production/.test(bad.hint), "sub แบบ environment ไม่ตรง trust: " + bad.hint);
   runs = last("gha-ecr"); assert(runs[0].status === "failure" && /denied: .*ecr:InitiateLayerUpload/.test(runs[0].jobs[0].steps.find(s => !s.ok).log.join("\n")), "ไม่มีสิทธิ์ push ECR");

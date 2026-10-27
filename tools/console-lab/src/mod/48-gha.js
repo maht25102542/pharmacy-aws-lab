@@ -62,25 +62,27 @@ API.saveWorkflow = function (o) {
   if (!String(o.pushBranch || "").trim()) er.pushBranch = "ต้องระบุ branch ที่ทริกเกอร์ (เช่น main)";
   if (Object.keys(er).length) return { errors: er };
   var w = ghaWf(repo); if (!w) { w = { repo: repo }; S.gwf.push(w); }
-  ["name", "pushBranch", "tagPattern", "idToken", "roleArn", "region", "ecrRepo", "containerName", "devCluster", "devService", "prdCluster", "prdService", "prdEnv", "waitStability", "runner"].forEach(function (k) { if (o[k] !== undefined) w[k] = o[k]; });
+  ["name", "pushBranch", "tagPattern", "idToken", "roleArn", "region", "ecrRepo", "containerName", "devCluster", "devService", "prdCluster", "prdService", "prdEnv", "waitStability", "runner", "immutable"].forEach(function (k) { if (o[k] !== undefined) w[k] = o[k]; });
   ghInit(); var parts = repo.split("/"), rp = S.gh.repos[parts[1]]; if (rp && rp.user === parts[0]) { rp.files = rp.files || {}; rp.files[".github/workflows/deploy.yml"] = ghaYaml(w); }
   return { res: w };
 };
 // ---------- รัน ----------
 function ghaSha() { return fakeId("", 40, "0123456789abcdef"); }
 function ghaStep(name, ok, log, hint) { return { name: name, ok: ok, log: log || [], hint: hint || "" }; }
+var GHA_OWNER_ID = "1234567", GHA_REPO_ID = "987654321"; // id สมมติ ของจริง GitHub ออกให้ตอนสร้าง owner/repo
 function ghaRunJob(w, kind, ctx) {
   var steps = [], role = null, env = kind === "prd" ? w.prdEnv : "", sub, cl = kind === "prd" ? w.prdCluster : w.devCluster, sv = kind === "prd" ? w.prdService : w.devService, parts = w.repo.split("/"), tag = kind === "prd" ? ctx.ref : ctx.sha.slice(0, 7), sess = "GitHubActions";
   function push(s) { steps.push(s); return s.ok; }
   push(ghaStep("Set up job", true, ["Runner: " + (w.runner || "ubuntu-latest"), "Job: deploy-" + kind + (env ? " · environment: " + env : "")]));
   push(ghaStep("Checkout (actions/checkout@v4)", true, ["HEAD is now at " + ctx.sha.slice(0, 7)]));
   // configure-aws-credentials (OIDC)
-  sub = env ? "repo:" + w.repo + ":environment:" + env : kind === "prd" ? "repo:" + w.repo + ":ref:refs/tags/" + ctx.ref : "repo:" + w.repo + ":ref:refs/heads/" + ctx.ref;
+  var rpart = w.immutable ? parts[0] + "@" + GHA_OWNER_ID + "/" + parts[1] + "@" + GHA_REPO_ID : w.repo; // repo สร้างหลัง 15 ก.ค. 2026 ส่ง sub แบบ immutable
+  sub = env ? "repo:" + rpart + ":environment:" + env : kind === "prd" ? "repo:" + rpart + ":ref:refs/tags/" + ctx.ref : "repo:" + rpart + ":ref:refs/heads/" + ctx.ref;
   if (!w.idToken) { push(ghaStep("Configure AWS credentials (OIDC)", false, ["Run aws-actions/configure-aws-credentials@v4", "Error: Credentials could not be loaded, please check your action inputs: Could not load credentials from any providers"], "workflow ไม่มี permissions: id-token: write → GitHub ไม่ออก ID token ให้ job นี้ (ข้อความจริงอาจต่าง)")); return { steps: steps, ok: false, sub: sub }; }
   var prov = ghaOidc(); if (!prov) { push(ghaStep("Configure AWS credentials (OIDC)", false, ["Error: Could not assume role with OIDC: No OpenIDConnect provider found in your account for https://" + GHA_ISSUER], "IAM › Identity providers ยังไม่มี provider ของ GitHub")); return { steps: steps, ok: false, sub: sub }; }
   role = roleByRef(w.roleArn);
   var tr = role ? ghaTrust(role, sub, "sts.amazonaws.com") : { ok: false, why: "ไม่พบ role " + w.roleArn };
-  if (!tr.ok) { push(ghaStep("Configure AWS credentials (OIDC)", false, ["Run aws-actions/configure-aws-credentials@v4", "Error: Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity"], "job นี้ส่ง sub = " + sub + " · " + (tr.why || "trust policy ไม่ตรง"))); return { steps: steps, ok: false, sub: sub }; }
+  if (!tr.ok) { push(ghaStep("Configure AWS credentials (OIDC)", false, ["Run aws-actions/configure-aws-credentials@v4", "Error: Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity"], "job นี้ส่ง sub = " + sub + " · " + (tr.why || "trust policy ไม่ตรง") + (w.immutable ? " · repo นี้ส่ง sub แบบ immutable (มี @<id>) ถ้า trust เป็นแบบเก่า repo:ORG/REPO:… จะไม่ตรง → แก้ trust เป็น repo:ORG@*/REPO@*:… (StringLike) หรือใส่ id จริง" : ""))); return { steps: steps, ok: false, sub: sub }; }
   push(ghaStep("Configure AWS credentials (OIDC)", true, ["Assuming role with OIDC (sub: " + sub + ")", "Authenticated as assumedRoleId " + (role ? role.name : "")]));
   var ecrLogin = iamCan(role, "ecr:GetAuthorizationToken", "*");
   if (!push(ghaStep("Login to Amazon ECR (amazon-ecr-login@v2)", ecrLogin, ecrLogin ? ["Logging into registry " + ACCOUNT + ".dkr.ecr." + REGION + ".amazonaws.com", "Login Succeeded"] : ["Error: " + cdNotAuth(role, "ecr:GetAuthorizationToken", "*", sess).replace(/^User/, "User")], ecrLogin ? "" : "role ของ GitHub Actions ไม่มี ecr:GetAuthorizationToken"))) return { steps: steps, ok: false, sub: sub };

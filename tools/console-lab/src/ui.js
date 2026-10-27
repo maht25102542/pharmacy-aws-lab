@@ -1725,6 +1725,7 @@ function labBody(tab) {
       ["gha-ecr", "GitHub Actions ล้ม: role ไม่มีสิทธิ์ push ECR", "login ผ่าน แต่ docker push ถูกปฏิเสธ", ""],
       ["gha-deploy", "GitHub Actions ล้ม: CONTAINER_NAME ไม่ตรง task definition", "push ผ่าน แต่ขั้น render task definition หา container ไม่เจอ", ""],
       ["gha-pass", "GitHub Actions ล้ม: role ไม่มี iam:PassRole", "ขั้น deploy ล้ม", ""],
+      ["gha-immutable", "GitHub Actions ล้ม: repo ใหม่ส่ง sub แบบ immutable (trust เป็นแบบเก่า)", "repo สร้างหลัง 15 ก.ค. 2026 ส่ง `repo:ORG@<id>/REPO@<id>:…` · trust `repo:ORG/REPO:*` ไม่ตรง · Not authorized · แก้ trust เป็น `@*`", ""],
       ["cd", "CI/CD ครบทั้งชุด: GitHub → CodeBuild → ECR → ECS dev → อนุมัติ → prd", "สร้างตาม **labs/04-cicd/** บน ECS ของ lab 02: connection (Available) + CodeBuild + pipeline 5 ขั้น · execution แรกผ่านทั้ง dev และ prd แล้ว · กด **Release change** เพื่อปล่อยรอบใหม่", ""],
       ["cd-base", "CI/CD: มี connection/role/build project แล้วสร้าง pipeline เอง", "มี bucket, role, connection (Available), CodeBuild project · ลองสร้าง pipeline ใน CodePipeline", ""],
       ["cd-conn", "CI/CD ล้ม: GitHub connection ยัง Pending", "Terraform สร้าง connection ได้แต่ต้อง authorize เอง · ขั้น Source ล้ม", ""],

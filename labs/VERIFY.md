@@ -43,7 +43,7 @@
 | ไม่มี OIDC provider | README ไม่มีข้อความ | `No OpenIDConnect provider found in your account for https://token.actions.githubusercontent.com` | ❌ จากความจำ |
 | render task definition หา container ไม่เจอ | ไม่ทราบ | `Could not find container definition with matching name '…'` | ❌ จากความจำ |
 | deploy ไม่ stable | `Resource is not in the state servicesStable` | ตรง | ⚠️ ถ้อยคำจากความจำ · เอกสาร CLI ยืนยันแค่: poll ทุก 15 วินาที ล้มหลัง 40 ครั้ง (~10 นาที) |
-| รูปแบบ sub รุ่นใหม่ | เอกสาร GitHub+README: repo ที่สร้างหลัง 15 ก.ค. 2026 (หรือ opt-in) ส่ง `repo:ORG@<org id>/REPO@<repo id>:…` · repo เก่าไม่เปลี่ยน | TF lab ใส่ทั้งแบบเก่าและแบบใหม่ (`@*` ผ่าน StringLike) · sim ยังส่งแบบเก่าอย่างเดียว | ✅ จากเอกสาร · ⚠️ ถ้า repo ใหม่ของคุณ trust แบบเก่าจะ `Not authorized` — แก้แล้วใน main.tf |
+| รูปแบบ sub รุ่นใหม่ | เอกสาร GitHub+README: repo ที่สร้างหลัง 15 ก.ค. 2026 (หรือ opt-in) ส่ง `repo:ORG@<org id>/REPO@<repo id>:…` · repo เก่าไม่เปลี่ยน | TF lab ใส่ทั้งแบบเก่าและแบบใหม่ (`@*` ผ่าน StringLike) · sim ส่งแบบใหม่ได้ (ติ๊กที่ฟอร์ม workflow / เคส gha-immutable · id สมมติ 1234567/987654321) | ✅ จากเอกสาร · ⚠️ ถ้า repo ใหม่ของคุณ trust แบบเก่าจะ `Not authorized` — แก้แล้วใน main.tf |
 | `ForAllValues:` ใน trust | README เตือนว่าอย่าใช้ใน Allow (ผ่านได้เมื่อ claim หาย/พิมพ์ผิด) | ไม่จำลอง | ✅ README |
 
 ## Lab 6 (labs/06-single-vm) — จำลองจากพฤติกรรมที่รู้ ไม่ได้ค้นข้อความ error (ไม่มีข้อความ error ของ AWS เกี่ยวข้อง)
