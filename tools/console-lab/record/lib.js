@@ -58,15 +58,15 @@ async function where2() { return await ev(`(function(){var h=[].slice.call(docum
 const crypto = require("crypto");
 const VENV = process.env.REC_VENV || "/tmp/claude-1000/-home-swd-Desktop-work-pharmacy-aws-lab/e26c2d62-bc7d-42b2-9d98-9b40ddadd580/scratchpad/venv";
 const EDGE = process.env.EDGE_TTS || VENV + "/bin/edge-tts", FFMPEG = process.env.FFMPEG || VENV + "/lib/python3.12/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2";
-const VOICE = process.env.REC_VOICE || "th-TH-PremwadeeNeural", ADIR = __dirname + "/audio";
+const VOICE = process.env.REC_VOICE || "th-TH-PremwadeeNeural", RATE = process.env.REC_RATE || "-8%", PITCH = process.env.REC_PITCH || "+0Hz", ADIR = __dirname + "/audio";
 // edge-tts ปฏิเสธข้อความไทยปนอังกฤษบางแบบ → สะกดคำอังกฤษเป็นไทยก่อนส่ง (ยาวก่อนสั้น)
 const PHON = [["Let's Encrypt", "เล็ทส์เอ็นคริปต์"], ["Route 53", "รูทฟิฟตี้ทรี"], ["Security Group", "ซีเคียวริตี้กรุ๊ป"], ["Elastic IP", "อิลาสติกไอพี"], ["hosted zone", "โฮสต์โซน"], ["user data", "ยูสเซอร์ดาต้า"], ["key pair", "คีย์แพร์"], ["CloudFront", "คลาวด์ฟรอนท์"], ["cloud-init", "คลาวด์อินิท"], ["index.html", "อินเด็กซ์เอชทีเอ็มแอล"], ["Docker Compose", "ด็อกเกอร์คอมโพส"], ["docker compose", "ด็อกเกอร์คอมโพส"], ["t3.small", "ทีทรีสมอล"], ["Launch instance", "ลอนช์อินสแตนซ์"], ["Create", "ครีเอท"], ["bucket", "บักเก็ต"], ["Bucket", "บักเก็ต"], ["subnet", "ซับเน็ต"], ["Caddy", "แคดดี้"], ["Browser", "บราวเซอร์"], ["Services", "เซอร์วิส"], ["Upload", "อัปโหลด"], ["CNAME", "ซีเนม"], ["Alias", "อาเลียส"], ["alias", "อาเลียส"], ["record", "เรคคอร์ด"], ["Associate", "แอสโซซิเอท"], ["Allocate", "แอลโลเคท"], ["HTTPS", "เอชทีทีพีเอส"], ["DNS", "ดีเอ็นเอส"], ["EC2", "อีซีทู"], ["ACM", "เอซีเอ็ม"], ["OAC", "โอเอซี"], ["VPC", "วีพีซี"], ["IGW", "ไอจีดับเบิลยู"], ["SSH", "เอสเอสเอช"], ["SG", "เอสจี"], ["IP", "ไอพี"], ["S3", "เอสทรี"], ["app", "แอป"], ["user", "ยูสเซอร์"], ["dev", "เดฟ"], ["prd", "พีอาร์ดี"]];
 function phon(t) { PHON.forEach(([a, b]) => { t = t.split(a).join(b); }); return t.replace(/[①②③④⑤⑥⑦⑧⑨⑩⑪⑫✓→›·]/g, " ").replace(/\s+/g, " ").trim(); }
 function dur(f) { try { execFileSync(FFMPEG, ["-i", f], { stdio: "pipe" }); } catch (e) { const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(String(e.stderr)); if (m) return +m[1] * 3600 + +m[2] * 60 + +m[3]; } return 3; }
 function tts(text) {
-  fs.mkdirSync(ADIR, { recursive: true }); const p = phon(text), f = ADIR + "/" + crypto.createHash("sha1").update(VOICE + p).digest("hex").slice(0, 12) + ".mp3";
+  fs.mkdirSync(ADIR, { recursive: true }); const p = phon(text), f = ADIR + "/" + crypto.createHash("sha1").update(VOICE + RATE + PITCH + p).digest("hex").slice(0, 12) + ".mp3";
   if (fs.existsSync(f) && fs.statSync(f).size > 0) return f;
-  for (let i = 0; i < 10; i++) { try { execFileSync(EDGE, ["--voice", VOICE, "--text", [p + ".", p, "ตอนนี้" + p + ".", p + "..."][i % 4], "--write-media", f], { stdio: "pipe" }); if (fs.statSync(f).size > 0) return f; } catch (e) {} execFileSync("sleep", [String(1 + i)]); }
+  for (let i = 0; i < 10; i++) { try { execFileSync(EDGE, ["--voice", VOICE, "--rate=" + RATE, "--pitch=" + PITCH, "--text", [p + ".", p, "ตอนนี้" + p + ".", p + "..."][i % 4], "--write-media", f], { stdio: "pipe" }); if (fs.statSync(f).size > 0) return f; } catch (e) {} execFileSync("sleep", [String(1 + i)]); }
   const w = p.split(" "); if (w.length < 2) throw new Error("TTS ล้มเหลว: " + p);
   const m = Math.ceil(w.length / 2), parts = [tts(w.slice(0, m).join(" ")), tts(w.slice(m).join(" "))], lst = f + ".txt"; // ตัดครึ่งแล้วต่อไฟล์
   fs.writeFileSync(lst, parts.map((x) => `file '${x}'`).join("\n")); execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c:a", "libmp3lame", f]); return f;
