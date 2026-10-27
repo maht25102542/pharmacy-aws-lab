@@ -1,5 +1,0 @@
-FAIL name ไม่พบ: {"t":"— เลือกตัวอย่าง —","tag":"button"}
-URL-STATE crumb=EC2
-Instances
-Launch an instance
-I:search Search [Alt+S] ¦ B:button EC2 ¦ I:text 198.51.100.7 ¦ B:button à¸›à¸à¸•à¸´ ¦ B:button à¹€à¸ªà¸£à¹‡à¸ˆà¸—à¸±à¸™à¸—à¸µ ¦ B:button à¸•à¸²à¸¡à¸£à¸°à¸šà¸š ¦ B:button Dashboard ¦ B:button EC2 Global 
