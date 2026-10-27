@@ -118,7 +118,7 @@ async function costScene(key, sayText) {
 // container ของช่อง (.f) ที่ label ขึ้นต้นด้วย label; ทำเครื่องหมาย element ที่ต้องการด้วย data-fx แล้วคลิก/พิมพ์ด้วยเมาส์-คีย์บอร์ดจริง
 async function fxMark(label, what) {
   return await ev(`(function(label,what){ [].slice.call(document.querySelectorAll("[data-fx]")).forEach(function(e){e.removeAttribute("data-fx")});
-    var fs=[].slice.call(document.querySelectorAll("main .f")).filter(function(f){var l=f.querySelector(".l,label"); return l && (l.innerText||"").trim().replace(/\\s+/g," ").indexOf(label)===0;}); var f=fs[0]; if(!f) return "nofield";
+    var fs=[].slice.call(document.querySelectorAll("main .f")).filter(function(f){var l=f.querySelector(".l,label"); return l && (l.innerText||"").trim().replace(/\\s+/g," ").indexOf(label)===0;}); var f=fs[0]; if(!f){ var ls=[].slice.call(document.querySelectorAll("main label")).filter(function(l){return (l.innerText||"").trim().replace(/\\s+/g," ").indexOf(label)===0;}); if(ls[0]) f=ls[0].parentElement; } if(!f) return "nofield";
     var t = what==="btn" ? f.querySelector(".csel-btn") : f.querySelector("input[type=text],input:not([type]),input[type=search],textarea"); if(!t) return "notarget"; t.setAttribute("data-fx","1"); return "ok"; })(${JSON.stringify(label)},${JSON.stringify(what)})`);
 }
 // เติมช่องข้อความ: ถ้าเป็นช่องที่มี dropdown ตัวอย่าง ให้เปิดแล้วเลือก "ไม่ระบุ — พิมพ์เอง" ก่อน แล้วพิมพ์ค่า
