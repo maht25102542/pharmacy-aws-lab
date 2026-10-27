@@ -13,3 +13,5 @@
 
 ลองใน Console Lab: Lab › **Use case จริง** › 5 และ Lab › ตัวอย่างสำเร็จรูป › ⑨
 เคส error: ไม่มี `id-token: write` · ไม่มี OIDC provider · trust ผูกแค่ branch (job ที่ใส่ environment ส่ง sub คนละแบบ) · role ไม่มีสิทธิ์ ECR · CONTAINER_NAME ผิด · ไม่มี iam:PassRole
+
+💰 ค่าใช้จ่าย & bill management ของ lab นี้: [COST.md](COST.md) (สร้างจาก `tools/console-lab/src/mod/61-cost-data.js` ด้วย `node tools/console-lab/gen-cost-md.js`)

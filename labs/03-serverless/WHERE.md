@@ -16,3 +16,5 @@
 
 ลองใน Console Lab: Lab › **Use case จริง** › 3 และ Lab › ตัวอย่างสำเร็จรูป › ⑦
 เคส error: Lambda ไม่มีสิทธิ์ DynamoDB · API Gateway ไม่มี permission เรียก Lambda · route พิมพ์ผิด (404) · TABLE_NAME ผิด
+
+💰 ค่าใช้จ่าย & bill management ของ lab นี้: [COST.md](COST.md) (สร้างจาก `tools/console-lab/src/mod/61-cost-data.js` ด้วย `node tools/console-lab/gen-cost-md.js`)

@@ -18,3 +18,5 @@
 
 ลองใน Console Lab: Lab › **Use case จริง** › 2 และ Lab › ตัวอย่างสำเร็จรูป › ⑥
 เคส error: private subnet ไม่มี NAT · image tag ไม่มีใน ECR · execution role ขาด policy · SG ของ DB ผิดตัว · health check path ผิด
+
+💰 ค่าใช้จ่าย & bill management ของ lab นี้: [COST.md](COST.md) (สร้างจาก `tools/console-lab/src/mod/61-cost-data.js` ด้วย `node tools/console-lab/gen-cost-md.js`)

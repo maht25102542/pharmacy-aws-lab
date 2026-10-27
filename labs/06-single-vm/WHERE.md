@@ -15,3 +15,5 @@
 เคส error: SG ไม่เปิด 80 · user_data ลืม `docker compose up` · ไม่ผูก Elastic IP แล้ว stop/start · ไม่มี A record
 
 ข้อจำกัดของตัวจำลอง: ไม่ได้รันสคริปต์จริง อ่าน user_data แล้วตัดสินจากรูปแบบ (มี docker install? มี `docker compose up`? Caddyfile มีชื่อโดเมน?) · ใบรับรอง Let's Encrypt จำลองจากเงื่อนไข DNS + port 80
+
+💰 ค่าใช้จ่าย & bill management ของ lab นี้: [COST.md](COST.md) (สร้างจาก `tools/console-lab/src/mod/61-cost-data.js` ด้วย `node tools/console-lab/gen-cost-md.js`)

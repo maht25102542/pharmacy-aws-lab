@@ -15,3 +15,5 @@
 
 ลองใน Console Lab: Lab › **Use case จริง** › 4 และ Lab › ตัวอย่างสำเร็จรูป › ⑧
 เคส error: connection Pending · ไม่เปิด Privileged · role CodeBuild ไม่มี ECR · CONTAINER_NAME ไม่ตรง task definition · pipeline role ไม่มี iam:PassRole
+
+💰 ค่าใช้จ่าย & bill management ของ lab นี้: [COST.md](COST.md) (สร้างจาก `tools/console-lab/src/mod/61-cost-data.js` ด้วย `node tools/console-lab/gen-cost-md.js`)

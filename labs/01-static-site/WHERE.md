@@ -14,3 +14,5 @@
 
 ลองใน Console Lab: Lab › **Use case จริง** (diagram, แอนิเมชัน, โค้ดเทียบหน้า console, เคส error) และ Lab › ตัวอย่างสำเร็จรูป › ⑤
 เคส error ที่จำลอง: 403 AccessDenied (policy ผิด distribution) · ใบรับรองผิด region · ใบรับรอง Pending validation · ปล่อยแล้วเห็นของเก่า (cache)
+
+💰 ค่าใช้จ่าย & bill management ของ lab นี้: [COST.md](COST.md) (สร้างจาก `tools/console-lab/src/mod/61-cost-data.js` ด้วย `node tools/console-lab/gen-cost-md.js`)
