@@ -145,6 +145,16 @@ async function choose(label, optText) {
 }
 // คลิกการ์ดตัวเลือก (rcard) ตามข้อความ
 async function card(text) { await click({ t: text, tag: "main .rcard", starts: true }); await sleep(300); }
+// เลือก dropdown ตัวสุดท้ายที่ข้อความปุ่มขึ้นต้นด้วย btnText (เช่น แถวที่เพิ่งกด Add rule) แล้วเลือกตัวเลือก
+async function chooseLast(btnText, optText) {
+  const r = await ev(`(function(t){ [].slice.call(document.querySelectorAll("[data-fx]")).forEach(function(e){e.removeAttribute("data-fx")}); var bs=[].slice.call(document.querySelectorAll("main .csel-btn")).filter(function(b){return (b.innerText||"").trim().indexOf(t)===0}); var b=bs[bs.length-1]; if(!b) return "none"; b.setAttribute("data-fx","1"); return "ok"; })(${JSON.stringify(btnText)})`);
+  if (r !== "ok") throw new Error("ไม่พบ dropdown " + btnText);
+  await click("[data-fx]"); await sleep(150);
+  const op = await whereWait({ t: optText, starts: true, tag: ".csel-opt" }); if (!op) throw new Error("ไม่พบตัวเลือก " + optText);
+  await shot(0.4); await moveTo(op); await shot(0.6);
+  await ev(`(function(t){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").trim().indexOf(t)===0})[0]; ["mousedown","mouseup","click"].forEach(function(x){o.dispatchEvent(new MouseEvent(x,{bubbles:true}))}); })(${JSON.stringify(optText)})`);
+  await sleep(250);
+}
 async function encode(out) { // เฟรม + เสียง → mp4
   const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.8);
   const list = frames.map(([f, s]) => `file '${f}'\nduration ${s.toFixed(3)}`).join("\n") + `\nfile '${frames[frames.length - 1][0]}'\n`; fs.writeFileSync(__dirname + "/list.txt", list);
@@ -159,4 +169,4 @@ async function encode(out) { // เฟรม + เสียง → mp4
   // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });
 }
-module.exports = { fill, choose, card, costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
+module.exports = { chooseLast, fill, choose, card, costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };

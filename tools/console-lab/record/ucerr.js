@@ -7,26 +7,26 @@ const CASES = {
   "single-sg": { out: "usecase6-err", title: "Use case 6 · เคส error: เปิดเว็บไม่ได้ (SG ไม่เปิด port 80)", intro: "เคส error ของ use case หก เครื่อง EC2 รันอยู่ แต่เปิดเว็บไม่ได้",
     build: `buildSingle("single-sg")`, url: `"https://app.pharmacy.example.com/"`, fixSvc: ["EC2", "EC2"],
     sym: "เปิดเว็บแล้วขึ้น หน้าไม่ตอบสนอง หรือ ใบรับรองมีปัญหา ทั้งที่เครื่องก็รันอยู่", cause: "ตัวจำลองไล่ให้ดู ขั้นที่ล้มเหลวคือ security group ไม่เปิดพอร์ต แปดสิบ ซึ่ง Let's Encrypt ต้องใช้พอร์ตนี้ตรวจโดเมน",
-    nav: async () => { await svc("EC2"); await L.click(B("Security Groups")); await step("sgsel", async () => { await L.click({ t: "sg-", tag: "a,td", starts: true, nth: 0 }); }); await L.hold(2.5); },
+    nav: async () => { await svc("EC2", "Compute"); await L.click(B("Security Groups")); await step("sgsel", async () => { await L.click({ t: "pharmacy-single-web", tag: "a,td", starts: true }); }); await L.hold(2.5); },
     navCap: "EC2 › Security Groups › pharmacy-single-web › Inbound rules (ไม่มี HTTP 80)", navSay: "ไปดู security group ของเครื่อง จะเห็นว่ามีแค่ HTTPS กับ SSH ไม่มี HTTP พอร์ตแปดสิบ",
-    fix: `(function(){var g=byName(S.sgs,"pharmacy-single-web"); function R(t,p,k,s){return {type:t,port:p,srcKind:k,src:s}} API.setInbound(g.id,[R("HTTP","","Anywhere-IPv4"),R("HTTPS","","Anywhere-IPv4"),R("SSH","","My IP")]); render();})()`,
-    fixCap: "Edit inbound rules › เพิ่ม HTTP 80 จาก Anywhere-IPv4 → Save (ย่อขั้นตอน)", fixSay: "แก้โดยเพิ่ม rule HTTP พอร์ตแปดสิบ จากทุกที่ แล้วบันทึก",
+    fixReal: async () => { await step("eir", async () => { await L.click(B("Actions", { nth: 0 })); await L.click(B("Edit inbound rules")); }); await step("ar", async () => { await L.click(B("Add rule", { nth: 0 })); }); await step("t", async () => { await L.chooseLast("SSH", "HTTP"); }); await step("s", async () => { await L.chooseLast("My IP", "Anywhere-IPv4"); }); await L.hold(1.5); await L.click(B("Save rules")); await L.hold(1.5); },
+    fixCap: "Edit inbound rules › Add rule › HTTP · Anywhere-IPv4 → Save rules", fixSay: "แก้โดยเพิ่ม rule HTTP พอร์ตแปดสิบ จากทุกที่ แล้วบันทึก",
     done: "เปิดเว็บได้แล้ว: เพิ่ม HTTP 80 ให้ Let's Encrypt ตรวจโดเมนได้" },
   "apr-port": { out: "usecase7-err", title: "Use case 7 · เคส error: service ขึ้นไม่ได้ (port ไม่ตรงกับที่แอปฟัง)", intro: "เคส error ของ use case เจ็ด App Runner สร้างแล้ว แต่ prd เปิดไม่ได้",
     build: `buildApr("apr-port")`, url: `"https://" + S.aprs.filter(function(x){return x.name==="pharmacy-api-prd"})[0].url + "/healthz"`, fixSvc: ["App Runner", "App Runner"],
     sym: "เรียก URL ของ prd แล้วไม่ได้คำตอบที่ถูกต้อง", cause: "ตัวจำลองบอกว่า port ที่ตั้งไว้คือ แปดพันแปดสิบ แต่แอปจริงฟังที่ แปดพัน health check จึงไม่ผ่าน",
-    nav: async () => { await svc("App Runner", "Containers"); await step("aprsel", async () => { await L.click({ t: "pharmacy-api-prd", tag: "a,td", starts: true }); }); await L.hold(2.5); },
+    nav: async () => { await svc("App Runner", "Containers"); await step("aprsel", async () => { await L.click({ t: "pharmacy-api-prd", tag: "a,td", starts: true }); }); await L.click(B("Configuration", { nth: 0 })); await L.hold(2.5); },
     navCap: "App Runner › pharmacy-api-prd › Configuration: Port = 8080 (แอปฟัง 8000)", navSay: "เปิดดู service ของ prd ที่ Configuration จะเห็นว่า port ตั้งเป็น แปดพันแปดสิบ",
-    fix: `API.updateAppRunner("pharmacy-api-prd", { port: 8000 }); render();`,
-    fixCap: "Edit configuration › Port = 8000 → Save (ย่อขั้นตอน)", fixSay: "แก้ port ให้ตรงกับแอปเป็น แปดพัน แล้วบันทึก",
+    fixReal: async () => { await step("ed", async () => { await L.click(B("Edit", { nth: 0 })); }); await step("pt", async () => { await L.fill("Port", "8000"); }); await L.hold(1.5); await L.click(B("Save changes")); await L.hold(2); },
+    fixCap: "Configuration › Edit › Port = 8000 → Save changes", fixSay: "แก้ port ให้ตรงกับแอปเป็น แปดพัน แล้วบันทึก",
     done: "prd ตอบ 200 แล้ว: port ต้องตรงกับที่แอปฟังจริง" },
   "sls-invoke": { out: "usecase3-err", title: "Use case 3 · เคส error: API Gateway เรียก Lambda ไม่ได้ (ลืม permission)", intro: "เคส error ของ use case สาม prd ตอบ error ห้าร้อย",
     build: `buildSls("sls-invoke")`, url: `(function(){var a=S.apis.filter(function(x){return /prd/.test(x.name)})[0]; return apiInvokeUrl(a,a.stages[0])+"/drugs"})()`, fixSvc: ["Lambda", "Lambda"],
     sym: "เรียก API ของ prd แล้วได้ ห้าร้อย Internal Server Error", cause: "ตัวจำลองไล่ตามขั้นของ API Gateway พบว่า API Gateway ไม่มีสิทธิ์เรียก Lambda เพราะลืมเพิ่ม resource based policy",
-    nav: async () => { await svc("Lambda", "Compute"); await step("lsel", async () => { await L.click({ t: "pharmacy-api-prd", tag: "a,td", starts: true }); }); await L.hold(2.5); },
+    nav: async () => { await svc("Lambda", "Compute"); await step("lsel", async () => { await L.click({ t: "pharmacy-api-prd", tag: "a,td", starts: true }); }); await L.click(B("Configuration", { nth: 0 })); await L.hold(2.5); },
     navCap: "Lambda › pharmacy-api-prd › Permissions: ไม่มี statement ของ apigateway.amazonaws.com", navSay: "เปิดดู Lambda ของ prd แท็บ Permissions ไม่มีสิทธิ์ให้ API Gateway เรียก",
-    fix: `(function(){var a=S.apis.filter(function(x){return /prd/.test(x.name)})[0]; API.addLambdaPermission({fn:"pharmacy-api-prd",sid:"AllowAPIGatewayInvoke",principal:"apigateway.amazonaws.com",sourceArn:slsExecArn(a)+"/*/*"}); render();})()`,
-    fixCap: "Add permissions › AWS service › API Gateway → Save (ย่อขั้นตอน)", fixSay: "เพิ่มสิทธิ์ให้ API Gateway เรียก Lambda ตัวนี้ได้ แล้วบันทึก",
+    fixReal: async () => { await step("ap", async () => { await L.click(B("Add permissions", { nth: 0 })); }); await step("src", async () => { await L.choose("Source ARN", "pharmacy-api-prd"); }); await L.hold(1.5); await L.click(B("Save", { nth: 0 })); await L.hold(2); },
+    fixCap: "Configuration › Permissions › Add permissions › Source ARN = API นี้ → Save", fixSay: "เพิ่มสิทธิ์ให้ API Gateway เรียก Lambda ตัวนี้ได้ แล้วบันทึก",
     done: "prd ตอบ 200 แล้ว: ต้องมี lambda permission ให้ API Gateway" }
 };
 (async () => {
@@ -45,7 +45,7 @@ const CASES = {
   await L.tick(1, "รู้สาเหตุแล้ว", "รู้สาเหตุแล้ว");
   await L.intro(2, "แก้ที่ " + C.fixSvc[0], "ไปแก้ตรงจุดที่ผิด", "ไปที่ console เพื่อแก้ตรงจุดที่ผิด");
   await L.cap("③ " + C.navCap, C.navSay); await C.nav();
-  await L.cap("④ " + C.fixCap, C.fixSay); await L.ev(C.fix); await L.hold(2);
+  await L.cap("④ " + C.fixCap, C.fixSay); await C.fixReal(); await L.hold(1);
   await L.tick(2, "แก้แล้ว", "แก้เรียบร้อย");
   await L.intro(3, "ทดสอบซ้ำ", "เปิดเว็บอีกครั้ง", "มาลองเปิดเว็บอีกครั้ง");
   await L.cap("⑤ Browser → Go ซ้ำ", "กลับไปที่ Browser แล้วกด Go ซ้ำ"); await L.click(B("Browser", { nth: 0 })); await L.hold(0.5); await L.click(B("Go")); await L.hold(2.5);
