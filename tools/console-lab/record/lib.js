@@ -107,7 +107,7 @@ async function encode(out) { // เฟรม + เสียง → mp4
   narr.forEach((x) => args.push("-i", x.f));
   const flt = narr.map((x, i) => `[${i + 1}:a]adelay=${Math.round(x.t0 * 1000)}|${Math.round(x.t0 * 1000)}[a${i}]`).join(";") + ";" + narr.map((x, i) => `[a${i}]`).join("") + `amix=inputs=${narr.length}:normalize=0:dropout_transition=0[aout]`;
   if (narr.length) args.push("-filter_complex", flt, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "96k");
-  args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", out);
+  args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", "-movflags", "+faststart", out);
   execFileSync(FFMPEG, args, { stdio: "inherit" });
 }
 module.exports = { intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };

@@ -412,7 +412,11 @@ function ucErrTable(u) {
 var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"]];
 // player: ดับเบิลคลิก/แตะครึ่งขวา = ข้าม 5 วิ, ครึ่งซ้าย = ย้อน 5 วิ, คลิกเดียว = เล่น/หยุด + ปุ่มเปิด-ปิดเสียง
 function ucVideo(src) {
-  var v = h("video", { src: src, controls: true, volume: 1, preload: "metadata", style: "display:block;width:100%" });
+  // เซิร์ฟเวอร์ artifact ไม่รองรับ HTTP Range → ข้าม/ย้อนเวลาไม่ได้ ถ้าสตรีมตรงๆ จึงโหลดทั้งไฟล์เป็น blob ก่อน (~4 MB)
+  var v = h("video", { controls: true, volume: 1, preload: "auto", style: "display:block;width:100%" });
+  var note = h("div", { cls: "hint", style: "margin:6px 0", text: "กำลังโหลดวิดีโอ…" });
+  fetch(src).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(function (b) { v.src = URL.createObjectURL(new Blob([b], { type: "video/mp4" })); note.remove(); })
+    .catch(function () { v.src = src; note.textContent = "โหลดแบบสตรีม (ข้ามช่วงเวลาอาจใช้ไม่ได้)"; });
   var wrap = h("div", { style: "position:relative;width:100%;max-width:960px;border-radius:8px;overflow:hidden;background:#000" }, [v]);
   [-1, 1].forEach(function (dir) {
     var last = 0, tm = null;
@@ -437,7 +441,7 @@ function ucVideo(src) {
   wrap.addEventListener("mousemove", showBar); wrap.addEventListener("touchstart", showBar);
   wrap.appendChild(cbar);
   var mute = h("button", { cls: "btn", type: "button", text: "🔊 เสียง: เปิด", onclick: function () { v.muted = !v.muted; mute.textContent = v.muted ? "🔇 เสียง: ปิด" : "🔊 เสียง: เปิด"; } });
-  return h("div", {}, [wrap, h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" }, [mute, h("span", { cls: "hint", style: "margin:0", text: "ดับเบิลคลิก/แตะครึ่งขวาของจอ = ข้าม 5 วินาที · ครึ่งซ้าย = ย้อน 5 วินาที · คลิกเดียว = เล่น/หยุด" })])]);
+  return h("div", {}, [note, wrap, h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" }, [mute, h("span", { cls: "hint", style: "margin:0", text: "ดับเบิลคลิก/แตะครึ่งขวาของจอ = ข้าม 5 วินาที · ครึ่งซ้าย = ย้อน 5 วินาที · คลิกเดียว = เล่น/หยุด" })])]);
 }
 function ucTab() {
   var u = ucCur(), cb = h("div", { cls: "cb" });
