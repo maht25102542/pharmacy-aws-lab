@@ -1658,7 +1658,7 @@ PAGES.browser = function () {
   else if (r.site === "apigw") view = wbApigw(r);
   else if (r.site === "compose") view = wbCompose(r);
   else if (r.site === "aprun") view = wbAprun(r);
-  else if (r.site === "api") view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("div", { cls: "hint", text: "GET " + r.host + r.path + " → 200 OK · Content-Type: application/json" }), codePre(JSON.stringify(r.json, null, 2), "an"), h("p", { cls: "hint", text: r.health ? "นี่คือ path ที่ ALB ใช้ health check" : "กด Go ซ้ำ: ALB สลับไป task ตัวอื่น (task / az เปลี่ยน) = load balancing" })])]);
+  else if (r.site === "api") view = wbWin({ url: W.addr || "http://" + r.host + r.path, title: "pharmacy-api · " + r.path, ico: "🧩", status: 200, statusText: "OK", insecure: !/^https:/i.test(W.addr || ""), body: wbJsonBody(r.json, { title: r.health ? "Health check · " + r.path : "pharmacy API · " + r.path }), extra: h("div", { cls: "bw-why" }, [h("p", { cls: "hint", style: "margin:0", text: r.health ? "นี่คือ path ที่ ALB ใช้ health check" : "กด Go ซ้ำ: ALB สลับไป task ตัวอื่น (task / az เปลี่ยน) = load balancing" })]) });
   else if (r.site === "github") view = wbGithub(r);
   else if (r.site === "alb503") view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "503 Service Temporarily Unavailable" }), h("p", { cls: "sub", text: "ALB ตอบได้ แต่ไม่มี target ที่ healthy (ดู EC2 › Target Groups › Targets)" })])]);
   else view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: r.site === "sonarqube" ? "SonarQube" : r.site === "argocd" ? "Argo CD" : "pharmacy" }), h("p", { cls: "sub", text: "เข้าถึงได้ (เครือข่ายถูกต้อง) แต่ตัวจำลองยังไม่มีหน้าเว็บของบริการนี้" })])]);

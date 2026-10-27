@@ -174,7 +174,7 @@ UC.push({
 });
 
 UC.push({
-  id: "cd", no: 4, title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
+  id: "cd", no: 4, video: "videos/usecase4-c.mp4", title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
   tag: "ปล่อยของอัตโนมัติ ไม่ต้อง docker build/push เอง · ต่อยอดจาก use case 2",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "แทนที่ที่ต้อง `docker build/push` และกด update service เอง: push โค้ดขึ้น GitHub → **CodePipeline** ดึงโค้ด → **CodeBuild** build + push image ขึ้น ECR → deploy **ECS dev** → **คนอนุมัติ** → deploy **ECS prd**"],
