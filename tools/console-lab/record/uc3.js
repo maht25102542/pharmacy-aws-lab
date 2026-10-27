@@ -6,14 +6,38 @@ const svc = async (t, cat) => { await L.click(B("Services")); if (cat) { await L
   await L.start("file://" + require("path").resolve(__dirname, "../index.html"));
   await L.plan([["DynamoDB", "DynamoDB"], ["IAM role", "IAM"], ["Lambda", "Lambda"], ["API Gateway", "API Gateway"], ["เปิดเว็บ", "🌐"]]);
   await L.cap("Use case 3 · Serverless API: API Gateway + Lambda + DynamoDB", "use case สาม API แบบ serverless ไม่มีเครื่องให้ดูแลเลย ใช้ API Gateway รับ request ส่งให้ Lambda ทำงาน และเก็บข้อมูลใน DynamoDB จ่ายตามจำนวนที่เรียกใช้จริง"); await L.hold(1);
-  await L.ev(`buildSls("sls-base"); UI.sel={}; render(); 1`);
-  await L.cap("เตรียมไว้แล้ว: DynamoDB table + ข้อมูลยา 3 รายการ, IAM role ของ Lambda, log group", "ที่เตรียมไว้ให้แล้วคือ ตาราง DynamoDB พร้อมข้อมูลยาสามรายการ role ของ Lambda และ log group");
-  await L.intro(0, "DynamoDB", "ฐานข้อมูล NoSQL ไม่ต้องดูแลเครื่อง", "นี่คือ DynamoDB ฐานข้อมูลแบบ NoSQL ที่ไม่ต้องดูแลเครื่อง");
-  await L.cap("DynamoDB › Tables: pharmacy-drugs-dev", "เปิดดูตารางที่มีอยู่"); await svc("DynamoDB", "Database"); await L.hold(2.2);
-  await L.tick(0, "ตารางพร้อมแล้ว", "ตารางพร้อมใช้งาน");
-  await L.intro(1, "IAM", "สิทธิ์ของ Lambda ไปแตะ DynamoDB", "นี่คือ IAM role ที่ Lambda จะสวมตอนรัน มีสิทธิ์เขียน log และอ่านเขียนตาราง DynamoDB");
-  await L.cap("IAM › Roles: pharmacy-api-dev-lambda", "role ชื่อ pharmacy api dev lambda มีอยู่แล้ว"); await svc("IAM", "Security, Identity, & Compliance"); await L.click(B("Roles")); await L.hold(2.2);
-  await L.tick(1, "role พร้อมแล้ว", "role พร้อมใช้งาน");
+  await L.ev(`fresh(); UI.sel={}; render(); 1`);
+  // 1 DynamoDB
+  await L.intro(0, "DynamoDB", "ฐานข้อมูล NoSQL ไม่ต้องดูแลเครื่อง", "ขั้นแรก สร้างฐานข้อมูล DynamoDB ซึ่งเป็น NoSQL ที่ไม่ต้องดูแลเครื่อง");
+  await L.cap("① Services › Database › DynamoDB › Create table", "เปิด Services เลือกหมวด Database แล้วเลือก DynamoDB กด Create table"); await svc("DynamoDB", "Database"); await L.click(B("Create table", { nth: 0 }));
+  await L.cap("② ชื่อ table pharmacy-drugs-dev · Partition key id (String) · On-demand", "ตั้งชื่อตารางว่า pharmacy drugs dev กำหนด partition key เป็น id ชนิด String และเลือก On-demand จ่ายตามการใช้จริง ไม่ต้องเดา capacity");
+  await step("tn", async () => { await L.fill("Table name", "pharmacy-drugs-dev"); }); await L.hold(2);
+  await L.click(B("Create table", { nth: 0 })); await L.hold(1.5);
+  await L.cap("③ เพิ่มข้อมูลยา: เลือก table › Create item (id, name, stock, price)", "เพิ่มข้อมูลยาลงตาราง กดที่ชื่อตาราง แล้วกด Create item กรอก id ชื่อยา จำนวนคงเหลือ และราคา");
+  await step("tsel", async () => { await L.click({ t: "pharmacy-drugs-dev", tag: "a", starts: true }); });
+  const items = [["1", "Paracetamol 500mg", "120", "2.5"], ["2", "Amoxicillin 250mg", "60", "8"]];
+  for (const it of items) {
+    await step("ci" + it[0], async () => { await L.click(B("Create item", { nth: 0 })); });
+    await step("i-id" + it[0], async () => { await L.fill("id (partition key)", it[0]); });
+    await step("i-nm" + it[0], async () => { await L.fill("name", it[1]); });
+    await step("i-st" + it[0], async () => { await L.fill("stock", it[2]); });
+    await step("i-pr" + it[0], async () => { await L.fill("price", it[3]); });
+    await L.hold(0.8); await L.click(B("Create item", { nth: 0 })); await L.hold(1.2);
+    if (it[0] === "1") { await L.cap("เพิ่มรายการที่ 2: Amoxicillin 250mg", "เพิ่มยาอีกหนึ่งรายการด้วยวิธีเดียวกัน"); await step("tsel2", async () => { await L.click({ t: "pharmacy-drugs-dev", tag: "a", starts: true }); }); }
+  }
+  await L.tick(0, "ตารางพร้อมแล้ว", "ตารางพร้อมใช้งาน มีข้อมูลยาสองรายการ");
+  // 2 IAM role
+  await L.intro(1, "IAM", "สิทธิ์ของ Lambda ไปแตะ DynamoDB", "ต่อมา IAM สร้าง role ที่ Lambda จะสวมตอนรัน ให้เขียน log และอ่านเขียนตาราง DynamoDB ได้");
+  await L.cap("④ IAM › Roles › Create role › AWS service › Lambda", "เปิด IAM ไปที่ Roles กด Create role เลือก AWS service และ use case เป็น Lambda"); await svc("IAM", "Security, Identity, & Compliance"); await L.click(B("Roles")); await L.click(B("Create role", { nth: 0 }));
+  await step("luc", async () => { await L.pickBtn("EC2", "Lambda"); }); await L.hold(0.8); await L.click(B("Next"));
+  await L.cap("⑤ Policy: AWSLambdaBasicExecutionRole (เขียน log) + ค้นหา DynamoDB แล้วติ๊ก AmazonDynamoDBFullAccess", "นโยบายแรกคือ Lambda Basic Execution Role ให้เขียน log ติ๊กไว้ให้แล้ว แล้วค้นหาคำว่า DynamoDB และติ๊ก AmazonDynamoDBFullAccess ให้อ่านเขียนตารางได้ ของจริงควรจำกัดเฉพาะตารางนี้ แต่ในแล็บใช้ตัวสำเร็จรูปก่อน");
+  await L.hold(1.5); await step("psrch", async () => { await L.type("main input[type=search]", "DynamoDB"); }); await L.hold(0.8);
+  await step("ptick", async () => { await L.ev(`[].slice.call(document.querySelectorAll("main tbody tr")).forEach(function(r){ if((r.innerText||"").indexOf("AmazonDynamoDBFullAccess")===0||(r.innerText||"").trim().indexOf("AmazonDynamoDBFullAccess")===0){ var c=r.querySelector("input[type=checkbox]"); if(c) c.setAttribute("data-tk","1"); } }); 1`); await L.click("[data-tk]"); });
+  await L.hold(1.2); await L.click(B("Next"));
+  await L.cap("⑥ ตั้งชื่อ role: pharmacy-api-dev-lambda → Create role", "ตั้งชื่อ role ว่า pharmacy api dev lambda แล้วกด Create role");
+  await step("rnm", async () => { await L.fill("Role name", "pharmacy-api-dev-lambda"); });
+  await L.click(B("Create role", { nth: 0 })); await L.hold(1.2);
+  await L.tick(1, "role พร้อมแล้ว", "สร้าง role เรียบร้อย");
   // Lambda
   await L.intro(2, "Lambda", "รันโค้ดโดยไม่ต้องมีเครื่อง", "นี่คือ Lambda บริการรันโค้ดโดยไม่ต้องมีเครื่อง");
   await L.cap("① Lambda › Functions › Create function", "เปิด Lambda แล้วกด Create function"); await svc("Lambda", "Compute"); await L.click(B("Create function"));
