@@ -4,7 +4,7 @@ var UC = [];
 var UC_SEL = { id: "static" };
 
 UC.push({
-  id: "static", no: 1, video: "videos/usecase1-c.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
+  id: "static", no: 1, video: "videos/usecase1-d.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
   tag: "นิยมที่สุด · ถูกสุด · ไม่มีเซิร์ฟเวอร์ให้ดูแล",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "เว็บ **ที่เป็นไฟล์** (React/Vue/Next export, เว็บบริษัท, หน้า landing, เอกสาร) ไม่มี backend · ผู้ใช้ทั่วโลกได้ไฟล์จาก **edge ใกล้ตัว** (CloudFront) ส่วน S3 เก็บต้นฉบับแบบส่วนตัว"],
@@ -57,7 +57,7 @@ UC.push({
 });
 
 UC.push({
-  id: "ecs", no: 2, video: "videos/usecase2-c.mp4", title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
+  id: "ecs", no: 2, video: "videos/usecase2-d.mp4", title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
   tag: "ทีมเล็ก-กลางนิยม · ได้ container โดยไม่ต้องดูแล Kubernetes หรือเครื่อง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **backend API ที่เป็น container** (Django/Node/Go) โดย **ไม่ต้องมีเครื่อง** ไม่ต้องดูแล k8s · AWS รัน task ให้ตาม CPU/RAM ที่ขอ · มี **ALB** กระจายโหลด + **RDS** เก็บข้อมูล"],
@@ -119,7 +119,7 @@ UC.push({
 });
 
 UC.push({
-  id: "sls", no: 3, video: "videos/usecase3-c.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-a.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  id: "sls", no: 3, video: "videos/usecase3-d.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-a.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ทำ **API ที่ไม่มีเครื่อง** เลย: ผู้ใช้เรียก **API Gateway** → ปลุก **Lambda** รันโค้ดแค่ตอนมีคำขอ → อ่าน/เขียน **DynamoDB** · ไม่มีอะไรให้ patch/scale · ไม่มีคำขอ = ไม่เสียเงิน"],
@@ -174,7 +174,7 @@ UC.push({
 });
 
 UC.push({
-  id: "cd", no: 4, video: "videos/usecase4-c.mp4", title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
+  id: "cd", no: 4, video: "videos/usecase4-d.mp4", title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
   tag: "ปล่อยของอัตโนมัติ ไม่ต้อง docker build/push เอง · ต่อยอดจาก use case 2",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "แทนที่ที่ต้อง `docker build/push` และกด update service เอง: push โค้ดขึ้น GitHub → **CodePipeline** ดึงโค้ด → **CodeBuild** build + push image ขึ้น ECR → deploy **ECS dev** → **คนอนุมัติ** → deploy **ECS prd**"],
@@ -228,7 +228,7 @@ UC.push({
 });
 
 UC.push({
-  id: "gha", no: 5, video: "videos/usecase5-c.mp4", title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
+  id: "gha", no: 5, video: "videos/usecase5-d.mp4", title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
   tag: "โค้ดอยู่ GitHub อยู่แล้ว ไม่ต้องมีเครื่อง CI · ไม่มี access key ถาวร · ต่อยอดจาก use case 2",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "push โค้ดขึ้น **GitHub** → **GitHub Actions** (รันบนเครื่องของ GitHub) build image → push **ECR** → deploy **ECS dev** อัตโนมัติ · สร้าง **tag** → รอ **คนอนุมัติ** → deploy **ECS prd**"],
@@ -277,7 +277,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-c.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-a.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-d.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-a.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
@@ -325,7 +325,7 @@ UC.push({
 });
 
 UC.push({
-  id: "apr", no: 7, video: "videos/usecase7-c.mp4", errVideos: [["เคส: port ไม่ตรงกับที่แอปฟัง (prd เปิดไม่ได้)", "videos/usecase7-err-a.mp4"]], title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
+  id: "apr", no: 7, video: "videos/usecase7-d.mp4", errVideos: [["เคส: port ไม่ตรงกับที่แอปฟัง (prd เปิดไม่ได้)", "videos/usecase7-err-a.mp4"]], title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
   tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],

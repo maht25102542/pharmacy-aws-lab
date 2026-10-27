@@ -45,6 +45,7 @@ const txt = async (a = 0, n = 900) => (await L.ev(`document.querySelector("main,
   await L.click(B("Approve and deploy")); await L.hold(2.5);
   console.log("PRD2", await txt(380, 900));
   await L.tick(4, "prd ปล่อยสำเร็จ", "อนุมัติแล้ว prd ปล่อยสำเร็จ");
+  await L.costScene("gha", "เรื่องค่าใช้จ่าย ฝั่ง AWS แทบไม่มีค่าเพิ่ม เพราะ OIDC ฟรี ค่า build อยู่ที่ GitHub ซึ่ง repo สาธารณะฟรี ข้อดีใหญ่คือไม่มี access key ให้รั่ว ซึ่งเป็นสาเหตุของบิลหลักแสนจากการโดนขุดเหรียญ แต่ปลายทาง ECS ยังมีค่าเหมือน use case สอง จึงต้องตั้ง Budget และ destroy เมื่อเลิกใช้");
   await L.cap("✓ สำเร็จ: OIDC ไม่มี access key · dev อัตโนมัติ · prd ต้องมีคนอนุมัติ", "สรุป ไม่ต้องเก็บ access key ไว้ใน GitHub เลย dev ปล่อยอัตโนมัติเมื่อ push ส่วน prd ต้องผ่านคนอนุมัติ ข้อควรจำคือ role ต้องจำกัดเฉพาะ repo ของเรา"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase5.mp4"));
   await L.finish();

@@ -41,6 +41,7 @@ const svc = async (t, cat) => { await L.click(B("Services")); if (cat) { await L
   await L.click(B("Go")); await L.hold(2.5);
   console.log("END", (await L.ev(`document.body.innerText`)).replace(/\s+/g, " ").slice(0, 700));
   await L.tick(3, "เปิดได้ HTTPS 200", "เปิดได้แล้ว ตอบกลับสถานะสองร้อย");
+  await L.costScene("apr", "เรื่องค่าใช้จ่าย App Runner มีค่าพื้นตามหน่วยความจำที่จองไว้แม้ไม่มีคนเรียก ประมาณสิบสามดอลลาร์ต่อเดือนสำหรับ dev กับ prd บวกค่า active ตอนมีทราฟฟิก ถ้าไม่ใช้ให้ pause หรือลบ service และตั้ง Budget ไว้เสมอ");
   await L.cap("✓ สำเร็จ: image ใน ECR → App Runner → URL HTTPS พร้อมใช้", "สรุป ให้แค่ image กับ role แล้วได้ URL แบบ HTTPS ทันที แต่ต้องรู้ว่า App Runner ปิดรับลูกค้าใหม่แล้ว โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase7.mp4"));
   await L.finish();

@@ -45,6 +45,7 @@ const txt = async (n = 500) => (await L.ev(`document.body.innerText`)).replace(/
   await step("br2", async () => { await L.sleep(400); await L.type("main input[placeholder], main input[type=text]", url); });
   await L.click(B("Go")); await L.hold(2.5);
   await L.tick(4, "prd ตอบเวอร์ชันใหม่", "แอปบน prd ตอบกลับมาด้วยเวอร์ชันที่เพิ่งปล่อย");
+  await L.costScene("cd", "เรื่องค่าใช้จ่าย pipeline เองถูกมาก ประมาณหนึ่งดอลลาร์ต่อเดือน กับค่า CodeBuild ตามจำนวนนาทีที่ build ครั้งละไม่กี่เซนต์ ส่วนที่แพงคือปลายทางที่ปล่อยไป คือ ECS ของ use case สอง ควรตั้ง lifecycle ให้ ECR ลบ image เก่า และดู Cost Explorer ว่ามี build วนซ้ำผิดปกติไหม");
   await L.cap("✓ สำเร็จ: push โค้ด → build → dev → อนุมัติ → prd อัตโนมัติทั้งสาย", "สรุป ตั้งสายพานครั้งเดียว ต่อไปแค่ push โค้ดก็ build และปล่อยลง dev ให้เอง รอคนอนุมัติแล้วขึ้น prd ต่อ ข้อควรจำคือ role ต้องมีสิทธิ์ iam PassRole และ CodeBuild ต้องเปิด Privileged mode"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase4.mp4"));
   await L.finish();

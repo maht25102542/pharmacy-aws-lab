@@ -60,6 +60,7 @@ const tickBox = async (t) => { await L.ev(`[].slice.call(document.querySelectorA
   await L.click(B("Go")); await L.hold(2.5);
   console.log("END", await txt(0, 700));
   await L.tick(4, "ALB ตอบจาก task", "load balancer ตอบกลับจาก task ได้แล้ว");
+  await L.costScene("ecs", "เรื่องค่าใช้จ่าย use case นี้แพงที่สุดในชุด เพราะมีของที่เปิดทิ้งตลอด คือ NAT gateway กับ load balancer และฐานข้อมูล RDS ซึ่งไม่ขึ้นกับจำนวนผู้ใช้ เปิดทิ้งหนึ่งเดือนประมาณสองร้อยแปดดอลลาร์ แต่ถ้าทำ lab สี่ชั่วโมงแล้วลบทิ้ง ประมาณหนึ่งดอลลาร์ ดังนั้นตั้ง Budget และ Cost Explorer ไว้ดูว่า NAT กับ load balancer กินเท่าไร และทำเสร็จต้อง terraform destroy ทุกครั้ง");
   await L.cap("✓ สำเร็จ: ผู้ใช้ → ALB → ECS task (Fargate) → RDS", "สรุป ผู้ใช้เข้าที่ load balancer ส่งต่อให้ task บน Fargate ซึ่งคุยกับฐานข้อมูล RDS โดยเราไม่ต้องดูแลเครื่องเลย"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase2.mp4"));
   await L.finish();

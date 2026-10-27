@@ -50,6 +50,7 @@ const svc = async (t) => { await L.click(B("Services")); await L.click({ t, tag:
   await L.cap("⑪ เปิดเว็บที่แท็บ Browser → https://dev.pharmacy.example.com", "ลองเปิดเว็บจริง ไปที่แท็บ Browser แล้วเข้า dev จุด pharmacy จุด example จุด com"); await L.click(B("Browser", { nth: 0 }));
   await L.pickBtn("— เลือกตัวอย่าง —", "dev.pharmacy.example.com"); await L.click(B("Go")); await L.hold(2.5);
   await L.tick(5, "เว็บเปิดได้ HTTPS 200", "เว็บเปิดได้แล้ว ผ่าน HTTPS สถานะสองร้อย");
+  await L.costScene("static", "เรื่องค่าใช้จ่ายของ use case นี้ เว็บ static แทบไม่มีค่าเดินเครื่อง ค่าที่คิดแน่ๆ คือ hosted zone ของ Route 53 ประมาณครึ่งดอลลาร์ต่อเดือน ส่วน CloudFront ฟรีหนึ่งเทราไบต์แรกต่อเดือน ตัวที่ทำให้บิลพุ่งคือ data transfer เกินโควต้า และ invalidation ที่ถี่เกินไป ควรตั้ง Budget ไว้ก่อน และเมื่อเลิกใช้ให้ terraform destroy");
   await L.cap("✓ สำเร็จ: DNS → CloudFront → S3 (OAC) ได้หน้าเว็บ HTTPS ครบทุกขั้น", "สรุป ผู้ใช้เข้าโดเมน DNS ชี้ไป CloudFront แล้ว CloudFront ไปอ่านไฟล์จาก S3 ผ่าน OAC ได้เว็บ HTTPS ครบทุกขั้น"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase1.mp4"));
   await L.finish();

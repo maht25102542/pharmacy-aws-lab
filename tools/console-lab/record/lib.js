@@ -100,6 +100,17 @@ async function intro(i, title, desc, sayText) { // เริ่มบริก�
   await cur(i); await ev(toastJs(i, title, desc, "#2563eb")); if (sayText) await say(sayText);
   await shot(1.8); await ev(`document.getElementById("__toast").style.display="none"`);
 }
+// ฉากสรุปค่าใช้จ่ายท้ายวิดีโอ: การ์ดใหญ่กลางจอ + พูดอธิบาย (ข้อมูลจาก COSTD ชุดเดียวกับหน้า Cost & Bill)
+async function costScene(key, sayText) {
+  const d = await ev(`(function(k){ var c=COSTD.uc[k], s=costSum(c.items); return JSON.stringify({title:c.title,big:c.big,month:money(s.month),four:money(s.perHours(4)),top:c.drivers.slice(0,3),stop:c.stop.replace(/\\x60/g,"")}); })(${JSON.stringify(key)})`);
+  const o = JSON.parse(d);
+  await ev(`(function(o){ var t=document.getElementById("__cost"); if(!t){ t=document.createElement("div"); t.id="__cost"; document.body.appendChild(t); }
+    t.style.cssText="position:fixed;z-index:99999;left:50%;top:70px;transform:translateX(-50%);width:760px;max-width:92vw;padding:20px 26px;border-radius:16px;background:#0f172a;color:#fff;font:600 18px 'IBM Plex Sans Thai',sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.45);pointer-events:none";
+    t.innerHTML='<div style="font-size:15px;opacity:.7;margin-bottom:4px">💰 ค่าใช้จ่าย &amp; bill management</div><div style="font-size:22px;font-weight:800;margin-bottom:10px">'+o.big+'</div><div style="display:flex;gap:14px;margin:10px 0"><div style="flex:1;border-left:4px solid #f87171;padding-left:12px"><div style="font-size:13px;opacity:.7">เปิดทิ้ง 1 เดือน</div><div style="font-size:30px;font-weight:800;color:#f87171">≈ '+o.month+'</div></div><div style="flex:1;border-left:4px solid #4ade80;padding-left:12px"><div style="font-size:13px;opacity:.7">ทำ lab 4 ชม. แล้ว destroy</div><div style="font-size:30px;font-weight:800;color:#4ade80">≈ '+o.four+'</div></div></div><div style="font-size:15px;font-weight:500;line-height:1.7"><b>ตัวทำบิลพุ่ง:</b> '+o.top.join(" · ")+'<br><b>ตั้ง Budget + Cost Anomaly Detection ก่อน · ทำเสร็จต้อง destroy</b></div><div style="font-size:12px;opacity:.55;margin-top:8px">ตัวเลขเป็นประมาณการ ap-southeast-1 ตรวจที่ calculator.aws</div>'; t.style.display="block"; })(${JSON.stringify(o)})`);
+  if (sayText) await say(sayText);
+  await shot(2.5); const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.5);
+  await ev(`document.getElementById("__cost").style.display="none"`);
+}
 async function encode(out) { // เฟรม + เสียง → mp4
   const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.8);
   const list = frames.map(([f, s]) => `file '${f}'\nduration ${s.toFixed(3)}`).join("\n") + `\nfile '${frames[frames.length - 1][0]}'\n`; fs.writeFileSync(__dirname + "/list.txt", list);
@@ -113,4 +124,4 @@ async function encode(out) { // เฟรม + เสียง → mp4
   // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });
 }
-module.exports = { intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
+module.exports = { costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };

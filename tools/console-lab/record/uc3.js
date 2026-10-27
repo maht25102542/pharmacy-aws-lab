@@ -46,6 +46,7 @@ const svc = async (t, cat) => { await L.click(B("Services")); if (cat) { await L
   await L.click(B("Go")); await L.hold(2.5);
   console.log("END", (await L.ev(`document.body.innerText`)).replace(/\s+/g, " ").slice(0, 900));
   await L.tick(4, "ได้ข้อมูลยา 200", "ได้ข้อมูลยากลับมา สถานะสองร้อย");
+  await L.costScene("sls", "เรื่องค่าใช้จ่าย serverless จ่ายตามการเรียกใช้จริง ไม่มีคนใช้ก็แทบไม่เสียเงิน และมีโควต้าฟรีของ Lambda หนึ่งล้านครั้งต่อเดือน แต่ต้องระวัง log ของ CloudWatch ที่มักเป็นก้อนใหญ่ที่คนลืม และ Lambda ที่วนลูปเรียกตัวเอง ให้ตั้ง Budget กับ Cost Anomaly Detection และกำหนด concurrency สูงสุดไว้");
   await L.cap("✓ สำเร็จ: API Gateway → Lambda → DynamoDB ได้ข้อมูลยากลับมา", "สรุป request เข้า API Gateway ไป Lambda อ่านจาก DynamoDB แล้วตอบกลับ ไม่มีเครื่องให้ดูแล จ่ายตามการเรียกใช้จริง"); await L.hold(1);
   await L.encode(require("path").resolve(__dirname, "../videos/usecase3.mp4"));
   await L.finish();
