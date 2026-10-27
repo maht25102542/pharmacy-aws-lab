@@ -45,15 +45,15 @@ function wbAprun(r) {
 
 // ---------- ภาพรวม: เลือกแบบไหน ----------
 var AP_ROWS = [
-  ["เครื่องเดียว", "EC2 + Docker Compose + Caddy", "ทีมเล็ก/ฟรีแลนซ์", "ดูแลเครื่องเอง", "฿ ต่ำสุด", { uc: "single" }],
-  ["PaaS container", "App Runner + ECR", "ทีมเล็กที่ไม่อยากดูแล cluster", "ต่ำมาก", "฿ ต่ำ-กลาง (แพงต่อหน่วย)", { uc: "apr" }],
-  ["Container managed", "ECS Fargate + ALB + RDS", "ทีมกลาง นิยมสุดบน AWS", "ต่ำ", "฿ กลาง", { uc: "ecs" }],
-  ["CI/CD ของ ECS (เชิง AWS)", "CodePipeline + CodeBuild", "ทีมที่ใช้ AWS ล้วน", "ต่ำ", "฿ ต่ำ", { uc: "cd" }],
-  ["CI/CD ของ ECS (นิยมสุด)", "GitHub Actions + OIDC", "ทีมส่วนใหญ่ที่ code อยู่ GitHub", "ต่ำ", "฿ ต่ำ", { uc: "gha" }],
-  ["Kubernetes managed", "EKS + RDS + ArgoCD", "ทีมที่ต้อง k8s / มี platform team", "กลาง", "฿ สูง (EKS ~$73/เดือน + node)", { lab: "lab-managed", note: "อยู่ที่ Lab › เทียบ VM กับ Managed (ArgoCD GitOps ใช้ของ main lab)" }],
-  ["Kubernetes self-managed", "k3s + Jenkins + ArgoCD บน VM", "เรียนรู้ / on-prem / คุมต้นทุน", "สูง", "฿ กลาง (VM หลายเครื่อง)", { lab: "lab-check", note: "main lab (README.md)" }],
-  ["Serverless", "API Gateway + Lambda + DynamoDB", "งานเป็นช่วง ๆ / event", "ต่ำมาก", "฿ จ่ายตามใช้", { uc: "sls" }],
-  ["Static site", "S3 + CloudFront + Route 53 + ACM", "เว็บ static / SPA", "ต่ำมาก", "฿ ต่ำสุด", { uc: "static" }]
+  ["① ดูแลเครื่องเอง", "EC2 + Docker Compose + Caddy", "ทีมเล็ก/ฟรีแลนซ์/MVP", "สูง (patch, backup)", "฿ ต่ำสุด", { uc: "single" }],
+  ["① ดูแลเครื่องเอง", "k3s + Jenkins + ArgoCD บน VM", "เรียนรู้ / on-prem / คุมต้นทุน", "สูงมาก", "฿ กลาง (VM หลายเครื่อง)", { lab: "lab-check", note: "main lab (README.md)" }],
+  ["② Managed container", "ECS Fargate + ALB + RDS", "ทีมกลาง · นิยมสุดบน AWS", "ต่ำ", "฿ กลาง", { uc: "ecs" }],
+  ["② Managed container", "EKS + RDS + ArgoCD", "ต้อง k8s จริง / มี platform team", "กลาง", "฿ สูง (EKS ~$73/เดือน + node)", { lab: "lab-managed", note: "Lab › เทียบ VM กับ Managed (ArgoCD ใช้ของ main lab)" }],
+  ["② Managed container", "App Runner + ECR (legacy)", "⚠️ ปิดรับลูกค้าใหม่ 30 เม.ย. 2026 · ของใหม่ใช้ ECS Express Mode", "ต่ำมาก", "฿ ต่ำ-กลาง", { uc: "apr" }],
+  ["③ ไม่มี server", "API Gateway + Lambda + DynamoDB", "งานเป็นช่วง ๆ / event", "ต่ำมาก", "฿ จ่ายตามใช้", { uc: "sls" }],
+  ["③ ไม่มี server", "S3 + CloudFront + Route 53 + ACM", "เว็บ static / SPA", "ต่ำมาก", "฿ ต่ำสุด", { uc: "static" }],
+  ["+ CI/CD (ปล่อยลง ECS)", "GitHub Actions + OIDC (นิยมสุด)", "code อยู่ GitHub", "ต่ำ", "฿ ต่ำ", { uc: "gha" }],
+  ["+ CI/CD (ปล่อยลง ECS)", "CodePipeline + CodeBuild", "ทีมที่ใช้ AWS ล้วน", "ต่ำ", "฿ ต่ำ", { uc: "cd" }]
 ];
 PAGES["lab-ap"] = function () {
   var rows = AP_ROWS.map(function (r) {
@@ -61,9 +61,9 @@ PAGES["lab-ap"] = function () {
     return [h("b", { text: r[0] }), r[1], o.note ? h("span", {}, [r[2], h("div", { cls: "hint", text: o.note })]) : r[2], r[3], r[4], btn];
   });
   return h("div", {}, [crumbEl("Lab › เลือกแบบไหน"), h("h1", { text: "เลือกวิธี deploy แบบไหน (ทุกแบบ)" }), h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
-    h("p", { cls: "hint", text: "เรียงจากง่าย/ถูก → ซับซ้อน/คุมได้มาก · ทุกแถวมี lab ให้ลองใน simulator" }),
-    tbl(["แบบ", "stack ที่นิยม", "เหมาะกับ", "ภาระดูแล", "ค่าใช้จ่าย", "ลอง"], rows, ""),
+    h("p", { cls: "hint", text: "3 หมู่ตามว่าแอปรันที่ไหน + CI/CD เป็นอีกแกน (ปล่อยลง ECS) · ทุกแถวมี lab ให้ลองใน simulator" }),
+    tbl(["หมู่", "stack", "เหมาะกับ", "ภาระดูแล", "ค่าใช้จ่าย", "ลอง"], rows, ""),
     h("h4", { text: "เลือกยังไง (สั้น ๆ)" }),
-    h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ App Runner หรือ ECS Fargate → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })])])]);
+    h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ ECS Fargate (หรือ ECS Express Mode ถ้าอยากง่ายแบบ PaaS) → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })])])]);
 };
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-uc"); L.splice(i < 0 ? L.length : i, 0, ["lab-ap", "เลือกแบบไหน (ทุกแบบ)"]); NAVICO["lab-ap"] = "🧩"; })();

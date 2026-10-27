@@ -2,7 +2,8 @@
 // สถานะคำนวณจากโครงสร้างปัจจุบัน (image ใน ECR, access role, port, health check) · ข้อความ error จากความจำ ดู labs/VERIFY.md
 var APR_APP_PORT = 8000; // port ที่แอปตัวอย่าง (pharmacy/api) ฟังอยู่จริง
 var APR_CPU = { "256": "0.25 vCPU", "512": "0.5 vCPU", "1024": "1 vCPU", "2048": "2 vCPU", "4096": "4 vCPU" };
-var APR_MEM = { "512": "0.5 GB", "1024": "1 GB", "2048": "2 GB", "3072": "3 GB", "4096": "4 GB", "6144": "6 GB", "8192": "8 GB" };
+var APR_MEM = { "512": "0.5 GB", "1024": "1 GB", "2048": "2 GB", "3072": "3 GB", "4096": "4 GB", "6144": "6 GB", "8192": "8 GB", "10240": "10 GB", "12288": "12 GB" };
+var APR_PAIRS = { "256": ["512", "1024"], "512": ["1024"], "1024": ["2048", "3072", "4096"], "2048": ["4096", "6144"], "4096": ["8192", "10240", "12288"] }; // 11 คู่ตามเอกสาร App Runner (release 2023-04-05)
 function isAprLab() { return S.aprs.length > 0; }
 function aprSvc(n) { return S.aprs.filter(function (x) { return x.name === n; })[0] || null; }
 function aprNum(v, map) { var s = String(v || "").trim(); var k = Object.keys(map).filter(function (x) { return map[x] === s || map[x].toLowerCase().replace(/ /g, "") === s.toLowerCase().replace(/ /g, ""); })[0]; return k || s; }
@@ -14,7 +15,7 @@ API.createAppRunner = function (o) {
   var cpu = aprNum(o.cpu, APR_CPU), mem = aprNum(o.memory, APR_MEM);
   if (!APR_CPU[cpu]) er.cpu = "ValidationException: cpu ต้องเป็นหนึ่งใน " + Object.keys(APR_CPU).join(", ") + " (หรือ 0.25/0.5/1/2/4 vCPU)";
   if (!APR_MEM[mem]) er.memory = "ValidationException: memory ต้องเป็นหนึ่งใน " + Object.keys(APR_MEM).join(", ");
-  else if (APR_CPU[cpu] && ((cpu === "256" && +mem > 2048) || (cpu === "512" && +mem > 4096) || (cpu === "1024" && +mem < 2048) || (cpu === "2048" && +mem < 4096) || (cpu === "4096" && +mem < 8192))) er.memory = "InvalidRequestException: คู่ CPU " + APR_CPU[cpu] + " กับ memory " + APR_MEM[mem] + " ไม่รองรับ";
+  else if (APR_CPU[cpu] && APR_PAIRS[cpu].indexOf(mem) < 0) er.memory = "InvalidRequestException: คู่ CPU " + APR_CPU[cpu] + " กับ memory " + APR_MEM[mem] + " ไม่รองรับ (" + APR_CPU[cpu] + " ใช้ได้: " + APR_PAIRS[cpu].map(function (m) { return APR_MEM[m]; }).join(", ") + ")";
   if (Object.keys(er).length) return { errors: er };
   var id = fakeId("", 10, "abcdefghijklmnopqrstuvwxyz0123456789"), s = { id: id, name: n, image: o.image, port: port, cpu: cpu, memory: mem, accessRole: o.accessRole ? roleByRef(o.accessRole) && roleByRef(o.accessRole).name || String(o.accessRole).split("/").pop() : "", auto: !!o.auto, health: { protocol: o.healthProtocol || "TCP", path: o.healthPath || "/" }, env: Object.assign({}, o.env || {}), url: id + "." + REGION + ".awsapprunner.com", born: Date.now(), touched: Date.now(), deploys: [{ n: 1, born: Date.now(), image: o.image }], tagMap: {} };
   S.aprs.push(s); return { res: s };
@@ -51,7 +52,9 @@ TF_PROV.aws_apprunner_service = {
     var a = c.attrs, sc = (a.source_configuration || [{}])[0] || {}, au = ((sc.authentication_configuration || [{}])[0] || {}).access_role_arn, ir = (sc.image_repository || [{}])[0] || {}, ic = (ir.image_configuration || [{}])[0] || {}, inst = (a.instance_configuration || [{}])[0] || {}, hc = (a.health_check_configuration || [{}])[0] || {};
     if (ir.image_repository_type && ir.image_repository_type !== "ECR") throw TfAwsError("creating App Runner Service (" + a.service_name + ")", "App Runner", "CreateService", "InvalidRequestException", "ตัวจำลองรองรับเฉพาะ image_repository_type = ECR");
     var s = ecsTfOk(API.createAppRunner({ name: a.service_name, image: ir.image_identifier, port: ic.port || 8080, cpu: inst.cpu || "1024", memory: inst.memory || "2048", accessRole: au, auto: !!sc.auto_deployments_enabled, healthProtocol: hc.protocol || "TCP", healthPath: hc.path || "/", env: ic.runtime_environment_variables || {} }), "creating App Runner Service (" + a.service_name + ")", "App Runner", "CreateService");
-    var arn = "arn:aws:apprunner:" + REGION + ":" + ACCOUNT + ":service/" + s.name + "/" + s.id; return { id: arn, computed: { id: arn, arn: arn, service_id: s.id, service_url: s.url, status: aprEval(s).status }, sim: { name: s.name } };
+    var arn = "arn:aws:apprunner:" + REGION + ":" + ACCOUNT + ":service/" + s.name + "/" + s.id, ev = aprEval(s);
+    if (!ev.ok) throw TfAwsError("waiting for App Runner Service (" + arn + ") create", "App Runner", "DescribeService", "unexpected state 'CREATE_FAILED', wanted target 'RUNNING'", ev.reason); // ของจริง apply ล้ม + service ค้างสถานะ CREATE_FAILED (ข้อความจากความจำ ดู VERIFY.md)
+    return { id: arn, computed: { id: arn, arn: arn, service_id: s.id, service_url: s.url, status: aprEval(s).status }, sim: { name: s.name } };
   },
   update: function (st, d) { var sc = d.source_configuration ? d.source_configuration[0] || {} : null, ir = sc && (sc.image_repository || [{}])[0] || {}, ic = (ir.image_configuration || [{}])[0] || {}; API.updateAppRunner(st.sim.name, { image: ir.image_identifier, port: ic.port, env: ic.runtime_environment_variables }); },
   del: function (st) { API.deleteAppRunner(st.sim.name); },

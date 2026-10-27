@@ -63,6 +63,9 @@
 | port ไม่ตรง | "Health check failed on protocol `TCP` [Port: '8080'], failure threshold is 5 times…" | ตรง | ⚠️ ตัวเลข threshold/โปรโตคอลจากความจำ |
 | HTTP health check path 404 | Health check failed … status code | ข้อความย่อเอง | ⚠️ |
 | ค่า cpu/memory ที่จับคู่ได้ | 256/512 → 0.25 vCPU ได้ 0.5-2 GB ฯลฯ | ตารางจากความจำ | ⚠️ |
+| คู่ cpu/memory | 11 คู่ตามเอกสาร (0.25→0.5/1 · 0.5→1 · 1→2/3/4 · 2→4/6 · 4→8/10/12 GB) | ตรง | ✅ จากเอกสาร (release 2023-04-05) |
+| App Runner ปิดรับลูกค้าใหม่ตั้งแต่ 30 เม.ย. 2026 | ตามเอกสาร availability-change | ใส่คำเตือนใน UC #7 | ✅ จากเอกสาร |
+| `terraform apply` เมื่อ service CREATE_FAILED | apply error + service ค้าง | "unexpected state 'CREATE_FAILED', wanted target 'RUNNING'" | ⚠️ ถ้อยคำจากความจำ |
 | URL รูปแบบ `<id>.<region>.awsapprunner.com` | ตรงกับของจริง | ตรง | ✅ |
 | สถานะ RUNNING / OPERATION_IN_PROGRESS / CREATE_FAILED | ชื่อสถานะ API | ตรง | ✅ |
 

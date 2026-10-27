@@ -325,10 +325,10 @@ UC.push({
 
 UC.push({
   id: "apr", no: 7, title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
-  tag: "ง่ายสุดสำหรับ container · ทีมเล็กที่ไม่อยากดูแล cluster นิยม · แพงต่อหน่วยกว่า ECS",
+  tag: "⚠️ ปิดรับลูกค้าใหม่ตั้งแต่ 30 เม.ย. 2026 (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
-    ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (รวมถึงลงเหลือ 0 instance ที่ไม่มี traffic ให้จ่ายแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
-    ["ใครใช้", "#1d8102", "ทีมเล็ก · เว็บ/API ที่เป็น container อยู่แล้ว · อยากได้เหมือน Heroku บน AWS · prototype ถึง production traffic น้อย-กลาง"],
+    ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
+    ["สถานะ", "#c62828", "**App Runner ปิดรับ customer ใหม่แล้ว** (ตั้งแต่ 30 เม.ย. 2026) · คนที่ใช้อยู่ยังสร้าง service ใหม่ได้ · AWS ไม่เพิ่ม feature · โปรเจกต์ใหม่ใช้ **ECS Express Mode** (image + 2 role → ได้ Fargate + ALB + autoscale) · lab นี้ไว้เข้าใจแนวคิด PaaS + อ่านระบบเก่า"], ["ใครใช้", "#1d8102", "ทีมที่มี App Runner อยู่แล้ว · เว็บ/API container ขนาดเล็ก-กลาง"],
     ["ข้อแลกเปลี่ยน", "#c0392b", "คุมเครือข่าย/เครื่องได้น้อย (เข้า VPC ผ่าน VPC connector) · ไม่มี sidecar/EFS · แพงต่อ vCPU กว่า Fargate · ต้อง **access role** ดึง ECR ส่วนตัว"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① **port** ต้องตรงกับที่แอปฟัง ② health check แบบ TCP ผ่านง่าย แบบ HTTP ต้องมี path ที่ตอบ 200 ③ access role ≠ instance role (อันแรกให้ AWS ดึง image · อันหลังให้แอปเรียก AWS) ④ แก้ image tag แล้วต้อง deploy (หรือเปิด auto deploy)"]
   ],
@@ -407,9 +407,11 @@ function ucErrTable(u) {
   });
   return w;
 }
+// หมู่ตามแกน "แอปรันที่ไหน" + แกน CI/CD แยก (CI/CD 4,5 ปล่อยลง ECS ของ use case 2)
+var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"]];
 function ucTab() {
   var u = ucCur(), cb = h("div", { cls: "cb" });
-  cb.appendChild(h("div", { cls: "chips" }, UC.map(function (x) { return h("button", { cls: "chip" + (x.id === u.id ? " on" : ""), type: "button", text: x.no + ". " + x.title.split(":")[0], onclick: function () { UC_SEL.id = x.id; UC_SEL.tf = 0; render(); } }); }).concat([2, 3, 4].filter(function (n) { return !UC.some(function (x) { return x.no === n; }); }).map(function (n) { return h("button", { cls: "chip", type: "button", disabled: true, style: "opacity:.45", text: n + ". " + ["", "", "ECS Fargate + ALB + RDS", "Serverless API", "CI/CD → ECS"][n] + " (กำลังจะทำ)" }); }))));
+  UC_GRP.forEach(function (g) { var ids = UC.filter(function (x) { return g[1].indexOf(x.id) >= 0; }); if (!ids.length) return; cb.appendChild(h("div", { style: "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0" }, [h("b", { style: "min-width:150px;color:" + g[2], text: g[0] }), h("div", { cls: "chips", style: "margin:0" }, ids.map(function (x) { return h("button", { cls: "chip" + (x.id === u.id ? " on" : ""), type: "button", text: x.no + ". " + x.title.split(":")[0], onclick: function () { UC_SEL.id = x.id; UC_SEL.tf = 0; render(); } }); }))])); });
   cb.appendChild(h("h2", { style: "margin:10px 0 2px;color:" + u.color, text: "Use case " + u.no + " · " + u.title }));
   cb.appendChild(h("div", { cls: "hint", style: "margin:0 0 10px", text: u.tag + " · โค้ดจริง: " + u.dir + "/ (ผ่าน terraform validate)" }));
   cb.appendChild(infoCard(u.intro));

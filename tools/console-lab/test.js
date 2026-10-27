@@ -829,3 +829,16 @@ console.log("ok");
   assert(/No changes/.test(sh9("terraform plan")), "plan ซ้ำไม่เปลี่ยน");
   const ds = sh9("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 4 destroyed/.test(ds), ds.slice(-500));
 }
+// App Runner: คู่ cpu/mem ตามเอกสาร + TF apply ล้มเมื่อ service CREATE_FAILED
+{
+  const mk = (cpu, memory) => L.API.createAppRunner({ name: "t-" + cpu + memory.replace(/\W/g, ""), image: "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/pharmacy/api:v1.0.0", port: 8000, cpu, memory });
+  L.buildApr("apr-base");
+  assert(mk("256", "2 GB").errors && mk("256", "0.5 GB").res && mk("4096", "12 GB").res && mk("512", "2 GB").errors, "คู่ cpu/mem");
+}
+{
+  L.buildEcs("ecs"); L.S.ecsc = []; L.S.esvcs = []; L.S.tds = [];
+  const sh = (line, a) => { let r = L.shRun(line), out = r.lines.slice(); a = (a || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(a.shift()); out = out.concat(r.lines); } return out.join("\n"); };
+  sh("cd ~/Desktop/work/pharmacy-aws-lab/labs/07-app-runner"); sh("terraform init");
+  const ap = sh("terraform apply -var image_tag=v9.9.9", ["yes"]);
+  assert(/unexpected state 'CREATE_FAILED'/.test(ap) && !/Apply complete! Resources: 4 added/.test(ap), "TF apply ต้องล้มเมื่อ image ไม่มี: " + ap.slice(-500));
+}

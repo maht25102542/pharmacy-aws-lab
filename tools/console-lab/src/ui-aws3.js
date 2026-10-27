@@ -242,7 +242,7 @@ var SCEN_CATS = [
   { t: "⑧ Use case 4 · CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", c: "#2e7d32", d: "ปล่อยของอัตโนมัติ: push โค้ด → build → dev → คนอนุมัติ → prd", re: /^cd/ },
   { t: "⑨ Use case 5 · GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", c: "#24292f", d: "ไม่มี access key ถาวร · dev อัตโนมัติ · prd ต้องมีคนอนุมัติ", re: /^gha/ },
   { t: "⑩ Use case 6 · เครื่องเดียว: EC2 + Docker Compose + Caddy (แบบที่ทีมเล็กนิยม)", c: "#8c4fff", d: "ง่ายสุด ถูกสุด · ดูแลเครื่องเอง (patch, backup) · ไม่ scale อัตโนมัติ", re: /^single/ },
-  { t: "⑪ Use case 7 · App Runner (PaaS: ให้ image แล้วได้ URL HTTPS)", c: "#c2185b", d: "ง่ายสุดสำหรับ container · ไม่มี cluster/ALB/VPC ให้ดูแล · แพงต่อหน่วยกว่า ECS", re: /^apr/ }
+  { t: "⑪ Use case 7 · App Runner (PaaS · ⚠️ ปิดรับลูกค้าใหม่แล้ว)", c: "#c2185b", d: "ไว้เข้าใจแนวคิด/อ่านระบบเก่า · โปรเจกต์ใหม่ใช้ ECS Express Mode", re: /^apr/ }
 ];
 function scenGroups(cb, sc, card) {
   cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:0 0 6px" }, [foldBar()]));
