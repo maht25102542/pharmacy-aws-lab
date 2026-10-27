@@ -9613,7 +9613,7 @@ var UC = [];
 var UC_SEL = { id: "static" };
 
 UC.push({
-  id: "static", no: 1, video: "videos/usecase1-b.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
+  id: "static", no: 1, video: "videos/usecase1-c.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
   tag: "นิยมที่สุด · ถูกสุด · ไม่มีเซิร์ฟเวอร์ให้ดูแล",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "เว็บ **ที่เป็นไฟล์** (React/Vue/Next export, เว็บบริษัท, หน้า landing, เอกสาร) ไม่มี backend · ผู้ใช้ทั่วโลกได้ไฟล์จาก **edge ใกล้ตัว** (CloudFront) ส่วน S3 เก็บต้นฉบับแบบส่วนตัว"],
@@ -9728,7 +9728,7 @@ UC.push({
 });
 
 UC.push({
-  id: "sls", no: 3, video: "videos/usecase3-b.mp4", title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  id: "sls", no: 3, video: "videos/usecase3-c.mp4", title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ทำ **API ที่ไม่มีเครื่อง** เลย: ผู้ใช้เรียก **API Gateway** → ปลุก **Lambda** รันโค้ดแค่ตอนมีคำขอ → อ่าน/เขียน **DynamoDB** · ไม่มีอะไรให้ patch/scale · ไม่มีคำขอ = ไม่เสียเงิน"],
@@ -9886,7 +9886,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-b.mp4", title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-c.mp4", title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
@@ -9934,7 +9934,7 @@ UC.push({
 });
 
 UC.push({
-  id: "apr", no: 7, video: "videos/usecase7-b.mp4", title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
+  id: "apr", no: 7, video: "videos/usecase7-c.mp4", title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
   tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
