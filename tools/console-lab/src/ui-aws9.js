@@ -40,7 +40,7 @@ DET.apr = [
   ["conf", "Configuration", function (s) { return h("div", {}, [h("button", { cls: "btn", type: "button", text: "Edit", onclick: function () { go("apr-edit", { name: s.name, from: "aprs" }); } }), kvDom([["Image", s.image], ["Port", String(s.port)], ["CPU / Memory", APR_CPU[s.cpu] + " / " + APR_MEM[s.memory]], ["Access role", s.accessRole || "ไม่ได้ตั้ง"], ["Health check", s.health.protocol + (s.health.protocol === "HTTP" ? " " + s.health.path : "")], ["Environment", JSON.stringify(s.env)], ["Auto deploy", s.auto ? "On" : "Off (กด Deploy เอง)"]])]); }]
 ];
 function wbAprun(r) {
-  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "App Runner · " + r.svc.name }), h("div", { cls: "hint", text: "GET https://" + r.host + r.path + " → 200 OK" }), codePre(JSON.stringify(r.json, null, 2), "an"), h("h4", { text: "ขั้นที่ตัวจำลองตรวจ" }), mgSteps(r.steps || [])])]);
+  return wbWin({ url: W.addr || "https://" + r.host + r.path, title: r.svc.name, ico: "🚀", status: 200, statusText: "OK", secure: "App Runner (ใบรับรองให้อัตโนมัติ)", body: wbJsonBody(r.json, { title: "App Runner · " + r.svc.name }), steps: r.steps || [], stepsTitle: "ขั้นที่ตัวจำลองตรวจ" });
 }
 
 // ---------- ภาพรวม: เลือกแบบไหน ----------

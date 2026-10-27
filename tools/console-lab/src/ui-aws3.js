@@ -10,7 +10,7 @@
   NAVHOME.S3 = "buckets"; NAVHOME.CloudFront = "cfds"; NAVHOME["Route 53"] = "zones"; NAVHOME.ACM = "certs";
   LK.bucket = "buckets"; LK.cfd = "cfds"; LK.oac = "oacs"; LK.zone = "zones"; LK.cert = "certs";
 })();
-var ST_SAMPLES = [["index-v1", "index.html (version 1)", "index.html", function (e, b) { return stPage(e, 1, b); }], ["index-v2", "index.html (version 2 — ปล่อยเวอร์ชันใหม่)", "index.html", function (e, b) { return stPage(e, 2, b); }], ["about", "about.html", "about.html", function (e, b) { return "<h1>About " + b + " (" + e + ")</h1>"; }], ["error", "error.html", "error.html", function () { return "<h1>ไม่พบหน้านี้</h1>"; }]];
+var ST_SAMPLES = [["index-v1", "index.html (version 1)", "index.html", function (e, b) { return stPage(e, 1, b); }], ["index-v2", "index.html (version 2 — ปล่อยเวอร์ชันใหม่)", "index.html", function (e, b) { return stPage(e, 2, b); }], ["about", "about.html", "about.html", function (e, b) { return "<!doctype html><meta charset=utf-8><body style='font:16px/1.6 system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 20px'><h1>About " + b + " (" + e + ")</h1><p style='color:#475569'>เราคือร้านยาออนไลน์ที่เชื่อถือได้ ก่อตั้งเพื่อให้ทุกคนเข้าถึงยาและคำแนะนำจากเภสัชกร</p></body>"; }], ["error", "error.html", "error.html", function () { return "<!doctype html><meta charset=utf-8><body style='font:16px/1.6 system-ui,sans-serif;text-align:center;padding:70px 20px'><div style='font-size:64px;font-weight:800;color:#cbd5e1'>404</div><h1 style='margin:6px 0'>ไม่พบหน้านี้</h1><p style='color:#64748b'>ลิงก์อาจผิด หรือหน้านี้ถูกย้ายแล้ว</p></body>"; }]];
 function stRegions() { return [["ap-southeast-1", "Asia Pacific (Singapore) ap-southeast-1"], ["us-east-1", "US East (N. Virginia) us-east-1"], ["eu-west-1", "Europe (Ireland) eu-west-1"]]; }
 function stSteps(list) { return h("div", { cls: "steps" }, list.map(function (x) { return h("div", {}, [h("b", { text: x.skip ? "–" : (x.ok ? "✓" : "✗"), style: "color:var(--" + (x.skip ? "muted" : (x.ok ? "ok" : "bad")) + ")" }), h("span", {}, [h("b", { text: x.t }), h("div", { cls: "hint", text: x.d })])]); })); }
 function stFmt(ts) { return fmtT(ts || t0()); }
@@ -263,21 +263,25 @@ function scenGroups(cb, sc, card) {
 }
 // ---------- Browser: เว็บที่ผ่าน CloudFront ----------
 function wbCloudFront(r) {
-  var q = r.req, card = h("div", { cls: "card" }), cb = h("div", { cls: "cb" }), steps = [], dpl = S.cfds.filter(function (d) { return d.domain === r.host || d.aliases.indexOf(r.host) >= 0; })[0]; if (dpl && cfPhase(dpl) !== "Deployed") cb.appendChild(h("div", { cls: "alert info", text: "ⓘ distribution นี้ยัง Deploying (โหมดเหมือนจริง): การตั้งค่าใหม่ยังไม่ถึงทุก edge บาง request อาจยังได้ผลแบบเดิม" }));
+  var q = r.req, steps = [], body, status = 0, statusText = "", title = r.host, extra = h("div"), dpl = S.cfds.filter(function (d) { return d.domain === r.host || d.aliases.indexOf(r.host) >= 0; })[0];
   var dns = q.dns; if (dns) steps.push({ ok: dns.kind === "cloudfront", t: "DNS: " + r.host + " → CloudFront", d: dns.kind === "cloudfront" ? dns.chain.join(" ") : dns.why || "ไม่พบ" });
+  var info = dpl && cfPhase(dpl) !== "Deployed" ? h("div", { cls: "alert info", text: "ⓘ distribution นี้ยัง Deploying (โหมดเหมือนจริง): การตั้งค่าใหม่ยังไม่ถึงทุก edge บาง request อาจยังได้ผลแบบเดิม" }) : null;
   if (q.err) {
-    var cert = /CERT/.test(q.err);
-    cb.appendChild(h("h2", { text: cert ? "Your connection is not private" : "This site can’t be reached" })); cb.appendChild(h("p", { text: cert ? "Attackers might be trying to steal your information from " + r.host + "." : r.host + "’s server IP address could not be found." })); cb.appendChild(h("pre", { cls: "term", text: q.err }));
+    var cert = /CERT/.test(q.err); body = wbErrBody(r.host, q.err); title = cert ? "Privacy error" : "This site can’t be reached";
     if (cert) steps.push({ ok: false, t: "ใบรับรอง HTTPS ครอบชื่อ " + r.host, d: q.notes[0] });
   } else {
+    status = q.status; statusText = { 200: "OK", 403: "Forbidden", 404: "Not Found" }[q.status] || "";
     var d = q.dist; if (d) { steps.push({ ok: true, t: "CloudFront distribution " + d.id, d: d.domain + (d.aliases.length ? " · alias: " + d.aliases.join(", ") : "") }); }
     if (r.hops && r.hops.length) steps.push({ ok: true, t: "Redirect HTTP → HTTPS (viewer protocol policy)", d: r.hops.join(" → ") });
     var cc = q.headers && q.headers["x-cache"]; steps.push({ ok: q.status === 200, t: "X-Cache: " + (cc || "-") + " · HTTP " + q.status, d: (q.notes || []).join(" · ") || "-" });
-    if (q.status === 200 && /html/.test(q.type || "")) { cb.appendChild(h("div", { cls: "bwin" }, [h("iframe", { sandbox: "", srcdoc: q.body, style: "width:100%;height:150px;border:0;background:#fff;border-radius:6px" })])); }
-    else { cb.appendChild(h("h2", { text: q.status + " " + (q.status === 403 ? "Forbidden" : q.status === 404 ? "Not Found" : "") })); cb.appendChild(h("pre", { cls: "term", text: q.body || "" })); }
-    var hd = q.headers ? Object.keys(q.headers).map(function (k) { return k + ": " + q.headers[k]; }).join("\n") : ""; if (hd) cb.appendChild(h("pre", { cls: "term", text: "HTTP/2 " + q.status + "\n" + hd }));
-    cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:8px 0" }, [h("button", { cls: "btn", type: "button", text: "Refresh (F5)", onclick: function () { wbGo(W.addr); } }), h("button", { cls: "btn", type: "button", text: "Hard refresh (Ctrl+Shift+R)", onclick: function () { wbGo(W.addr); flash("ok", "Hard refresh ล้างแคชของเบราว์เซอร์เท่านั้น · CloudFront ยังตอบจาก edge cache (ดู X-Cache) ต้อง Create invalidation"); } })]));
+    if (q.status === 200 && /html/.test(q.type || "")) { body = h("iframe", { sandbox: "", srcdoc: q.body, title: "preview" }); var tm = /<title>([^<]*)<\/title>/i.exec(q.body || ""); if (tm) title = tm[1]; }
+    else body = h("div", { cls: "bw-err" }, [h("h1", { text: q.status + " " + statusText }), h("pre", { cls: "bw-raw", text: q.body || "" })]);
+    var hd = q.headers ? Object.keys(q.headers).map(function (k) { return k + ": " + q.headers[k]; }).join("\n") : "";
+    extra = h("div", { cls: "bw-why" }, [h("h4", { text: "Response headers (DevTools › Network)" }), hd ? h("pre", { cls: "term", text: "HTTP/2 " + q.status + "\n" + hd }) : h("span"),
+      h("div", { style: "display:flex;gap:8px;margin:8px 0 0" }, [h("button", { cls: "btn", type: "button", text: "Refresh (F5)", onclick: function () { wbGo(W.addr); } }), h("button", { cls: "btn", type: "button", text: "Hard refresh (Ctrl+Shift+R)", onclick: function () { wbGo(W.addr); flash("ok", "Hard refresh ล้างแคชของเบราว์เซอร์เท่านั้น · CloudFront ยังตอบจาก edge cache (ดู X-Cache) ต้อง Create invalidation"); } })])]);
   }
-  cb.appendChild(h("h4", { text: "ทำไมได้ผลนี้ (ไล่ตามทางจริง)" })); cb.appendChild(stSteps(steps)); card.appendChild(cb); return card;
+  var w = wbWin({ url: W.addr, title: title, ico: q.err ? "⚠️" : "🏪", status: status, statusText: statusText, insecure: !!(q.err && /CERT/.test(q.err)), body: body, steps: steps, stepsTitle: "ทำไมได้ผลนี้ (ไล่ตามทางจริง)", extra: extra });
+  if (info) w.insertBefore(info, w.firstChild);
+  return w;
 }
 ["buckets", "cfds", "oacs", "zones"].forEach(function (k) { PAGES[k] = function () { return listPage(LISTS[k]()); }; });

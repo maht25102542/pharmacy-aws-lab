@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Console Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -527,6 +528,39 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .uc-err .ic-row { padding: 8px 0; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; }
 .uc-err .btn { align-self: flex-start; margin-top: auto; }
 @media (max-width: 640px) { .uc-errs { grid-template-columns: 1fr; } }
+
+/* ===== browser window (แท็บ Browser): กรอบเบราว์เซอร์จริง ===== */
+.bwrap { margin: 0 0 18px; }
+.bw { --bw-strip:#dfe3e8; --bw-bar:#fff; --bw-url:#eef0f3; --bw-ink:#202124; --bw-mute:#5f6368; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bw-bar); box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 10px 28px rgba(16,24,40,.08); }
+:root[data-theme="dark"] .bw { --bw-strip:#202124; --bw-bar:#35363a; --bw-url:#202124; --bw-ink:#e8eaed; --bw-mute:#9aa0a6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bw { --bw-strip:#202124; --bw-bar:#35363a; --bw-url:#202124; --bw-ink:#e8eaed; --bw-mute:#9aa0a6; } }
+.bw-tabs { display: flex; align-items: flex-end; gap: 12px; padding: 8px 12px 0; background: var(--bw-strip); }
+.bw-dots { display: flex; gap: 6px; padding: 0 4px 12px; } .bw-dots i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .bw-dots i:nth-child(2) { background: #febc2e; } .bw-dots i:nth-child(3) { background: #28c840; }
+.bw-tab { display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 8px 16px; border-radius: 10px 10px 0 0; background: var(--bw-bar); color: var(--bw-ink); font-size: 13px; font-weight: 500; }
+.bw-tab .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .bw-tab .ico { font-size: 14px; }
+.bw-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--bw-bar); border-bottom: 1px solid var(--line); }
+.bw-nav { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--bw-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.bw-nav:hover:not(:disabled) { background: var(--bw-url); } .bw-nav:disabled { opacity: .35; cursor: default; }
+.bw-url { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 99px; background: var(--bw-url); font-size: 14px; }
+.bw-lock { display: inline-flex; align-items: center; gap: 4px; flex: none; } .bw-lock.ok { color: #188038; } .bw-lock.no { color: #c5221f; } .bw-lock b { font-size: 12px; font-weight: 600; }
+.bw-u { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bw-ink); } .bw-u .d { color: var(--bw-mute); }
+.bw-chip { flex: none; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; } .bw-chip.ok { background: var(--ok-bg); color: var(--ok); } .bw-chip.warn { background: var(--warn-bg); color: var(--warn); } .bw-chip.bad { background: var(--bad-bg); color: var(--bad); }
+.bw-vp { --bg:#fff; --surface:#fff; --fg:#0f172a; --muted:#64748b; --line:#e2e8f0; --code-bg:#f4f6f8; background: #fff; color: #0f172a; min-height: 220px; }
+.bw-vp iframe { display: block; width: 100%; height: 400px; border: 0; background: #fff; }
+.bw-err { max-width: 560px; margin: 0 auto; padding: 56px 24px 64px; color: #5f6368; } .bw-err .eic { color: #9aa0a6; margin-bottom: 14px; } .bw-err h1 { margin: 0 0 12px; font-size: 24px; font-weight: 500; color: #202124; }
+.bw-err p { margin: 0 0 6px; font-size: 15px; line-height: 1.6; } .bw-err small { display: block; margin: 14px 0 22px; font-size: 12px; color: #80868b; letter-spacing: .02em; } .bw-err .dt { margin-top: 16px; font-size: 13px; color: #80868b; }
+.bw-btn { padding: 8px 20px; border: 0; border-radius: 99px; background: #1a73e8; color: #fff; font: 600 14px inherit; cursor: pointer; } .bw-btn:hover { background: #1765cc; }
+.bw-json { padding: 18px 22px 22px; } .bw-jh { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; } .bw-jh b { font-size: 16px; } .bw-ct { margin-left: 10px; padding: 2px 8px; border-radius: 6px; background: #eef2f6; color: #475569; font-size: 12px; font-family: var(--mono, monospace); }
+.bw-jt { display: inline-flex; padding: 3px; border-radius: 9px; background: #eef2f6; } .bw-jt button { border: 0; padding: 4px 14px; border-radius: 7px; background: transparent; color: #475569; font: 600 13px inherit; cursor: pointer; } .bw-jt button.on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.bw-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; } .bw-meta span { padding: 3px 10px; border-radius: 99px; background: #f1f5f9; color: #0f172a; font-size: 13px; } .bw-meta i { font-style: normal; color: #64748b; margin-right: 4px; }
+.bw-tbl { width: 100%; border-collapse: collapse; font-size: 14px; } .bw-tbl th { text-align: left; padding: 8px 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0; } .bw-tbl td { padding: 8px 12px; border-bottom: 1px solid #eef2f6; }
+.bw-raw { margin: 0; padding: 12px 14px; border-radius: 8px; background: #f4f6f8; color: #0f172a; font: 13px/1.5 var(--mono, monospace); white-space: pre-wrap; word-break: break-all; }
+.bw-why { margin: 14px 0 0; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .bw-why h4 { margin: 0 0 8px; font-size: 14px; }
+.ph-login { display: grid; grid-template-columns: 1fr 1fr; min-height: 380px; margin: -2px; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid #e2e8f0; }
+.ph-brand { padding: 34px 30px; background: linear-gradient(160deg, #0f766e, #134e4a); color: #fff; display: flex; flex-direction: column; gap: 8px; } .ph-brand h1 { margin: 6px 0 0; font-size: 26px; } .ph-brand p { margin: 0; opacity: .85; } .ph-brand ul { margin: 14px 0 0; padding-left: 18px; line-height: 1.9; opacity: .92; } .ph-brand small { margin-top: auto; opacity: .6; letter-spacing: .04em; }
+.ph-logo { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.18); display: grid; place-items: center; font-weight: 800; }
+.ph-form { padding: 34px 30px; } .ph-form h2 { margin: 0 0 14px; font-size: 20px; color: #0f172a; }
+@media (max-width: 760px) { .ph-login { grid-template-columns: 1fr; } .ph-brand { padding: 22px; } }
 </style>
 
 <header class="top">

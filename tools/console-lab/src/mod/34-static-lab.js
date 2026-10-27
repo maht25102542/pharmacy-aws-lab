@@ -4,7 +4,15 @@ function stBucketName(env) { return "pharmacy-web-" + env + "-" + ST_ACCT; }
 function stHost(env) { return env === "prd" ? "www." + ST_DOMAIN : "dev." + ST_DOMAIN; }
 function stPolicyFor(bucket, distId) { return JSON.stringify({ Version: "2012-10-17", Statement: [{ Sid: "AllowCloudFrontServicePrincipalReadOnly", Effect: "Allow", Principal: { Service: "cloudfront.amazonaws.com" }, Action: "s3:GetObject", Resource: "arn:aws:s3:::" + bucket + "/*", Condition: { StringEquals: { "AWS:SourceArn": "arn:aws:cloudfront::" + ST_ACCT + ":distribution/" + distId } } }] }, null, 2); }
 function isStaticLab() { return S.buckets.length > 0 || S.cfds.length > 0 || S.zones.length > 0; }
-function stPage(env, v, brand) { return "<h1>" + (brand || "pharmacy") + " " + env.toUpperCase() + "</h1><p>version " + v + "</p>"; }
+function stPage(env, v, brand) { // หน้าเว็บตัวอย่างที่อัปโหลดขึ้น S3 (HTML จริง มี CSS ในตัว)
+  var b = brand || "pharmacy", E = env.toUpperCase(), c = env === "prd" ? "#0f766e" : "#d97706", bg = env === "prd" ? "#ecfdf5" : "#fff7ed";
+  var css = "*{box-sizing:border-box}body{margin:0;font:16px/1.6 system-ui,'IBM Plex Sans Thai',sans-serif;color:#0f172a;background:#fff}header{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #e2e8f0}.logo{width:34px;height:34px;border-radius:10px;background:" + c + ";color:#fff;display:grid;place-items:center;font-weight:800}.env{margin-left:auto;font-size:12px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:99px;background:" + bg + ";color:" + c + ";border:1px solid " + c + "}.hero{padding:44px 28px 30px;background:linear-gradient(180deg," + bg + ",#fff)}h1{margin:0 0 6px;font-size:34px;letter-spacing:-.01em}.ver{display:inline-block;margin:0;padding:2px 12px;border-radius:99px;background:" + c + ";color:#fff;font-size:13px;font-weight:600}.sub{color:#475569;margin:14px 0 0;max-width:520px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;padding:6px 28px 26px}.c{border:1px solid #e2e8f0;border-radius:12px;padding:16px}.c b{display:block;margin-bottom:2px}.c span{color:#64748b;font-size:14px}footer{padding:14px 28px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:13px}";
+  return "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>" + b + " " + E + "</title><style>" + css + "</style>" +
+    "<header><div class=logo>Rx</div><strong>" + b + "</strong><span class=env>" + E + "</span></header>" +
+    "<section class=hero><h1>" + b + " " + E + "</h1><p class=ver>version " + v + "</p><p class=sub>ระบบร้านยาออนไลน์: สั่งยา ตรวจสต็อก และปรึกษาเภสัชกรได้ในที่เดียว</p></section>" +
+    "<section class=grid><div class=c><b>สั่งยาออนไลน์</b><span>เลือกยา ชำระเงิน รับที่ร้านหรือจัดส่ง</span></div><div class=c><b>ตรวจสต็อก</b><span>เห็นจำนวนยาคงเหลือแบบเรียลไทม์</span></div><div class=c><b>ปรึกษาเภสัชกร</b><span>ถามเรื่องยาและการใช้ได้ทุกวัน</span></div></section>" +
+    "<footer>© " + b + " · เว็บนี้ให้บริการจาก S3 ผ่าน CloudFront</footer>";
+}
 
 function buildStatic(kind) {
   fresh();

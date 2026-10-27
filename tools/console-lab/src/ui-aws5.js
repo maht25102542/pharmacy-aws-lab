@@ -162,12 +162,10 @@ PAGES["ddb-items"] = function () {
 
 // ---------- Browser: ตอบจาก API Gateway ----------
 function wbApigw(r) {
-  var x = r.res, st = x.status, col = st < 300 ? "#1d8102" : st < 500 ? "#a85a00" : "#c62828", rs = { 200: "OK", 201: "Created", 400: "Bad Request", 404: "Not Found", 500: "Internal Server Error" }[st] || "";
-  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
-    h("div", { style: "font-weight:800;color:" + col, text: "HTTP/2 " + st + " " + rs }), h("div", { cls: "hint", text: "GET " + r.host + r.path + (x.fn ? " → Lambda " + x.fn + (x.cold === undefined ? " (ไม่ได้ถูกเรียก)" : x.cold ? " (cold start)" : " (warm)") : "") }),
-    codePre(JSON.stringify(x.body, null, 2), "an"),
-    h("h4", { text: "ขั้นที่ API Gateway ทำกับคำขอนี้" }), mgSteps(x.steps),
-    h("p", { cls: "hint", text: st === 200 ? "กด Go ซ้ำได้ · ดู log ของ Lambda ที่ CloudWatch › Log groups › /aws/lambda/…" : "500 จาก API Gateway ไม่บอกสาเหตุ: ไล่ตามขั้นที่ ✗ แล้วดู log ของ Lambda (ถ้ามี) · 404 = stage/route ไม่ตรง" })])]);
+  var x = r.res, st = x.status, rs = { 200: "OK", 201: "Created", 400: "Bad Request", 404: "Not Found", 500: "Internal Server Error" }[st] || "";
+  var extra = h("div", { cls: "bw-why" }, [h("div", { cls: "hint", text: "GET " + r.host + r.path + (x.fn ? " → Lambda " + x.fn + (x.cold === undefined ? " (ไม่ได้ถูกเรียก)" : x.cold ? " (cold start)" : " (warm)") : "") }),
+    h("p", { cls: "hint", text: st === 200 ? "กด Go ซ้ำได้ · ดู log ของ Lambda ที่ CloudWatch › Log groups › /aws/lambda/…" : "500 จาก API Gateway ไม่บอกสาเหตุ: ไล่ตามขั้นที่ ✗ แล้วดู log ของ Lambda (ถ้ามี) · 404 = stage/route ไม่ตรง" })]);
+  return wbWin({ url: W.addr || "https://" + r.host + r.path, title: "GET " + r.path, ico: "🔌", status: st, statusText: rs, secure: "API Gateway (ใบรับรอง AWS)", body: wbJsonBody(x.body, { title: x.fn ? "Lambda " + x.fn : "API Gateway" }), steps: x.steps, stepsTitle: "ขั้นที่ API Gateway ทำกับคำขอนี้", extra: extra });
 }
 
 // ---------- Lambda › Test ----------

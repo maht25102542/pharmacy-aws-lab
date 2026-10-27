@@ -91,11 +91,8 @@ function wbGhActions(user, name, rp, parts, go2, link) {
 
 // ---------- Browser: เว็บบนเครื่องเดียว (docker compose + Caddy) ----------
 function wbCompose(r) {
-  var i = r.inst, a = r.app;
-  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
-    r.redirectedFrom ? h("div", { cls: "hint", text: "↪ " + r.redirectedFrom }) : h("span"),
-    h("h2", { text: "pharmacy · รันด้วย docker compose บนเครื่องเดียว" }),
-    kvDom([["URL", (r.tls ? "https://" : "http://") + r.host], ["TLS", r.tls || "ไม่มี (HTTP)"], ["EC2", (i.name || i.id) + " · " + i.type + " · " + i.state + " · " + (i.publicIp || "ไม่มี public IP")], ["containers", "caddy ✓ · app ✓ · db ✓ (docker compose up -d)"], ["Caddyfile", a.domain ? a.domain + " { reverse_proxy app:8000 }" : ":80 { reverse_proxy app:8000 }"]]),
-    codePre(JSON.stringify({ service: "pharmacy-api", env: "single-vm", db: "connected", served_by: "compose@" + (i.name || i.id) }, null, 2), "an"),
-    h("h4", { text: "ขั้นที่ตัวจำลองตรวจ" }), mgSteps(r.steps || [])])]);
+  var i = r.inst, a = r.app, json = { service: "pharmacy-api", env: "single-vm", db: "connected", served_by: "compose@" + (i.name || i.id) };
+  var extra = h("div", { cls: "bw-why" }, [r.redirectedFrom ? h("div", { cls: "hint", text: "↪ " + r.redirectedFrom }) : h("span"), h("h4", { text: "pharmacy · รันด้วย docker compose บนเครื่องเดียว" }),
+    kvDom([["URL", (r.tls ? "https://" : "http://") + r.host], ["TLS", r.tls || "ไม่มี (HTTP)"], ["EC2", (i.name || i.id) + " · " + i.type + " · " + i.state + " · " + (i.publicIp || "ไม่มี public IP")], ["containers", "caddy ✓ · app ✓ · db ✓ (docker compose up -d)"], ["Caddyfile", a.domain ? a.domain + " { reverse_proxy app:8000 }" : ":80 { reverse_proxy app:8000 }"]])]);
+  return wbWin({ url: W.addr || (r.tls ? "https://" : "http://") + r.host, title: "pharmacy API", ico: "💊", status: 200, statusText: "OK", insecure: !r.tls, secure: r.tls, body: wbJsonBody(json, { title: "pharmacy API · /" }), steps: r.steps || [], stepsTitle: "ขั้นที่ตัวจำลองตรวจ", extra: extra });
 }

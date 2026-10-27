@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Console Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -527,6 +528,39 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .uc-err .ic-row { padding: 8px 0; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; }
 .uc-err .btn { align-self: flex-start; margin-top: auto; }
 @media (max-width: 640px) { .uc-errs { grid-template-columns: 1fr; } }
+
+/* ===== browser window (แท็บ Browser): กรอบเบราว์เซอร์จริง ===== */
+.bwrap { margin: 0 0 18px; }
+.bw { --bw-strip:#dfe3e8; --bw-bar:#fff; --bw-url:#eef0f3; --bw-ink:#202124; --bw-mute:#5f6368; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bw-bar); box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 10px 28px rgba(16,24,40,.08); }
+:root[data-theme="dark"] .bw { --bw-strip:#202124; --bw-bar:#35363a; --bw-url:#202124; --bw-ink:#e8eaed; --bw-mute:#9aa0a6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bw { --bw-strip:#202124; --bw-bar:#35363a; --bw-url:#202124; --bw-ink:#e8eaed; --bw-mute:#9aa0a6; } }
+.bw-tabs { display: flex; align-items: flex-end; gap: 12px; padding: 8px 12px 0; background: var(--bw-strip); }
+.bw-dots { display: flex; gap: 6px; padding: 0 4px 12px; } .bw-dots i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .bw-dots i:nth-child(2) { background: #febc2e; } .bw-dots i:nth-child(3) { background: #28c840; }
+.bw-tab { display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 8px 16px; border-radius: 10px 10px 0 0; background: var(--bw-bar); color: var(--bw-ink); font-size: 13px; font-weight: 500; }
+.bw-tab .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .bw-tab .ico { font-size: 14px; }
+.bw-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--bw-bar); border-bottom: 1px solid var(--line); }
+.bw-nav { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--bw-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.bw-nav:hover:not(:disabled) { background: var(--bw-url); } .bw-nav:disabled { opacity: .35; cursor: default; }
+.bw-url { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 99px; background: var(--bw-url); font-size: 14px; }
+.bw-lock { display: inline-flex; align-items: center; gap: 4px; flex: none; } .bw-lock.ok { color: #188038; } .bw-lock.no { color: #c5221f; } .bw-lock b { font-size: 12px; font-weight: 600; }
+.bw-u { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bw-ink); } .bw-u .d { color: var(--bw-mute); }
+.bw-chip { flex: none; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; } .bw-chip.ok { background: var(--ok-bg); color: var(--ok); } .bw-chip.warn { background: var(--warn-bg); color: var(--warn); } .bw-chip.bad { background: var(--bad-bg); color: var(--bad); }
+.bw-vp { --bg:#fff; --surface:#fff; --fg:#0f172a; --muted:#64748b; --line:#e2e8f0; --code-bg:#f4f6f8; background: #fff; color: #0f172a; min-height: 220px; }
+.bw-vp iframe { display: block; width: 100%; height: 400px; border: 0; background: #fff; }
+.bw-err { max-width: 560px; margin: 0 auto; padding: 56px 24px 64px; color: #5f6368; } .bw-err .eic { color: #9aa0a6; margin-bottom: 14px; } .bw-err h1 { margin: 0 0 12px; font-size: 24px; font-weight: 500; color: #202124; }
+.bw-err p { margin: 0 0 6px; font-size: 15px; line-height: 1.6; } .bw-err small { display: block; margin: 14px 0 22px; font-size: 12px; color: #80868b; letter-spacing: .02em; } .bw-err .dt { margin-top: 16px; font-size: 13px; color: #80868b; }
+.bw-btn { padding: 8px 20px; border: 0; border-radius: 99px; background: #1a73e8; color: #fff; font: 600 14px inherit; cursor: pointer; } .bw-btn:hover { background: #1765cc; }
+.bw-json { padding: 18px 22px 22px; } .bw-jh { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; } .bw-jh b { font-size: 16px; } .bw-ct { margin-left: 10px; padding: 2px 8px; border-radius: 6px; background: #eef2f6; color: #475569; font-size: 12px; font-family: var(--mono, monospace); }
+.bw-jt { display: inline-flex; padding: 3px; border-radius: 9px; background: #eef2f6; } .bw-jt button { border: 0; padding: 4px 14px; border-radius: 7px; background: transparent; color: #475569; font: 600 13px inherit; cursor: pointer; } .bw-jt button.on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.bw-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; } .bw-meta span { padding: 3px 10px; border-radius: 99px; background: #f1f5f9; color: #0f172a; font-size: 13px; } .bw-meta i { font-style: normal; color: #64748b; margin-right: 4px; }
+.bw-tbl { width: 100%; border-collapse: collapse; font-size: 14px; } .bw-tbl th { text-align: left; padding: 8px 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0; } .bw-tbl td { padding: 8px 12px; border-bottom: 1px solid #eef2f6; }
+.bw-raw { margin: 0; padding: 12px 14px; border-radius: 8px; background: #f4f6f8; color: #0f172a; font: 13px/1.5 var(--mono, monospace); white-space: pre-wrap; word-break: break-all; }
+.bw-why { margin: 14px 0 0; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .bw-why h4 { margin: 0 0 8px; font-size: 14px; }
+.ph-login { display: grid; grid-template-columns: 1fr 1fr; min-height: 380px; margin: -2px; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid #e2e8f0; }
+.ph-brand { padding: 34px 30px; background: linear-gradient(160deg, #0f766e, #134e4a); color: #fff; display: flex; flex-direction: column; gap: 8px; } .ph-brand h1 { margin: 6px 0 0; font-size: 26px; } .ph-brand p { margin: 0; opacity: .85; } .ph-brand ul { margin: 14px 0 0; padding-left: 18px; line-height: 1.9; opacity: .92; } .ph-brand small { margin-top: auto; opacity: .6; letter-spacing: .04em; }
+.ph-logo { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.18); display: grid; place-items: center; font-weight: 800; }
+.ph-form { padding: 34px 30px; } .ph-form h2 { margin: 0 0 14px; font-size: 20px; color: #0f172a; }
+@media (max-width: 760px) { .ph-login { grid-template-columns: 1fr; } .ph-brand { padding: 22px; } }
 </style>
 
 <header class="top">
@@ -3088,7 +3122,15 @@ function stBucketName(env) { return "pharmacy-web-" + env + "-" + ST_ACCT; }
 function stHost(env) { return env === "prd" ? "www." + ST_DOMAIN : "dev." + ST_DOMAIN; }
 function stPolicyFor(bucket, distId) { return JSON.stringify({ Version: "2012-10-17", Statement: [{ Sid: "AllowCloudFrontServicePrincipalReadOnly", Effect: "Allow", Principal: { Service: "cloudfront.amazonaws.com" }, Action: "s3:GetObject", Resource: "arn:aws:s3:::" + bucket + "/*", Condition: { StringEquals: { "AWS:SourceArn": "arn:aws:cloudfront::" + ST_ACCT + ":distribution/" + distId } } }] }, null, 2); }
 function isStaticLab() { return S.buckets.length > 0 || S.cfds.length > 0 || S.zones.length > 0; }
-function stPage(env, v, brand) { return "<h1>" + (brand || "pharmacy") + " " + env.toUpperCase() + "</h1><p>version " + v + "</p>"; }
+function stPage(env, v, brand) { // หน้าเว็บตัวอย่างที่อัปโหลดขึ้น S3 (HTML จริง มี CSS ในตัว)
+  var b = brand || "pharmacy", E = env.toUpperCase(), c = env === "prd" ? "#0f766e" : "#d97706", bg = env === "prd" ? "#ecfdf5" : "#fff7ed";
+  var css = "*{box-sizing:border-box}body{margin:0;font:16px/1.6 system-ui,'IBM Plex Sans Thai',sans-serif;color:#0f172a;background:#fff}header{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #e2e8f0}.logo{width:34px;height:34px;border-radius:10px;background:" + c + ";color:#fff;display:grid;place-items:center;font-weight:800}.env{margin-left:auto;font-size:12px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:99px;background:" + bg + ";color:" + c + ";border:1px solid " + c + "}.hero{padding:44px 28px 30px;background:linear-gradient(180deg," + bg + ",#fff)}h1{margin:0 0 6px;font-size:34px;letter-spacing:-.01em}.ver{display:inline-block;margin:0;padding:2px 12px;border-radius:99px;background:" + c + ";color:#fff;font-size:13px;font-weight:600}.sub{color:#475569;margin:14px 0 0;max-width:520px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;padding:6px 28px 26px}.c{border:1px solid #e2e8f0;border-radius:12px;padding:16px}.c b{display:block;margin-bottom:2px}.c span{color:#64748b;font-size:14px}footer{padding:14px 28px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:13px}";
+  return "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>" + b + " " + E + "</title><style>" + css + "</style>" +
+    "<header><div class=logo>Rx</div><strong>" + b + "</strong><span class=env>" + E + "</span></header>" +
+    "<section class=hero><h1>" + b + " " + E + "</h1><p class=ver>version " + v + "</p><p class=sub>ระบบร้านยาออนไลน์: สั่งยา ตรวจสต็อก และปรึกษาเภสัชกรได้ในที่เดียว</p></section>" +
+    "<section class=grid><div class=c><b>สั่งยาออนไลน์</b><span>เลือกยา ชำระเงิน รับที่ร้านหรือจัดส่ง</span></div><div class=c><b>ตรวจสต็อก</b><span>เห็นจำนวนยาคงเหลือแบบเรียลไทม์</span></div><div class=c><b>ปรึกษาเภสัชกร</b><span>ถามเรื่องยาและการใช้ได้ทุกวัน</span></div></section>" +
+    "<footer>© " + b + " · เว็บนี้ให้บริการจาก S3 ผ่าน CloudFront</footer>";
+}
 
 function buildStatic(kind) {
   fresh();
@@ -7681,7 +7723,10 @@ function wbPharmacy(res) {
   var shell = function (kids) { return h("div", { cls: "card", style: "background:#f5f7fa;color:#1b2733" }, [h("div", { cls: "cb", style: "max-width:860px" }, kids.concat([h("div", { role: "status", style: "min-height:1.4em;font-size:14px;color:" + (P.err ? "#b91c1c" : "#15803d"), text: P.msg }), h("p", { cls: "sub", text: "จำลองตาม repo-backend (Django REST) + repo-frontend (Next.js) · ข้อมูลแยกตาม env: dev ใช้ DB pharmacy_dev, prd ใช้ DB pharmacy_prd (แต่ละ DB มียาตัวอย่างของตัวเอง แก้ฝั่งหนึ่งอีกฝั่งไม่เปลี่ยน)" + (replicas > 1 ? " · รีเฟรช/กดซ้ำจะเห็นชื่อ pod ที่ตอบสลับกัน (prd มี 3 replica)" : "") })]))]); };
   if (!authed) {
     if (F.lu == null) F.lu = "admin"; if (F.lp == null) F.lp = "";
-    return shell([h("h1", { style: "margin:0 0 12px", text: "💊 Pharmacy Stock" }), h("div", { style: "max-width:340px" }, [wbEx("ชื่อผู้ใช้", "lu", ["admin"], "ชื่อผู้ใช้"), wbEx("รหัสผ่าน", "lp", [phAdminPw(), "wrong-password"], "รหัสผ่าน"), h("div", { style: "margin-top:8px" }, [B("เข้าสู่ระบบ", act(function () { var r = call("POST", "/api/auth/login", { username: F.lu, password: F.lp }); if (r.code === 200) { P.auth[env] = true; F.lp = ""; r.okMsg = ""; } return r; }), "btn pri")]), h("p", { cls: "sub", text: "รหัสแอดมินคือ django_admin_password ใน ansible/group_vars/all/main.yml (Secret app-secrets) · ล็อกอินผิดหลายครั้งใน 1 นาที backend จะตอบ 429" })])]);
+    return shell([h("div", { cls: "ph-login" }, [
+      h("div", { cls: "ph-brand" }, [h("div", { cls: "ph-logo", text: "Rx" }), h("h1", { text: "Pharmacy Stock" }), h("p", { text: "ระบบจัดการสต็อกยาสำหรับร้านยา" }),
+        h("ul", {}, [h("li", { text: "ดูยาคงเหลือและยาใกล้หมดทันที" }), h("li", { text: "บันทึกการรับ-จ่ายยาทุกครั้ง" }), h("li", { text: "แยกข้อมูล dev / prd ชัดเจน" })]), h("small", { text: env.toUpperCase() + " · Next.js + Django REST" })]),
+      h("div", { cls: "ph-form" }, [h("h2", { text: "เข้าสู่ระบบ" }), h("div", { style: "max-width:340px" }, [wbEx("ชื่อผู้ใช้", "lu", ["admin"], "ชื่อผู้ใช้"), wbEx("รหัสผ่าน", "lp", [phAdminPw(), "wrong-password"], "รหัสผ่าน"), h("div", { style: "margin-top:8px" }, [B("เข้าสู่ระบบ", act(function () { var r = call("POST", "/api/auth/login", { username: F.lu, password: F.lp }); if (r.code === 200) { P.auth[env] = true; F.lp = ""; r.okMsg = ""; } return r; }), "btn pri")]), h("p", { cls: "sub", text: "รหัสแอดมินคือ django_admin_password ใน ansible/group_vars/all/main.yml (Secret app-secrets) · ล็อกอินผิดหลายครั้งใน 1 นาที backend จะตอบ 429" })])]) ])]);
   }
   var nav = h("div", { style: "display:flex;gap:16px;align-items:center;background:#0f766e;color:#fff;padding:8px 14px;border-radius:8px;margin-bottom:14px" }, [h("b", { text: "💊 Pharmacy" }), h("a", { href: "#", style: "color:#fff;" + (P.view === "stock" ? "text-decoration:underline" : "opacity:.85"), text: "สต็อกยา", onclick: function (e) { e.preventDefault(); P.view = "stock"; render(); } }), h("a", { href: "#", style: "color:#fff;" + (P.view === "moves" ? "text-decoration:underline" : "opacity:.85"), text: "ประวัติการเคลื่อนไหว", onclick: function (e) { e.preventDefault(); P.view = "moves"; render(); } }), h("span", { style: "flex:1" }), h("button", { type: "button", cls: "btn sm", style: "color:#0f766e", text: "ออกจากระบบ", onclick: function () { P.auth[env] = false; P.msg = ""; render(); } })]);
   var head = h("div", { style: "color:#64748b;font-size:13px;margin-bottom:10px", text: "Frontend " + tag(fe) + " · Backend " + tag(be) + " (" + env + ")" });
@@ -7727,7 +7772,7 @@ PAGES.browser = function () {
   if (!r && noOut) view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "ยังไม่มี link ของ Jenkins / SonarQube / ArgoCD / เว็บ" }), h("p", { text: "link พวกนี้มาจาก terraform output หลังสร้างเครื่องแล้ว (state ถูกล้างเมื่อกด Reset หรือเปิดแท็บใหม่)" }), h("p", { text: "ทางลัด: Lab › ตัวอย่างสำเร็จรูป › \"พร้อมปล่อย\" แล้วกดโหลด จะได้ครบทุก link ทันที หรือทำเองที่แท็บ Laptop: terraform apply" }), h("button", { type: "button", cls: "btn pri", text: "ไปที่ ตัวอย่างสำเร็จรูป", onclick: function () { go("lab-scen", {}, "Lab"); } })])]);
   else if (!r) view = infoCard([["ทำอะไร", "#2b6cb0", "เลือก URL จาก `terraform output` (หรือพิมพ์เอง) แล้วกด ==Go=="], ["ตัวจำลองตรวจ", "#1d8102", "เหมือน `ssh`: เครื่อง**รันอยู่** · มี **public IP** · **route** · **security group** · service ที่ฟัง**พอร์ต**นั้น"]]);
   else if (r && r.site === "cf") view = wbCloudFront(r);
-  else if (r.err) view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "This site can’t be reached" }), h("p", { text: r.host ? (r.err === "ERR_CONNECTION_REFUSED" ? r.host + " refused to connect." : r.err === "ERR_NAME_NOT_RESOLVED" ? "ไม่พบเซิร์ฟเวอร์ " + r.host : r.host + " took too long to respond.") : r.title }), h("p", { cls: "sub", text: r.err }), h("details", {}, [h("summary", { text: "ตัวจำลองบอกเหตุผล (ไม่มีในเบราว์เซอร์จริง)" }), h("ul", { cls: "chk" }, (r.steps || []).map(function (x) { return h("li", { cls: x.ok ? "ok" : "no" }, [h("span", { cls: "m", text: x.ok ? "✓" : "✗" }), h("span", {}, [x.t, h("small", { text: x.d })])]); }))])])]);
+  else if (r.err) view = wbWin({ url: W.addr, title: /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached", ico: "⚠️", insecure: /CERT|SSL/.test(r.err), body: wbErrBody(r.host || W.addr, r.err), steps: r.steps || [], stepsTitle: "ตัวจำลองบอกเหตุผล (ไม่มีในเบราว์เซอร์จริง)" });
   else if (r.site === "jenkins") view = wbJenkins(r);
   else if (r.site === "sonarqube") view = wbSonar(r);
   else if (r.site === "argocd") view = wbArgo(r);
@@ -7739,7 +7784,7 @@ PAGES.browser = function () {
   else if (r.site === "github") view = wbGithub(r);
   else if (r.site === "alb503") view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "503 Service Temporarily Unavailable" }), h("p", { cls: "sub", text: "ALB ตอบได้ แต่ไม่มี target ที่ healthy (ดู EC2 › Target Groups › Targets)" })])]);
   else view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: r.site === "sonarqube" ? "SonarQube" : r.site === "argocd" ? "Argo CD" : "pharmacy" }), h("p", { cls: "sub", text: "เข้าถึงได้ (เครือข่ายถูกต้อง) แต่ตัวจำลองยังไม่มีหน้าเว็บของบริการนี้" })])]);
-  if (r && !r.err && /^(jenkins|sonarqube|argocd|app|github)$/.test(r.site)) view = h("div", { cls: "bwin" }, [view]);
+  if (r && !r.err && /^(jenkins|sonarqube|argocd|app|github)$/.test(r.site)) { var SW = { jenkins: ["Dashboard [Jenkins]", "🛠️"], sonarqube: ["SonarQube", "🔍"], argocd: ["Argo CD", "🐙"], app: ["pharmacy", "💊"], github: ["GitHub", "🐱"] }[r.site]; view = wbWin({ url: W.addr, title: SW[0], ico: SW[1], status: 200, statusText: "OK", insecure: !/^https:/i.test(W.addr), body: view }); }
   var spd = h("label", { style: "display:block;margin:6px 0" }, ["ความเร็ว ", h("select", { "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); render(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (build หลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]);
   return h("div", {}, [crumbEl("Browser"), h("h1", { text: "Browser" }), spd, bar, view]);
 };
@@ -9286,7 +9331,7 @@ PAGES["ssm-fleet"] = function () { return ssmPage(true); };
   NAVHOME.S3 = "buckets"; NAVHOME.CloudFront = "cfds"; NAVHOME["Route 53"] = "zones"; NAVHOME.ACM = "certs";
   LK.bucket = "buckets"; LK.cfd = "cfds"; LK.oac = "oacs"; LK.zone = "zones"; LK.cert = "certs";
 })();
-var ST_SAMPLES = [["index-v1", "index.html (version 1)", "index.html", function (e, b) { return stPage(e, 1, b); }], ["index-v2", "index.html (version 2 — ปล่อยเวอร์ชันใหม่)", "index.html", function (e, b) { return stPage(e, 2, b); }], ["about", "about.html", "about.html", function (e, b) { return "<h1>About " + b + " (" + e + ")</h1>"; }], ["error", "error.html", "error.html", function () { return "<h1>ไม่พบหน้านี้</h1>"; }]];
+var ST_SAMPLES = [["index-v1", "index.html (version 1)", "index.html", function (e, b) { return stPage(e, 1, b); }], ["index-v2", "index.html (version 2 — ปล่อยเวอร์ชันใหม่)", "index.html", function (e, b) { return stPage(e, 2, b); }], ["about", "about.html", "about.html", function (e, b) { return "<!doctype html><meta charset=utf-8><body style='font:16px/1.6 system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 20px'><h1>About " + b + " (" + e + ")</h1><p style='color:#475569'>เราคือร้านยาออนไลน์ที่เชื่อถือได้ ก่อตั้งเพื่อให้ทุกคนเข้าถึงยาและคำแนะนำจากเภสัชกร</p></body>"; }], ["error", "error.html", "error.html", function () { return "<!doctype html><meta charset=utf-8><body style='font:16px/1.6 system-ui,sans-serif;text-align:center;padding:70px 20px'><div style='font-size:64px;font-weight:800;color:#cbd5e1'>404</div><h1 style='margin:6px 0'>ไม่พบหน้านี้</h1><p style='color:#64748b'>ลิงก์อาจผิด หรือหน้านี้ถูกย้ายแล้ว</p></body>"; }]];
 function stRegions() { return [["ap-southeast-1", "Asia Pacific (Singapore) ap-southeast-1"], ["us-east-1", "US East (N. Virginia) us-east-1"], ["eu-west-1", "Europe (Ireland) eu-west-1"]]; }
 function stSteps(list) { return h("div", { cls: "steps" }, list.map(function (x) { return h("div", {}, [h("b", { text: x.skip ? "–" : (x.ok ? "✓" : "✗"), style: "color:var(--" + (x.skip ? "muted" : (x.ok ? "ok" : "bad")) + ")" }), h("span", {}, [h("b", { text: x.t }), h("div", { cls: "hint", text: x.d })])]); })); }
 function stFmt(ts) { return fmtT(ts || t0()); }
@@ -9539,22 +9584,26 @@ function scenGroups(cb, sc, card) {
 }
 // ---------- Browser: เว็บที่ผ่าน CloudFront ----------
 function wbCloudFront(r) {
-  var q = r.req, card = h("div", { cls: "card" }), cb = h("div", { cls: "cb" }), steps = [], dpl = S.cfds.filter(function (d) { return d.domain === r.host || d.aliases.indexOf(r.host) >= 0; })[0]; if (dpl && cfPhase(dpl) !== "Deployed") cb.appendChild(h("div", { cls: "alert info", text: "ⓘ distribution นี้ยัง Deploying (โหมดเหมือนจริง): การตั้งค่าใหม่ยังไม่ถึงทุก edge บาง request อาจยังได้ผลแบบเดิม" }));
+  var q = r.req, steps = [], body, status = 0, statusText = "", title = r.host, extra = h("div"), dpl = S.cfds.filter(function (d) { return d.domain === r.host || d.aliases.indexOf(r.host) >= 0; })[0];
   var dns = q.dns; if (dns) steps.push({ ok: dns.kind === "cloudfront", t: "DNS: " + r.host + " → CloudFront", d: dns.kind === "cloudfront" ? dns.chain.join(" ") : dns.why || "ไม่พบ" });
+  var info = dpl && cfPhase(dpl) !== "Deployed" ? h("div", { cls: "alert info", text: "ⓘ distribution นี้ยัง Deploying (โหมดเหมือนจริง): การตั้งค่าใหม่ยังไม่ถึงทุก edge บาง request อาจยังได้ผลแบบเดิม" }) : null;
   if (q.err) {
-    var cert = /CERT/.test(q.err);
-    cb.appendChild(h("h2", { text: cert ? "Your connection is not private" : "This site can’t be reached" })); cb.appendChild(h("p", { text: cert ? "Attackers might be trying to steal your information from " + r.host + "." : r.host + "’s server IP address could not be found." })); cb.appendChild(h("pre", { cls: "term", text: q.err }));
+    var cert = /CERT/.test(q.err); body = wbErrBody(r.host, q.err); title = cert ? "Privacy error" : "This site can’t be reached";
     if (cert) steps.push({ ok: false, t: "ใบรับรอง HTTPS ครอบชื่อ " + r.host, d: q.notes[0] });
   } else {
+    status = q.status; statusText = { 200: "OK", 403: "Forbidden", 404: "Not Found" }[q.status] || "";
     var d = q.dist; if (d) { steps.push({ ok: true, t: "CloudFront distribution " + d.id, d: d.domain + (d.aliases.length ? " · alias: " + d.aliases.join(", ") : "") }); }
     if (r.hops && r.hops.length) steps.push({ ok: true, t: "Redirect HTTP → HTTPS (viewer protocol policy)", d: r.hops.join(" → ") });
     var cc = q.headers && q.headers["x-cache"]; steps.push({ ok: q.status === 200, t: "X-Cache: " + (cc || "-") + " · HTTP " + q.status, d: (q.notes || []).join(" · ") || "-" });
-    if (q.status === 200 && /html/.test(q.type || "")) { cb.appendChild(h("div", { cls: "bwin" }, [h("iframe", { sandbox: "", srcdoc: q.body, style: "width:100%;height:150px;border:0;background:#fff;border-radius:6px" })])); }
-    else { cb.appendChild(h("h2", { text: q.status + " " + (q.status === 403 ? "Forbidden" : q.status === 404 ? "Not Found" : "") })); cb.appendChild(h("pre", { cls: "term", text: q.body || "" })); }
-    var hd = q.headers ? Object.keys(q.headers).map(function (k) { return k + ": " + q.headers[k]; }).join("\n") : ""; if (hd) cb.appendChild(h("pre", { cls: "term", text: "HTTP/2 " + q.status + "\n" + hd }));
-    cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:8px 0" }, [h("button", { cls: "btn", type: "button", text: "Refresh (F5)", onclick: function () { wbGo(W.addr); } }), h("button", { cls: "btn", type: "button", text: "Hard refresh (Ctrl+Shift+R)", onclick: function () { wbGo(W.addr); flash("ok", "Hard refresh ล้างแคชของเบราว์เซอร์เท่านั้น · CloudFront ยังตอบจาก edge cache (ดู X-Cache) ต้อง Create invalidation"); } })]));
+    if (q.status === 200 && /html/.test(q.type || "")) { body = h("iframe", { sandbox: "", srcdoc: q.body, title: "preview" }); var tm = /<title>([^<]*)<\/title>/i.exec(q.body || ""); if (tm) title = tm[1]; }
+    else body = h("div", { cls: "bw-err" }, [h("h1", { text: q.status + " " + statusText }), h("pre", { cls: "bw-raw", text: q.body || "" })]);
+    var hd = q.headers ? Object.keys(q.headers).map(function (k) { return k + ": " + q.headers[k]; }).join("\n") : "";
+    extra = h("div", { cls: "bw-why" }, [h("h4", { text: "Response headers (DevTools › Network)" }), hd ? h("pre", { cls: "term", text: "HTTP/2 " + q.status + "\n" + hd }) : h("span"),
+      h("div", { style: "display:flex;gap:8px;margin:8px 0 0" }, [h("button", { cls: "btn", type: "button", text: "Refresh (F5)", onclick: function () { wbGo(W.addr); } }), h("button", { cls: "btn", type: "button", text: "Hard refresh (Ctrl+Shift+R)", onclick: function () { wbGo(W.addr); flash("ok", "Hard refresh ล้างแคชของเบราว์เซอร์เท่านั้น · CloudFront ยังตอบจาก edge cache (ดู X-Cache) ต้อง Create invalidation"); } })])]);
   }
-  cb.appendChild(h("h4", { text: "ทำไมได้ผลนี้ (ไล่ตามทางจริง)" })); cb.appendChild(stSteps(steps)); card.appendChild(cb); return card;
+  var w = wbWin({ url: W.addr, title: title, ico: q.err ? "⚠️" : "🏪", status: status, statusText: statusText, insecure: !!(q.err && /CERT/.test(q.err)), body: body, steps: steps, stepsTitle: "ทำไมได้ผลนี้ (ไล่ตามทางจริง)", extra: extra });
+  if (info) w.insertBefore(info, w.firstChild);
+  return w;
 }
 ["buckets", "cfds", "oacs", "zones"].forEach(function (k) { PAGES[k] = function () { return listPage(LISTS[k]()); }; });
 
@@ -10346,12 +10395,10 @@ PAGES["ddb-items"] = function () {
 
 // ---------- Browser: ตอบจาก API Gateway ----------
 function wbApigw(r) {
-  var x = r.res, st = x.status, col = st < 300 ? "#1d8102" : st < 500 ? "#a85a00" : "#c62828", rs = { 200: "OK", 201: "Created", 400: "Bad Request", 404: "Not Found", 500: "Internal Server Error" }[st] || "";
-  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
-    h("div", { style: "font-weight:800;color:" + col, text: "HTTP/2 " + st + " " + rs }), h("div", { cls: "hint", text: "GET " + r.host + r.path + (x.fn ? " → Lambda " + x.fn + (x.cold === undefined ? " (ไม่ได้ถูกเรียก)" : x.cold ? " (cold start)" : " (warm)") : "") }),
-    codePre(JSON.stringify(x.body, null, 2), "an"),
-    h("h4", { text: "ขั้นที่ API Gateway ทำกับคำขอนี้" }), mgSteps(x.steps),
-    h("p", { cls: "hint", text: st === 200 ? "กด Go ซ้ำได้ · ดู log ของ Lambda ที่ CloudWatch › Log groups › /aws/lambda/…" : "500 จาก API Gateway ไม่บอกสาเหตุ: ไล่ตามขั้นที่ ✗ แล้วดู log ของ Lambda (ถ้ามี) · 404 = stage/route ไม่ตรง" })])]);
+  var x = r.res, st = x.status, rs = { 200: "OK", 201: "Created", 400: "Bad Request", 404: "Not Found", 500: "Internal Server Error" }[st] || "";
+  var extra = h("div", { cls: "bw-why" }, [h("div", { cls: "hint", text: "GET " + r.host + r.path + (x.fn ? " → Lambda " + x.fn + (x.cold === undefined ? " (ไม่ได้ถูกเรียก)" : x.cold ? " (cold start)" : " (warm)") : "") }),
+    h("p", { cls: "hint", text: st === 200 ? "กด Go ซ้ำได้ · ดู log ของ Lambda ที่ CloudWatch › Log groups › /aws/lambda/…" : "500 จาก API Gateway ไม่บอกสาเหตุ: ไล่ตามขั้นที่ ✗ แล้วดู log ของ Lambda (ถ้ามี) · 404 = stage/route ไม่ตรง" })]);
+  return wbWin({ url: W.addr || "https://" + r.host + r.path, title: "GET " + r.path, ico: "🔌", status: st, statusText: rs, secure: "API Gateway (ใบรับรอง AWS)", body: wbJsonBody(x.body, { title: x.fn ? "Lambda " + x.fn : "API Gateway" }), steps: x.steps, stepsTitle: "ขั้นที่ API Gateway ทำกับคำขอนี้", extra: extra });
 }
 
 // ---------- Lambda › Test ----------
@@ -10993,13 +11040,10 @@ function wbGhActions(user, name, rp, parts, go2, link) {
 
 // ---------- Browser: เว็บบนเครื่องเดียว (docker compose + Caddy) ----------
 function wbCompose(r) {
-  var i = r.inst, a = r.app;
-  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
-    r.redirectedFrom ? h("div", { cls: "hint", text: "↪ " + r.redirectedFrom }) : h("span"),
-    h("h2", { text: "pharmacy · รันด้วย docker compose บนเครื่องเดียว" }),
-    kvDom([["URL", (r.tls ? "https://" : "http://") + r.host], ["TLS", r.tls || "ไม่มี (HTTP)"], ["EC2", (i.name || i.id) + " · " + i.type + " · " + i.state + " · " + (i.publicIp || "ไม่มี public IP")], ["containers", "caddy ✓ · app ✓ · db ✓ (docker compose up -d)"], ["Caddyfile", a.domain ? a.domain + " { reverse_proxy app:8000 }" : ":80 { reverse_proxy app:8000 }"]]),
-    codePre(JSON.stringify({ service: "pharmacy-api", env: "single-vm", db: "connected", served_by: "compose@" + (i.name || i.id) }, null, 2), "an"),
-    h("h4", { text: "ขั้นที่ตัวจำลองตรวจ" }), mgSteps(r.steps || [])])]);
+  var i = r.inst, a = r.app, json = { service: "pharmacy-api", env: "single-vm", db: "connected", served_by: "compose@" + (i.name || i.id) };
+  var extra = h("div", { cls: "bw-why" }, [r.redirectedFrom ? h("div", { cls: "hint", text: "↪ " + r.redirectedFrom }) : h("span"), h("h4", { text: "pharmacy · รันด้วย docker compose บนเครื่องเดียว" }),
+    kvDom([["URL", (r.tls ? "https://" : "http://") + r.host], ["TLS", r.tls || "ไม่มี (HTTP)"], ["EC2", (i.name || i.id) + " · " + i.type + " · " + i.state + " · " + (i.publicIp || "ไม่มี public IP")], ["containers", "caddy ✓ · app ✓ · db ✓ (docker compose up -d)"], ["Caddyfile", a.domain ? a.domain + " { reverse_proxy app:8000 }" : ":80 { reverse_proxy app:8000 }"]])]);
+  return wbWin({ url: W.addr || (r.tls ? "https://" : "http://") + r.host, title: "pharmacy API", ico: "💊", status: 200, statusText: "OK", insecure: !r.tls, secure: r.tls, body: wbJsonBody(json, { title: "pharmacy API · /" }), steps: r.steps || [], stepsTitle: "ขั้นที่ตัวจำลองตรวจ", extra: extra });
 }
 
 // ===== หน้า console ของ App Runner (use case 7) =====
@@ -11044,7 +11088,7 @@ DET.apr = [
   ["conf", "Configuration", function (s) { return h("div", {}, [h("button", { cls: "btn", type: "button", text: "Edit", onclick: function () { go("apr-edit", { name: s.name, from: "aprs" }); } }), kvDom([["Image", s.image], ["Port", String(s.port)], ["CPU / Memory", APR_CPU[s.cpu] + " / " + APR_MEM[s.memory]], ["Access role", s.accessRole || "ไม่ได้ตั้ง"], ["Health check", s.health.protocol + (s.health.protocol === "HTTP" ? " " + s.health.path : "")], ["Environment", JSON.stringify(s.env)], ["Auto deploy", s.auto ? "On" : "Off (กด Deploy เอง)"]])]); }]
 ];
 function wbAprun(r) {
-  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "App Runner · " + r.svc.name }), h("div", { cls: "hint", text: "GET https://" + r.host + r.path + " → 200 OK" }), codePre(JSON.stringify(r.json, null, 2), "an"), h("h4", { text: "ขั้นที่ตัวจำลองตรวจ" }), mgSteps(r.steps || [])])]);
+  return wbWin({ url: W.addr || "https://" + r.host + r.path, title: r.svc.name, ico: "🚀", status: 200, statusText: "OK", secure: "App Runner (ใบรับรองให้อัตโนมัติ)", body: wbJsonBody(r.json, { title: "App Runner · " + r.svc.name }), steps: r.steps || [], stepsTitle: "ขั้นที่ตัวจำลองตรวจ" });
 }
 
 // ---------- ภาพรวม: เลือกแบบไหน ----------
@@ -11079,5 +11123,54 @@ PAGES["lab-ap"] = function () {
     h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ ECS Fargate (หรือ ECS Express Mode ถ้าอยากง่ายแบบ PaaS) → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })]))])]);
 };
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-uc"); L.splice(i < 0 ? L.length : i, 0, ["lab-ap", "เลือกแบบไหน (ทุกแบบ)"]); NAVICO["lab-ap"] = "🧩"; })();
+
+// ===== กรอบ browser จริง (แท็บ + แถบ URL + กุญแจ + ป้ายสถานะ) ใช้กับทุกเว็บในแท็บ Browser =====
+var BWI = {
+  back: '<path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  fwd: '<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  reload: '<path d="M19 12a7 7 0 1 1-2.1-5M19 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/>',
+  warn: '<path d="M12 3l10 18H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 18v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  sad: '<path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4M9.5 14.5c1.5-1.5 3.5-1.5 5 0M9.5 11h.01M14.5 11h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
+};
+function bwSvg(k, n) { return '<svg viewBox="0 0 24 24" width="' + n + '" height="' + n + '" aria-hidden="true">' + BWI[k] + '</svg>'; }
+// o = { url, title, ico (emoji/ข้อความสั้น), status, statusText, secure ("Let's Encrypt" ...), body (node), steps (list ของ mgSteps), stepsTitle }
+function wbWin(o) {
+  var u = o.url || "", https = /^https:/i.test(u), m = /^(https?:\/\/)([^\/]+)(.*)$/i.exec(u) || ["", "", u, ""];
+  var cls = o.status ? (o.status < 300 ? "ok" : o.status < 500 ? "warn" : "bad") : "";
+  var bar = h("div", { cls: "bw-bar" }, [
+    h("button", { type: "button", cls: "bw-nav", "aria-label": "Back", html: bwSvg("back", 18), disabled: true }), h("button", { type: "button", cls: "bw-nav", "aria-label": "Forward", html: bwSvg("fwd", 18), disabled: true }),
+    h("button", { type: "button", cls: "bw-nav", "aria-label": "Reload", title: "Reload", html: bwSvg("reload", 18), onclick: function () { wbGo(W.addr); } }),
+    h("div", { cls: "bw-url" }, [h("span", { cls: "bw-lock " + (https && !o.insecure ? "ok" : "no"), title: https ? (o.secure || "Connection is secure") : "Not secure", html: bwSvg(https && !o.insecure ? "lock" : "warn", 15) + (https && !o.insecure ? "" : "<b>Not secure</b>") }),
+      h("span", { cls: "bw-u" }, [h("span", { cls: "d", text: m[1] }), h("span", { cls: "h", text: m[2] }), h("span", { cls: "d", text: m[3] })])]),
+    o.status ? h("span", { cls: "bw-chip " + cls, text: o.status + (o.statusText ? " " + o.statusText : "") }) : h("span")]);
+  var win = h("div", { cls: "bw" }, [
+    h("div", { cls: "bw-tabs" }, [h("span", { cls: "bw-dots" }, [h("i"), h("i"), h("i")]), h("div", { cls: "bw-tab" }, [h("span", { cls: "ico", text: o.ico || "🌐" }), h("span", { cls: "t", text: o.title || m[2] })])]),
+    bar, h("div", { cls: "bw-vp" }, [o.body])]);
+  var out = h("div", { cls: "bwrap" }, [win]);
+  if (o.extra) out.appendChild(o.extra);
+  if (o.steps && o.steps.length) out.appendChild(h("div", { cls: "bw-why" }, [h("h4", { text: o.stepsTitle || "เบื้องหลัง: ตัวจำลองตรวจอะไรบ้าง" }), mgSteps(o.steps)]));
+  return out;
+}
+// หน้า error แบบ Chrome จริง
+function wbErrBody(host, err, detail) {
+  var why = err === "ERR_CONNECTION_REFUSED" ? host + " refused to connect." : err === "ERR_NAME_NOT_RESOLVED" ? "ไม่พบเซิร์ฟเวอร์ของ " + host + " (DNS ไม่ตอบ)" : /CERT|SSL/.test(err) ? "การเชื่อมต่อกับ " + host + " ไม่ปลอดภัย (ใบรับรอง HTTPS มีปัญหา)" : host + " took too long to respond.";
+  var cert = /CERT|SSL/.test(err);
+  return h("div", { cls: "bw-err" }, [h("div", { cls: "eic", html: bwSvg(cert ? "warn" : "sad", 56) }), h("h1", { text: cert ? "Your connection is not private" : "This site can’t be reached" }), h("p", { text: why }), h("small", { text: err }),
+    h("div", {}, [h("button", { type: "button", cls: "bw-btn", text: "Reload", onclick: function () { wbGo(W.addr); } })])].concat(detail ? [h("p", { cls: "dt", text: detail })] : []));
+}
+// เนื้อหา JSON: ตาราง (ถ้ามี items) / Pretty / Raw
+function wbJsonBody(obj, o) {
+  o = o || {}; var items = obj && Array.isArray(obj.items) && obj.items.length && typeof obj.items[0] === "object" ? obj.items : null;
+  var mode = W.jv || (items ? "table" : "pretty"); if (mode === "table" && !items) mode = "pretty";
+  var tabs = h("div", { cls: "bw-jt" }, [items ? ["table", "Table"] : null, ["pretty", "Pretty"], ["raw", "Raw"]].filter(Boolean).map(function (t) { return h("button", { type: "button", cls: mode === t[0] ? "on" : "", text: t[1], onclick: function () { W.jv = t[0]; render(); } }); }));
+  var view;
+  if (mode === "table") { var keys = Object.keys(items[0]); view = h("div", { cls: "twrap" }, [h("table", { cls: "bw-tbl" }, [h("thead", {}, [h("tr", {}, keys.map(function (k) { return h("th", { text: k }); }))]), h("tbody", {}, items.map(function (it) { return h("tr", {}, keys.map(function (k) { return h("td", { text: String(it[k]) }); })); }))])]); }
+  else if (mode === "raw") view = h("pre", { cls: "bw-raw", text: JSON.stringify(obj) });
+  else view = codePre(JSON.stringify(obj, null, 2), "an");
+  var meta = Object.keys(obj || {}).filter(function (k) { return typeof obj[k] !== "object"; }).slice(0, 5);
+  return h("div", { cls: "bw-json" }, [h("div", { cls: "bw-jh" }, [h("div", {}, [h("b", { text: o.title || "JSON response" }), h("span", { cls: "bw-ct", text: "application/json" })]), tabs]),
+    meta.length ? h("div", { cls: "bw-meta" }, meta.map(function (k) { return h("span", {}, [h("i", { text: k }), " " + String(obj[k])]); })) : h("span"), view]);
+}
 
 </script>
