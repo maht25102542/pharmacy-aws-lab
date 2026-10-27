@@ -23,6 +23,7 @@ function webOpen(raw) {
   var m = /^(https?):\/\/([^\/:]+)(?::(\d+))?(\/.*)?$/i.exec(u); if (!m) return { err: "ERR_INVALID_URL", title: "URL ไม่ถูกต้อง", steps: [] };
   var host = m[2], port = +m[3] || (/^https/i.test(m[1]) ? 443 : 80), alb = S.albs.filter(function (a) { return a.dns === host; })[0];
   if (/\.execute-api\./.test(host)) { var sr = slsInvoke(host, m[4] || "/", "GET", ""); return sr.err ? sr : { site: "apigw", host: host, path: m[4] || "/", res: sr }; }
+  if (/^[a-z0-9]+\.[a-z0-9-]+\.awsapprunner\.com$/i.test(host)) { var asv = S.aprs.filter(function (x) { return x.url === host.toLowerCase(); })[0]; if (!asv) return { err: "ERR_NAME_NOT_RESOLVED", host: host, steps: [{ ok: false, t: "มี App Runner service ที่ใช้ชื่อนี้", d: "ไม่พบ (ลบแล้ว หรือพิมพ์ผิด)" }] }; var ae = aprEval(asv); if (ae.status !== "RUNNING") return { err: "ERR_CONNECTION_REFUSED", host: host, steps: ae.steps.concat([{ ok: false, t: "service สถานะ RUNNING", d: ae.status + (ae.reason ? " · " + ae.reason : "") }]) }; return { site: "aprun", host: host, svc: asv, json: aprResponse(asv), path: m[4] || "/", steps: ae.steps }; }
   if (/^(www\.)?github\.com$/i.test(host)) return { site: "github", host: host, path: String(m[4] || "/").split("?")[0].replace(/\/+$/, "") || "/" };
   var vhost = ""; if (!/^[\d.]+$/.test(host)) { var aip = dnsA(host); if (aip) { vhost = host; host = aip; } }
   if (S.cfds.length || S.zones.length) {

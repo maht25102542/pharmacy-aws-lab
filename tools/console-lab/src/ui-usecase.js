@@ -323,6 +323,46 @@ UC.push({
   errGo: function (e) { buildSingle(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว เปิดเว็บที่ Browser"); go("browser", {}, "Browser"); W.addr = "https://" + SINGLE_DOMAIN + "/"; wbGo(W.addr); }
 });
 
+UC.push({
+  id: "apr", no: 7, title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
+  tag: "ง่ายสุดสำหรับ container · ทีมเล็กที่ไม่อยากดูแล cluster นิยม · แพงต่อหน่วยกว่า ECS",
+  intro: [
+    ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (รวมถึงลงเหลือ 0 instance ที่ไม่มี traffic ให้จ่ายแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
+    ["ใครใช้", "#1d8102", "ทีมเล็ก · เว็บ/API ที่เป็น container อยู่แล้ว · อยากได้เหมือน Heroku บน AWS · prototype ถึง production traffic น้อย-กลาง"],
+    ["ข้อแลกเปลี่ยน", "#c0392b", "คุมเครือข่าย/เครื่องได้น้อย (เข้า VPC ผ่าน VPC connector) · ไม่มี sidecar/EFS · แพงต่อ vCPU กว่า Fargate · ต้อง **access role** ดึง ECR ส่วนตัว"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① **port** ต้องตรงกับที่แอปฟัง ② health check แบบ TCP ผ่านง่าย แบบ HTTP ต้องมี path ที่ตอบ 200 ③ access role ≠ instance role (อันแรกให้ AWS ดึง image · อันหลังให้แอปเรียก AWS) ④ แก้ image tag แล้วต้อง deploy (หรือเปิด auto deploy)"]
+  ],
+  envs: [["", "dev", "prd"], ["CPU / Memory", "0.25 vCPU / 0.5 GB", "1 vCPU / 2 GB"], ["image tag", "v1.0.0 (หรือ latest)", "vN.N.N เท่านั้น"], ["Auto deploy", "เปิดได้", "ปิด กด deploy เอง"], ["URL", "<id>.<region>.awsapprunner.com", "เหมือนกัน + custom domain"]],
+  nodes: [
+    { id: "user", x: 24, y: 150, w: 120, h: 64, t: "ผู้ใช้", s: "https://…awsapprunner.com", c: "#2a4a7a" },
+    { id: "ar", x: 260, y: 130, w: 240, h: 100, t: "App Runner service", s: "HTTPS + LB + autoscale ในตัว", c: "#c2185b" },
+    { id: "inst", x: 600, y: 130, w: 220, h: 100, t: "Instances (container)", s: "port 8000 · health check", c: "#2e6bd0" },
+    { id: "role", ico: "iam", x: 260, y: 300, w: 240, h: 64, t: "ECR access role", s: "trust build.apprunner…", c: "#c0392b" },
+    { id: "ecr", ico: "ecr", x: 600, y: 300, w: 220, h: 64, t: "ECR", s: "pharmacy/api:v1.0.0", c: "#d9480f" }
+  ],
+  links: [["user", "ar"], ["ar", "inst"], ["ar", "role"], ["role", "ecr"], ["ecr", "inst"]],
+  scenes: [
+    { t: "สร้าง service: ดึง image", on: ["ar", "role", "ecr"], flow: [["ar", "สวม access role"], ["role", "GetAuthorizationToken"], ["ecr", "pull image"]], rows: [["เกิดอะไร", "#c2185b", "App Runner สวม **access role** (trust `build.apprunner.amazonaws.com`) ไปดึง image จาก ECR ส่วนตัว · role ไม่มี policy ECR = ดึงไม่ได้"]] },
+    { t: "รัน + health check", on: ["ar", "inst"], flow: [["ar", "start instance"], ["inst", "ฟัง :8000"], ["ar", "health check"]], rows: [["เกิดอะไร", "#2e6bd0", "start container แล้วยิง health check (TCP เช็ค port เปิด · HTTP เช็ค path ได้ 200) ผ่านติดต่อกัน = RUNNING · ไม่ผ่านตามจำนวนครั้ง = Create failed"]] },
+    { t: "คำขอของผู้ใช้", on: ["user", "ar", "inst"], flow: [["user", "GET /healthz"], ["ar", "TLS + LB"], ["inst", "200"]], rows: [["เกิดอะไร", "#1d8102", "App Runner ถอด TLS ให้ (ใบรับรองของ AWS) แล้วส่งต่อ instance · scale ตาม concurrent requests"]] },
+    { t: "เคส error 1: ดึง image ไม่ได้", on: ["ar", "role", "ecr"], bad: ["role"], flow: [["ar", "สวม role"], ["role", "✗ access denied"]], rows: [["อาการ", "#c62828", "Create failed · Failed to pull your application image"], ["สาเหตุ", "#a85a00", "role ไม่มี AWSAppRunnerServicePolicyForECRAccess / trust ผิด / tag ไม่มีใน ECR"]] },
+    { t: "เคส error 2: health check ไม่ผ่าน", on: ["ar", "inst"], bad: ["inst"], flow: [["ar", "health check"], ["inst", "✗ refused / 404"]], rows: [["อาการ", "#c62828", "Create failed · Health check failed on protocol …"], ["สาเหตุ", "#a85a00", "port ไม่ตรงกับที่แอปฟัง · หรือ path ของ HTTP health check ผิด (404)"]] }
+  ],
+  tf: [
+    { type: "aws_iam_role", name: "access", file: "labs/07-app-runner/iam.tf", console: ["IAM › Roles › Create role", "AWS service › App Runner (trust build.apprunner.amazonaws.com)"], err: "trust ผิด = Failed to pull image (เคส apr-role)" },
+    { type: "aws_iam_role_policy_attachment", name: "access", file: "labs/07-app-runner/iam.tf", console: ["IAM › Roles › role › Add permissions", "AWSAppRunnerServicePolicyForECRAccess"], err: "ลืมแนบ = ดึง image ไม่ได้ (เคส apr-role)" },
+    { type: "aws_apprunner_service", name: "api", file: "labs/07-app-runner/main.tf", console: ["App Runner › Create service", "Source: ECR + access role · Port · vCPU/Memory · Health check"], err: "port/health path ผิด = health check ไม่ผ่าน (เคส apr-port / apr-health) · tag ไม่มี = apr-tag" }
+  ],
+  errors: [
+    { load: "apr-role", t: "access role ไม่มี policy ECR", sym: "Create failed · Failed to pull your application image", find: "App Runner › service › Overview ขั้น ✗ · IAM › role › Permissions", fix: "แนบ AWSAppRunnerServicePolicyForECRAccess (trust ต้องเป็น build.apprunner.amazonaws.com)" },
+    { load: "apr-tag", t: "tag image ไม่มีใน ECR", sym: "Create failed · Failed to pull image (not found)", find: "service › Configuration › Image เทียบกับ ECR › Images", fix: "แก้ tag เป็นที่มีจริง หรือ push tag นั้นก่อน" },
+    { load: "apr-port", t: "port ไม่ตรงกับที่แอปฟัง", sym: "Create failed · Health check failed on protocol TCP/HTTP [Port: '8080']", find: "Logs แท็บ: แอปฟัง :8000 · Configuration ตั้ง 8080", fix: "Edit › Port = 8000" },
+    { load: "apr-health", t: "health check path ผิด", sym: "Create failed · Health check failed with status code 404", find: "Overview ขั้น ✗ บอก path ที่ตอบ 200", fix: "Edit › Health check path = /healthz" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด", function () { buildApr("apr"); UI.sel = {}; flash("ok", "โหลด use case 7 แล้ว"); go("aprs", {}, "App Runner"); }], ["โหลดแบบสร้างเอง (มี image ใน ECR)", function () { buildApr("apr-base"); UI.sel = {}; flash("ok", "โหลดแล้ว"); go("apr-create", {}, "App Runner"); }]],
+  errGo: function (e) { buildApr(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ดู service ที่ App Runner"); go("aprs", {}, "App Runner"); }
+});
+
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
 function ucNodeBox(svg, n, tx) {
   var ic = n.ico ? svgIco(n.ico, n.x + 8, n.y + 8, 30) : null, ox = ic ? 22 : 0, g = sv("g", {}, [sv("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10, fill: "#fff", stroke: n.c, "stroke-width": 2 }), tx(n.x + n.w / 2 + ox, n.y + 22, n.t, { a: "middle", b: 1, c: n.c, sz: 13 }), tx(n.x + n.w / 2 + ox, n.y + 40, n.s, { a: "middle", sz: 10, c: "#64748b" })]); if (ic) g.appendChild(ic);
@@ -383,5 +423,5 @@ function ucTab() {
   return cb;
 }
 FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
-PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (top 4)" }), h("div", { cls: "card" }, [ucTab()])]); };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (top 4)"]); NAVICO["lab-uc"] = "🧭"; })();
+PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (7 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
+(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (7 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();

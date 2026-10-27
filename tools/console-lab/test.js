@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -808,3 +808,24 @@ console.log("ok");
   const ds = sh8("terraform destroy", ["198.51.100.7/32", "yes"]); assert(/Destroy complete! Resources: 9 destroyed/.test(ds), ds.slice(-500));
 }
 
+// ---- Lab 7: App Runner
+{
+  L.buildApr("apr"); assert(L.checksApr().every(c => c.ok), "apr: ต้องผ่านทุกข้อ: " + L.checksApr().filter(c => !c.ok).map(c => c.label).join(" | "));
+  let s = L.aprSvc("pharmacy-api-prd"), r = L.webOpen("https://" + s.url + "/healthz"); assert(r.site === "aprun" && r.json.env === "prd", "เปิด URL ได้");
+  const st = (k, n) => { L.buildApr(k); return L.aprEval(L.aprSvc(n || "pharmacy-api-prd")); };
+  let e = st("apr-role"); assert(e.status === "CREATE_FAILED" && /Failed to pull/.test(e.reason), "role ไม่มี policy");
+  e = st("apr-tag"); assert(e.status === "CREATE_FAILED" && /not found/.test(e.reason), "tag ไม่มี");
+  e = st("apr-port"); assert(e.status === "CREATE_FAILED" && /Health check failed/.test(e.reason) && /8080/.test(e.reason), "port ผิด");
+  e = st("apr-health"); assert(e.status === "CREATE_FAILED" && /404/.test(e.reason), "health path ผิด");
+  assert(st("apr-health", "pharmacy-api-dev").status === "RUNNING", "dev ยังปกติ");
+  assert(L.webOpen("https://" + L.aprSvc("pharmacy-api-prd").url + "/").err === "ERR_CONNECTION_REFUSED", "service ล้ม = เปิดไม่ได้");
+  L.buildApr("apr-base"); assert(!L.S.aprs.length, "apr-base ยังไม่มี service");
+  let c = L.API.createAppRunner({ name: "x", image: "bad", port: "0", cpu: "256", memory: "4096" }); assert(c.errors && c.errors.name && c.errors.image && c.errors.port && c.errors.memory, "validate");
+  L.buildEcs("ecs"); L.S.ecsc = []; L.S.esvcs = []; L.S.tds = [];
+  function sh9(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh9("cd ~/Desktop/work/pharmacy-aws-lab/labs/07-app-runner"); sh9("terraform init"); const pl = sh9("terraform plan"); assert(/Plan: 4 to add/.test(pl), pl.slice(-600));
+  const ap = sh9("terraform apply", ["yes"]); assert(/Apply complete! Resources: 4 added/.test(ap), ap.slice(-800));
+  assert(L.S.aprs.length === 2 && L.S.aprs.every(x => L.aprEval(x).status === "RUNNING"), "apply แล้ว RUNNING");
+  assert(/No changes/.test(sh9("terraform plan")), "plan ซ้ำไม่เปลี่ยน");
+  const ds = sh9("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 4 destroyed/.test(ds), ds.slice(-500));
+}

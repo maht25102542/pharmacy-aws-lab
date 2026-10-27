@@ -286,6 +286,7 @@ function tfReadData(node, env, attrs) {
   var t = node.type;
   if (t === "aws_availability_zones") { var who = whoAmI(); if (who.err) throw TfAwsError("reading Availability Zones", "EC2", "DescribeAvailabilityZones", who.err, who.msg); return { names: AZS.slice(), zone_ids: ["apse1-az2", "apse1-az1", "apse1-az3"], id: REGION }; }
   if (t === "aws_caller_identity") { var w = whoAmI(); if (w.err) throw TfAwsError("Retrieving AWS account details", "STS", "GetCallerIdentity", w.err, w.msg); return { account_id: ACCOUNT, arn: w.arn, user_id: w.userId, id: ACCOUNT }; }
+  if (t === "aws_ecr_repository") { var who3 = whoAmI(); if (who3.err) throw TfAwsError("reading ECR Repository", "ECR", "DescribeRepositories", who3.err, who3.msg); var rp = S.repos.filter(function (x) { return x.name === attrs.name; })[0]; if (!rp) throw TfAwsError("reading ECR Repository (" + attrs.name + ")", "ECR", "DescribeRepositories", "RepositoryNotFoundException", "The repository with name '" + attrs.name + "' does not exist in the registry with id '" + ACCOUNT + "'"); var uri = ACCOUNT + ".dkr.ecr." + REGION + ".amazonaws.com/" + rp.name; return { name: rp.name, repository_url: uri, arn: "arn:aws:ecr:" + REGION + ":" + ACCOUNT + ":repository/" + rp.name, registry_id: ACCOUNT, id: rp.name }; }
   if (t === "aws_ami") {
     var who2 = whoAmI(); if (who2.err) throw TfAwsError("reading EC2 AMIs", "EC2", "DescribeImages", who2.err, who2.msg);
     var pats = []; (attrs.filter || []).forEach(function (f) { if (f.name === "name") pats = pats.concat(f.values || []); });

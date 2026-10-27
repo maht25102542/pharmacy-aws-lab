@@ -27,6 +27,7 @@ var TF_DATA_SCHEMA = {
   aws_availability_zones: { args: ["state", "all_availability_zones"], req: [], blocks: {} },
   aws_ami: { args: ["most_recent", "owners", "name_regex", "filter"], req: [], blocks: { filter: { args: ["name", "values"], req: ["name", "values"] } } },
   aws_caller_identity: { args: [], req: [], blocks: {} },
+  aws_ecr_repository: { args: ["name"], req: ["name"], blocks: {} },
   aws_iam_policy_document: { args: ["version", "statement"], req: [], blocks: { statement: { args: ["effect", "actions", "resources", "principals", "sid"], req: [], blocks: { principals: { args: ["type", "identifiers"], req: ["type", "identifiers"] } } } } }
 };
 function tfAttrsOf(items) { var o = {}; items.forEach(function (i) { if (i.kind === "attr") o[i.name] = i; }); return o; }

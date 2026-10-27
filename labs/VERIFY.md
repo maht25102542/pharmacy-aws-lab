@@ -56,6 +56,16 @@
 | Caddy ขอใบรับรองไม่ผ่าน (DNS/port 80) | Caddy log: ACME challenge failed · เบราว์เซอร์เจอ TLS error (รูปแบบ error ขึ้นกับเบราว์เซอร์) | `ERR_SSL_PROTOCOL_ERROR` | ⚠️ จากความจำ |
 | เข้าด้วย IP แทนชื่อโดเมน (Caddy ใช้ชื่อ) | ใบรับรองไม่ตรงชื่อ | `NET::ERR_CERT_COMMON_NAME_INVALID` | ⚠️ จากความจำ |
 
+## Lab 7 (labs/07-app-runner) — ข้อความ error เขียนจากความจำ ยังไม่ได้ค้นเอกสาร
+| ทำ | ควรเห็นจริง | ในตัวจำลอง | ยืนยัน |
+|---|---|---|---|
+| access role ไม่มี policy ECR / ดึง image ไม่ได้ | Create failed · "Failed to pull your application image. Be sure you configured your service to use a valid access role…" | ตรง (ข้อความจากความจำ) | ⚠️ |
+| port ไม่ตรง | "Health check failed on protocol `TCP` [Port: '8080'], failure threshold is 5 times…" | ตรง | ⚠️ ตัวเลข threshold/โปรโตคอลจากความจำ |
+| HTTP health check path 404 | Health check failed … status code | ข้อความย่อเอง | ⚠️ |
+| ค่า cpu/memory ที่จับคู่ได้ | 256/512 → 0.25 vCPU ได้ 0.5-2 GB ฯลฯ | ตารางจากความจำ | ⚠️ |
+| URL รูปแบบ `<id>.<region>.awsapprunner.com` | ตรงกับของจริง | ตรง | ✅ |
+| สถานะ RUNNING / OPERATION_IN_PROGRESS / CREATE_FAILED | ชื่อสถานะ API | ตรง | ✅ |
+
 ## ที่ยังต่างจากของจริงแน่นอน
 - เวลา: ของจริง ALB/NAT/RDS/CloudFront ใช้เวลาหลายนาที ตัวจำลองมี "ความเร็ว" ให้เลือกแต่ไม่แม่นเป๊ะ
 - ตัวเลข Duration / Init Duration / Max Memory Used เป็นค่าสุ่มแบบคงที่ ไม่ใช่การวัดจริง
