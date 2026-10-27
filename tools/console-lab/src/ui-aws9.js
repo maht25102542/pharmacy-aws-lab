@@ -16,10 +16,10 @@ PAGES.aprs = function () { return listPage(LISTS.aprs()); };
 PAGES["apr-deploy"] = function () { var s = aprSvc(UI.sel.aprs) || S.aprs.filter(function (x) { return x.id === UI.sel.aprs; })[0]; if (!s) return h("p", { text: "เลือก service ในรายการก่อน" }); API.deployAppRunner(s.name); UI.banner = { kind: "ok", msg: "เริ่ม deployment ใหม่ของ " + s.name + " (ดึง image tag เดิมซ้ำ)" }; setTimeout(function () { go("aprs"); }, 0); return h("p", { text: "กำลัง deploy…" }); };
 PAGES["apr-create"] = function () {
   return formPage({ name: "apr-create", crumb: "App Runner › Services › Create", title: "Create service", back: "aprs", lead: "ตรงกับ aws_apprunner_service · ได้ URL HTTPS + scale ให้เอง · ไม่ต้องมี cluster / ALB / NAT",
-    init: function () { return { image: "", port: "8000", name: "", cpu: "1 vCPU", memory: "2 GB", role: "", hp: "HTTP", path: "/healthz", env: "dev" }; },
+    init: function () { var im = aprImgOpts()[1], ro = cdRoleOpts("build.apprunner.amazonaws.com")[1]; return { image: im ? im[0] : "", port: "8000", name: "", cpu: "1 vCPU", memory: "2 GB", role: ro ? ro[0] : "", hp: "HTTP", path: "/healthz", env: "dev" }; },
     sections: function () { return [
       { t: "Step 1: Source", f: [{ id: "image", type: "select", label: "Container image URI (Amazon ECR)", opts: aprImgOpts }, { id: "role", type: "select", label: "ECR access role", desc: "ต้องเป็น role ที่ trust build.apprunner.amazonaws.com + AWSAppRunnerServicePolicyForECRAccess · ECR ส่วนตัวขาดไม่ได้", opts: function () { return cdRoleOpts("build.apprunner.amazonaws.com"); } }] },
-      { t: "Step 2: Service settings", f: [{ id: "name", type: "text", label: "Service name", ph: "pharmacy-api-dev" }, { id: "cpu", type: "select", label: "vCPU", opts: function () { return Object.keys(APR_CPU).map(function (k) { return [APR_CPU[k], APR_CPU[k]]; }); } }, { id: "memory", type: "select", label: "Memory", opts: function () { return Object.keys(APR_MEM).map(function (k) { return [APR_MEM[k], APR_MEM[k]]; }); } }, { id: "port", type: "text", label: "Port", desc: "port ที่แอปฟังจริง (แอปตัวอย่างฟัง 8000) · ผิด = health check ไม่ผ่าน" }, { id: "env", type: "text", label: "Environment variable APP_ENV" }, { id: "hp", type: "select", label: "Health check protocol", opts: function () { return [["TCP", "TCP (default)"], ["HTTP", "HTTP"]]; } }, { id: "path", type: "text", label: "Health check path", show: function (V) { return V.hp === "HTTP"; } }] }]; },
+      { t: "Step 2: Service settings", f: [{ id: "name", type: "text", label: "Service name", ph: "pharmacy-api-dev" }, { id: "cpu", type: "select", label: "vCPU", opts: function () { return Object.keys(APR_CPU).map(function (k) { return [APR_CPU[k], APR_CPU[k]]; }); }, onchange: function (V) { var c = aprNum(V.cpu, APR_CPU); if ((APR_PAIRS[c] || []).map(function (k) { return APR_MEM[k]; }).indexOf(V.memory) < 0) V.memory = APR_MEM[(APR_PAIRS[c] || [])[0]] || ""; } }, { id: "memory", type: "select", label: "Memory", desc: "ตัวเลือกเปลี่ยนตาม vCPU (App Runner รองรับ 11 คู่)", opts: function (V) { var c = aprNum(V.cpu, APR_CPU); return (APR_PAIRS[c] || []).map(function (k) { return [APR_MEM[k], APR_MEM[k]]; }); } }, { id: "port", type: "text", label: "Port", desc: "port ที่แอปฟังจริง (แอปตัวอย่างฟัง 8000) · ผิด = health check ไม่ผ่าน" }, { id: "env", type: "text", label: "Environment variable APP_ENV" }, { id: "hp", type: "select", label: "Health check protocol", opts: function () { return [["TCP", "TCP (default)"], ["HTTP", "HTTP"]]; } }, { id: "path", type: "text", label: "Health check path", show: function (V) { return V.hp === "HTTP"; } }] }]; },
     submit: "Create & deploy", onSubmit: function (V) {
       var r = API.createAppRunner({ name: V.name, image: V.image, port: V.port, cpu: V.cpu, memory: V.memory, accessRole: V.role, healthProtocol: V.hp, healthPath: V.path, env: { APP_ENV: V.env } });
       if (r.errors) return mgErrMap(r, { name: "name", image: "image", port: "port", cpu: "cpu", memory: "memory" }); UI.sel.aprs = r.res.id; return { msg: "สร้าง service " + V.name + " แล้ว · เปิด https://" + r.res.url + "/healthz ที่ Browser", next: "aprs" };
@@ -55,15 +55,23 @@ var AP_ROWS = [
   ["+ CI/CD (ปล่อยลง ECS)", "GitHub Actions + OIDC (นิยมสุด)", "code อยู่ GitHub", "ต่ำ", "฿ ต่ำ", { uc: "gha" }],
   ["+ CI/CD (ปล่อยลง ECS)", "CodePipeline + CodeBuild", "ทีมที่ใช้ AWS ล้วน", "ต่ำ", "฿ ต่ำ", { uc: "cd" }]
 ];
+var AP_COL = { "①": "#8c4fff", "②": "#d9480f", "③": "#7d4acf", "+": "#2e7d32" };
 PAGES["lab-ap"] = function () {
-  var rows = AP_ROWS.map(function (r) {
-    var o = r[5], u = o.uc ? UC.filter(function (x) { return x.id === o.uc; })[0] : null, btn = u ? h("button", { cls: "btn pri", type: "button", text: "UC " + u.no, onclick: function () { UC_SEL.id = u.id; go("lab-uc", {}, "Lab"); } }) : h("button", { cls: "btn", type: "button", text: "เปิด", onclick: function () { go(o.lab, {}, "Lab"); } });
-    return [h("b", { text: r[0] }), r[1], o.note ? h("span", {}, [r[2], h("div", { cls: "hint", text: o.note })]) : r[2], r[3], r[4], btn];
+  var groups = [], cur = null;
+  AP_ROWS.forEach(function (r) { if (!cur || cur.name !== r[0]) { cur = { name: r[0], rows: [] }; groups.push(cur); } cur.rows.push(r); });
+  var body = groups.map(function (g) {
+    var col = AP_COL[g.name.charAt(0)] || "#475569";
+    return h("div", { style: "margin:0 0 18px" }, [h("h3", { style: "margin:0 0 8px;color:" + col, text: g.name }), h("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px" }, g.rows.map(function (r) {
+      var o = r[5], u = o.uc ? UC.filter(function (x) { return x.id === o.uc; })[0] : null;
+      var btn = u ? h("button", { cls: "btn pri", type: "button", text: "เปิด Use case " + u.no, onclick: function () { UC_SEL.id = u.id; go("lab-uc", {}, "Lab"); } }) : h("button", { cls: "btn", type: "button", text: "เปิด", onclick: function () { go(o.lab, {}, "Lab"); } });
+      return h("div", { style: "border:1px solid var(--line,#d5dbdb);border-left:4px solid " + col + ";border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:#fff" }, [
+        h("b", { text: r[1] }), h("div", { cls: "hint", text: r[2] }),
+        h("div", { style: "display:flex;gap:6px;flex-wrap:wrap" }, [tagp("ดูแล: " + r[3]), tagp(r[4])]),
+        o.note ? h("div", { cls: "hint", text: o.note }) : h("span"), h("div", { style: "margin-top:auto" }, [btn])]);
+    }))]);
   });
   return h("div", {}, [crumbEl("Lab › เลือกแบบไหน"), h("h1", { text: "เลือกวิธี deploy แบบไหน (ทุกแบบ)" }), h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
-    h("p", { cls: "hint", text: "3 หมู่ตามว่าแอปรันที่ไหน + CI/CD เป็นอีกแกน (ปล่อยลง ECS) · ทุกแถวมี lab ให้ลองใน simulator" }),
-    tbl(["หมู่", "stack", "เหมาะกับ", "ภาระดูแล", "ค่าใช้จ่าย", "ลอง"], rows, ""),
-    h("h4", { text: "เลือกยังไง (สั้น ๆ)" }),
-    h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ ECS Fargate (หรือ ECS Express Mode ถ้าอยากง่ายแบบ PaaS) → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })])])]);
+    h("p", { cls: "hint", text: "3 หมู่ตามว่าแอปรันที่ไหน + CI/CD เป็นอีกแกน (ปล่อยลง ECS) · ทุกใบมี lab ให้ลองใน simulator" })].concat(body, [
+    h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ ECS Fargate (หรือ ECS Express Mode ถ้าอยากง่ายแบบ PaaS) → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })]))])]);
 };
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-uc"); L.splice(i < 0 ? L.length : i, 0, ["lab-ap", "เลือกแบบไหน (ทุกแบบ)"]); NAVICO["lab-ap"] = "🧩"; })();
