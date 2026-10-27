@@ -642,6 +642,13 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-kpi::after { content: ""; position: absolute; right: -30px; top: -44px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--g2, #64748b) 34%, transparent), transparent 70%); pointer-events: none; }
 .cd-kpi .ic { position: absolute; right: 14px; top: 12px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--g1, #475569) 28%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--g1, #475569) 30%, transparent); font-size: 18px; z-index: 1; filter: none; opacity: 1; }
 .cd-kpi .l { color: color-mix(in srgb, var(--g1, #475569) 40%, var(--fg)) !important; font-weight: 700 !important; padding-right: 42px; } .cd-kpi .v { color: color-mix(in srgb, var(--g1, #475569) 88%, var(--fg)) !important; text-shadow: none; } .cd-kpi .v small { color: var(--muted) !important; } .cd-kpi .u { color: var(--muted) !important; }
+
+/* ===== การ์ดมีสีทั้งหมด: pastel gradient ตามสีของการ์ด (ชุดเดียวกับ KPI) ===== */
+.uc-hero, .cd-call, .cd-guide .gc, .cd-rule > div, .cd-verdict, .ap-card { --sc: var(--c, var(--uc, #64748b)); background: linear-gradient(135deg, color-mix(in srgb, var(--sc) 20%, var(--surface)), color-mix(in srgb, var(--sc) 7%, var(--surface)) 92%) !important; border: 1px solid color-mix(in srgb, var(--sc) 36%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 18px -10px color-mix(in srgb, var(--sc) 50%, transparent); }
+.ap-card { position: relative; overflow: hidden; border-radius: 12px; padding: 12px 14px 12px 20px; display: flex; flex-direction: column; gap: 6px; color: var(--fg); } .ap-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
+.cd-verdict { --c: var(--c, #64748b); } .cd-guide .gc .hd b, .ap-card b { color: color-mix(in srgb, var(--sc) 70%, var(--fg)); }
+.uc-hero .mc { background: color-mix(in srgb, var(--sc) 10%, var(--surface)); border-color: color-mix(in srgb, var(--sc) 30%, var(--line)); }
+.cd-call .ic { background: color-mix(in srgb, var(--sc) 24%, var(--surface)) !important; }
 </style>
 
 <header class="top">
@@ -11314,7 +11321,7 @@ PAGES["lab-ap"] = function () {
     return h("div", { style: "margin:0 0 18px" }, [h("h3", { style: "margin:0 0 8px;color:" + col, text: g.name }), h("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px" }, g.rows.map(function (r) {
       var o = r[5], u = o.uc ? UC.filter(function (x) { return x.id === o.uc; })[0] : null;
       var btn = u ? h("button", { cls: "btn pri", type: "button", text: "เปิด Use case " + u.no, onclick: function () { UC_SEL.id = u.id; go("lab-uc", {}, "Lab"); } }) : h("button", { cls: "btn", type: "button", text: "เปิด", onclick: function () { go(o.lab, {}, "Lab"); } });
-      return h("div", { style: "border:1px solid var(--line,#d5dbdb);border-left:4px solid " + col + ";border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:#fff" }, [
+      return h("div", { cls: "ap-card", style: "--c:" + col }, [
         h("b", { text: r[1] }), h("div", { cls: "hint", text: r[2] }),
         h("div", { style: "display:flex;gap:6px;flex-wrap:wrap" }, [tagp("ดูแล: " + r[3]), tagp(r[4])]),
         o.note ? h("div", { cls: "hint", text: o.note }) : h("span"), h("div", { style: "margin-top:auto" }, [btn])]);

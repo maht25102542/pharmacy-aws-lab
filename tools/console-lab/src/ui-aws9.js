@@ -64,7 +64,7 @@ PAGES["lab-ap"] = function () {
     return h("div", { style: "margin:0 0 18px" }, [h("h3", { style: "margin:0 0 8px;color:" + col, text: g.name }), h("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px" }, g.rows.map(function (r) {
       var o = r[5], u = o.uc ? UC.filter(function (x) { return x.id === o.uc; })[0] : null;
       var btn = u ? h("button", { cls: "btn pri", type: "button", text: "เปิด Use case " + u.no, onclick: function () { UC_SEL.id = u.id; go("lab-uc", {}, "Lab"); } }) : h("button", { cls: "btn", type: "button", text: "เปิด", onclick: function () { go(o.lab, {}, "Lab"); } });
-      return h("div", { style: "border:1px solid var(--line,#d5dbdb);border-left:4px solid " + col + ";border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:#fff" }, [
+      return h("div", { cls: "ap-card", style: "--c:" + col }, [
         h("b", { text: r[1] }), h("div", { cls: "hint", text: r[2] }),
         h("div", { style: "display:flex;gap:6px;flex-wrap:wrap" }, [tagp("ดูแล: " + r[3]), tagp(r[4])]),
         o.note ? h("div", { cls: "hint", text: o.note }) : h("span"), h("div", { style: "margin-top:auto" }, [btn])]);
