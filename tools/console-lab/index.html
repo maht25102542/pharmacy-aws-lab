@@ -636,12 +636,12 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-scale > b span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px; padding: 1px 8px; border-radius: 99px; background: var(--fg); color: var(--surface); font: 700 11.5px inherit; white-space: nowrap; }
 .cd-verdict .hd .lv { color: var(--c); }
 
-/* ===== KPI tile แบบไล่เฉดสี (gradient) ===== */
-.cd-kpi { background: linear-gradient(135deg, var(--g1, #475569), var(--g2, #64748b)) !important; color: #fff !important; border: 0 !important; box-shadow: 0 6px 18px color-mix(in srgb, var(--g1, #475569) 32%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+/* ===== KPI tile แบบไล่เฉดสีนุ่ม (pastel gradient) ===== */
+.cd-kpi { background: linear-gradient(135deg, color-mix(in srgb, var(--g1, #475569) 15%, var(--surface)), color-mix(in srgb, var(--g2, #64748b) 6%, var(--surface)) 85%) !important; color: var(--fg) !important; border: 1px solid color-mix(in srgb, var(--g1, #475569) 22%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 16px -8px color-mix(in srgb, var(--g1, #475569) 40%, transparent); }
 .cd-kpi::before { display: none !important; }
-.cd-kpi::after { content: ""; position: absolute; right: -34px; top: -40px; width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.34), rgba(255,255,255,0) 70%); pointer-events: none; }
-.cd-kpi .ic { position: absolute; right: 14px; top: 10px; font-size: 24px; opacity: .9; filter: drop-shadow(0 2px 4px rgba(0,0,0,.25)); z-index: 1; }
-.cd-kpi .l { color: rgba(255,255,255,.88) !important; } .cd-kpi .v { color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,.18); } .cd-kpi .v small { color: rgba(255,255,255,.85) !important; } .cd-kpi .u { color: rgba(255,255,255,.82) !important; }
+.cd-kpi::after { content: ""; position: absolute; right: -30px; top: -44px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--g2, #64748b) 20%, transparent), transparent 70%); pointer-events: none; }
+.cd-kpi .ic { position: absolute; right: 14px; top: 12px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--g1, #475569) 16%, var(--surface)); font-size: 18px; z-index: 1; filter: none; opacity: 1; }
+.cd-kpi .l { color: var(--muted) !important; padding-right: 42px; } .cd-kpi .v { color: color-mix(in srgb, var(--g1, #475569) 78%, var(--fg)) !important; text-shadow: none; } .cd-kpi .v small { color: var(--muted) !important; } .cd-kpi .u { color: var(--muted) !important; }
 </style>
 
 <header class="top">
