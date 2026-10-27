@@ -7,11 +7,11 @@ function baht(usd) { var b = usd * COST_THB; return "฿" + (b < 100 ? b.toFixed
 var CR = { nat: 0.059, natGb: 0.045, ipv4: 0.005, alb: 0.0252, t3micro: 0.0132, t3small: 0.0264, t3medium: 0.0528, fgCpu: 0.0506, fgGb: 0.00553, eks: 0.10, rdsMicro: 0.02, rdsSmallMulti: 0.075, aprMemGb: 0.007, ebsGb: 0.1 };
 function cH(n, r, q, note, idle) { return { n: n, k: "hr", r: r, q: q || 1, note: note || "", idle: idle !== false }; }   // คิดต่อชั่วโมงที่เปิดอยู่
 function cM(n, usd, note, idle) { return { n: n, k: "mo", r: usd, q: 1, note: note || "", idle: idle !== false }; }    // คิดต่อเดือนคงที่
-function cU(n, unit, note, idle) { return { n: n, k: "use", unit: unit, note: note || "", idle: !!idle }; }            // คิดตามการใช้ (ไม่มีรายการคงที่)
+function cU(n, unit, note, idle) { if (typeof note === "boolean") { idle = note; note = ""; } return { n: n, k: "use", unit: unit, note: note || "", idle: !!idle }; }            // คิดตามการใช้ (ไม่มีรายการคงที่)
 var COSTD = {
   gen: [
     ["ก่อนสร้างอะไร: ตั้ง Budget", "#c62828", "Billing › **Budgets** › Create budget (Cost budget) ตั้งเพดานเช่น $10 + alert ที่ 50% / 80% / 100% ส่งอีเมล · Budget 2 อันแรกต่อบัญชีฟรี · Budget แจ้งเตือนเฉยๆ **ไม่หยุด** resource ให้เอง"],
-    ["ดูว่าเงินไปไหน: Cost Explorer", "#2b6cb0", "Billing › **Cost Explorer** กรอง Group by *Service* แล้วลง *Usage type* เช่น `NatGateway-Hours`, `LoadBalancerUsage`, `PublicIPv4:InUseAddress` · เปิดครั้งแรกรอข้อมูล ~24 ชม. และข้อมูลช้าราว 1 วัน (ไม่ใช่ real-time)"],
+    ["ดูว่าเงินไปไหน: Cost Explorer", "#2b6cb0", "Billing › **Cost Explorer** กรอง Group by `Service` แล้วลง `Usage type` เช่น `NatGateway-Hours`, `LoadBalancerUsage`, `PublicIPv4:InUseAddress` · เปิดครั้งแรกรอข้อมูล ~24 ชม. และข้อมูลช้าราว 1 วัน (ไม่ใช่ real-time)"],
     ["Tag ทุก resource", "#6d28d9", "ใส่ tag `Project=pharmacy-lab` ทุก resource (Terraform: `default_tags` ใน provider \"aws\") แล้ว **activate cost allocation tag** ที่ Billing › Cost allocation tags (มีผลหลัง ~24 ชม.) → กรอง Cost Explorer ตาม tag ได้"],
     ["จับค่าผิดปกติ: Cost Anomaly Detection", "#a85a00", "Billing › **Cost Anomaly Detection** สร้าง monitor (ฟรี) + subscription อีเมล · จับกรณี bill พุ่งผิดปกติเช่น Lambda วนลูป, NAT ส่งข้อมูลเยอะ"],
     ["Free tier ไม่ครอบทุกอย่าง", "#1d8102", "Billing › **Free Tier** ดูการใช้เทียบโควต้า · แบบ 12 เดือนแรก (EC2 t3.micro ฯลฯ) กับแบบ always-free (Lambda 1 ล้านครั้ง/เดือน, DynamoDB 25 GB) · **NAT, ALB, RDS Multi-AZ, EKS ไม่อยู่ในฟรีเทียร์ของ lab ใหญ่** และ public IPv4 คิดเงินตั้งแต่ ก.พ. 2024"],

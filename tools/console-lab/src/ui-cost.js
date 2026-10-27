@@ -18,7 +18,7 @@ function costChips(items) {
   var s = costSum(items), chip = function (lb, val, sub, c, suf) { return h("div", { cls: "cd-kpi", style: "--c:" + c }, [h("div", { cls: "l", text: lb }), h("div", { cls: "v" }, [val, suf ? h("small", { text: suf }) : null].filter(Boolean)), h("div", { cls: "u", text: sub })]); };
   return h("div", { cls: "cd-kpis" }, [chip("เปิดทิ้งไว้ 1 เดือน", bahtS(s.month), "≈ " + usdS(s.month), "#c62828"), chip("ทำ lab 4 ชม. แล้ว destroy", bahtS(s.perHours(4)), "≈ " + usdS(s.perHours(4)), "#1d8102"), chip("ค่าคงที่ต่อชั่วโมง", bahtS(s.hr, true), "≈ " + usdS(s.hr), "#2b6cb0", s.hr > 0 ? "/ชม." : "")]);
 }
-function costCaveat() { return h("p", { cls: "hint" }, rich("⚠ ตัวเลขเป็น ==ประมาณการ== ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง · ยังไม่ยืนยันกับหน้า pricing ของ AWS (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. และ EKS $0.10/ชม.) → ตรวจที่ calculator.aws ก่อนตัดสินใจ · ค่าเงินบาทใช้อัตราสมมติ " + COST_THB + " บาท/ดอลลาร์ (ปรับที่ COST_THB)")); }
+function costCaveat() { return h("p", { cls: "hint" }, rich("⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง · ยังไม่ยืนยันกับหน้า pricing ของ AWS (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. และ EKS $0.10/ชม.) → ตรวจที่ calculator.aws ก่อนตัดสินใจ · ค่าเงินบาทใช้อัตราสมมติ " + COST_THB + " บาท/ดอลลาร์ (ปรับที่ COST_THB)")); }
 function costVerdictCard(c, vd, lv) { // ราคานี้ถูก/ปกติ/แพง? พร้อมสเกลเทียบเกณฑ์
   var m = costSum(c.items).month, top = c.bench[c.bench.length - 1] * 1.4, pos = Math.min(m / top, 1) * 100, seg = [0].concat(c.bench).concat([top]);
   var bar = h("div", { cls: "cd-scale", role: "img", "aria-label": "ราคานี้ถือว่า" + vd.label }, COST_LV.map(function (l, i) { return h("i", { style: "flex:" + (seg[i + 1] - seg[i]) + ";background:" + l[1] + (i === vd.i ? "" : ";opacity:.28"), title: l[0] + (i < c.bench.length ? " < " + baht(c.bench[i]) : " ≥ " + baht(c.bench[i - 1])) }); }).concat([h("b", { style: "left:" + pos + "%" })]));
@@ -32,7 +32,9 @@ function costBlock(c) {
   if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#1d8102", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
   out.appendChild(costCaveat()); return out;
 }
-function costGen() { return infoCard(COSTD.gen); }
+function costGen() { // คู่มือจัดการ bill เป็นการ์ดเรียงเป็นขั้น
+  return h("div", { cls: "cd-guide" }, COSTD.gen.map(function (g, i) { return h("div", { cls: "gc", style: "--c:" + g[1] }, [h("div", { cls: "hd" }, [h("span", { cls: "no", text: String(i + 1) }), h("b", { text: g[0] })]), h("div", { cls: "bd" }, rich(g[2]))]); }));
+}
 FOLD.uccost = 1;
 var CD_SEL = { id: "ecs" }, CD_COL = [["#2a78d6", "#3987e5"], ["#eb6834", "#d95926"], ["#1baf7a", "#199e70"], ["#eda100", "#c98500"], ["#e87ba4", "#d55181"]];
 function cdLabs() { // รวม use case + main lab → [{name, items, big, uc?}]
@@ -61,10 +63,11 @@ PAGES["lab-cost"] = function () {
   var tile = function (lb, val, sub, c) { return h("div", { cls: "cd-kpi", style: "--c:" + c }, [h("div", { cls: "l", text: lb }), h("div", { cls: "v", text: val }), h("div", { cls: "u", text: sub })]); };
   var kpis = h("div", { cls: "cd-kpis" }, [tile("แพงสุดถ้าลืมลบ (ทุก lab)", baht(top.s.month) + "/เดือน", top.name + " · " + money(top.s.month), "#c62828"), tile("ทำ lab 4 ชม. แล้วลบ (ตัวแพงสุด)", baht(top.s.perHours(4)), top.name + " · " + money(top.s.perHours(4)), "#1d8102"), tile("แพงสุดในกลุ่ม use case", baht(topUc.s.month) + "/เดือน", topUc.name + " · " + money(topUc.s.month), "#a85a00"), tile("ถูกสุด (ตามการใช้)", baht(by[by.length - 1].s.month) + "/เดือน", by[by.length - 1].name, "#2b6cb0")]);
   var det = ["vm", "managed"].map(function (k) { var c = COSTD.mainlab[k]; var f = fold("mlc" + k, c.title + ": รายการค่าใช้จ่าย"); f.appendChild(costChips(c.items)); f.appendChild(costTable(c.items)); FOLD["mlc" + k] = 0; return f; });
-  var panel = h("div", { cls: "cd-panel" }, [h("div", { cls: "cd-ph" }, [h("div", {}, [h("b", { text: sel.name }), h("small", { text: sel.big })]), h("button", { cls: "btn", type: "button", style: "white-space:nowrap", text: UC.some(function (u) { return u.id === sel.id; }) ? "เปิด use case นี้" : "ดูตาราง", onclick: function () { if (UC.some(function (u) { return u.id === sel.id; })) { UC_SEL.id = sel.id; go("lab-uc", {}, "Lab"); } } })]), costChips(sel.items), h("div", { cls: "cd-sub", text: "องค์ประกอบของค่าคงที่ (ต่อเดือน)" }), cdStack(sel), costTable(sel.items)]);
+  var panel = h("div", { cls: "cd-panel" }, [h("div", { cls: "cd-ph" }, [h("div", {}, [h("b", { text: sel.name }), h("small", { text: sel.big })]), h("button", { cls: "btn", type: "button", style: "white-space:nowrap", text: UC.some(function (u) { return u.id === sel.id; }) ? "เปิด use case นี้" : "ไปที่แท็บค่าใช้จ่าย", onclick: function () { if (UC.some(function (u) { return u.id === sel.id; })) { UC_SEL.id = sel.id; UC_SEL.sec = "cost"; go("lab-uc", {}, "Lab"); } } })]), costChips(sel.items), h("div", { cls: "cd-sub", text: "องค์ประกอบของค่าคงที่ (ต่อเดือน)" }), cdStack(sel)]);
+  var detail = h("div", { cls: "cd-card", style: "margin-top:14px" }, [h("h3", { text: "รายการค่าใช้จ่ายของ " + sel.name }), costTable(sel.items)]);
   return h("div", { cls: "cd" }, [crumbEl("Lab › Cost & Billing"), h("h1", { text: "ค่าใช้จ่าย & Bill management" }), h("p", { cls: "hint", style: "margin:-6px 0 12px" }, rich("เป็นเงินบาทตามอัตราสมมติ ==" + COST_THB + " บาท/ดอลลาร์== · เปิดทิ้ง = คิดเต็ม 730 ชม./เดือน · คลิกแท่งเพื่อดูรายละเอียด")), kpis,
-    h("div", { cls: "cd-grid" }, [h("div", { cls: "cd-card" }, [h("h3", { text: "เปิดทิ้งไว้ 1 เดือน: lab ไหนแพงเท่าไร" }), cdBars(labs)]), h("div", { cls: "cd-card" }, [panel])]),
-    h("div", { cls: "alert", style: "margin:14px 0" }, rich("หลักคิด: ==คิดตามชั่วโมงที่เปิดอยู่== (NAT, ALB, EC2, RDS, EKS) แพงถ้าลืมลบ · ==คิดตามการใช้== (Lambda, S3, CloudFront) แทบไม่เสียถ้าไม่มีคนใช้")), costCaveat(),
+    h("div", { cls: "cd-grid" }, [h("div", { cls: "cd-card" }, [h("h3", { text: "เปิดทิ้งไว้ 1 เดือน: lab ไหนแพงเท่าไร" }), cdBars(labs)]), h("div", { cls: "cd-card" }, [panel])]), detail,
+    h("div", { cls: "cd-rule" }, [h("div", { cls: "r1" }, [h("b", { text: "คิดตามชั่วโมงที่เปิดอยู่" }), h("span", { text: "NAT · ALB · EC2 · RDS · EKS" }), h("em", { text: "แพงถ้าลืมลบ" })]), h("div", { cls: "r2" }, [h("b", { text: "คิดตามการใช้" }), h("span", { text: "Lambda · S3 · CloudFront" }), h("em", { text: "แทบไม่เสียถ้าไม่มีคนใช้" })])]), costCaveat(),
     h("h2", { text: "จัดการ bill: ทำอะไร ที่ไหน" }), costGen()].concat(det));
 };
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-ap"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-cost", "ค่าใช้จ่าย & Bill"]); NAVICO["lab-cost"] = "💰"; })();

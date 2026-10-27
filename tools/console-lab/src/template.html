@@ -613,6 +613,13 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-scale { position: relative; display: flex; gap: 2px; height: 12px; margin: 10px 0 4px; } .cd-scale i { display: block; height: 100%; border-radius: 4px; } .cd-scale b { position: absolute; top: -5px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: var(--fg); box-shadow: 0 0 0 2px var(--surface); }
 .cd-verdict .sc { display: flex; gap: 2px; font-size: 11.5px; color: var(--muted); } .cd-verdict .sc span { text-align: center; white-space: nowrap; overflow: visible; min-width: 0; } .cd-verdict ul { margin: 10px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.7; } .cd-verdict li b { font-weight: 700; }
 .cd-row .vd { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--c) 14%, var(--surface)); color: var(--c); font-style: normal; font-size: 11px; font-weight: 800; vertical-align: 1px; }
+
+.cd-rule { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 10px; } @media (max-width: 800px) { .cd-rule { grid-template-columns: 1fr; } }
+.cd-rule > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .cd-rule .r1 { border-left: 5px solid #c62828; } .cd-rule .r2 { border-left: 5px solid #1d8102; }
+.cd-rule b { font-size: .98rem; } .cd-rule span { color: var(--muted); font-size: 12.5px; } .cd-rule em { font-style: normal; font-size: 13px; font-weight: 700; }
+.cd-guide { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 16px; }
+.cd-guide .gc { border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; background: var(--surface); padding: 12px 14px; } .cd-guide .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .cd-guide .no { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; font: 800 12px inherit; } .cd-guide .hd b { font-size: .95rem; line-height: 1.3; } .cd-guide .bd { font-size: 13.5px; line-height: 1.65; color: var(--fg); }
+.cd-card .twrap td:last-child { white-space: nowrap; }
 </style>
 
 <header class="top">
