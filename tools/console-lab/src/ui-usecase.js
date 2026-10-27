@@ -4,7 +4,7 @@ var UC = [];
 var UC_SEL = { id: "static" };
 
 UC.push({
-  id: "static", no: 1, title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
+  id: "static", no: 1, video: "videos/usecase1.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
   tag: "นิยมที่สุด · ถูกสุด · ไม่มีเซิร์ฟเวอร์ให้ดูแล",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "เว็บ **ที่เป็นไฟล์** (React/Vue/Next export, เว็บบริษัท, หน้า landing, เอกสาร) ไม่มี backend · ผู้ใช้ทั่วโลกได้ไฟล์จาก **edge ใกล้ตัว** (CloudFront) ส่วน S3 เก็บต้นฉบับแบบส่วนตัว"],
@@ -419,12 +419,13 @@ function ucTab() {
   var loadBar = h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0" }, [h("button", { cls: "btn pri", type: "button", text: "โหลดตัวอย่างครบทั้งชุด", onclick: function () { buildStatic("static"); UI.sel = {}; flash("ok", "โหลด use case 1 แล้ว"); go("cfds", {}, "CloudFront"); } }), h("button", { cls: "btn", type: "button", text: "โหลดแบบสร้างเอง (มีโซน + ใบรับรอง)", onclick: function () { buildStatic("static-base"); UI.sel = {}; flash("ok", "โหลดแล้ว: เริ่มที่ S3 › Create bucket"); go("bucket-create", {}, "S3"); } }), h("button", { cls: "btn", type: "button", text: "รัน Terraform ใน Terminal", onclick: function () { go("term", {}, "Laptop"); S.laptop.cwd = REPO + "/" + u.dir; flash("ok", "ไปที่ " + u.dir + " แล้ว: terraform init → terraform apply"); render(); } })]);
   if (u.loadBtns) loadBar = h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0" }, u.loadBtns.map(function (b, i) { return h("button", { cls: "btn" + (i ? "" : " pri"), type: "button", text: b[0], onclick: function () { try { b[1](); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } }); }));
   cb.appendChild(loadBar);
+  if (u.video) { var fv = fold("ucvid", "วิดีโอ: คลิกเมนูทีละขั้นจนสำเร็จ (ไม่มีเสียง)"); fv.appendChild(h("video", { src: u.video, controls: true, preload: "metadata", style: "width:100%;max-width:960px;border:1px solid var(--line,#ddd);border-radius:8px" })); cb.appendChild(fv); }
   var f1 = fold("ucenv", "dev vs prd: ต่างกันตรงไหน"); f1.appendChild(h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, u.envs[0].map(function (x, i) { return h("th", { style: i === 1 ? "color:#0f9d8a" : i === 2 ? "color:#c0392b" : "", text: x || "รายการ" }); }))]), h("tbody", {}, u.envs.slice(1).map(function (r) { var tds = [h("td", { style: "font-weight:700", text: r[0] }), h("td", { colspan: r[2] ? null : "2", text: r[1] })]; if (r[2]) tds.push(h("td", { text: r[2] })); return h("tr", {}, tds); }))])])); cb.appendChild(f1);
   var f2 = fold("ucanim", "diagram + แอนิเมชัน: ใครคุยกับใคร (ปกติ " + u.scenes.filter(function (x) { return !/error/.test(x.t); }).length + " ฉาก + error " + u.scenes.filter(function (x) { return /error/.test(x.t); }).length + " ฉาก)"); f2.appendChild(ucAnim(u)); cb.appendChild(f2);
   var f3 = fold("uctf", "โค้ด Terraform เทียบกับการกดบน AWS console (เลือก resource ทางซ้าย)"); f3.appendChild(ucTfTable(u)); cb.appendChild(f3);
   var f4 = fold("ucerr", "เคส error " + u.errors.length + " แบบ: อาการ → ไล่หา → แก้ (กดโหลดแล้วลองเอง)"); f4.appendChild(ucErrTable(u)); cb.appendChild(f4);
   return cb;
 }
-FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
+FOLD.ucvid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
 PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (7 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (7 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();
