@@ -21,9 +21,10 @@ async function cap(t) { await ev(`(function(){var b=document.getElementById("__c
 const FIND = `function __find(q){ var els; if(q.label){ var ls=[].slice.call(document.querySelectorAll(".l,label,h3,h4,b,dt")).filter(function(e){var x=(e.innerText||"").trim().replace(/\\s+/g," "); return x.indexOf(q.label)===0 && e.getBoundingClientRect().width>2}); var lab=ls[q.nth||0]; if(!lab) return null; var c=lab; for(var i=0;i<4&&c;i++){ c=c.parentElement; var f=c&&[].slice.call(c.querySelectorAll(q.kind||"select,input:not([type=radio]):not([type=checkbox]),textarea")).filter(function(e){return lab.compareDocumentPosition(e)&4})[0]; if(f) return f; } return null; } if(typeof q==="string") els=[].slice.call(document.querySelectorAll(q)); else { els=[].slice.call(document.querySelectorAll(q.tag||"button,a,[role=button],li,div,span,label,option,td,th,h2,h3")); var t=q.t; els=els.filter(function(e){ var x=(e.innerText||e.textContent||"").trim().replace(/\\s+/g," "); return q.starts? x.indexOf(t)===0 : q.has? x.indexOf(t)>=0 : x===t; }); }
  els=els.filter(function(e){ var r=e.getBoundingClientRect(); return r.width>2&&r.height>2&&getComputedStyle(e).visibility!=="hidden"; }); els.sort(function(a,b){ return a.getBoundingClientRect().width*a.getBoundingClientRect().height-b.getBoundingClientRect().width*b.getBoundingClientRect().height; }); return els[q.nth||0]||null; }`;
 async function where(q) { return await ev(`(function(){ ${FIND} var e=__find(${JSON.stringify(q)}); if(!e) return null; e.scrollIntoView({block:"center"}); var r=e.getBoundingClientRect(); return {x:r.left+Math.min(r.width/2,40+r.width*.3),y:r.top+r.height/2};})()`); }
+async function whereWait(q) { for (let i = 0; i < 25; i++) { const p = await where(q); if (p) return p; await sleep(160); } return null; } // รอ element โผล่ (หน้า render ช้า)
 async function moveTo(p) { const cur = await ev(`(function(){var c=document.getElementById("__cur");return {x:parseFloat(c.style.left)+11,y:parseFloat(c.style.top)+11}})()`); for (let i = 1; i <= 3; i++) { const x = cur.x + (p.x - cur.x) * i / 3, y = cur.y + (p.y - cur.y) * i / 3; await ev(`(function(){var c=document.getElementById("__cur");c.style.left=${x - 11}+"px";c.style.top=${y - 11}+"px"})()`); if (i < 3) await shot(0.12); } await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: p.x, y: p.y }); }
-async function click(q, label) { const p = await where(q); if (!p) throw new Error("ไม่พบ: " + JSON.stringify(q) + "\n" + (await dump())); await moveTo(p); await shot(0.5); await ev(`(function(){var c=document.getElementById("__cur");c.style.background="rgba(255,153,0,.95)"})()`); await send("Input.dispatchMouseEvent", { type: "mousePressed", x: p.x, y: p.y, button: "left", clickCount: 1 }); await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: p.x, y: p.y, button: "left", clickCount: 1 }); await sleep(250); await ev(`(function(){var c=document.getElementById("__cur");c.style.background="rgba(255,153,0,.55)"})()`); await shot(0.7); }
-async function type(q, text) { const p = await where(q); if (!p) throw new Error("ไม่พบช่อง: " + JSON.stringify(q) + "\n" + (await dump())); await moveTo(p); await send("Input.dispatchMouseEvent", { type: "mousePressed", x: p.x, y: p.y, button: "left", clickCount: 3 }); await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: p.x, y: p.y, button: "left", clickCount: 3 }); await send("Input.insertText", { text }); await sleep(150); await shot(0.8); }
+async function click(q, label) { const p = await whereWait(q); if (!p) throw new Error("ไม่พบ: " + JSON.stringify(q) + "\n" + (await dump())); await moveTo(p); await shot(0.5); await ev(`(function(){var c=document.getElementById("__cur");c.style.background="rgba(255,153,0,.95)"})()`); await send("Input.dispatchMouseEvent", { type: "mousePressed", x: p.x, y: p.y, button: "left", clickCount: 1 }); await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: p.x, y: p.y, button: "left", clickCount: 1 }); await sleep(250); await ev(`(function(){var c=document.getElementById("__cur");c.style.background="rgba(255,153,0,.55)"})()`); await shot(0.7); }
+async function type(q, text) { const p = await whereWait(q); if (!p) throw new Error("ไม่พบช่อง: " + JSON.stringify(q) + "\n" + (await dump())); await moveTo(p); await send("Input.dispatchMouseEvent", { type: "mousePressed", x: p.x, y: p.y, button: "left", clickCount: 3 }); await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: p.x, y: p.y, button: "left", clickCount: 3 }); await send("Input.insertText", { text }); await sleep(150); await shot(0.8); }
 // select แบบ custom ของแอป: คลิกปุ่ม .csel-btn ของ select นั้น แล้วคลิก .csel-opt ที่ข้อความขึ้นต้นตรง
 async function pick(q, opt) {
   const sel = typeof q === "object" && q.label ? q : q;
@@ -32,13 +33,13 @@ async function pick(q, opt) {
   await click("[data-rec-btn='1']"); await sleep(150);
   const ok = await ev(`(function(){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").trim().indexOf(${JSON.stringify(opt)})===0})[0]; return o?1:[].slice.call(document.querySelectorAll(".csel-opt")).map(function(e){return e.innerText.trim()}).join(" | ");})()`);
   if (ok !== 1) throw new Error("ไม่มีตัวเลือก " + opt + " ใน: " + ok);
-  await shot(0.6); const op = await where({ t: opt, starts: true, tag: ".csel-opt" }); await moveTo(op); await shot(0.7);
+  await shot(0.6); const op = await whereWait({ t: opt, starts: true, tag: ".csel-opt" }); await moveTo(op); await shot(0.7);
   await ev(`(function(){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").trim().indexOf(${JSON.stringify(opt)})===0})[0]; o.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,cancelable:true})); })()`); await sleep(200); await shot(0.8);
   await ev(`document.querySelectorAll("[data-rec],[data-rec-btn]").forEach(function(e){e.removeAttribute("data-rec");e.removeAttribute("data-rec-btn")})`);
 }
 async function pickBtn(btnText, optHas) {
   await click({ t: btnText, tag: "button" }); await sleep(150);
-  const sel = { t: optHas, has: true, tag: ".csel-opt" }; const op = await where(sel); if (!op) throw new Error("ไม่พบตัวเลือก " + optHas);
+  const sel = { t: optHas, has: true, tag: ".csel-opt" }; const op = await whereWait(sel); if (!op) throw new Error("ไม่พบตัวเลือก " + optHas);
   await shot(0.5); await moveTo(op); await shot(0.7);
   await ev(`(function(){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").indexOf(${JSON.stringify(optHas)})>=0})[0]; o.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,cancelable:true})); })()`); await sleep(200); await shot(0.8);
 }
@@ -85,12 +86,19 @@ async function plan(items) {
       var t=document.createElement("span"); t.textContent=it[0]; var k=document.createElement("span"); k.className="tk"; k.textContent="○"; k.style.cssText="font-size:16px;color:#94a3b8"; c.appendChild(ic); c.appendChild(t); c.appendChild(k); p.appendChild(c); }); document.body.appendChild(p); })(${JSON.stringify(items)})`);
 }
 async function cur(i) { await ev(`(function(i){ [].slice.call(document.querySelectorAll("#__plan > div")).forEach(function(c){ if(c.dataset.done)return; c.style.borderColor=(+c.dataset.i===i)?"#ec4899":"#cbd5e1"; }); })(${i})`); }
-async function tick(i, msg, sayText) { // ติ๊กถูก + ป้ายใหญ่กลางจอ
-  await ev(`(function(i,msg){ var c=document.querySelector('#__plan > div[data-i="'+i+'"]'); c.dataset.done=1; c.style.borderColor="#16a34a"; c.style.background="#dcfce7"; var k=c.querySelector(".tk"); k.textContent="✓"; k.style.color="#16a34a"; k.style.fontWeight="900"; k.style.fontSize="20px";
-    var t=document.getElementById("__toast"); if(!t){ t=document.createElement("div"); t.id="__toast"; t.style.cssText="position:fixed;z-index:99999;left:50%;top:84px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:12px 24px;border-radius:14px;background:#16a34a;color:#fff;font:700 24px 'IBM Plex Sans Thai',sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none"; document.body.appendChild(t); }
-    t.innerHTML=""; var ic=c.firstChild.cloneNode(true); ic.style.cssText="display:inline-flex;background:#fff;border-radius:8px;padding:4px;width:34px;height:34px;align-items:center;justify-content:center;font-size:22px"; var s=ic.querySelector("img"); if(s){ s.setAttribute("width",30); s.setAttribute("height",30); } t.appendChild(ic); var m=document.createElement("span"); m.textContent="✓ "+msg; t.appendChild(m); t.style.display="flex"; })(${i},${JSON.stringify(msg)})`);
+function toastJs(i, msg, sub, color) { return `(function(i,msg,sub,color){ var c=document.querySelector('#__plan > div[data-i="'+i+'"]');
+    var t=document.getElementById("__toast"); if(!t){ t=document.createElement("div"); t.id="__toast"; document.body.appendChild(t); } t.style.cssText="position:fixed;z-index:99999;left:50%;top:84px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:12px 26px;border-radius:14px;color:#fff;font:700 24px 'IBM Plex Sans Thai',sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;background:"+color;
+    t.innerHTML=""; var ic=c.firstChild.cloneNode(true); ic.style.cssText="display:inline-flex;background:#fff;border-radius:10px;padding:5px;width:44px;height:44px;align-items:center;justify-content:center;font-size:28px"; var s=ic.querySelector("img"); if(s){ s.setAttribute("width",38); s.setAttribute("height",38); } t.appendChild(ic);
+    var m=document.createElement("div"); var a=document.createElement("div"); a.textContent=msg; m.appendChild(a); if(sub){ var d=document.createElement("div"); d.textContent=sub; d.style.cssText="font:500 16px 'IBM Plex Sans Thai',sans-serif;opacity:.95;margin-top:2px"; m.appendChild(d); } t.appendChild(m); t.style.display="flex"; })(${i},${JSON.stringify(msg)},${JSON.stringify(sub || "")},${JSON.stringify(color)})`; }
+async function tick(i, msg, sayText) { // ติ๊กถูก + ป้ายใหญ่กลางจอ (โลโก้ + ชื่อบริการ)
+  await ev(`(function(i){ var c=document.querySelector('#__plan > div[data-i="'+i+'"]'); c.dataset.done=1; c.style.borderColor="#16a34a"; c.style.background="#dcfce7"; var k=c.querySelector(".tk"); k.textContent="✓"; k.style.color="#16a34a"; k.style.fontWeight="900"; k.style.fontSize="20px"; })(${i})`);
+  await ev(toastJs(i, "✓ " + msg, "", "#16a34a"));
   if (sayText) await say(sayText);
   await shot(1.6); await ev(`document.getElementById("__toast").style.display="none"`);
+}
+async function intro(i, title, desc, sayText) { // เริ่มบริการใหม่: โลโก้ + ชื่อ + อธิบายสั้นๆ (พูดด้วย)
+  await cur(i); await ev(toastJs(i, title, desc, "#2563eb")); if (sayText) await say(sayText);
+  await shot(1.8); await ev(`document.getElementById("__toast").style.display="none"`);
 }
 async function encode(out) { // เฟรม + เสียง → mp4
   const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.8);
@@ -102,4 +110,4 @@ async function encode(out) { // เฟรม + เสียง → mp4
   args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", out);
   execFileSync(FFMPEG, args, { stdio: "inherit" });
 }
-module.exports = { say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
+module.exports = { intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };

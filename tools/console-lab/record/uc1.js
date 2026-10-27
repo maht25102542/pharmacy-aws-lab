@@ -6,7 +6,7 @@ const svc = async (t) => { await L.click(B("Services")); await L.click({ t, tag:
   await L.plan([["S3", "S3"], ["Route 53 zone", "Route 53"], ["ACM", "ACM"], ["CloudFront", "CloudFront"], ["Route 53 record", "Route 53"], ["เปิดเว็บ", "🌐"]]);
   await L.cap("Use case 1 · เว็บ static: S3 + CloudFront + Route 53 + ACM", "use case แรก เว็บ static บน AWS ใช้ S3 เก็บไฟล์ CloudFront เป็น CDN Route 53 จัดการโดเมน และ ACM ออกใบรับรอง HTTPS ให้ดูทีละขั้นจนเว็บเปิดได้"); await L.hold(1);
   // 1 S3
-  await L.cur(0);
+  await L.intro(0, "S3", "ที่เก็บไฟล์เว็บ", "นี่คือ S3 บริการเก็บไฟล์ ใช้เป็นที่เก็บไฟล์เว็บของเรา");
   await L.cap("① เปิดเมนู Services → S3", "เริ่มจาก S3 ก่อน เปิดเมนู Services แล้วเลือก S3"); await svc("S3 Scalable");
   await L.cap("② S3 › Create bucket", "กด Create bucket"); await L.click(B("Create bucket"));
   await L.cap("③ ตั้งชื่อ bucket (ไม่ซ้ำทั้งโลก) · ปล่อย Block all public access เปิดไว้", "ตั้งชื่อ bucket ต้องไม่ซ้ำกับใครในโลก และปล่อย Block all public access เปิดไว้ เพราะเราจะให้ CloudFront เป็นคนอ่านไฟล์เท่านั้น"); await L.pick({ label: "Bucket name" }, "pharmacy-web-dev");
@@ -16,12 +16,12 @@ const svc = async (t) => { await L.click(B("Services")); await L.click({ t, tag:
   await L.cap("⑤ ไฟล์ตัวอย่าง index.html (เนื้อหาแก้ได้) → Upload"); await L.hold(1.2); await L.click(B("Upload")); await L.hold(1);
   await L.tick(0, "S3 พร้อมแล้ว", "S3 เสร็จแล้ว มีไฟล์เว็บอยู่ใน bucket");
   // Route 53
-  await L.cur(1);
+  await L.intro(1, "Route 53", "DNS จัดการชื่อโดเมน", "นี่คือ Route 53 บริการ DNS ใช้ชี้ชื่อโดเมนไปยังปลายทาง");
   await L.cap("⑥ Route 53 › Hosted zones › Create hosted zone", "ต่อมา Route 53 สร้าง hosted zone ของโดเมนเรา เป็นที่เก็บ DNS record ทั้งหมด"); await svc("Route 53 Scalable");
   await L.click(B("Create hosted zone")); await L.pick({ label: "Domain name" }, "pharmacy.example.com"); await L.click(B("Create hosted zone")); await L.hold(1);
   await L.tick(1, "Hosted zone พร้อมแล้ว", "Route 53 มี hosted zone แล้ว");
   // ACM
-  await L.cur(2);
+  await L.intro(2, "ACM", "ใบรับรอง HTTPS ฟรี", "นี่คือ ACM บริการออกใบรับรอง HTTPS ให้ฟรี");
   await L.cap("⑦ ACM › Request certificate (ใบรับรองของ CloudFront ต้องอยู่ us-east-1)", "ต่อไปขอใบรับรอง HTTPS ที่ ACM ข้อสำคัญคือ ใบรับรองที่ใช้กับ CloudFront ต้องขอในภูมิภาค us-east-1 เท่านั้น"); await svc("Certificate Manager");
   await L.click(B("Request certificate", { nth: 0 }));
   await L.pick({ label: "Fully qualified domain name" }, "pharmacy.example.com");
@@ -30,7 +30,7 @@ const svc = async (t) => { await L.click(B("Services")); await L.click({ t, tag:
   await L.cap("⑧ ใบรับรองต้องพิสูจน์โดเมน: Create records in Route 53 (สร้าง CNAME ให้คลิกเดียว)", "ACM ต้องพิสูจน์ว่าเราเป็นเจ้าของโดเมน กดปุ่ม Create records in Route 53 ระบบจะสร้าง CNAME ให้เอง"); await L.click(B("Create records in Route 53"));
   await L.hold(1.2);
   await L.tick(2, "ใบรับรอง Issued แล้ว", "ใบรับรองออกเรียบร้อย สถานะ Issued");
-  await L.cur(3);
+  await L.intro(3, "CloudFront", "CDN แคชเว็บใกล้ผู้ใช้", "นี่คือ CloudFront เป็น CDN ที่แคชเว็บไว้ใกล้ผู้ใช้ทั่วโลก");
   await L.cap("⑨ CloudFront › Create distribution (wizard 4 ขั้น)", "ถึงตัว CloudFront สร้าง distribution มีวิซาร์ดสี่ขั้นตอน"); await svc("CloudFront Global");
   await L.click(B("Create distribution", { nth: 0 }));
   await L.pick({ label: "Distribution name" }, "pharmacy web dev"); await L.click(B("Next"));
@@ -41,12 +41,12 @@ const svc = async (t) => { await L.click(B("Services")); await L.click({ t, tag:
   await L.pick({ label: "Alternate domain name" }, "dev.pharmacy.example.com"); await L.pick({ label: "Custom SSL certificate" }, "pharmacy.example.com");
   await L.hold(1); await L.click(B("Create distribution")); await L.hold(1.2);
   await L.tick(3, "CloudFront Deployed", "CloudFront สร้างเสร็จ");
-  await L.cur(4);
+  await L.intro(4, "Route 53", "สร้าง record ชี้ไป CloudFront", "กลับมาที่ Route 53 อีกครั้ง");
   await L.cap("⑩ Route 53 › Create record: dev → Alias ไป CloudFront", "กลับไป Route 53 สร้าง record ชื่อ dev เป็นแบบ Alias ชี้ไปที่ CloudFront"); await svc("Route 53 Scalable");
   await L.click(B("Create record", { nth: 0 }));
   await L.pick({ label: "Record name" }, "dev"); await L.pickBtn("เลือก distribution", "dev.pharmacy.example.com"); await L.click(B("Create records")); await L.hold(1.2);
   await L.tick(4, "DNS ชี้ถูกแล้ว", "DNS ชี้มาที่ CloudFront แล้ว");
-  await L.cur(5);
+  await L.intro(5, "Browser", "ทดสอบเปิดเว็บจริง", "มาทดสอบเปิดเว็บกัน");
   await L.cap("⑪ เปิดเว็บที่แท็บ Browser → https://dev.pharmacy.example.com", "ลองเปิดเว็บจริง ไปที่แท็บ Browser แล้วเข้า dev จุด pharmacy จุด example จุด com"); await L.click(B("Browser", { nth: 0 }));
   await L.pickBtn("— เลือกตัวอย่าง —", "dev.pharmacy.example.com"); await L.click(B("Go")); await L.hold(2.5);
   await L.tick(5, "เว็บเปิดได้ HTTPS 200", "เว็บเปิดได้แล้ว ผ่าน HTTPS สถานะสองร้อย");

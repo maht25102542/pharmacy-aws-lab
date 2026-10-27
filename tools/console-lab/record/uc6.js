@@ -1,6 +1,6 @@
 const L = require("./lib.js");
 const B = (t, o) => Object.assign({ t, tag: "button" }, o);
-const step = async (n, f) => { for (let i = 0; i < 3; i++) { try { await f(); return; } catch (e) { await L.ev(`document.body.click();1`); if (i === 2) { console.log("FAIL", n, e.message.slice(0, 300)); await L.finish(); process.exit(1); } } } };
+const step = async (n, f) => { for (let i = 0; i < 3; i++) { try { await f(); return; } catch (e) { console.log("ATTEMPT", n, i, e.message.slice(0, 160)); await L.ev(`document.body.click();1`); if (i === 2) { console.log("FAIL", n, e.message.slice(0, 300)); await L.finish(); process.exit(1); } } } };
 const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { starts: true })); };
 (async () => {
   await L.start("file://" + require("path").resolve(__dirname, "../index.html"));
@@ -8,7 +8,7 @@ const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { st
   await L.cap("Use case 6 · เครื่องเดียว: EC2 + Docker Compose + Caddy", "use case หก แบบง่ายที่สุด รันทั้งระบบบนเครื่อง EC2 เครื่องเดียว ด้วย Docker Compose และ Caddy ที่ขอใบรับรอง HTTPS ให้อัตโนมัติ"); await L.hold(1);
   await L.ev(`buildSingle("single-base"); UI.sel={}; render(); 1`);
   await L.cap("เตรียมไว้แล้ว: VPC + public subnet + IGW, Security Group (80/443/22), key pair, hosted zone pharmacy.example.com", "ส่วนเครือข่ายเตรียมไว้ให้แล้ว คือ VPC กับ public subnet, Security Group ที่เปิดพอร์ต 80 443 และ 22, key pair และ hosted zone ของโดเมน"); await L.hold(1);
-  await L.cur(0);
+  await L.intro(0, "EC2", "เครื่องเซิร์ฟเวอร์เสมือน", "นี่คือ อีซีทู เครื่องเซิร์ฟเวอร์เสมือนที่เราจะรันทั้งระบบ");
   await L.cap("① EC2 › Instances › Launch instances", "เริ่มสร้างเครื่อง เปิด EC2 ไปที่ Instances แล้วกด Launch instances"); await svc("EC2"); await L.click(B("Instances")); await L.click(B("Launch instances")); await L.sleep(800);
   await L.cap("② ตั้งชื่อเครื่อง pharmacy-single", "ตั้งชื่อเครื่องว่า pharmacy single");
   await step("name", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); });
@@ -26,13 +26,13 @@ const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { st
   await step("ud", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); });
   await step("ud2", async () => { await L.sleep(400); await L.type("main textarea", await L.ev(`singleUserData("single")`)); });
   await L.hold(1.5); await L.cap("⑧ Launch instance", "กด Launch instance"); await L.click(B("Launch instance", { nth: 0 })); await L.hold(2);
-  await L.tick(0, "เครื่อง Running", "เครื่องรันแล้ว"); await L.cur(1);
+  await L.tick(0, "เครื่อง Running", "เครื่องรันแล้ว"); await L.intro(1, "Elastic IP", "ไอพีคงที่", "นี่คือ Elastic IP ไอพีสาธารณะที่คงที่");
   await L.cap("⑨ Elastic IPs › Allocate: IP คงที่ ไม่เปลี่ยนเมื่อ stop/start", "ต่อมาขอ Elastic IP เพื่อให้ไอพีคงที่ ไม่เปลี่ยนเมื่อหยุดแล้วเปิดเครื่องใหม่ ไม่งั้น DNS จะชี้ผิด");
   await L.click(B("Elastic IPs")); await L.click(B("Allocate Elastic IP address")); await L.click(B("Allocate")); await L.hold(1);
   await L.cap("⑩ เลือก Elastic IP › Actions › Associate Elastic IP address › เครื่อง pharmacy-single", "เลือก Elastic IP แล้วเมนู Actions กด Associate เลือกเครื่อง pharmacy single");
   await L.click({ t: "eipalloc-", starts: true, tag: "a,button,td,span" }); await L.click(B("Actions")); await L.click(B("Associate Elastic IP address"));
   await step("assoc", async () => { await L.pickBtn("Choose an instance", "pharmacy-single"); }); await L.click(B("Associate", { nth: 0 })); await L.hold(1);
-  await L.tick(1, "Elastic IP ผูกแล้ว", "ผูกไอพีกับเครื่องเรียบร้อย"); await L.cur(2);
+  await L.tick(1, "Elastic IP ผูกแล้ว", "ผูกไอพีกับเครื่องเรียบร้อย"); await L.intro(2, "Route 53", "DNS ชี้ชื่อโดเมน", "นี่คือ Route 53 บริการ DNS ชี้ชื่อโดเมนมาที่ไอพีของเรา");
   const ip = await L.ev(`S.eips[0].ip||S.eips[0].publicIp||""`).catch(() => "");
   await L.cap("⑪ Route 53 › Create record: app → A ชี้ไป Elastic IP", "ไป Route 53 สร้าง record ชื่อ app แบบ A ชี้ไปที่ Elastic IP"); await svc("Route 53 Scalable");
   await L.click({ t: "pharmacy.example.com", starts: true, tag: "a,button,td" }); await L.click(B("Create record", { nth: 0 }));
@@ -42,7 +42,7 @@ const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { st
   await step("val", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); });
   await step("val2", async () => { await L.sleep(300); await L.type("main textarea, main input[placeholder]:not([placeholder=www])", ip); });
   await L.hold(1); await L.click(B("Create records")); await L.hold(1);
-  await L.tick(2, "DNS ชี้ถูกแล้ว", "DNS พร้อมแล้ว"); await L.cur(3);
+  await L.tick(2, "DNS ชี้ถูกแล้ว", "DNS พร้อมแล้ว"); await L.intro(3, "Browser", "ทดสอบเปิดเว็บจริง", "มาทดสอบเปิดเว็บกัน");
   await L.cap("⑫ เปิดเว็บที่แท็บ Browser → https://app.pharmacy.example.com", "ลองเปิดเว็บ ไปที่แท็บ Browser แล้วเข้า app จุด pharmacy จุด example จุด com"); await L.click(B("Browser", { nth: 0 }));
   await step("br", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "app.pharmacy.example.com"); });
   await L.click(B("Go")); await L.hold(2.5);
