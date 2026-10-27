@@ -449,7 +449,17 @@ function ucVideo(src) {
   wrap.addEventListener("mousemove", showBar); wrap.addEventListener("touchstart", showBar);
   wrap.appendChild(cbar);
   var mute = h("button", { cls: "btn", type: "button", style: "display:inline-flex;align-items:center;gap:6px", html: viSvg("vol", 18) + " เสียง: เปิด", onclick: function () { v.muted = !v.muted; mute.innerHTML = viSvg(v.muted ? "mute" : "vol", 18) + (v.muted ? " เสียง: ปิด" : " เสียง: เปิด"); } });
-  return h("div", {}, [note, wrap, h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" }, [mute, h("span", { cls: "hint", style: "margin:0", text: "ดับเบิลคลิก/แตะครึ่งขวาของจอ = ข้าม 5 วินาที · ครึ่งซ้าย = ย้อน 5 วินาที · คลิกเดียว = เล่น/หยุด" })])]);
+  // วินิจฉัยเสียง: ปุ่มทดสอบเสียง (beep) + บอกว่า browser ถอดรหัสเสียงจากไฟล์ได้ไหม
+  var diag = h("div", { cls: "hint", style: "margin:6px 0 0", text: "เสียงในวิดีโอ: ยังไม่ได้เล่น" });
+  var beep = h("button", { cls: "btn", type: "button", text: "ทดสอบเสียงเครื่อง", onclick: function () { try { var c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.frequency.value = 660; g.gain.value = 0.15; o.connect(g); g.connect(c.destination); o.start(); setTimeout(function () { o.stop(); c.close(); }, 500); diag.textContent = "ส่งเสียงบี๊บแล้ว ถ้าไม่ได้ยิน = ลำโพง/ระดับเสียงของแท็บหรือเครื่องปิดอยู่ (ไม่เกี่ยวกับไฟล์วิดีโอ)"; } catch (e) { diag.textContent = "browser นี้เล่นเสียงทดสอบไม่ได้"; } } });
+  var chk = 0; v.addEventListener("timeupdate", function () {
+    if (chk || v.currentTime < 3) return; chk = 1;
+    var n = v.webkitAudioDecodedByteCount, hasA = v.mozHasAudio;
+    if (v.muted || v.volume === 0) diag.textContent = "เสียงในวิดีโอ: ถูกปิดอยู่ (muted / volume 0) กดปุ่มลำโพงเพื่อเปิด";
+    else if (n === 0 || hasA === false) diag.textContent = "เสียงในวิดีโอ: browser นี้ถอดรหัสเสียงของไฟล์ไม่ได้ (ลองใช้ Chrome/Edge/Safari ล่าสุด)";
+    else diag.textContent = "เสียงในวิดีโอ: ตรวจพบและกำลังเล่น" + (n ? " (" + n + " bytes)" : "") + " ถ้าไม่ได้ยิน ให้กด 'ทดสอบเสียงเครื่อง'";
+  });
+  return h("div", {}, [note, wrap, h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" }, [mute, beep, h("span", { cls: "hint", style: "margin:0", text: "ดับเบิลคลิก/แตะครึ่งขวาของจอ = ข้าม 5 วินาที · ครึ่งซ้าย = ย้อน 5 วินาที · คลิกเดียว = เล่น/หยุด" })]), diag]);
 }
 function ucTab() {
   var u = ucCur(), cb = h("div", { cls: "cb" });
