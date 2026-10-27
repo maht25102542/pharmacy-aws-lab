@@ -41,7 +41,7 @@ function costGen() { // คู่มือจัดการ bill เป็น�
   return h("div", { cls: "cd-guide" }, COSTD.gen.map(function (g, i) { return h("div", { cls: "gc", style: "--c:" + g[1] }, [h("div", { cls: "hd" }, [h("span", { cls: "no", text: String(i + 1) }), h("b", { text: g[0] })]), h("div", { cls: "bd" }, rich(g[2]))]); }));
 }
 FOLD.uccost = 1;
-var CD_SEL = { id: "ecs" }, CD_COL = [["#2a78d6", "#3987e5"], ["#eb6834", "#d95926"], ["#1baf7a", "#199e70"], ["#eda100", "#c98500"], ["#e87ba4", "#d55181"]];
+var CDB_SEL = { id: "ecs" }, CDB_COL = [["#2a78d6", "#3987e5"], ["#eb6834", "#d95926"], ["#1baf7a", "#199e70"], ["#eda100", "#c98500"], ["#e87ba4", "#d55181"]];
 function cdLabs() { // รวม use case + main lab → [{name, items, big, uc?}]
   var out = UC.filter(function (u) { return COSTD.uc[u.id]; }).map(function (u) { var c = COSTD.uc[u.id]; return { id: u.id, name: u.no + ". " + u.title.split(":")[0], color: u.color, items: c.items, big: c.big, bench: c.bench }; });
   [["vm", "main lab (VM)", "#475569"], ["managed", "managed (EKS)", "#475569"]].forEach(function (x) { var c = COSTD.mainlab[x[0]]; out.push({ id: x[0], name: x[1], color: x[2], items: c.items, big: c.note, bench: c.bench }); });
@@ -51,19 +51,19 @@ function cdBars(labs) { // แท่งแนวนอนชุดเดีย�
   var rows = labs.slice().sort(function (a, b) { return b.s.month - a.s.month; }), max = Math.max.apply(null, rows.map(function (r) { return r.s.month; })) || 1;
   return h("div", { cls: "cd-bars", role: "img", "aria-label": "ค่าใช้จ่ายต่อเดือนของแต่ละ lab" }, rows.map(function (r) {
     var w = Math.max(r.s.month / max * 100, r.s.month > 0 ? 0.8 : 0);
-    return h("button", { type: "button", cls: "cd-row" + (CD_SEL.id === r.id ? " on" : ""), title: r.name + " · เปิดทิ้ง 1 เดือน " + baht(r.s.month) + " (" + money(r.s.month) + ") · ทำ 4 ชม. " + baht(r.s.perHours(4)), onclick: function () { CD_SEL.id = r.id; render(); } }, [h("span", { cls: "n" }, [r.name, r.bench ? (function () { var v = costVerdict(r.s.month, r.bench); return h("em", { cls: "vd", style: "--c:" + v.color, text: v.label }); })() : null].filter(Boolean)), h("span", { cls: "tr" }, [h("i", { style: "width:" + w + "%;background:" + (r.bench ? costVerdict(r.s.month, r.bench).fill : r.color) })]), h("span", { cls: "v" }, [h("b", { text: baht(r.s.month) }), h("small", { text: money(r.s.month) })])]);
+    return h("button", { type: "button", cls: "cd-row" + (CDB_SEL.id === r.id ? " on" : ""), title: r.name + " · เปิดทิ้ง 1 เดือน " + baht(r.s.month) + " (" + money(r.s.month) + ") · ทำ 4 ชม. " + baht(r.s.perHours(4)), onclick: function () { CDB_SEL.id = r.id; render(); } }, [h("span", { cls: "n" }, [r.name, r.bench ? (function () { var v = costVerdict(r.s.month, r.bench); return h("em", { cls: "vd", style: "--c:" + v.color, text: v.label }); })() : null].filter(Boolean)), h("span", { cls: "tr" }, [h("i", { style: "width:" + w + "%;background:" + (r.bench ? costVerdict(r.s.month, r.bench).fill : r.color) })]), h("span", { cls: "v" }, [h("b", { text: baht(r.s.month) }), h("small", { text: money(r.s.month) })])]);
   }));
 }
 function cdStack(lab) { // องค์ประกอบค่าใช้จ่ายของ lab ที่เลือก (เฉพาะรายการคงที่) · 4 อันดับแรก + อื่นๆ
   var items = lab.items.map(function (x) { return { n: x.n, v: x.k === "hr" ? x.r * x.q * COST_HRS : x.k === "mo" ? x.r * x.q : 0 }; }).filter(function (x) { return x.v > 0; }).sort(function (a, b) { return b.v - a.v; });
   var total = items.reduce(function (a, x) { return a + x.v; }, 0); if (!total) return h("p", { cls: "hint", text: "lab นี้ไม่มีรายการคงที่ — จ่ายตามการใช้เท่านั้น (ดูตารางด้านล่าง)" });
   var top = items.slice(0, 4), rest = items.slice(4).reduce(function (a, x) { return a + x.v; }, 0); if (rest > 0) top.push({ n: "อื่นๆ", v: rest });
-  var dark = document.documentElement.getAttribute("data-theme") === "dark" || (document.documentElement.getAttribute("data-theme") !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches), col = function (i) { return CD_COL[Math.min(i, 4)][dark ? 1 : 0]; };
+  var dark = document.documentElement.getAttribute("data-theme") === "dark" || (document.documentElement.getAttribute("data-theme") !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches), col = function (i) { return CDB_COL[Math.min(i, 4)][dark ? 1 : 0]; };
   return h("div", { cls: "cd-stack" }, [h("div", { cls: "bar", role: "img", "aria-label": "สัดส่วนค่าใช้จ่ายของ " + lab.name }, top.map(function (x, i) { return h("i", { title: x.n + " · " + baht(x.v) + "/เดือน (" + Math.round(x.v / total * 100) + "%)", style: "flex:" + x.v + ";background:" + col(i) }); })),
     h("div", { cls: "lg" }, top.map(function (x, i) { return h("div", {}, [h("i", { style: "background:" + col(i) }), h("span", { cls: "t", text: x.n }), h("b", { text: baht(x.v) }), h("small", { text: Math.round(x.v / total * 100) + "%" })]); }))]);
 }
 PAGES["lab-cost"] = function () {
-  var labs = cdLabs(), sel = labs.filter(function (l) { return l.id === CD_SEL.id; })[0] || labs[0];
+  var labs = cdLabs(), sel = labs.filter(function (l) { return l.id === CDB_SEL.id; })[0] || labs[0];
   var by = labs.slice().sort(function (a, b) { return b.s.month - a.s.month; }), top = by[0], topUc = by.filter(function (l) { return UC.some(function (u) { return u.id === l.id; }); })[0];
   var tile = function (lb, val, sub, g, ic) { return h("div", { cls: "cd-kpi", style: gstyle(g) }, [h("span", { cls: "ic", text: ic }), h("div", { cls: "l", text: lb }), h("div", { cls: "v", text: val }), h("div", { cls: "u", text: sub })]); };
   var kpis = h("div", { cls: "cd-kpis" }, [tile("แพงสุดถ้าลืมลบ (ทุก lab)", baht(top.s.month) + "/เดือน", top.name + " · " + money(top.s.month), CG_LV[4], "🔥"), tile("ทำ lab 4 ชม. แล้วลบ (ตัวแพงสุด)", baht(top.s.perHours(4)), top.name + " · " + money(top.s.perHours(4)), CG.green, "⏳"), tile("แพงสุดในกลุ่ม use case", baht(topUc.s.month) + "/เดือน", topUc.name + " · " + money(topUc.s.month), CG_LV[2], "📦"), tile("ถูกสุด (ตามการใช้)", baht(by[by.length - 1].s.month) + "/เดือน", by[by.length - 1].name, CG_LV[0], "🌱")]);
