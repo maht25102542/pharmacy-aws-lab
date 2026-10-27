@@ -473,10 +473,10 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#4f46e5; --accent-bg:#eef0ff; --accent-fg:#ffffff; --sh-1:0 1px 2px rgba(16,24,40,.05); --sh-2:0 14px 34px -20px rgba(30,41,59,.45); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#8b93ff; --accent-bg:#1c2040; --accent-fg:#0b0e24; } }
 :root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#8b93ff; --accent-bg:#1c2040; --accent-fg:#0b0e24; }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn { min-height: 38px; padding: 8px 20px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1); font-weight: 600; letter-spacing: .005em; }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn:hover:not(:disabled) { background: var(--accent-bg); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri { color: #fff; border: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 82%, #fff), var(--accent)); box-shadow: 0 8px 16px -8px color-mix(in srgb, var(--accent) 85%, transparent), inset 0 1px 0 rgba(255,255,255,.28); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri:hover:not(:disabled) { color: #fff; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #fff), color-mix(in srgb, var(--accent) 90%, #000)); transform: translateY(-1px); box-shadow: 0 12px 20px -10px color-mix(in srgb, var(--accent) 90%, transparent), inset 0 1px 0 rgba(255,255,255,.3); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn { min-height: 36px; padding: 6px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--ctl-line); box-shadow: none; font-weight: 600; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn:hover:not(:disabled) { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri { color: #fff; background: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri:hover:not(:disabled) { color: #fff; background: color-mix(in srgb, var(--accent) 88%, #000); border-color: color-mix(in srgb, var(--accent) 88%, #000); transform: none; box-shadow: none; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri:active:not(:disabled) { transform: none; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .card { border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--sh-1); }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .card > .ch { background: transparent; border-bottom: 1px solid var(--line); padding: 12px 18px; }
@@ -490,16 +490,28 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) td, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) th { white-space: normal; padding: 12px 14px; border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) thead th { border-top: 0; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) tbody tr { transition: background .12s; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) tbody tr:hover td { background: color-mix(in srgb, var(--accent-bg) 70%, transparent); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn { min-height: 38px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1); font-weight: 500; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn { min-height: 36px; border-radius: 8px; background: var(--surface); border: 1px solid var(--ctl-line); box-shadow: none; font-weight: 500; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn:hover:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn:focus-visible, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn[aria-expanded="true"] { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input[type=text], :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input[type=search], :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:not([type]), :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea { border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 8px 12px; box-shadow: var(--sh-1); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input[type=text]:focus, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn:focus-visible, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .csel-btn[aria-expanded="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input[type=text], :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input[type=search], :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input:not([type]), :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea { border-radius: 8px; border: 1px solid var(--ctl-line); background: var(--surface); padding: 7px 12px; box-shadow: none; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main input[type=text]:focus, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .tag { padding: 3px 11px; font-size: .74rem; letter-spacing: .01em; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .alert { border-radius: 14px; }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .csel-list { border-radius: 16px; border: 1px solid var(--line); padding: 6px; box-shadow: 0 24px 48px -16px rgba(15,23,42,.35), 0 2px 6px rgba(15,23,42,.08); }
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .csel-opt { border-radius: 10px; padding: 9px 12px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .csel-list { border-radius: 10px; border: 1px solid var(--ctl-line); padding: 4px; box-shadow: 0 8px 24px -8px rgba(15,23,42,.28); }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .csel-opt { border-radius: 6px; padding: 8px 10px; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .csel-opt.sel { background: var(--accent-bg); }
+/* ===== dropdown รวมทุกหน้า: เรียบ ชัด ขนาดสม่ำเสมอ ===== */
+.csel-btn { min-height: 36px; border-radius: 8px; border: 1px solid var(--ctl-line); background: var(--surface); box-shadow: none; font-weight: 500; }
+.csel-btn.ph { color: var(--muted); font-weight: 400; }
+.csel-btn:hover:not(:disabled) { border-color: var(--accent); }
+.csel-list { border-radius: 10px; border: 1px solid var(--ctl-line); padding: 4px; box-shadow: 0 10px 28px -10px rgba(15,23,42,.3); max-height: 320px; }
+.csel-opt { border-radius: 6px; padding: 8px 12px; font-size: .94rem; }
+.csel-opt + .csel-opt { margin-top: 1px; }
+.csel-opt.act { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.csel-opt.sel { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent); }
+.csel-opt.ph { color: var(--muted); font-style: normal; }
+.labbar .csel-btn { min-height: 30px; border-radius: 6px; font-size: .86rem; }
+.scen > div > .btn { margin-left: auto; }
 </style>
 
 <header class="top">
@@ -10990,3 +11002,4 @@ PAGES["lab-ap"] = function () {
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-uc"); L.splice(i < 0 ? L.length : i, 0, ["lab-ap", "เลือกแบบไหน (ทุกแบบ)"]); NAVICO["lab-ap"] = "🧩"; })();
 
 </script>
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .labbar .csel-btn { min-height: 30px; border-radius: 6px; font-weight: 500; font-size: .86rem; box-shadow: none; }
