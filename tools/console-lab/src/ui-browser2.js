@@ -41,7 +41,7 @@ function wbJsonBody(obj, o) {
   var view;
   if (mode === "table") { var keys = Object.keys(items[0]); view = h("div", { cls: "twrap" }, [h("table", { cls: "bw-tbl" }, [h("thead", {}, [h("tr", {}, keys.map(function (k) { return h("th", { text: k }); }))]), h("tbody", {}, items.map(function (it) { return h("tr", {}, keys.map(function (k) { return h("td", { text: String(it[k]) }); })); }))])]); }
   else if (mode === "raw") view = h("pre", { cls: "bw-raw", text: JSON.stringify(obj) });
-  else view = codePre(JSON.stringify(obj, null, 2), "an");
+  else { var pt = JKX.theme; JKX.theme = "github"; view = codePre(JSON.stringify(obj, null, 2), "an"); JKX.theme = pt; } // กรอบ browser สว่างเสมอ → ใช้ธีมโค้ดสว่าง
   var meta = Object.keys(obj || {}).filter(function (k) { return typeof obj[k] !== "object"; }).slice(0, 5);
   return h("div", { cls: "bw-json" }, [h("div", { cls: "bw-jh" }, [h("div", {}, [h("b", { text: o.title || "JSON response" }), h("span", { cls: "bw-ct", text: "application/json" })]), tabs]),
     meta.length ? h("div", { cls: "bw-meta" }, meta.map(function (k) { return h("span", {}, [h("i", { text: k }), " " + String(obj[k])]); })) : h("span"), view]);

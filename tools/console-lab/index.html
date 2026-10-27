@@ -553,7 +553,7 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .bw-json { padding: 18px 22px 22px; } .bw-jh { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; } .bw-jh b { font-size: 16px; } .bw-ct { margin-left: 10px; padding: 2px 8px; border-radius: 6px; background: #eef2f6; color: #475569; font-size: 12px; font-family: var(--mono, monospace); }
 .bw-jt { display: inline-flex; padding: 3px; border-radius: 9px; background: #eef2f6; } .bw-jt button { border: 0; padding: 4px 14px; border-radius: 7px; background: transparent; color: #475569; font: 600 13px inherit; cursor: pointer; } .bw-jt button.on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .bw-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; } .bw-meta span { padding: 3px 10px; border-radius: 99px; background: #f1f5f9; color: #0f172a; font-size: 13px; } .bw-meta i { font-style: normal; color: #64748b; margin-right: 4px; }
-.bw-tbl { width: 100%; border-collapse: collapse; font-size: 14px; } .bw-tbl th { text-align: left; padding: 8px 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0; } .bw-tbl td { padding: 8px 12px; border-bottom: 1px solid #eef2f6; }
+.bw-tbl { width: 100%; border-collapse: collapse; font-size: 14px; } .bw-tbl th { text-align: left; padding: 8px 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0; } .bw-tbl td { padding: 8px 12px; border-bottom: 1px solid #eef2f6; color: #0f172a; } .bw-tbl tbody tr:hover td { background: #f8fafc; }
 .bw-raw { margin: 0; padding: 12px 14px; border-radius: 8px; background: #f4f6f8; color: #0f172a; font: 13px/1.5 var(--mono, monospace); white-space: pre-wrap; word-break: break-all; }
 .bw-why { margin: 14px 0 0; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .bw-why h4 { margin: 0 0 8px; font-size: 14px; }
 .ph-login { display: grid; grid-template-columns: 1fr 1fr; min-height: 380px; margin: -2px; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid #e2e8f0; }
@@ -11167,7 +11167,7 @@ function wbJsonBody(obj, o) {
   var view;
   if (mode === "table") { var keys = Object.keys(items[0]); view = h("div", { cls: "twrap" }, [h("table", { cls: "bw-tbl" }, [h("thead", {}, [h("tr", {}, keys.map(function (k) { return h("th", { text: k }); }))]), h("tbody", {}, items.map(function (it) { return h("tr", {}, keys.map(function (k) { return h("td", { text: String(it[k]) }); })); }))])]); }
   else if (mode === "raw") view = h("pre", { cls: "bw-raw", text: JSON.stringify(obj) });
-  else view = codePre(JSON.stringify(obj, null, 2), "an");
+  else { var pt = JKX.theme; JKX.theme = "github"; view = codePre(JSON.stringify(obj, null, 2), "an"); JKX.theme = pt; } // กรอบ browser สว่างเสมอ → ใช้ธีมโค้ดสว่าง
   var meta = Object.keys(obj || {}).filter(function (k) { return typeof obj[k] !== "object"; }).slice(0, 5);
   return h("div", { cls: "bw-json" }, [h("div", { cls: "bw-jh" }, [h("div", {}, [h("b", { text: o.title || "JSON response" }), h("span", { cls: "bw-ct", text: "application/json" })]), tabs]),
     meta.length ? h("div", { cls: "bw-meta" }, meta.map(function (k) { return h("span", {}, [h("i", { text: k }), " " + String(obj[k])]); })) : h("span"), view]);
