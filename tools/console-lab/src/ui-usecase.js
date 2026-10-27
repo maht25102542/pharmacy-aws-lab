@@ -119,7 +119,7 @@ UC.push({
 });
 
 UC.push({
-  id: "sls", no: 3, video: "videos/usecase3-c.mp4", title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  id: "sls", no: 3, video: "videos/usecase3-c.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-a.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ทำ **API ที่ไม่มีเครื่อง** เลย: ผู้ใช้เรียก **API Gateway** → ปลุก **Lambda** รันโค้ดแค่ตอนมีคำขอ → อ่าน/เขียน **DynamoDB** · ไม่มีอะไรให้ patch/scale · ไม่มีคำขอ = ไม่เสียเงิน"],
@@ -277,7 +277,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-c.mp4", title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-c.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-a.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
@@ -325,7 +325,7 @@ UC.push({
 });
 
 UC.push({
-  id: "apr", no: 7, video: "videos/usecase7-c.mp4", title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
+  id: "apr", no: 7, video: "videos/usecase7-c.mp4", errVideos: [["เคส: port ไม่ตรงกับที่แอปฟัง (prd เปิดไม่ได้)", "videos/usecase7-err-a.mp4"]], title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
   tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
@@ -483,12 +483,13 @@ function ucTab() {
   if (u.loadBtns) loadBar = h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0" }, u.loadBtns.map(function (b, i) { return h("button", { cls: "btn" + (i ? "" : " pri"), type: "button", text: b[0], onclick: function () { try { b[1](); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } }); }));
   cb.appendChild(loadBar);
   if (u.video) { var fv = fold("ucvid", "วิดีโอ: คลิกเมนูทีละขั้นจนสำเร็จ (มีเสียงบรรยาย)"); fv.appendChild(ucVideo(u.video)); cb.appendChild(fv); }
+  if (u.errVideos && u.errVideos.length) { var fe = fold("ucevid", "วิดีโอเคส error (" + u.errVideos.length + "): อาการ → หาสาเหตุ → แก้ → ทดสอบซ้ำ"); u.errVideos.forEach(function (ev) { fe.appendChild(h("div", { style: "margin:10px 0 4px;font-weight:600", text: ev[0] })); fe.appendChild(ucVideo(ev[1])); }); cb.appendChild(fe); }
   var f1 = fold("ucenv", "dev vs prd: ต่างกันตรงไหน"); f1.appendChild(h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, u.envs[0].map(function (x, i) { return h("th", { style: i === 1 ? "color:#0f9d8a" : i === 2 ? "color:#c0392b" : "", text: x || "รายการ" }); }))]), h("tbody", {}, u.envs.slice(1).map(function (r) { var tds = [h("td", { style: "font-weight:700", text: r[0] }), h("td", { colspan: r[2] ? null : "2", text: r[1] })]; if (r[2]) tds.push(h("td", { text: r[2] })); return h("tr", {}, tds); }))])])); cb.appendChild(f1);
   var f2 = fold("ucanim", "diagram + แอนิเมชัน: ใครคุยกับใคร (ปกติ " + u.scenes.filter(function (x) { return !/error/.test(x.t); }).length + " ฉาก + error " + u.scenes.filter(function (x) { return /error/.test(x.t); }).length + " ฉาก)"); f2.appendChild(ucAnim(u)); cb.appendChild(f2);
   var f3 = fold("uctf", "โค้ด Terraform เทียบกับการกดบน AWS console (เลือก resource ทางซ้าย)"); f3.appendChild(ucTfTable(u)); cb.appendChild(f3);
   var f4 = fold("ucerr", "เคส error " + u.errors.length + " แบบ: อาการ → ไล่หา → แก้ (กดโหลดแล้วลองเอง)"); f4.appendChild(ucErrTable(u)); cb.appendChild(f4);
   return cb;
 }
-FOLD.ucvid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
+FOLD.ucvid = 1; FOLD.ucevid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
 PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (7 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
 (function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (7 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();
