@@ -1,0 +1,39 @@
+sInfo ¦ Done ¦ VPCInfo ¦ pharmacy-single-vpc · 10.0.0.0/16 ¦ SubnetInfo ¦ pharmacy-single-public · ap-southeast-1a · 10.0.1.0/24 ¦ Auto-assign public IPInfo ¦ Enable ¦ ค่าเริ่มต้น Enable เมื่อใช้ default subnet และ Disable เมื่อใช้ subnet ที่ไม่ใช่ default (ตามเอกสาร EC2) ¦ Firewall (security groups)Info ¦ A security group is a set of firewall rules that control the traffic for your instance. Add rules to allow specific traffic to reach your instance. ¦ Create security group ¦ Select existing security group ¦ Common security groups ¦ default (sg-679eeda4) ¦ pharmacy-single-web (sg-d6ae5724) ¦ Configure storageInfo ¦ Size (GiB) ¦ 8 ¦ Volume type ¦ gp3 ¦ Advanced detailsInfo ¦ IAM instance pro
+AFTER ? | Successfully initiated launch of instance (i-f3b8470f4f905c63a) | open=0 Successfully initiated launch of instance (i-f3b8470f4f905c63a) EC2 Instances Instances (1/1)Info Connect Instance state Actions Launch instances ‹ 1 › ⚙ Name ▲ Instance ID Instance state Instance type Status check Alarm status Availability Zone Public IPv4 DNS Public IPv4 address Private IPv4 address Subnet Key name pharmacy-single i-f3b8470f4f905c63a Running t3.small 2/2 checks passed No alarms + ap-southeast-1a ec2-203-0-113-11.ap-southeast-1.compute.lab.invalid 203.0.113.11 10.0.1.4 pharmacy-single-public pharmacy-single-admin Details Status and alarms Monitoring Security Networking Storage Tags Instance ID i-f3b8470f4f905c63a Instance state Running Public IPv4 address 203.0.113.11 Priva
+A1 ? | Allocate แล้ว ได้ 192.0.2.1 (ยังไม่ผูกกับเครื่อง และคิดค่าใช้จ่ายอยู่) | open=0 Allocate แล้ว ได้ 192.0.2.1 (ยังไม่ผูกกับเครื่อง และคิดค่าใช้จ่ายอยู่)
+EC2
+Elastic IPs
+Elastic IP addresses (1/1)Info
+Actions
+Allocate Elastic IP address
+‹
+1
+›
+⚙
+	Name ▲	Allocated IPv4 address	Type	Allocation ID	Reverse DNS record	Associated instance ID	Private IP address	Association ID	Network interface ID
+	eipalloc-6ee57d7c9f76b31ca	192.0.2.1	Public IP	eipalloc-6ee57d7c9f76b31ca	-	-	-	-	-
+Details
+Allocated IPv4 address
+192.0.2.1
+Type
+Public IP
+Allocation ID
+eipalloc-6ee57d7c9f76b31ca
+Associate
+MENU  B:button Associate Elastic IP address | B:button Release Elastic IP addresses 
+A3 ? | Associate แล้ว IP นี้อยู่กับเครื่องตลอด แม้ stop/start | open=0
+R1 ? |  | open=0 Route 53
+Hosted zones
+Hosted zones (1)Info
+Actions
+Create hosted zone
+‹
+1
+›
+⚙
+	Hosted zone name ▲	Type	Record count	Hosted zone ID
+	pharmacy.example.com	Public	2	Z9DUGMPOKUQ39K
+
+ติ๊กแถวเพื่อดูรายละเอียดด้านล่างและใช้เมนู Actions · กดชื่อหรือ ID เพื่อเปิดหน้ารายละเอียดเต็ม
+CB text:www:ไม่ระบุ — พิมพ์เอง | checkbox::Alias
+RT  endpoints Outbound endpoints Rules Query logging Route 53 Hosted zones pharmacy.example.com Create record Create record ตรงกับ aws_route53_record · เว็บที่ใช้ CloudFront ใช้ A แบบ Alias (apex ใช้ CNAME ไม่ได้) Quick create record Record name ส่วนหน้าของ pharmacy.example.com (เช่น www) · ว่าง = apex ไม่ระบุ — พิมพ์เอง Record type A Alias Value — เลือกตัวอย่าง — TTL (seconds) 300 Cancel Create records เลย์เอาต์และพฤติกรรมจำลองจากเอกสาร AWS ที่อ่านและจากความจำ ไม่ใช่ AWS จริง ใช้ชื่อช่อง ลำดับหน้า และกฎตรวจค่าให้ใกล้ของจริงที่สุดเท่าที่ยืนยันได้ ส่วนที่ยังไม่ยืนยันมีเครื่องหมายในแท็บ "กฎที่จำลอง" สถานะทั้งหมดอยู่ในเบราว์เซอร์นี้ (กด Reset เพื่อล้าง) ไม่มีการเรียก 
