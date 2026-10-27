@@ -14,6 +14,10 @@ Drives `tools/console-lab/index.html` in headless Chrome over CDP, captures fram
 - Every main video ends with a cost scene before the final success caption: `await L.costScene("<COSTD key>", "<spoken summary>")` (big card with monthly/4-hour estimate, cost drivers, Budget + destroy reminder; data from `src/mod/61-cost-data.js`, same as the 💰 card in the use-case page). New lab → add a `COSTD.uc` entry, run `node tools/console-lab/gen-cost-md.js`.
 - Final frame must show success with all chips ticked and the site opened in the Browser tab.
 
+- **Every video (main AND error-case) must ship a `<name>.chapters.json`** (written automatically by `L.encode`; the player shows it as the "ขั้นตอนในวิดีโอ / คลิกเพื่อข้ามไปดู" side panel). Publish it with the video (same suffix: `usecaseN-<x>.chapters.json`). A video without chapters is considered unfinished.
+- **No hidden setup**: do not start from `buildXxx("...-base")` for things the learner must create. Create them with real clicks (`L.fill/choose/card`). The only things allowed to be pre-loaded silently are prerequisites from another lab (e.g. ECS from use case 2, aws CLI creds) and the caption/voice must say so.
+- Prefilled form fields still get clicked/typed on camera (`fill`/`choose`), never just shown.
+
 ## Steps
 1. Pick the lab base state: `buildStatic/buildSingle/buildApr/buildSls/buildCd/buildGha/buildEcs("<kind>-base")` (see `src/mod/*-lab.js`). Run it via `L.ev(...)` at the start.
 2. Probe forms before scripting: write a throwaway script that clicks to the page and prints `document.body.innerText` + input list. Form widgets: text fields with samples are `— เลือกตัวอย่าง —` dropdowns (pick "ไม่ระบุ" then type into `main input[placeholder]`); selects are custom `.csel` (use `L.pickBtn(currentButtonText, optionText)`); checkboxes are `label.opt input`; radio cards need tag `main .rcard`.
