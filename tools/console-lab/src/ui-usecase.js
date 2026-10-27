@@ -325,10 +325,10 @@ UC.push({
 
 UC.push({
   id: "apr", no: 7, title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
-  tag: "⚠️ ปิดรับลูกค้าใหม่ตั้งแต่ 30 เม.ย. 2026 (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
+  tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
-    ["สถานะ", "#c62828", "**App Runner ปิดรับ customer ใหม่แล้ว** (ตั้งแต่ 30 เม.ย. 2026) · คนที่ใช้อยู่ยังสร้าง service ใหม่ได้ · AWS ไม่เพิ่ม feature · โปรเจกต์ใหม่ใช้ **ECS Express Mode** (image + 2 role → ได้ Fargate + ALB + autoscale) · lab นี้ไว้เข้าใจแนวคิด PaaS + อ่านระบบเก่า"], ["ใครใช้", "#1d8102", "ทีมที่มี App Runner อยู่แล้ว · เว็บ/API container ขนาดเล็ก-กลาง"],
+    ["สถานะ", "#c62828", "**App Runner ปิดรับ customer ใหม่แล้ว** · คนที่ใช้อยู่ยังสร้าง service ใหม่ได้ · AWS ไม่เพิ่ม feature · โปรเจกต์ใหม่ใช้ **ECS Express Mode** (image + 2 role → ได้ Fargate + ALB + autoscale) · lab นี้ไว้เข้าใจแนวคิด PaaS + อ่านระบบเก่า"], ["ใครใช้", "#1d8102", "ทีมที่มี App Runner อยู่แล้ว · เว็บ/API container ขนาดเล็ก-กลาง"],
     ["ข้อแลกเปลี่ยน", "#c0392b", "คุมเครือข่าย/เครื่องได้น้อย (เข้า VPC ผ่าน VPC connector) · ไม่มี sidecar/EFS · แพงต่อ vCPU กว่า Fargate · ต้อง **access role** ดึง ECR ส่วนตัว"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① **port** ต้องตรงกับที่แอปฟัง ② health check แบบ TCP ผ่านง่าย แบบ HTTP ต้องมี path ที่ตอบ 200 ③ access role ≠ instance role (อันแรกให้ AWS ดึง image · อันหลังให้แอปเรียก AWS) ④ แก้ image tag แล้วต้อง deploy (หรือเปิด auto deploy)"]
   ],

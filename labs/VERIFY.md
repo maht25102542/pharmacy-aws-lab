@@ -59,14 +59,16 @@
 ## Lab 7 (labs/07-app-runner) — ข้อความ error เขียนจากความจำ ยังไม่ได้ค้นเอกสาร
 | ทำ | ควรเห็นจริง | ในตัวจำลอง | ยืนยัน |
 |---|---|---|---|
-| access role ไม่มี policy ECR / ดึง image ไม่ได้ | Create failed · "Failed to pull your application image. Be sure you configured your service to use a valid access role…" | ตรง (ข้อความจากความจำ) | ⚠️ |
-| port ไม่ตรง | "Health check failed on protocol `TCP` [Port: '8080'], failure threshold is 5 times…" | ตรง | ⚠️ ตัวเลข threshold/โปรโตคอลจากความจำ |
+| access role ไม่มี policy ECR / ดึง image ไม่ได้ | Create failed · "Failed to pull your application image. Be sure you configured your service to use a valid access role…" | ตรง (ข้อความจากความจำ) | ⚠️ ค้นเอกสารแล้ว **ไม่พบข้อความ event log** (เอกสารบอกแค่ให้อ่าน service events/logs) |
+| port ไม่ตรง | "Health check failed on protocol `TCP` [Port: '8080'], failure threshold is 5 times…" | ตรง | ⚠️ ข้อความไม่พบในเอกสาร · default ยืนยันแล้ว: TCP, path `/`, interval 5, timeout 2, healthy 1, unhealthy 5 |
 | HTTP health check path 404 | Health check failed … status code | ข้อความย่อเอง | ⚠️ |
 | ค่า cpu/memory ที่จับคู่ได้ | 256/512 → 0.25 vCPU ได้ 0.5-2 GB ฯลฯ | ตารางจากความจำ | ⚠️ |
 | คู่ cpu/memory | 11 คู่ตามเอกสาร (0.25→0.5/1 · 0.5→1 · 1→2/3/4 · 2→4/6 · 4→8/10/12 GB) | ตรง | ✅ จากเอกสาร (release 2023-04-05) |
-| App Runner ปิดรับลูกค้าใหม่ตั้งแต่ 30 เม.ย. 2026 | ตามเอกสาร availability-change | ใส่คำเตือนใน UC #7 | ✅ จากเอกสาร |
-| `terraform apply` เมื่อ service CREATE_FAILED | apply error + service ค้าง | "unexpected state 'CREATE_FAILED', wanted target 'RUNNING'" | ⚠️ ถ้อยคำจากความจำ |
-| URL รูปแบบ `<id>.<region>.awsapprunner.com` | ตรงกับของจริง | ตรง | ✅ |
+| App Runner ปิดรับลูกค้าใหม่ | เอกสาร availability-change: ลูกค้าเดิมสร้าง service ใหม่ได้ ไม่มี feature ใหม่ · แนะนำ ECS Express Mode (วันที่ไม่ได้ระบุในหน้าเอกสาร) | ใส่คำเตือนใน UC #7 ไม่ระบุวันที่ | ✅ จากเอกสาร (วันที่ยืนยันไม่ได้) |
+| `terraform apply` เมื่อ service CREATE_FAILED | apply error + service ค้าง | `waiting for App Runner Service (<arn>) create: unexpected state 'CREATE_FAILED', wanted target 'RUNNING'. last error: %!s(<nil>)` | ✅ ส่วนหน้า+Target/Pending จาก service.go · ⚠️ ส่วน unexpected state/last error จากความจำ · service ค้างอยู่ใน AWS (ID ถูก set ก่อน wait) |
+| URL รูปแบบ `<id>.<region>.awsapprunner.com` | เอกสารไม่ได้ระบุรูปแบบ (บอกแค่ *.awsapprunner.com อยู่ใน Public Suffix List) | ใช้ `<id>.<region>.awsapprunner.com` | ⚠️ รูปแบบจากความจำ |
+| access role: trust `build.apprunner.amazonaws.com` + `AWSAppRunnerServicePolicyForECRAccess`, ต้องมีสำหรับ ECR ส่วนตัว (ECR Public ไม่ต้อง) | ตามเอกสาร | ตรง | ✅ |
+| TF defaults: port "8080", cpu 1024, memory 2048, auto_deployments_enabled true | ตามโค้ด provider | ตรง | ✅ |
 | สถานะ RUNNING / OPERATION_IN_PROGRESS / CREATE_FAILED | ชื่อสถานะ API | ตรง | ✅ |
 
 ## ที่ยังต่างจากของจริงแน่นอน
