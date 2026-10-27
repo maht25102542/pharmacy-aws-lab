@@ -42,8 +42,8 @@
 | ไม่มี `permissions: id-token: write` | README บอกแค่ว่า "ต้องมี" ไม่มีข้อความ error | `Credentials could not be loaded, please check your action inputs: Could not load credentials from any providers` | ❌ **ไม่พบในเอกสาร** ถ้อยคำจากความจำ |
 | ไม่มี OIDC provider | README ไม่มีข้อความ | `No OpenIDConnect provider found in your account for https://token.actions.githubusercontent.com` | ❌ จากความจำ |
 | render task definition หา container ไม่เจอ | ไม่ทราบ | `Could not find container definition with matching name '…'` | ❌ จากความจำ |
-| deploy ไม่ stable | `Resource is not in the state servicesStable` | ตรง | ⚠️ จากความจำ (ข้อความของ ECS waiter) |
-| รูปแบบ sub รุ่นใหม่ | README ว่ามี "immutable sub" `repo:ORG@<org id>/REPO@<repo id>:…` (repo ใหม่/opt-in) ตัวจำลองใช้แบบเดิม `repo:ORG/REPO:…` | แบบเดิม | ⚠️ ถ้า repo ของคุณส่งแบบใหม่ trust แบบเดิมจะ `Not authorized…` ตรวจ token จริงก่อน |
+| deploy ไม่ stable | `Resource is not in the state servicesStable` | ตรง | ⚠️ ถ้อยคำจากความจำ · เอกสาร CLI ยืนยันแค่: poll ทุก 15 วินาที ล้มหลัง 40 ครั้ง (~10 นาที) |
+| รูปแบบ sub รุ่นใหม่ | เอกสาร GitHub+README: repo ที่สร้างหลัง 15 ก.ค. 2026 (หรือ opt-in) ส่ง `repo:ORG@<org id>/REPO@<repo id>:…` · repo เก่าไม่เปลี่ยน | TF lab ใส่ทั้งแบบเก่าและแบบใหม่ (`@*` ผ่าน StringLike) · sim ยังส่งแบบเก่าอย่างเดียว | ✅ จากเอกสาร · ⚠️ ถ้า repo ใหม่ของคุณ trust แบบเก่าจะ `Not authorized` — แก้แล้วใน main.tf |
 | `ForAllValues:` ใน trust | README เตือนว่าอย่าใช้ใน Allow (ผ่านได้เมื่อ claim หาย/พิมพ์ผิด) | ไม่จำลอง | ✅ README |
 
 ## Lab 6 (labs/06-single-vm) — จำลองจากพฤติกรรมที่รู้ ไม่ได้ค้นข้อความ error (ไม่มีข้อความ error ของ AWS เกี่ยวข้อง)
@@ -54,6 +54,13 @@
 | stop/start ไม่มี Elastic IP | public IP เปลี่ยน (ตามเอกสาร EC2) | ตรง | ✅ |
 | แก้ user_data หลังเครื่องรันแล้ว | cloud-init รันสคริปต์เฉพาะบูตครั้งแรก (ค่าเริ่มต้น) · terraform จะ stop/start หรือ replace ตาม provider | ตัวจำลองไม่จำลองการแก้ user_data ทีหลัง | ⚠️ ไม่ได้เปิดอ่านเอกสาร cloud-init/provider |
 | Caddy ขอใบรับรองไม่ผ่าน (DNS/port 80) | Caddy log: ACME challenge failed · เบราว์เซอร์เจอ TLS error (รูปแบบ error ขึ้นกับเบราว์เซอร์) | `ERR_SSL_PROTOCOL_ERROR` | ⚠️ จากความจำ |
+| Caddy ออกใบรับรองอัตโนมัติ | เอกสาร Caddy: ต้องมี domain ใน config + A/AAAA ชี้เครื่อง + 80/443 เปิด + data dir เขียนได้/คงอยู่ · ล้มแล้ว retry → ลอง challenge อื่น → issuer ถัดไป → backoff สูงสุด 1 วัน นาน 30 วัน · HTTP challenge ต้องใช้ port 80 | ตรง | ✅ [เอกสาร](https://caddyserver.com/docs/automatic-https) |
+| site address `:80` ไม่ทำ HTTPS | เอกสาร: ฟังเฉพาะพอร์ต HTTP = ไม่เปิด automatic HTTPS | ตรง | ✅ |
+| user_data เปลี่ยน | EC2: รันเฉพาะบูตแรก · แก้ได้ตอน stop แล้ว start ไม่รันซ้ำ · TF: default stop/start (`user_data_replace_on_change=false`) | ตรง (ไม่รันซ้ำ) | ✅ เอกสาร EC2 + provider |
+| redirect HTTP→HTTPS ใช้ 308 | หน้า automatic-https ไม่ระบุรหัส | ใช้ 308 | ⚠️ จากความจำ |
+| Elastic IP คง IP หลัง stop/start · public IP เดิมเปลี่ยน | หน้าเอกสาร EC2 อ่านไม่ได้ (render ว่าง) | ตรง | ⚠️ ยืนยันรอบนี้ไม่ได้ (พฤติกรรมที่รู้ทั่วไป) |
+| ชื่อ package `docker.io` + `docker-compose-v2` บน Ubuntu 24.04 | packages.ubuntu.com ตอบ 500 | ใช้ใน user_data | ⚠️ ยืนยันไม่ได้ |
+| compose ของ Caddy | Docker Hub แนะนำเปิด `443:443/udp` (HTTP/3) ด้วย | lab เปิดแค่ 80/443 TCP | ⚠️ ไม่กระทบ HTTPS (เบราว์เซอร์ถอยไป TCP) |
 | เข้าด้วย IP แทนชื่อโดเมน (Caddy ใช้ชื่อ) | ใบรับรองไม่ตรงชื่อ | `NET::ERR_CERT_COMMON_NAME_INVALID` | ⚠️ จากความจำ |
 
 ## Lab 7 (labs/07-app-runner) — ข้อความ error เขียนจากความจำ ยังไม่ได้ค้นเอกสาร
