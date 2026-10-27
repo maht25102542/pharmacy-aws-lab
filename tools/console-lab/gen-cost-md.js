@@ -5,6 +5,7 @@ const D = vm.runInContext("COSTD", ctx), sum = vm.runInContext("costSum", ctx), 
 const money = (n) => "$" + (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n));
 const moneyH = (n) => "$" + (n < 1 ? n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2));
 const THB = vm.runInContext("COST_THB", ctx), baht = (u) => "฿" + Math.round(u * THB).toLocaleString("en-US");
+const verdict = vm.runInContext("costVerdict", ctx), LV = vm.runInContext("COST_LV", ctx);
 const strip = (t) => t.replace(/\*\*/g, "**").replace(/==/g, "**");
 const table = (items) => {
   const rows = items.map((x) => `| ${x.n}${x.note ? " — " + x.note : ""} | ${x.k === "use" ? x.unit : x.k === "hr" ? moneyH(x.r * x.q) + "/ชม." : money(x.r * x.q) + "/เดือน"} | ${x.k === "use" ? "–" : money(x.k === "hr" ? x.r * x.q * HRS : x.r * x.q)} | ${x.idle ? "คิดเงิน" : "ไม่คิด"} |`);
@@ -16,7 +17,8 @@ const gen = D.gen.map((g) => `- **${g[0]}**: ${strip(g[2])}`).join("\n");
 const DIRS = { static: "01-static-site", ecs: "02-ecs-fargate", sls: "03-serverless", cd: "04-cicd", gha: "05-github-actions", single: "06-single-vm", apr: "07-app-runner" };
 Object.keys(DIRS).forEach((k) => {
   const c = D.uc[k], s = sum(c.items), dir = path.join(__dirname, "../../labs", DIRS[k]);
-  const md = `# ค่าใช้จ่าย & bill management — ${c.title}\n\n> ${c.big}\n\n- เปิดทิ้งไว้ 1 เดือน ≈ **${money(s.month)} (${baht(s.month)})** (เฉพาะรายการคงที่ · อัตราสมมติ ${THB} บาท/ดอลลาร์)\n- ทำ lab 4 ชั่วโมงแล้ว \`terraform destroy\` ≈ **${money(s.perHours(4))} (${baht(s.perHours(4))})**\n\n${table(c.items)}\n\n${CAV}\n\n## อะไรทำให้บิลพุ่ง\n${c.drivers.map((x) => "- " + x).join("\n")}\n\n## ลดค่าใช้จ่าย\n${c.cut.map((x) => "- " + x).join("\n")}\n\n## ตั้งเตือน / จับตา\n${c.watch.map((x) => "- " + x).join("\n")}\n\n## หยุดจ่ายเมื่อเลิกใช้\n${strip(c.stop)}\n\n## จัดการ bill ทั่วไป (ทุก lab)\n${gen}\n\nดูในหน้า Console Lab: Lab › **ค่าใช้จ่าย & Bill** และ Lab › Use case จริง › ${c.title.split(" ")[0]}…\n`;
+  const md = `# ค่าใช้จ่าย & bill management — ${c.title}\n\n> ${c.big}\n\n- เปิดทิ้งไว้ 1 เดือน ≈ **${money(s.month)} (${baht(s.month)})** (เฉพาะรายการคงที่ · อัตราสมมติ ${THB} บาท/ดอลลาร์)\n- **ราคานี้ถือว่า: ${LV[verdict(s.month, c.bench).i][0]}** — ${c.benchRef} · ${c.benchWhy}
+- ทำ lab 4 ชั่วโมงแล้ว \`terraform destroy\` ≈ **${money(s.perHours(4))} (${baht(s.perHours(4))})**\n\n${table(c.items)}\n\n${CAV}\n\n## อะไรทำให้บิลพุ่ง\n${c.drivers.map((x) => "- " + x).join("\n")}\n\n## ลดค่าใช้จ่าย\n${c.cut.map((x) => "- " + x).join("\n")}\n\n## ตั้งเตือน / จับตา\n${c.watch.map((x) => "- " + x).join("\n")}\n\n## หยุดจ่ายเมื่อเลิกใช้\n${strip(c.stop)}\n\n## จัดการ bill ทั่วไป (ทุก lab)\n${gen}\n\nดูในหน้า Console Lab: Lab › **ค่าใช้จ่าย & Bill** และ Lab › Use case จริง › ${c.title.split(" ")[0]}…\n`;
   fs.writeFileSync(path.join(dir, "COST.md"), md);
 });
 const ml = ["vm", "managed"].map((k) => { const c = D.mainlab[k], s = sum(c.items); return `## ${c.title}\n\n- เปิดทิ้ง 1 เดือน ≈ **${money(s.month)}** · ทำ 4 ชม. ≈ **${money(s.perHours(4))}**\n- ${c.note}\n\n${table(c.items)}\n`; }).join("\n");

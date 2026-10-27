@@ -19,9 +19,16 @@ function costChips(items) {
   return h("div", { cls: "cd-kpis" }, [chip("เปิดทิ้งไว้ 1 เดือน", bahtS(s.month), "≈ " + usdS(s.month), "#c62828"), chip("ทำ lab 4 ชม. แล้ว destroy", bahtS(s.perHours(4)), "≈ " + usdS(s.perHours(4)), "#1d8102"), chip("ค่าคงที่ต่อชั่วโมง", bahtS(s.hr, true), "≈ " + usdS(s.hr), "#2b6cb0", s.hr > 0 ? "/ชม." : "")]);
 }
 function costCaveat() { return h("p", { cls: "hint" }, rich("⚠ ตัวเลขเป็น ==ประมาณการ== ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง · ยังไม่ยืนยันกับหน้า pricing ของ AWS (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. และ EKS $0.10/ชม.) → ตรวจที่ calculator.aws ก่อนตัดสินใจ · ค่าเงินบาทใช้อัตราสมมติ " + COST_THB + " บาท/ดอลลาร์ (ปรับที่ COST_THB)")); }
+function costVerdictCard(c, vd, lv) { // ราคานี้ถูก/ปกติ/แพง? พร้อมสเกลเทียบเกณฑ์
+  var m = costSum(c.items).month, top = c.bench[c.bench.length - 1] * 1.4, pos = Math.min(m / top, 1) * 100, seg = [0].concat(c.bench).concat([top]);
+  var bar = h("div", { cls: "cd-scale", role: "img", "aria-label": "ราคานี้ถือว่า" + vd.label }, COST_LV.map(function (l, i) { return h("i", { style: "flex:" + (seg[i + 1] - seg[i]) + ";background:" + l[1] + (i === vd.i ? "" : ";opacity:.28"), title: l[0] + (i < c.bench.length ? " < " + baht(c.bench[i]) : " ≥ " + baht(c.bench[i - 1])) }); }).concat([h("b", { style: "left:" + pos + "%" })]));
+  return h("div", { cls: "cd-verdict", style: "--c:" + vd.color }, [h("div", { cls: "hd" }, [h("span", { cls: "q", text: "ราคานี้ถือว่า" }), h("span", { cls: "lv", text: vd.label }), h("span", { cls: "q2", text: "(ใช้งานจริงทั้งเดือน)" })]), bar,
+    h("div", { cls: "sc" }, COST_LV.map(function (l, i) { return h("span", { text: l[0], style: "flex:" + (seg[i + 1] - seg[i]) + (i === vd.i ? ";color:" + l[1] + ";font-weight:800" : "") }); })),
+    h("ul", {}, [h("li", {}, [h("b", { text: "เทียบกับทั่วไป: " }), c.benchRef]), h("li", {}, [h("b", { text: "ความเห็น: " }), c.benchWhy]), h("li", {}, [h("b", { text: "ถ้าแค่ฝึก lab 4 ชม. แล้วลบ: " }), h("span", { style: "color:" + lv[1] + ";font-weight:800", text: lv[0] }), " (" + bahtS(costSum(c.items).perHours(4)) + ") — ถูกกว่ามากเทียบกับเปิดทิ้ง จึงต้อง destroy ทุกครั้ง"])])]);
+}
 function costBlock(c) {
-  var rk = riskOf(costSum(c.items).month);
-  var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items), costTable(c.items)]);
+  var rk = riskOf(costSum(c.items).month), cs0 = costSum(c.items), vd = c.bench ? costVerdict(cs0.month, c.bench) : null, lv = costLabVerdict(cs0.perHours(4));
+  var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items), vd ? costVerdictCard(c, vd, lv) : h("span"), costTable(c.items)]);
   if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#1d8102", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
   out.appendChild(costCaveat()); return out;
 }
@@ -29,15 +36,15 @@ function costGen() { return infoCard(COSTD.gen); }
 FOLD.uccost = 1;
 var CD_SEL = { id: "ecs" }, CD_COL = [["#2a78d6", "#3987e5"], ["#eb6834", "#d95926"], ["#1baf7a", "#199e70"], ["#eda100", "#c98500"], ["#e87ba4", "#d55181"]];
 function cdLabs() { // รวม use case + main lab → [{name, items, big, uc?}]
-  var out = UC.filter(function (u) { return COSTD.uc[u.id]; }).map(function (u) { var c = COSTD.uc[u.id]; return { id: u.id, name: u.no + ". " + u.title.split(":")[0], color: u.color, items: c.items, big: c.big }; });
-  [["vm", "main lab (VM)", "#475569"], ["managed", "managed (EKS)", "#475569"]].forEach(function (x) { var c = COSTD.mainlab[x[0]]; out.push({ id: x[0], name: x[1], color: x[2], items: c.items, big: c.note }); });
+  var out = UC.filter(function (u) { return COSTD.uc[u.id]; }).map(function (u) { var c = COSTD.uc[u.id]; return { id: u.id, name: u.no + ". " + u.title.split(":")[0], color: u.color, items: c.items, big: c.big, bench: c.bench }; });
+  [["vm", "main lab (VM)", "#475569"], ["managed", "managed (EKS)", "#475569"]].forEach(function (x) { var c = COSTD.mainlab[x[0]]; out.push({ id: x[0], name: x[1], color: x[2], items: c.items, big: c.note, bench: c.bench }); });
   return out.map(function (l) { l.s = costSum(l.items); return l; });
 }
 function cdBars(labs) { // แท่งแนวนอนชุดเดียว: ค่าเปิดทิ้ง 1 เดือน (บาท) · เรียงมาก→น้อย
   var rows = labs.slice().sort(function (a, b) { return b.s.month - a.s.month; }), max = Math.max.apply(null, rows.map(function (r) { return r.s.month; })) || 1;
   return h("div", { cls: "cd-bars", role: "img", "aria-label": "ค่าใช้จ่ายต่อเดือนของแต่ละ lab" }, rows.map(function (r) {
     var w = Math.max(r.s.month / max * 100, r.s.month > 0 ? 0.8 : 0);
-    return h("button", { type: "button", cls: "cd-row" + (CD_SEL.id === r.id ? " on" : ""), title: r.name + " · เปิดทิ้ง 1 เดือน " + baht(r.s.month) + " (" + money(r.s.month) + ") · ทำ 4 ชม. " + baht(r.s.perHours(4)), onclick: function () { CD_SEL.id = r.id; render(); } }, [h("span", { cls: "n", text: r.name }), h("span", { cls: "tr" }, [h("i", { style: "width:" + w + "%;background:" + r.color })]), h("span", { cls: "v" }, [h("b", { text: baht(r.s.month) }), h("small", { text: money(r.s.month) })])]);
+    return h("button", { type: "button", cls: "cd-row" + (CD_SEL.id === r.id ? " on" : ""), title: r.name + " · เปิดทิ้ง 1 เดือน " + baht(r.s.month) + " (" + money(r.s.month) + ") · ทำ 4 ชม. " + baht(r.s.perHours(4)), onclick: function () { CD_SEL.id = r.id; render(); } }, [h("span", { cls: "n" }, [r.name, r.bench ? (function () { var v = costVerdict(r.s.month, r.bench); return h("em", { cls: "vd", style: "--c:" + v.color, text: v.label }); })() : null].filter(Boolean)), h("span", { cls: "tr" }, [h("i", { style: "width:" + w + "%;background:" + r.color })]), h("span", { cls: "v" }, [h("b", { text: baht(r.s.month) }), h("small", { text: money(r.s.month) })])]);
   }));
 }
 function cdStack(lab) { // องค์ประกอบค่าใช้จ่ายของ lab ที่เลือก (เฉพาะรายการคงที่) · 4 อันดับแรก + อื่นๆ
