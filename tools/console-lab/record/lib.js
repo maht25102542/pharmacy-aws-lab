@@ -77,7 +77,8 @@ async function say(text) { // เริ่มพูดตอนนี้; ถ้
   const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.3);
   const f = tts(text); narr.push({ t0: total(), dur: dur(f), f });
 }
-async function cap2(t, s) { await cap(t); if (s) await say(s); }
+const chaps = [];
+async function cap2(t, s) { await cap(t); if (s) await say(s); if (t) chaps.push({ t: Math.max(0, Math.round((s ? narr[narr.length - 1].t0 : total()) * 10) / 10), text: t }); }
 // ---- เช็กลิสต์บริการ + ติ๊กถูก ----
 async function plan(items) {
   await ev(`(function(items){ var p=document.getElementById("__plan"); if(p)p.remove(); p=document.createElement("div"); p.id="__plan"; p.style.cssText="position:fixed;z-index:99997;left:0;right:0;bottom:52px;display:flex;gap:8px;padding:6px 12px;pointer-events:none;flex-wrap:wrap";
@@ -97,6 +98,7 @@ async function tick(i, msg, sayText) { // ติ๊กถูก + ป้าย�
   await shot(1.6); await ev(`document.getElementById("__toast").style.display="none"`);
 }
 async function intro(i, title, desc, sayText) { // เริ่มบริการใหม่: โลโก้ + ชื่อ + อธิบายสั้นๆ (พูดด้วย)
+  chaps.push({ t: Math.round(total() * 10) / 10, text: title, head: true, desc: desc });
   await cur(i); await ev(toastJs(i, title, desc, "#2563eb")); if (sayText) await say(sayText);
   await shot(1.8); await ev(`document.getElementById("__toast").style.display="none"`);
 }
@@ -152,6 +154,7 @@ async function encode(out) { // เฟรม + เสียง → mp4
   if (narr.length) args.push("-filter_complex", flt, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "96k");
   args.push("-vf", "scale=1280:-2,format=yuv420p", "-c:v", "libx264", "-crf", "28", "-preset", "fast", "-r", "10", "-movflags", "+faststart", out);
   execFileSync(FFMPEG, args, { stdio: "inherit" });
+  fs.writeFileSync(out.replace(/\.mp4$/, ".chapters.json"), JSON.stringify(chaps)); // รายการขั้นตอน (ให้ player แสดงให้คลิกข้ามไปดู)
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "copy", "-c:a", "libopus", "-b:a", "48k", "-movflags", "+faststart", out.replace(/\.mp4$/, "-opus.mp4")], { stdio: "inherit" }); // mp4 H.264 + Opus
   // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });

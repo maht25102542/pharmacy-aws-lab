@@ -277,7 +277,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-e.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-a.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-f.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-a.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
@@ -471,7 +471,18 @@ function ucVideo(src) {
     else if (n === 0 || hasA === false) diag.textContent = "เสียงในวิดีโอ: browser นี้ถอดรหัสเสียงของไฟล์ไม่ได้ (ลองใช้ Chrome/Edge/Safari ล่าสุด)";
     else diag.textContent = "เสียงในวิดีโอ: ตรวจพบและกำลังเล่น [" + usedLabel + "]" + (n ? " (" + n + " bytes)" : "") + " ถ้าไม่ได้ยิน ให้กด 'ทดสอบเสียงเครื่อง'";
   });
-  return h("div", {}, [note, wrap]);
+  // รายการขั้นตอน (chapters) ข้างวิดีโอ: คลิกเพื่อข้ามไปดู · ไฮไลต์ขั้นที่กำลังเล่น
+  var list = h("div", { cls: "vp-list" }), panel = h("aside", { cls: "vp-side", style: "display:none" }, [h("div", { cls: "vp-sh" }, [h("b", { text: "ขั้นตอนในวิดีโอ" }), h("span", { text: "คลิกเพื่อข้ามไปดู" })]), list]);
+  var items = [];
+  function mmss(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + ("0" + (t % 60)).slice(-2); }
+  fetch(src.replace(/\.mp4$/, ".chapters.json")).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (cs) {
+    if (!cs.length) return; panel.style.display = ""; layout.className = "vp-layout has-side";
+    cs.forEach(function (c) { var it = h("button", { type: "button", cls: "vp-it" + (c.head ? " head" : ""), onclick: function () { v.currentTime = c.t; v.play().catch(function () {}); } }, [h("span", { cls: "tm", text: mmss(c.t) }), h("span", { cls: "tx" }, [h("b", { text: c.text.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]\s*/, "") }), c.desc ? h("small", { text: c.desc }) : h("span")])]); it._t = c.t; items.push(it); list.appendChild(it); });
+  }).catch(function () {});
+  var curIt = null;
+  v.addEventListener("timeupdate", function () { var a = null; items.forEach(function (it) { if (it._t <= v.currentTime + 0.2) a = it; }); if (a !== curIt) { if (curIt) curIt.classList.remove("on"); curIt = a; if (a) { a.classList.add("on"); var top = a.offsetTop - list.clientHeight / 2 + a.clientHeight / 2; list.scrollTo({ top: Math.max(0, top), behavior: "smooth" }); } } });
+  var layout = h("div", { cls: "vp-layout" }, [h("div", { cls: "vp-main" }, [note, wrap]), panel]);
+  return layout;
 }
 function ucTab() {
   var u = ucCur(), cb = h("div", { cls: "cb" });
