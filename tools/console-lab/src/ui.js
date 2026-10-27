@@ -4,7 +4,7 @@ function h(tag, p, kids) {
   Object.keys(p).forEach(function (k) {
     if (p[k] == null && k !== "value") return;
     if (k === "selected") { e.selected = !!p[k]; return; }
-    if (k === "cls") e.className = p[k]; else if (k === "text") e.textContent = p[k];
+    if (k === "cls") e.className = p[k]; else if (k === "text") e.textContent = p[k]; else if (k === "html") e.innerHTML = p[k];
     else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), p[k]);
     else if (k === "value") e.value = p[k]; else if (k === "checked") e.checked = !!p[k]; else if (k === "disabled") e.disabled = !!p[k];
     else e.setAttribute(k, p[k]);
