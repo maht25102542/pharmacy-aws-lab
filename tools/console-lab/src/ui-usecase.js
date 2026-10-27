@@ -275,6 +275,54 @@ UC.push({
   errGo: function (e) { buildGha(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว เปิดแท็บ Actions ดู run ที่ล้ม"); go("browser", {}, "Browser"); W.addr = "https://github.com/" + ghUser() + "/pharmacy-backend/actions"; wbGo(W.addr); }
 });
 
+UC.push({
+  id: "single", no: 6, title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
+  intro: [
+    ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
+    ["ใครใช้", "#1d8102", "สตาร์ทอัพช่วงแรก · ฟรีแลนซ์/เอเจนซี่ · เครื่องมือภายใน · งานที่ traffic น้อย-กลาง · ค่าใช้จ่ายหลักร้อย-พันบาท/เดือน (เทียบ ECS+ALB+RDS ที่ ALB อย่างเดียวก็ ~600 บาท/เดือน)"],
+    ["ข้อแลกเปลี่ยน", "#c0392b", "**จุดล้มเดียว** (เครื่องดับ = เว็บดับ) · **ต้อง patch/backup เอง** · scale ได้แค่ขยายเครื่อง · deploy มักเป็น `ssh` + `docker compose pull && up -d` หรือ GitHub Actions ผ่าน SSH · ข้อมูลอยู่ในดิสก์เครื่อง (ต้อง snapshot EBS)"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① **user_data รันครั้งเดียวตอนบูตแรก** แก้ทีหลังไม่รันซ้ำ ② SG ต้องเปิด **80 + 443** (80 ใช้ให้ Let's Encrypt ตรวจโดเมน) ③ **Elastic IP** ไม่งั้น public IP เปลี่ยนทุกครั้งที่ stop/start แล้ว DNS ชี้ผิด ④ ชื่อใน Caddyfile ต้องตรงกับ A record ⑤ SSH เปิดเฉพาะ My IP ⑥ ต้อง snapshot EBS / backup DB เอง"]
+  ],
+  envs: [["", "dev (ทำเหมือนกัน)", "prd"], ["เครื่อง", "t3.micro/small แยกเครื่อง", "t3.small ขึ้นไป"], ["โดเมน", "dev.<โดเมน>", "app.<โดเมน>"], ["ข้อมูล", "ทิ้งได้", "snapshot EBS รายวัน"], ["การปล่อย", "ssh + docker compose pull", "เหมือนกัน (หรือ GitHub Actions)"], ["หมายเหตุ", "ใช้ Terraform stack เดียวต่อเครื่อง (copy โฟลเดอร์ ตั้ง var ต่างกัน)", ""]],
+  nodes: [
+    { id: "user", x: 24, y: 160, w: 120, h: 64, t: "ผู้ใช้", s: "https://app…", c: "#2a4a7a" },
+    { id: "dns", ico: "route53", x: 210, y: 30, w: 170, h: 64, t: "Route 53", s: "A → Elastic IP", c: "#0d7c8f" },
+    { id: "ec2", ico: "ec2", x: 450, y: 130, w: 220, h: 100, t: "EC2 เครื่องเดียว", s: "Elastic IP · SG 80/443", c: "#d9480f" },
+    { id: "caddy", x: 760, y: 40, w: 220, h: 64, t: "Caddy (container)", s: ":80 :443 + Let's Encrypt", c: "#8c4fff" },
+    { id: "app", x: 760, y: 150, w: 220, h: 64, t: "app (container)", s: "reverse_proxy → :8000", c: "#2e6bd0" },
+    { id: "db", x: 760, y: 260, w: 220, h: 64, t: "Postgres (container)", s: "volume บน EBS", c: "#1d8102" },
+    { id: "le", x: 450, y: 320, w: 220, h: 64, t: "Let's Encrypt", s: "ตรวจโดเมนผ่าน port 80", c: "#475569" },
+    { id: "me", ico: "github", x: 210, y: 320, w: 170, h: 64, t: "คุณ (ssh / CI)", s: "port 22 เฉพาะ My IP", c: "#475569" }
+  ],
+  links: [["user", "dns"], ["user", "ec2"], ["ec2", "caddy"], ["caddy", "app"], ["app", "db"], ["caddy", "le"], ["me", "ec2"]],
+  scenes: [
+    { t: "บูตครั้งแรก: user_data ทำงาน", on: ["ec2", "caddy", "app", "db"], flow: [["ec2", "cloud-init อ่าน user_data"], ["app", "apt install docker"], ["caddy", "docker compose up -d"]], rows: [["เกิดอะไร", "#d9480f", "ตอนบูตครั้งแรก cloud-init รันสคริปต์: ติดตั้ง docker → เขียน `docker-compose.yml` + `Caddyfile` → `docker compose up -d` · **รันครั้งเดียว** (แก้ user_data ทีหลังเครื่องเดิมไม่รันซ้ำ)"]] },
+    { t: "DNS: ชื่อ → Elastic IP", on: ["user", "dns"], flow: [["user", "ถาม app.โดเมน"], ["dns", "A = Elastic IP"]], rows: [["เกิดอะไร", "#0d7c8f", "A record ชี้ Elastic IP (IP ตรึง ไม่เปลี่ยนตอน stop/start) · TTL 60 วินาทีให้เปลี่ยนได้เร็ว"]] },
+    { t: "Caddy ขอใบรับรอง HTTPS", on: ["caddy", "le", "ec2"], flow: [["caddy", "ขอใบรับรอง app.โดเมน"], ["le", "ท้า HTTP-01 ที่ :80"], ["caddy", "ได้ใบรับรอง"]], rows: [["เกิดอะไร", "#8c4fff", "Caddy เห็นชื่อโดเมนใน Caddyfile → ขอใบรับรองจาก **Let's Encrypt** เอง · Let's Encrypt ต้องเข้า **port 80** ของเครื่อง และชื่อต้องชี้มาที่เครื่องนี้ · ต่ออายุอัตโนมัติ"]] },
+    { t: "คำขอของผู้ใช้", on: ["user", "ec2", "caddy", "app", "db"], flow: [["user", "https://app.โดเมน"], ["caddy", "TLS + reverse_proxy"], ["app", "ประมวลผล"], ["db", "query"], ["user", "200"]], rows: [["เกิดอะไร", "#1d8102", "SG ผ่าน 443 → Caddy ถอด TLS → ส่งต่อ app:8000 ผ่านเครือข่ายภายใน docker → app ต่อ Postgres → ตอบกลับ"]] },
+    { t: "ปล่อยเวอร์ชันใหม่", on: ["me", "ec2", "app"], flow: [["me", "ssh / GitHub Actions"], ["app", "docker compose pull && up -d"]], rows: [["เกิดอะไร", "#475569", "เข้า ssh (22 เฉพาะ My IP) หรือให้ CI ทำ: `docker compose pull && docker compose up -d` · มี downtime สั้น ๆ ตอน container รีสตาร์ท (ต่างจาก ECS ที่ rolling update)"]] },
+    { t: "เคส error 1: เปิดไม่ติด (SG / ไม่มี compose up)", on: ["user", "ec2"], bad: ["ec2"], flow: [["user", "https://app…"], ["ec2", "✗ timeout / refused"]], rows: [["อาการ", "#c62828", "`ERR_CONNECTION_TIMED_OUT` (SG ไม่เปิด 80/443) หรือ `ERR_CONNECTION_REFUSED` (เครื่องขึ้นแต่ไม่มี container เพราะ user_data ลืม `docker compose up`)"]] },
+    { t: "เคส error 2: IP เปลี่ยน (ไม่มี Elastic IP)", on: ["dns", "ec2"], bad: ["dns"], flow: [["dns", "A ชี้ IP เก่า"], ["ec2", "✗ IP ใหม่"]], rows: [["อาการ", "#c62828", "stop/start เครื่องแล้วเว็บเปิดไม่ได้ · public IP เปลี่ยน แต่ A record ยังชี้ IP เก่า"], ["แก้", "#1d8102", "ผูก Elastic IP แล้วแก้ A record (หรือ terraform: aws_eip.instance)"]] },
+    { t: "เคส error 3: HTTPS ไม่ได้ (DNS / port 80)", on: ["caddy", "le"], bad: ["le"], flow: [["caddy", "ขอใบรับรอง"], ["le", "✗ ตรวจโดเมนไม่ผ่าน"]], rows: [["อาการ", "#c62828", "`ERR_SSL_PROTOCOL_ERROR` · ใน log ของ Caddy: challenge failed"], ["สาเหตุ", "#a85a00", "A record ไม่ชี้เครื่องนี้ หรือ SG ปิด port 80 จึง Let's Encrypt เข้าไม่ได้"]] }
+  ],
+  tf: [
+    { type: "aws_vpc", name: "main", file: "labs/06-single-vm/main.tf", console: ["VPC › Create VPC", "VPC only · CIDR 10.0.0.0/16 · เปิด DNS hostnames"], err: "ใช้ VPC เริ่มต้นก็ได้ (ไม่ต้องสร้างเอง)" },
+    { type: "aws_security_group", name: "web", file: "labs/06-single-vm/security.tf", console: ["EC2 › Security Groups › Create", "Inbound: HTTP 80 + HTTPS 443 จาก Anywhere · SSH 22 จาก My IP"], err: "ไม่เปิด 80 = เปิดเว็บไม่ได้และ Let's Encrypt ตรวจโดเมนไม่ได้ (เคส single-sg)" },
+    { type: "aws_instance", name: "web", file: "labs/06-single-vm/instance.tf", console: ["EC2 › Launch instances", "Ubuntu 24.04 · t3.small · key pair · SG ข้างบน · Storage 20 GiB gp3 · Advanced › User data = สคริปต์ docker + compose + Caddyfile + docker compose up"], err: "ลืม docker compose up = connection refused (เคส single-noup) · user_data รันครั้งเดียว" },
+    { type: "aws_eip", name: "web", file: "labs/06-single-vm/instance.tf", console: ["EC2 › Elastic IPs › Allocate Elastic IP address", "Allocate แล้ว Actions › Associate Elastic IP address → เลือก instance"], err: "ไม่ผูก = IP เปลี่ยนหลัง stop/start (เคส single-eip) · ไม่ผูกกับเครื่องที่ใช้แล้วคิดเงินค่า IP ว่าง" },
+    { type: "aws_route53_record", name: "web", file: "labs/06-single-vm/instance.tf", console: ["Route 53 › Hosted zones › Create record", "Record name · Type A · Value = Elastic IP · TTL 60 (ไม่ใช่ Alias)"], err: "ไม่มี record = ชื่อ resolve ไม่ได้ (เคส single-dns)" }
+  ],
+  errors: [
+    { load: "single-sg", t: "SG ไม่เปิด port 80", sym: "เปิดเว็บ timeout · HTTPS ก็ไม่ได้", find: "Browser › ดูขั้นที่ ✗ · EC2 › Security Groups › Inbound rules", fix: "เพิ่ม HTTP 80 จาก Anywhere (ต้องใช้ให้ Let's Encrypt ตรวจโดเมนด้วย)" },
+    { load: "single-noup", t: "user_data ลืม docker compose up", sym: "ERR_CONNECTION_REFUSED ทั้งที่เครื่อง running", find: "Browser ขั้น ✗ 'docker compose ขึ้นแล้ว' · ssh เข้าไปดู `docker ps` (ว่าง)", fix: "ssh เข้าไปรัน `cd /opt/app && docker compose up -d` (แก้ user_data ในเครื่องเดิมไม่รันซ้ำ) · หรือ replace เครื่องด้วย user_data ที่ถูก" },
+    { load: "single-eip", t: "ไม่ผูก Elastic IP แล้ว stop/start", sym: "เว็บเคยเปิดได้ แต่หลัง stop/start เปิดไม่ได้ (ERR_CONNECTION_TIMED_OUT)", find: "EC2 › เครื่อง › Public IPv4 address ≠ IP ใน Route 53 A record", fix: "Allocate + Associate Elastic IP แล้วแก้ A record เป็น IP ตรึง" },
+    { load: "single-dns", t: "ยังไม่มี A record ของโดเมน", sym: "ชื่อไม่ resolve (NXDOMAIN)", find: "Browser › กล่องเหตุผลบอก record ที่มีอยู่ใน zone", fix: "Route 53 › Create record (A) ชื่อ app → IP ของเครื่อง" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด", function () { buildSingle("single"); UI.sel = {}; flash("ok", "โหลด use case 6 แล้ว"); go("browser", {}, "Browser"); W.addr = "https://" + SINGLE_DOMAIN + "/"; wbGo(W.addr); }], ["โหลดแบบสร้างเอง (มีเครือข่าย/SG/key/zone)", function () { buildSingle("single-base"); UI.sel = {}; UI.form = null; flash("ok", "โหลดแล้ว: Launch instance (ใส่ User data) → Elastic IP → A record"); go("launch", {}, "EC2"); }]],
+  errGo: function (e) { buildSingle(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว เปิดเว็บที่ Browser"); go("browser", {}, "Browser"); W.addr = "https://" + SINGLE_DOMAIN + "/"; wbGo(W.addr); }
+});
+
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
 function ucNodeBox(svg, n, tx) {
   var ic = n.ico ? svgIco(n.ico, n.x + 8, n.y + 8, 30) : null, ox = ic ? 22 : 0, g = sv("g", {}, [sv("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10, fill: "#fff", stroke: n.c, "stroke-width": 2 }), tx(n.x + n.w / 2 + ox, n.y + 22, n.t, { a: "middle", b: 1, c: n.c, sz: 13 }), tx(n.x + n.w / 2 + ox, n.y + 40, n.s, { a: "middle", sz: 10, c: "#64748b" })]); if (ic) g.appendChild(ic);

@@ -46,6 +46,16 @@
 | รูปแบบ sub รุ่นใหม่ | README ว่ามี "immutable sub" `repo:ORG@<org id>/REPO@<repo id>:…` (repo ใหม่/opt-in) ตัวจำลองใช้แบบเดิม `repo:ORG/REPO:…` | แบบเดิม | ⚠️ ถ้า repo ของคุณส่งแบบใหม่ trust แบบเดิมจะ `Not authorized…` ตรวจ token จริงก่อน |
 | `ForAllValues:` ใน trust | README เตือนว่าอย่าใช้ใน Allow (ผ่านได้เมื่อ claim หาย/พิมพ์ผิด) | ไม่จำลอง | ✅ README |
 
+## Lab 6 (labs/06-single-vm) — จำลองจากพฤติกรรมที่รู้ ไม่ได้ค้นข้อความ error (ไม่มีข้อความ error ของ AWS เกี่ยวข้อง)
+| ทำ | ควรเห็นจริง | ในตัวจำลอง | ยืนยัน |
+|---|---|---|---|
+| user_data ลืม `docker compose up` | เครื่อง running แต่ไม่มี container · `ERR_CONNECTION_REFUSED` | ตรง | ✅ พฤติกรรมพื้นฐาน |
+| SG ปิด 80/443 | timeout | ตรง | ✅ |
+| stop/start ไม่มี Elastic IP | public IP เปลี่ยน (ตามเอกสาร EC2) | ตรง | ✅ |
+| แก้ user_data หลังเครื่องรันแล้ว | cloud-init รันสคริปต์เฉพาะบูตครั้งแรก (ค่าเริ่มต้น) · terraform จะ stop/start หรือ replace ตาม provider | ตัวจำลองไม่จำลองการแก้ user_data ทีหลัง | ⚠️ ไม่ได้เปิดอ่านเอกสาร cloud-init/provider |
+| Caddy ขอใบรับรองไม่ผ่าน (DNS/port 80) | Caddy log: ACME challenge failed · เบราว์เซอร์เจอ TLS error (รูปแบบ error ขึ้นกับเบราว์เซอร์) | `ERR_SSL_PROTOCOL_ERROR` | ⚠️ จากความจำ |
+| เข้าด้วย IP แทนชื่อโดเมน (Caddy ใช้ชื่อ) | ใบรับรองไม่ตรงชื่อ | `NET::ERR_CERT_COMMON_NAME_INVALID` | ⚠️ จากความจำ |
+
 ## ที่ยังต่างจากของจริงแน่นอน
 - เวลา: ของจริง ALB/NAT/RDS/CloudFront ใช้เวลาหลายนาที ตัวจำลองมี "ความเร็ว" ให้เลือกแต่ไม่แม่นเป๊ะ
 - ตัวเลข Duration / Init Duration / Max Memory Used เป็นค่าสุ่มแบบคงที่ ไม่ใช่การวัดจริง

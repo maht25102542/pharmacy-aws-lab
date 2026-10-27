@@ -24,6 +24,7 @@ function webOpen(raw) {
   var host = m[2], port = +m[3] || (/^https/i.test(m[1]) ? 443 : 80), alb = S.albs.filter(function (a) { return a.dns === host; })[0];
   if (/\.execute-api\./.test(host)) { var sr = slsInvoke(host, m[4] || "/", "GET", ""); return sr.err ? sr : { site: "apigw", host: host, path: m[4] || "/", res: sr }; }
   if (/^(www\.)?github\.com$/i.test(host)) return { site: "github", host: host, path: String(m[4] || "/").split("?")[0].replace(/\/+$/, "") || "/" };
+  var vhost = ""; if (!/^[\d.]+$/.test(host)) { var aip = dnsA(host); if (aip) { vhost = host; host = aip; } }
   if (S.cfds.length || S.zones.length) {
     var rs = dnsResolve(host);
     if (rs.kind === "cloudfront" || /\.cloudfront\.net$/.test(host) || S.zones.some(function (z) { return host === z.name || host.slice(-z.name.length - 1) === "." + z.name; })) {
@@ -42,10 +43,11 @@ function webOpen(raw) {
     return h.length ? { site: tgp && tgp.port === 30443 ? "argocd" : "app", host: host } : { site: "alb503", host: host };
   }
   var inst = S.insts.filter(function (i) { return i.state !== "terminated" && (i.publicIp === host || i.privateIp === host); })[0];
-  if (!inst) return { err: /^[\d.]+$/.test(host) ? "ERR_CONNECTION_TIMED_OUT" : "ERR_NAME_NOT_RESOLVED", host: host, steps: [{ ok: false, t: "มีเครื่องที่ใช้ที่อยู่ " + host, d: "ไม่พบ" }] };
+  if (!inst) return { err: /^[\d.]+$/.test(host) ? "ERR_CONNECTION_TIMED_OUT" : "ERR_NAME_NOT_RESOLVED", host: host, steps: [{ ok: false, t: "มีเครื่องที่ใช้ที่อยู่ " + host, d: "ไม่พบ" + (vhost ? " · ชื่อ " + vhost + " ชี้ A record " + host + " ซึ่งไม่ใช่ IP ปัจจุบันของเครื่องใดเลย (public IP เปลี่ยนหลัง stop/start ถ้าไม่ผูก Elastic IP)" : "") }] };
   if (inst.publicIp !== host) return { err: "ERR_CONNECTION_TIMED_OUT", host: host, steps: [{ ok: false, t: "ที่อยู่เป็น IP ส่วนตัว", d: "เข้าจาก laptop ตรงๆ ไม่ได้" }] };
   var r = webReach(inst, port); if (!r.ok) return { err: "ERR_CONNECTION_TIMED_OUT", host: host, steps: r.steps };
-  var role = ansTag(inst, "Role"), svc = null;
+  var role = ansTag(inst, "Role"), svc = null, capp = ec2App(inst);
+  if (capp && (port === 80 || port === 443)) return ec2Web(inst, capp, port, vhost, host, r, m[1], m[4]);
   if (port === 8080 && role === "jenkins" && rmDocker(inst).length) svc = "jenkins";
   else if (port === 9000 && role === "sonarqube" && rmDocker(inst).length) svc = "sonarqube";
   else if (port === 30443 && role === "k8s_server" && rmHas(inst, "Expose ArgoCD on NodePort 30443")) svc = "argocd";
@@ -189,4 +191,20 @@ function jkInput(id, proceed) {
   var s = b.stages[b.idx];
   if (!proceed) { s.st = "failed"; b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; return; }
   s.st = "success"; b.state = "running"; b.log.push("Approved by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage"); b.idx++; if (jkReal()) jkMarkNext(b); else jkAdvance(b);
+}
+
+// เว็บที่รันด้วย docker compose + Caddy บนเครื่องเดียว: ตัดสินผลจาก user_data + DNS + SG
+function ec2Web(inst, app, port, vhost, ip, reach, scheme, path) {
+  var steps = reach.steps.slice(), https = port === 443 || /^https/i.test(scheme || "");
+  steps.push({ ok: app.up, t: "docker compose ขึ้นแล้ว (user_data บูตครั้งแรกทำงานครบ)", d: app.up ? "docker + compose up" + (app.domain ? " · Caddy โดเมน " + app.domain : " · Caddy :80") : app.why + " → ไม่มีอะไรฟัง port " + port });
+  if (!app.up) return { err: "ERR_CONNECTION_REFUSED", host: vhost || ip, steps: steps, inst: inst };
+  if (!https) { if (app.domain) { var r2 = webOpen("https://" + app.domain + (path || "/")); r2.redirectedFrom = "http://" + (vhost || ip) + (path || "/") + " → 308 → https://" + app.domain; return r2; } steps.push({ ok: true, t: "Caddy ตอบ HTTP :80", d: "reverse_proxy → app:8000" }); return { site: "compose", host: vhost || ip, inst: inst, app: app, tls: "", steps: steps }; }
+  if (!app.domain) { steps.push({ ok: false, t: "มี service ฟัง HTTPS :443", d: "Caddyfile เป็น :80 (ไม่มีชื่อโดเมน) → Caddy ไม่เปิด 443/ไม่ขอใบรับรอง" }); return { err: "ERR_SSL_PROTOCOL_ERROR", host: vhost || ip, steps: steps, inst: inst }; }
+  var dns = dnsA(app.domain), p80 = webReach(inst, 80), okDns = dns === inst.publicIp;
+  steps.push({ ok: okDns, t: "ชื่อ " + app.domain + " ชี้มาที่เครื่องนี้ (A record = " + inst.publicIp + ")", d: okDns ? "A " + dns : dns ? "A record ชี้ " + dns + " ไม่ใช่ " + inst.publicIp + " (public IP เปลี่ยนหลัง stop/start ถ้าไม่มี Elastic IP)" : "ไม่มี A record ของ " + app.domain });
+  steps.push({ ok: p80.ok, t: "Let's Encrypt เข้า port 80 ได้ (HTTP-01 challenge)", d: p80.ok ? "SG เปิด 80 จากเน็ต" : "SG ปิด port 80 → Caddy ขอใบรับรองไม่ได้" });
+  if (!okDns || !p80.ok) return { err: "ERR_SSL_PROTOCOL_ERROR", host: vhost || ip, steps: steps, inst: inst };
+  var sni = vhost && vhost === app.domain; steps.push({ ok: sni, t: "เข้าด้วยชื่อ " + app.domain + " (SNI ตรงกับใบรับรอง)", d: sni ? "ใบรับรอง Let's Encrypt ใช้ได้" : "เข้าด้วย " + (vhost || ip) + " ใบรับรองไม่ตรง" });
+  if (!sni) return { err: "NET::ERR_CERT_COMMON_NAME_INVALID", host: vhost || ip, steps: steps, inst: inst };
+  return { site: "compose", host: vhost, inst: inst, app: app, tls: "Let's Encrypt (Caddy)", steps: steps };
 }

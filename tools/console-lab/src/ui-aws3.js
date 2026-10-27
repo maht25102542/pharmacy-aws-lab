@@ -230,7 +230,7 @@ DET.cert = [["details", "Details", det("cert")], ["domains", "Domains", function
 }]];
 
 // ---------- ตัวอย่างสำเร็จรูป: จัดหมวดหมู่ + ป้าย ปกติ / เคส error ----------
-var SCEN_ERR = ["noassoc", "wrongip", "ans-sg", "ans-nonat", "ans-noegress", "managed-badrole", "managed-nonat", "static-403", "static-cert", "static-cert-pending", "static-stale", "ecs-pull", "ecs-image", "ecs-role", "ecs-db", "ecs-health", "ecs-vpce-s3", "ecs-vpce-logs", "sls-perm", "sls-invoke", "sls-route", "sls-table", "cd-conn", "cd-docker", "cd-ecr", "cd-deploy", "cd-pass", "gha-perm", "gha-provider", "gha-sub", "gha-ecr", "gha-deploy", "gha-pass"];
+var SCEN_ERR = ["noassoc", "wrongip", "ans-sg", "ans-nonat", "ans-noegress", "managed-badrole", "managed-nonat", "static-403", "static-cert", "static-cert-pending", "static-stale", "ecs-pull", "ecs-image", "ecs-role", "ecs-db", "ecs-health", "ecs-vpce-s3", "ecs-vpce-logs", "sls-perm", "sls-invoke", "sls-route", "sls-table", "cd-conn", "cd-docker", "cd-ecr", "cd-deploy", "cd-pass", "gha-perm", "gha-provider", "gha-sub", "gha-ecr", "gha-deploy", "gha-pass", "single-sg", "single-noup", "single-eip", "single-dns"];
 var SCEN_CATS = [
   { t: "① Terraform พื้นฐาน + VM (lab หลัก)", c: "#0972d3", d: "VPC 3 AZ, EC2, ALB, ECR", re: /^(full|noassoc|wrongip|ecr)$/ },
   { t: "② ตั้งค่าเครื่องด้วย Ansible", c: "#8456ce", d: "inventory ผ่าน bastion, site.yml", re: /^ans/ },
@@ -240,7 +240,8 @@ var SCEN_CATS = [
   { t: "⑥ Use case 2 · ECS Fargate + ALB + ECR + RDS (dev + prd)", c: "#d9480f", d: "คอนเทนเนอร์ไม่ต้องดูแล k8s · แบบที่ทีมเล็กนิยม", re: /^ecs/ },
   { t: "⑦ Use case 3 · Serverless API: API Gateway + Lambda + DynamoDB (dev + prd)", c: "#7d4acf", d: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลางและ event", re: /^sls/ },
   { t: "⑧ Use case 4 · CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", c: "#2e7d32", d: "ปล่อยของอัตโนมัติ: push โค้ด → build → dev → คนอนุมัติ → prd", re: /^cd/ },
-  { t: "⑨ Use case 5 · GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", c: "#24292f", d: "ไม่มี access key ถาวร · dev อัตโนมัติ · prd ต้องมีคนอนุมัติ", re: /^gha/ }
+  { t: "⑨ Use case 5 · GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", c: "#24292f", d: "ไม่มี access key ถาวร · dev อัตโนมัติ · prd ต้องมีคนอนุมัติ", re: /^gha/ },
+  { t: "⑩ Use case 6 · เครื่องเดียว: EC2 + Docker Compose + Caddy (แบบที่ทีมเล็กนิยม)", c: "#8c4fff", d: "ง่ายสุด ถูกสุด · ดูแลเครื่องเอง (patch, backup) · ไม่ scale อัตโนมัติ", re: /^single/ }
 ];
 function scenGroups(cb, sc, card) {
   cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:0 0 6px" }, [foldBar()]));

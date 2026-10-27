@@ -80,7 +80,7 @@ var TF_PROV = {
   aws_eip: {
     act: "ec2:AllocateAddress", svc: "EC2", op: "AllocateAddress",
     create: function (c) {
-      var e = tfOk(API.allocEip(), "creating EC2 EIP", "EC2", "AllocateAddress"); tfPutTags(e, c.tags);
+      var e = tfOk(API.allocEip(), "creating EC2 EIP", "EC2", "AllocateAddress"); tfPutTags(e, c.tags); if (c.attrs.instance) tfOk(API.assocEip(e.id, c.attrs.instance), "associating EC2 EIP (" + e.id + ")", "EC2", "AssociateAddress");
       return { id: e.id, computed: { id: e.id, allocation_id: e.id, public_ip: e.ip } };
     },
     update: function (st, d) { var e = find(S.eips, st.id); if (e) tfPutTags(e, d.tags); },
@@ -210,7 +210,7 @@ var TF_PROV = {
       if (a.iam_instance_profile && !S.roles.some(function (x) { return x.profile === a.iam_instance_profile; })) throw TfAwsError(label, "EC2", "RunInstances", "InvalidParameterValue", "Value (" + a.iam_instance_profile + ") for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name");
       var md = (a.metadata_options || [{}])[0], rb = (a.root_block_device || [{}])[0];
       var autoIp = a.associate_public_ip_address === undefined ? (sn && sn.autoIp ? "Enable" : "Disable") : (a.associate_public_ip_address ? "Enable" : "Disable");
-      var made = tfOk(API.launch({ name: (c.tags || {}).Name || "", tags: tagList(c.tags), ami: a.ami, type: a.instance_type, keyName: a.key_name || "", vpcId: sn.vpcId, subnetId: sn.id, autoIp: autoIp, sgIds: a.vpc_security_group_ids || [], diskSize: rb.volume_size || 8, diskType: rb.volume_type || "gp2", profile: a.iam_instance_profile || "", tokens: md.http_tokens === "required" ? "required" : "optional", hop: md.http_put_response_hop_limit || 1, count: 1 }), label, "EC2", "RunInstances"), i = made[0];
+      var made = tfOk(API.launch({ name: (c.tags || {}).Name || "", tags: tagList(c.tags), ami: a.ami, type: a.instance_type, keyName: a.key_name || "", vpcId: sn.vpcId, subnetId: sn.id, autoIp: autoIp, sgIds: a.vpc_security_group_ids || [], diskSize: rb.volume_size || 8, diskType: rb.volume_type || "gp2", userData: a.user_data || "", profile: a.iam_instance_profile || "", tokens: md.http_tokens === "required" ? "required" : "optional", hop: md.http_put_response_hop_limit || 1, count: 1 }), label, "EC2", "RunInstances"), i = made[0];
       return { id: i.id, computed: { id: i.id, arn: arnOf("inst", i.id), public_ip: i.publicIp, private_ip: i.privateIp, public_dns: i.publicIp ? "ec2-" + i.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "", instance_state: "running", subnet_id: sn.id, availability_zone: i.az } };
     },
     update: function (st, d, changed) {

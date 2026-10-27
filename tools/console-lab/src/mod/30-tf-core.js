@@ -7,7 +7,7 @@ var TF_SCHEMA = {
   aws_internet_gateway: sch(["vpc_id", "tags"], [], {}, ["tags"]),
   aws_subnet: sch(["vpc_id", "cidr_block", "availability_zone", "map_public_ip_on_launch", "tags"], ["vpc_id", "cidr_block"], {}, ["tags", "map_public_ip_on_launch"]),
   aws_route_table: sch(["vpc_id", "route", "tags"], ["vpc_id"], { route: { args: ["cidr_block", "gateway_id", "nat_gateway_id"], req: ["cidr_block"] } }, ["tags", "route"]),
-  aws_eip: sch(["domain", "tags"], [], {}, ["tags"], ["id", "allocation_id", "public_ip"]),
+  aws_eip: sch(["domain", "instance", "tags"], [], {}, ["tags", "instance"], ["id", "allocation_id", "public_ip"]),
   aws_nat_gateway: sch(["allocation_id", "subnet_id", "connectivity_type", "tags"], ["subnet_id"], {}, ["tags"], ["id", "public_ip", "private_ip"]),
   aws_route_table_association: sch(["subnet_id", "route_table_id"], ["route_table_id"], {}, [], ["id"]),
   aws_security_group: sch(["name", "name_prefix", "description", "vpc_id", "ingress", "egress", "revoke_rules_on_delete", "tags"], [], { ingress: { args: ["from_port", "to_port", "protocol", "cidr_blocks", "ipv6_cidr_blocks", "security_groups", "self", "description"], req: ["from_port", "to_port", "protocol"] }, egress: { args: ["from_port", "to_port", "protocol", "cidr_blocks", "ipv6_cidr_blocks", "security_groups", "self", "description"], req: ["from_port", "to_port", "protocol"] } }, ["tags", "ingress", "egress"]),

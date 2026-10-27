@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -783,5 +783,28 @@ console.log("ok");
   const trole = L.S.roles.find(r => r.name === "github-actions-deploy"); assert(trole && L.ghaTrust(trole, "repo:YOUR_GITHUB_USER/pharmacy-backend:environment:production", "sts.amazonaws.com").ok && L.ghaTrust(trole, "repo:YOUR_GITHUB_USER/pharmacy-backend:ref:refs/heads/main", "sts.amazonaws.com").ok && !L.ghaTrust(trole, "repo:YOUR_GITHUB_USER/pharmacy-backend:ref:refs/tags/v1.1.0", "sts.amazonaws.com").ok, "role จาก Terraform: branch main + environment ผ่าน แต่ tag เปล่า ๆ ไม่ผ่าน");
   assert(/No changes/.test(sh7("terraform plan")), "plan ซ้ำไม่เปลี่ยน");
   const ds = sh7("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 3 destroyed/.test(ds), ds.slice(-500));
+}
+// ---- Lab 6: EC2 เครื่องเดียว + Docker Compose + Caddy
+{
+  L.buildSingle("single"); assert(L.checksSingle().every(c => c.ok), "single: ต้องผ่านทุกข้อ: " + L.checksSingle().filter(c => !c.ok).map(c => c.label).join(" | "));
+  let r = L.webOpen("https://app.pharmacy.example.com/"); assert(r.site === "compose" && /Let's Encrypt/.test(r.tls), "HTTPS ผ่านชื่อโดเมน");
+  r = L.webOpen("http://app.pharmacy.example.com/"); assert(r.site === "compose" && r.redirectedFrom && /308/.test(r.redirectedFrom), "HTTP → redirect https");
+  r = L.webOpen("https://" + L.S.insts[0].publicIp + "/"); assert(r.err === "NET::ERR_CERT_COMMON_NAME_INVALID", "เข้าด้วย IP: ใบรับรองไม่ตรง ชื่อ");
+  const bad = (k, u) => { L.buildSingle(k); return L.webOpen(u || "https://app.pharmacy.example.com/"); };
+  r = bad("single-sg"); assert(r.err && r.steps.some(s => !s.ok), "SG ไม่เปิด 80: " + JSON.stringify(r.err));
+  r = bad("single-noup", "http://app.pharmacy.example.com/"); assert(r.err === "ERR_CONNECTION_REFUSED" && r.steps.some(s => /docker compose up/.test(s.d || "")), "ลืม docker compose up");
+  r = bad("single-eip"); assert(r.err === "ERR_CONNECTION_TIMED_OUT" && r.steps.some(s => !s.ok && /Elastic IP/.test(s.d || "")), "ไม่มี EIP: A record ชี้ IP เก่า: " + JSON.stringify(r.steps.map(s => s.d)));
+  r = bad("single-dns"); assert(r.site === "cf" && r.req.err === "DNS_PROBE_FINISHED_NXDOMAIN", "ไม่มี A record: NXDOMAIN");
+  L.buildSingle("single-base"); assert(!L.S.insts.length || L.S.insts.every(i => !i.ud), "single-base ยังไม่มีเครื่อง");
+  assert(L.ec2App({ ud: "apt-get install -y docker.io\ndocker compose up -d" }).up && !L.ec2App({ ud: "echo hi" }).docker, "ec2App parse");
+  // Terraform labs/06
+  L.buildSingle("single-base"); L.S.insts = []; L.S.zones = []; L.fsWrite("~/.ssh/id_ed25519.pub", L.S.laptop ? "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIx test@laptop" : ""); L.S.keys = []; L.S.vpcs = L.S.vpcs.filter(v => v.isDefault); L.S.subnets = L.S.subnets.filter(s => s.isDefault); L.S.sgs = L.S.sgs.filter(g => /default/.test(g.name)); L.S.rtbs = L.S.rtbs.filter(r => r.main || r.isMain); L.S.igws = L.S.igws.filter(g => g.vpcId === null && false);
+  function sh8(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh8("cd ~/Desktop/work/pharmacy-aws-lab/labs/06-single-vm"); sh8("terraform init"); const pl = sh8("terraform plan", ["198.51.100.7/32"]); assert(/Plan: 9 to add/.test(pl), pl.slice(-600));
+  const ap = sh8("terraform apply", ["198.51.100.7/32", "yes"]); assert(/Apply complete! Resources: 9 added/.test(ap), ap.slice(-800));
+  const ti = L.S.insts.find(i => i.ud); assert(ti && ti.eipId && L.ec2App(ti).up && !L.ec2App(ti).domain, "TF: เครื่องมี user_data + EIP · domain ว่าง = :80");
+  assert(L.webOpen("http://" + ti.publicIp + "/").site === "compose", "เปิดด้วย IP ผ่าน HTTP");
+  assert(/No changes/.test(sh8("terraform plan", ["198.51.100.7/32"])), "plan ซ้ำไม่เปลี่ยน");
+  const ds = sh8("terraform destroy", ["198.51.100.7/32", "yes"]); assert(/Destroy complete! Resources: 9 destroyed/.test(ds), ds.slice(-500));
 }
 

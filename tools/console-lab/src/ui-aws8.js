@@ -87,3 +87,14 @@ function wbGhActions(user, name, rp, parts, go2, link) {
   box.appendChild(h("div", { style: "border:1px solid " + GHB + ";border-radius:6px;overflow:hidden;margin-top:10px" }, [h("div", { style: "background:#f6f8fa;padding:8px 12px;font-weight:700", text: rows.length + " workflow runs" })].concat(rows.length ? rows.map(function (r) { var s = ghSt(r.status); return h("div", { style: "border-top:1px solid " + GHB + ";padding:8px 12px;display:flex;gap:10px;align-items:center" }, [h("span", { style: "color:" + s[1] + ";font-weight:800;width:18px", text: s[0] }), link(base + "/runs/" + r.id, "deploy #" + r.id, "font-weight:600"), h("span", { cls: "sub", text: (r.trigger === "tag" ? "tag " : "push ") + r.ref + " · " + r.sha.slice(0, 7) + " · " + r.status })]); }) : [h("div", { style: "padding:12px", cls: "sub", text: "ยังไม่มี run (push ขึ้น main หรือสร้าง tag)" })])));
   return box;
 }
+
+// ---------- Browser: เว็บบนเครื่องเดียว (docker compose + Caddy) ----------
+function wbCompose(r) {
+  var i = r.inst, a = r.app;
+  return h("div", { cls: "card" }, [h("div", { cls: "cb" }, [
+    r.redirectedFrom ? h("div", { cls: "hint", text: "↪ " + r.redirectedFrom }) : h("span"),
+    h("h2", { text: "pharmacy · รันด้วย docker compose บนเครื่องเดียว" }),
+    kvDom([["URL", (r.tls ? "https://" : "http://") + r.host], ["TLS", r.tls || "ไม่มี (HTTP)"], ["EC2", (i.name || i.id) + " · " + i.type + " · " + i.state + " · " + (i.publicIp || "ไม่มี public IP")], ["containers", "caddy ✓ · app ✓ · db ✓ (docker compose up -d)"], ["Caddyfile", a.domain ? a.domain + " { reverse_proxy app:8000 }" : ":80 { reverse_proxy app:8000 }"]]),
+    codePre(JSON.stringify({ service: "pharmacy-api", env: "single-vm", db: "connected", served_by: "compose@" + (i.name || i.id) }, null, 2), "an"),
+    h("h4", { text: "ขั้นที่ตัวจำลองตรวจ" }), mgSteps(r.steps || [])])]);
+}
