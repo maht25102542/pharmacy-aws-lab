@@ -105,7 +105,7 @@ function anTheater() {
   AN_PLAYBOOKS.forEach(function (f) { (ANSIBLE_PLAN[f] || []).forEach(function (pl) { if (pl.import) return; var hs = anHosts(pl.hosts); plan.push({ file: f, name: pl.name, hosts: hs, expr: pl.hosts, serial: pl.serial, tasks: pl.tasks }); hs.forEach(function (n) { totals[n] = (totals[n] || 0) + pl.tasks.length; }); }); });
   var grid = h("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px" });
   AN_MACH.forEach(function (m) {
-    var bar = h("i", { style: "display:block;height:100%;width:0;background:" + m[2] + ";transition:width .3s;border-radius:99px" }), st = h("div", { style: "font-size:.72rem;color:var(--muted);min-height:2.4em;line-height:1.25;word-break:break-word", text: m[4] });
+    var bar = h("i", { cls: "gbar", style: "display:block;height:100%;width:0;background:" + m[2] + ";transition:width .3s;border-radius:99px" }), st = h("div", { style: "font-size:.72rem;color:var(--muted);min-height:2.4em;line-height:1.25;word-break:break-word", text: m[4] });
     var el = h("div", { style: "border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface);transition:border-color .25s, box-shadow .25s, opacity .25s" }, [h("div", { style: "display:flex;gap:8px;align-items:center" }, [h("span", { style: "font-size:1.3rem", text: m[3] }), h("div", {}, [h("b", { style: "font-size:.86rem", text: m[0] }), h("div", { style: "font-size:.68rem;font-weight:700;color:" + m[2], text: m[1][0] })])]), h("div", { style: "height:6px;border-radius:99px;background:color-mix(in srgb," + m[2] + " 15%,transparent);margin:8px 0 6px;overflow:hidden" }, [bar]), st]);
     mach[m[0]] = { el: el, bar: bar, st: st, def: m[4] }; grid.appendChild(el);
   });
