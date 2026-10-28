@@ -485,8 +485,8 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 body .uc-hero { background: linear-gradient(115deg, color-mix(in srgb, var(--sc) 5%, var(--surface)) 0%, color-mix(in srgb, var(--sc) 17%, var(--surface)) 100%) !important; }
 .nav button[data-p="lab-scen"] { --accent:#0ea5e9 !important; --accent-bg:#e4f5ff !important; }
 /* ข้อความเมนูซ้าย (Lab/Browser/Laptop): น้ำเงินเข้ม */
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button[aria-current="true"] { color: #061246 !important; }
-:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button { color: #9db8ff !important; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button { color: #061246 !important; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button[aria-current="true"] { color: var(--accent) !important; }
+:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]), :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]) { color: #9db8ff !important; }
 /* ชื่อหน้า + breadcrumb: น้ำเงินเข้มเหมือนเมนู */
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main > h1, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main > div > h1 { color: #061246; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb { color: #ec4899; }
