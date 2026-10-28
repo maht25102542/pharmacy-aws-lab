@@ -136,6 +136,22 @@ CASES["exp-exec"] = { out: "usecase8-err2", title: "Use case 8 · เคส erro
   fixReal: async () => { await attachPolicy("AmazonECSTaskExecutionRolePolicy"); },
   fixCap: "Actions › Add permissions › ติ๊ก AmazonECSTaskExecutionRolePolicy → Save", fixSay: "เพิ่มสิทธิ์ ติ๊ก AmazonECSTaskExecutionRolePolicy แล้วบันทึก",
   done: "prd ตอบ 200 แล้ว: execution role ต้องมีนโยบายนี้เพื่อดึง image และเขียน log" };
+CASES["sls-table"] = { out: "usecase3-err2", title: "Use case 3 · เคส error: API ตอบ 500 (TABLE_NAME ผิดชื่อ table)", intro: "เคส error ของ use case สาม prd ตอบ ห้าร้อย ทั้งที่ dev ปกติ",
+  build: `buildSls("sls-table")`, url: `(function(){var a=S.apis.filter(function(x){return /prd/.test(x.name)})[0]; return apiInvokeUrl(a,a.stages[0])+"/drugs"})()`, fixSvc: ["Lambda", "Lambda"],
+  sym: "เรียก API ของ prd แล้วได้ ห้าร้อย Internal Server Error", cause: "ตัวจำลองไล่ตามขั้นพบว่า Lambda ต่อ DynamoDB แล้วได้ ResourceNotFoundException เพราะ environment variable TABLE_NAME ตกตัว s ไม่ตรงกับชื่อ table จริง",
+  nav: async () => { await svc("Lambda", "Compute"); await step("lsel", async () => { await L.click({ t: "pharmacy-api-prd", tag: "a,td", starts: true }); }); await L.click(B("Configuration", { nth: 0 })); await L.hold(3); },
+  navCap: "Lambda › pharmacy-api-prd › Configuration › Environment variables: TABLE_NAME = pharmacy-drug-prd (ตกตัว s)", navSay: "เปิดดู Lambda ของ prd แท็บ Configuration ส่วน Environment variables จะเห็น TABLE NAME เป็น pharmacy drug prd ตกตัว s ไม่ตรงกับชื่อ table จริงที่ลงท้าย drugs",
+  fixReal: async () => { await step("eev", async () => { await L.click(B("Edit", { nth: 1 })); }); await L.hold(1.5); await step("tn", async () => { await L.pickBtn("pharmacy-drug-prd", "ไม่ระบุ"); await L.sleep(400); await L.ev(`[].slice.call(document.querySelectorAll("main input[type=text],main input:not([type])")).forEach(function(i){ if(i.value==="pharmacy-drug-prd"||i.value==="") i.setAttribute("data-fx","1"); }); 1`); await L.type("[data-fx]", "pharmacy-drugs-prd"); }); await L.hold(1.5); await L.click(B("Save", { nth: 0 })); await L.hold(2); },
+  fixCap: "Edit environment variables › TABLE_NAME = pharmacy-drugs-prd → Save", fixSay: "กด Edit ที่ Environment variables แก้ TABLE NAME เป็น pharmacy drugs prd ให้ตรงกับชื่อ table แล้วบันทึก มีผลกับคำขอถัดไปทันที",
+  done: "prd ตอบ 200 แล้ว: TABLE_NAME ต้องตรงกับชื่อ table จริง (ใน Terraform อ้างจาก resource แทนการพิมพ์เอง)" };
+CASES["single-dns"] = { out: "usecase6-err2", title: "Use case 6 · เคส error: เปิดเว็บไม่ได้ (ยังไม่มี A record ของโดเมน)", intro: "เคส error ของ use case หก เครื่องรันปกติ แต่เปิดชื่อโดเมนแล้วหาเว็บไม่เจอ",
+  build: `buildSingle("single-dns")`, url: `"https://app.pharmacy.example.com/"`, fixSvc: ["Route 53", "Route 53"],
+  sym: "เปิดชื่อโดเมนแล้วหาเว็บไม่เจอ ชื่อโดเมนไม่ถูกแปลงเป็นไอพี", cause: "ตัวจำลองบอกว่ามี record อะไรบ้างใน hosted zone ซึ่งยังไม่มี A record ของชื่อ app จึงแปลงชื่อเป็นไอพีไม่ได้",
+  nav: async () => { await svc("Route 53", "Networking & Content Delivery"); await step("zsel", async () => { await L.click({ t: "pharmacy.example.com", tag: "a,td", starts: true }); }); await L.hold(2.5); },
+  navCap: "Route 53 › Hosted zones › pharmacy.example.com: ไม่มี A record ของ app", navSay: "เปิด Route 53 ไปที่ hosted zone ของโดเมน จะเห็นว่ายังไม่มี A record ของชื่อ app",
+  fixReal: async () => { const ip = await L.ev(`S.insts.filter(function(i){return /single/.test(i.name)})[0].publicIp`); await step("cr", async () => { await L.click(B("Create record", { nth: 0 })); }); await step("rn", async () => { await L.fill("Record name", "app"); }); await step("al", async () => { await L.click({ t: "Alias", tag: "label,.opt", starts: true }); }); await step("rv", async () => { await L.fill("Value", ip); }); await L.hold(1.5); await L.click(B("Create records", { nth: 0 })); await L.hold(2); },
+  fixCap: "Create record · Record name = app · Type A · Alias ปิด · Value = IP ของเครื่อง → Create records", fixSay: "กด Create record ตั้งชื่อ app ชนิด A ปิด Alias ใส่ไอพีของเครื่อง แล้วกด Create records",
+  done: "เปิดเว็บได้แล้ว: ต้องมี A record ชื่อ app ชี้ไปที่ไอพีของเครื่อง" };
 
 (async () => {
   const C = CASES[process.argv[2]]; if (!C) { console.log("ERR unknown case"); process.exit(1); }

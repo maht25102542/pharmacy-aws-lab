@@ -121,7 +121,7 @@ UC.push({
 });
 
 UC.push({
-  id: "sls", no: 3, video: "videos/usecase3-h.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-b.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  id: "sls", no: 3, video: "videos/usecase3-h.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-b.mp4"], ["เคส: TABLE_NAME ผิดชื่อ table (prd ตอบ 500)", "videos/usecase3-err2.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ฟอร์มรับสมัคร · webhook · API ค้นข้อมูลที่ถูกเรียกเป็นช่วงๆ — **เพราะ** ไม่มีคนเรียกก็ไม่เสียเงิน และไม่ต้องดูแลเซิร์ฟเวอร์"],
@@ -282,7 +282,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-f.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-b.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-f.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-b.mp4"], ["เคส: ยังไม่มี A record ของโดเมน (หาเว็บไม่เจอ)", "videos/usecase6-err2.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "MVP · เว็บร้านค้าท้องถิ่น (Next.js + DB) ทราฟฟิกน้อย — **เพราะ** ถูกสุด เครื่องเดียวจบ แลกกับต้อง patch/backup เอง"],
