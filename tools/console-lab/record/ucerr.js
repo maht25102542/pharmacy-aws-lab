@@ -85,6 +85,57 @@ CASES["exp-health"] = { out: "usecase8-err", title: "Use case 8 · เคส err
   fixReal: async () => { await step("exu", async () => { await L.click(B("Update", { nth: 0 })); }); await step("exhp", async () => { await L.fill("Health check path", "/healthz"); }); await L.hold(1.5); await L.click(B("Update", { nth: 0 })); await L.hold(2); },
   fixCap: "Update › Health check path = /healthz → Update", fixSay: "กด Update แก้ health check path เป็น healthz แล้วบันทึก ECS จะปล่อย revision ใหม่แบบ canary",
   done: "prd ตอบ 200 แล้ว: health check path ต้องเป็น path ที่แอปตอบ 200 จริง" };
+const attachPolicy = async (policy) => { await step("act", async () => { await L.click(B("Actions", { nth: 0 })); await L.click(B("Add permissions", { starts: true })); }); await step("ptk", async () => { await L.ev(`[].slice.call(document.querySelectorAll("main label.opt")).forEach(function(l){ if((l.innerText||"").trim().indexOf(${JSON.stringify(policy)})===0) l.querySelector("input").setAttribute("data-tk","1"); }); 1`); await L.click("[data-tk]"); }); await L.hold(1.5); await L.click(B("Save", { nth: 0 })); await L.hold(2); };
+const roleNav = (role) => async () => { await svc("IAM", "Security, Identity, & Compliance"); await L.click(B("Roles")); await step("rsel", async () => { await L.click({ t: role, tag: "a,td", starts: true }); }); await L.hold(2.5); };
+const scrollWhy = (re) => async () => { await L.ev(`(function(){ var e=[].slice.call(document.querySelectorAll("main *")).filter(function(x){return x.children.length===0&&${re}.test(x.innerText||"")})[0]; (e||document.body).scrollIntoView({block:"center"}); })();1`); await L.hold(4); };
+CASES["ecs-image"] = { out: "usecase2-err2", title: "Use case 2 · เคส error: task ไม่ขึ้น (image tag ไม่มีใน ECR)", intro: "เคส error ของ use case สอง สร้าง service แล้วแต่เปิดผ่าน load balancer ไม่ได้ เพราะลืม push image",
+  build: `buildEcs("ecs-image")`, url: `"http://" + S.albs[0].dns + ":8080"`, fixSvc: ["ECR", "ECR"],
+  sym: "เปิดผ่าน load balancer ของ dev แล้วได้ 503 เพราะไม่มี task ที่พร้อมรับงาน", cause: "ตัวจำลองไล่ให้ดูว่า task ดึง image ไม่ได้ ได้ CannotPullContainerError เพราะ tag v1.0.0 ไม่มีใน ECR ยังไม่เคย push",
+  nav: async () => { await svc("Elastic Container Registry", "Containers"); await step("rsel", async () => { await L.click({ t: "pharmacy/api", tag: "a,td", starts: true }); }); await L.hold(2.5); },
+  navCap: "ECR › Repositories › pharmacy/api: ไม่มี image tag v1.0.0", navSay: "เปิด ECR เข้า repository pharmacy api จะเห็นว่ายังไม่มี image tag v หนึ่งจุดศูนย์จุดศูนย์",
+  fixReal: async () => { await step("act", async () => { await L.click(B("Actions", { nth: 0 })); await L.click(B("Docker push", { starts: true })); }); await L.hold(2.5); await L.click(B("Run", { nth: 0 })); await L.hold(3); },
+  fixCap: "Actions › Docker push (tf-admin · tag v1.0.0) → Run", fixSay: "ใช้เมนู Actions เลือก Docker push รันในนาม tf admin tag v หนึ่งจุดศูนย์จุดศูนย์ แล้วกด Run เพื่อ push image ขึ้นไป",
+  done: "task ขึ้นและ ALB ตอบ 200: image ต้องมีใน ECR ก่อน service จะดึงได้" };
+CASES["cd-conn"] = { out: "usecase4-err2", title: "Use case 4 · เคส error: pipeline ล้มที่ขั้น Source (GitHub connection ยัง Pending)", intro: "เคส error ของ use case สี่ push โค้ดแล้ว pipeline ล้มตั้งแต่ขั้น Source",
+  build: `buildCd("cd-conn")`, fixSvc: ["CodePipeline", "CodePipeline"],
+  symCap: "CodePipeline › Pipelines › pharmacy-api: ขั้น Source = Failed", sym: "เปิด CodePipeline ดู pipeline ล่าสุด ขั้น Source ล้มตั้งแต่แรก ขั้นอื่นไม่ได้รันเลย",
+  symptom: async () => { await pipePage(); },
+  causeCap: "อ่านข้อความใต้ขั้น Source: connection ยังเป็น Pending", cause: "ข้อความใต้ขั้น Source บอกว่า GitHub connection ยังเป็นสถานะ Pending ยังไม่ได้อนุญาตให้ AWS เข้าถึง repository",
+  reason: scrollWhy("/[Cc]onnection|Pending/"),
+  nav: async () => { await svc("CodePipeline", "Developer Tools"); await L.click(B("Connections")); await step("csel", async () => { await L.click({ t: "pharmacy-github", tag: "a", starts: true }); }); await L.hold(2.5); },
+  navCap: "CodePipeline › Settings › Connections › pharmacy-github: Status = Pending", navSay: "เปิด CodePipeline ไปที่ Connections เลือก pharmacy github จะเห็นสถานะ Pending",
+  fixReal: async () => { await step("cup", async () => { await L.click(B("Update pending connection", { nth: 0 })); }); await L.hold(2); await L.click(B("Complete connection", { nth: 0 })); await L.hold(2); },
+  fixCap: "Update pending connection → Complete connection", fixSay: "กด Update pending connection แล้วกด Complete connection เพื่อติดตั้ง GitHub app และอนุญาต repository",
+  retestCap: "CodePipeline › pharmacy-api › Release change → Source ผ่าน", retestSay: "กลับไปที่ CodePipeline กด Release change รัน pipeline ใหม่ ขั้น Source ผ่านแล้ว",
+  retest: async () => { await pipePage(); await L.click(B("Release change", { nth: 0 })); await L.hold(3); },
+  done: "Source ผ่านแล้ว: connection ต้องเป็น Available ถึงจะดึงโค้ดจาก GitHub ได้" };
+CASES["gha-provider"] = { out: "usecase5-err2", title: "Use case 5 · เคส error: GitHub Actions ล้มที่ Configure AWS credentials (ไม่มี OIDC provider)", intro: "เคส error ของ use case ห้า push แล้ว run ล้ม ขอสิทธิ์จาก AWS ไม่ได้",
+  build: `buildGha("gha-provider")`, fixSvc: ["IAM", "IAM"],
+  symCap: "Browser → GitHub repo › Actions › deploy #1: ขั้น Configure AWS credentials ล้ม", sym: "เปิดหน้า Actions ของ repo แล้วเข้า run ล่าสุด ขั้น Configure AWS credentials ล้ม",
+  symptom: async () => { await ghaOpen(1); },
+  causeCap: "อ่าน log ของขั้นที่ล้ม: ไม่พบ OIDC provider ของ GitHub ใน AWS", cause: "log ของขั้นที่ล้มบอกว่า AWS ไม่รู้จัก OIDC provider ของ GitHub เพราะยังไม่ได้เพิ่ม provider ใน IAM",
+  reason: async () => { await L.ev(`(document.querySelector("main details[open]")||document.body).scrollIntoView({block:"center"});1`); await L.hold(4); },
+  nav: async () => { await svc("IAM", "Security, Identity, & Compliance"); await L.click(B("Identity providers")); await L.hold(2.5); },
+  navCap: "IAM › Identity providers: ยังไม่มี token.actions.githubusercontent.com", navSay: "เปิด IAM ไปที่ Identity providers จะเห็นว่ายังไม่มี provider ของ GitHub",
+  fixReal: async () => { await step("apb", async () => { await L.click(B("Add provider", { nth: 0 })); }); await step("purl", async () => { await L.fill("Provider URL", "https://token.actions.githubusercontent.com"); }); await step("paud", async () => { await L.fill("Audience", "sts.amazonaws.com"); }); await L.hold(1.2); await L.click(B("Add provider", { nth: 0 })); await L.hold(2); },
+  fixCap: "Add provider · URL = https://token.actions.githubusercontent.com · Audience = sts.amazonaws.com", fixSay: "กด Add provider ใส่ URL ของ GitHub คือ token จุด actions จุด githubusercontent จุด com และ audience เป็น sts amazonaws com แล้วบันทึก",
+  retestCap: "git push → main → deploy #2 ผ่านทุกขั้น", retestSay: "กลับไป GitHub กด git push เข้า main อีกครั้ง เปิด run ใหม่ ทุกขั้นผ่านแล้ว",
+  retest: async () => { await L.click(B("Browser", { nth: 0 })); await L.hold(1); await L.click({ t: "Actions", tag: "a", starts: true }); await L.hold(1); await L.click(B("git push", { starts: true })); await L.hold(1.5); await step("g4", async () => { await L.click({ t: "deploy #2", tag: "a" }); }); await L.hold(3); },
+  done: "run ผ่านแล้ว: ต้องมี OIDC provider ของ GitHub ใน IAM ก่อน role ถึงถูก assume ได้" };
+CASES["apr-role"] = { out: "usecase7-err2", title: "Use case 7 · เคส error: service ขึ้นไม่ได้ (access role ไม่มี policy ECR)", intro: "เคส error ของ use case เจ็ด สร้าง service แล้วแต่ขึ้นไม่ได้ เพราะ role ดึง image ไม่ได้",
+  build: `buildApr("apr-role")`, url: `"https://" + S.aprs.filter(function(x){return x.name==="pharmacy-api-prd"})[0].url + "/healthz"`, fixSvc: ["IAM", "IAM"],
+  sym: "เรียก URL ของ prd แล้วไม่ได้คำตอบที่ถูกต้อง", cause: "ตัวจำลองบอกว่าดึง application image ไม่ได้ เพราะ access role ไม่มีนโยบาย AWSAppRunnerServicePolicyForECRAccess",
+  nav: roleNav("pharmacy-apprunner-ecr"), navCap: "IAM › Roles › pharmacy-apprunner-ecr › Permissions: ไม่มีนโยบาย ECR", navSay: "เปิด IAM ไปที่ Roles เลือก pharmacy apprunner ecr ดูแท็บ Permissions จะเห็นว่าไม่มีนโยบายสำหรับอ่าน ECR",
+  fixReal: async () => { await attachPolicy("AWSAppRunnerServicePolicyForECRAccess"); },
+  fixCap: "Actions › Add permissions › ติ๊ก AWSAppRunnerServicePolicyForECRAccess → Save", fixSay: "เพิ่มสิทธิ์ ติ๊กนโยบาย AppRunner ServicePolicy ForECRAccess แล้วบันทึก",
+  done: "prd ตอบ 200 แล้ว: access role ต้องมีนโยบายอ่าน ECR" };
+CASES["exp-exec"] = { out: "usecase8-err2", title: "Use case 8 · เคส error: Express service ไม่ขึ้น (execution role ขาด policy)", intro: "เคส error ของ use case แปด สร้าง Express service แล้วแต่ URL ของ prd เปิดไม่ได้",
+  build: `buildExpress("exp-exec")`, url: `"https://" + expOf("pharmacy-express","pharmacy-api-prd").host + "/"`, fixSvc: ["IAM", "IAM"],
+  sym: "เปิด URL ของ prd แล้วได้ 503 เพราะไม่มี task ที่พร้อมรับงาน", cause: "ตัวจำลองไล่ให้ดูว่า task ดึง image และ registry auth ไม่ได้ เพราะ execution role ไม่มีนโยบาย AmazonECSTaskExecutionRolePolicy",
+  nav: roleNav("pharmacy-express-execution"), navCap: "IAM › Roles › pharmacy-express-execution › Permissions: ไม่มี AmazonECSTaskExecutionRolePolicy", navSay: "เปิด IAM ไปที่ Roles เลือก pharmacy express execution ดูแท็บ Permissions จะเห็นว่าไม่มีนโยบายสำหรับ execution role",
+  fixReal: async () => { await attachPolicy("AmazonECSTaskExecutionRolePolicy"); },
+  fixCap: "Actions › Add permissions › ติ๊ก AmazonECSTaskExecutionRolePolicy → Save", fixSay: "เพิ่มสิทธิ์ ติ๊ก AmazonECSTaskExecutionRolePolicy แล้วบันทึก",
+  done: "prd ตอบ 200 แล้ว: execution role ต้องมีนโยบายนี้เพื่อดึง image และเขียน log" };
 
 (async () => {
   const C = CASES[process.argv[2]]; if (!C) { console.log("ERR unknown case"); process.exit(1); }
