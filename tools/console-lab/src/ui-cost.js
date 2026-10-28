@@ -7,7 +7,12 @@ function gstyle(g) { return "--g1:" + g[0] + ";--g2:" + g[1]; }
 function bahtS(usd, perHr) { var b = usd * COST_THB; if (b <= 0) return "ฟรี"; if (b < (perHr ? 0.01 : 1)) return perHr ? "<฿0.01" : "<฿1"; return baht(usd).replace(/(\.\d)$/, "$1").replace(/^฿(\d)\.(\d)$/, function (m) { return perHr ? "฿" + b.toFixed(2) : m; }); }
 function usdS(n) { return n <= 0 ? "$0" : n < 0.01 ? "<$0.01" : money(n); }
 function riskOf(month) { var b = month * COST_THB; return b < 100 ? ["ต่ำ", "#22a559", "แทบไม่มีโอกาสบิลบาน"] : b < 1500 ? ["กลาง", "#e08e0b", "ลืมลบนานๆ เริ่มรู้สึก"] : ["สูง", "#dc3545", "ลืมลบ 1 เดือน = บิลก้อนใหญ่"]; }
-function costTable(items) {
+function costEx(ex) {
+  if (!ex || !ex.length) return h("span");
+  var rows = ex.map(function (x) { return h("tr", {}, [h("td", {}, [h("b", { text: x.n }), x.free ? h("div", { cls: "hint", style: "margin:2px 0 0", text: "หักแล้ว: " + x.free }) : h("span")]), h("td", { text: x.a }), h("td", { style: "text-align:right;white-space:nowrap;font-weight:700", text: baht(x.usd) + " (" + usdS(x.usd) + ")" })]); });
+  return h("div", { style: "margin-top:12px" }, [h("div", { cls: "hint", style: "margin:0 0 6px", text: "📊 ตัวอย่างรายการที่คิดตามการใช้ (สมมติการใช้ → ค่าใช้จ่ายต่อเดือน · บวกเพิ่มจากรายการคงที่ด้านบน)" }), h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "สถานการณ์" }), h("th", { text: "สมมติว่าใช้" }), h("th", { text: "≈ ต่อเดือน" })])]), h("tbody", {}, rows)])])]);
+}
+function costTable(items, ex) {
   var rows = items.map(function (x) {
     var per = x.k === "hr" ? moneyH(x.r * x.q) + "/ชม." + (x.q > 1 ? " (" + x.q + " ตัว)" : "") : x.k === "mo" ? money(x.r * x.q) + "/เดือน" : "ตามการใช้";
     var moU = x.k === "hr" ? x.r * x.q * COST_HRS : x.k === "mo" ? x.r * x.q : null, mo = moU == null ? "–" : baht(moU) + " (" + money(moU) + ")";
@@ -15,7 +20,7 @@ function costTable(items) {
   });
   var s = costSum(items);
   rows.push(h("tr", { cls: "cd-total" }, [h("td", { text: "รวมรายการคงที่ (ไม่รวมที่คิดตามการใช้)" }), h("td", { text: s.hr > 0 ? moneyH(s.hr) + "/ชม." : "–" }), h("td", { style: "text-align:right", text: baht(s.month) + " (" + money(s.month) + ")" }), h("td")]));
-  return h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "รายการ" }), h("th", { text: "คิดตาม" }), h("th", { text: "≈ ต่อเดือน (730 ชม.)" }), h("th", { text: "ตอนไม่มีคนใช้" })])]), h("tbody", {}, rows)])]);
+  return h("div", {}, [h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "รายการ" }), h("th", { text: "คิดตาม" }), h("th", { text: "≈ ต่อเดือน (730 ชม.)" }), h("th", { text: "ตอนไม่มีคนใช้" })])]), h("tbody", {}, rows)])]), costEx(ex)]);
 }
 function costChips(items, bench) {
   var s = costSum(items), vi = bench ? costVerdict(s.month, bench).i : null;
@@ -33,7 +38,7 @@ function costVerdictCard(c, vd, lv) { // ราคานี้ถูก/ปก�
 }
 function costBlock(c) {
   var rk = riskOf(costSum(c.items).month), cs0 = costSum(c.items), vd = c.bench ? costVerdict(cs0.month, c.bench) : null, lv = costLabVerdict(cs0.perHours(4));
-  var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items, c.bench), vd ? costVerdictCard(c, vd, lv) : h("span"), costTable(c.items)]);
+  var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items, c.bench), vd ? costVerdictCard(c, vd, lv) : h("span"), costTable(c.items, c.ex)]);
   if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#1d8102", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
   out.appendChild(costCaveat()); return out;
 }
@@ -67,9 +72,9 @@ PAGES["lab-cost"] = function () {
   var by = labs.slice().sort(function (a, b) { return b.s.month - a.s.month; }), top = by[0], topUc = by.filter(function (l) { return UC.some(function (u) { return u.id === l.id; }); })[0];
   var tile = function (lb, val, sub, g, ic) { return h("div", { cls: "cd-kpi", style: gstyle(g) }, [h("span", { cls: "ic", text: ic }), h("div", { cls: "l", text: lb }), h("div", { cls: "v", text: val }), h("div", { cls: "u", text: sub })]); };
   var kpis = h("div", { cls: "cd-kpis" }, [tile("แพงสุดถ้าลืมลบ (ทุก lab)", baht(top.s.month) + "/เดือน", top.name + " · " + money(top.s.month), CG_LV[4], "🔥"), tile("ทำ lab 4 ชม. แล้วลบ (ตัวแพงสุด)", baht(top.s.perHours(4)), top.name + " · " + money(top.s.perHours(4)), CG.green, "⏳"), tile("แพงสุดในกลุ่ม use case", baht(topUc.s.month) + "/เดือน", topUc.name + " · " + money(topUc.s.month), CG_LV[2], "📦"), tile("ถูกสุด (ตามการใช้)", baht(by[by.length - 1].s.month) + "/เดือน", by[by.length - 1].name, CG_LV[0], "🌱")]);
-  var det = ["vm", "managed"].map(function (k) { var c = COSTD.mainlab[k]; var f = fold("mlc" + k, c.title + ": รายการค่าใช้จ่าย"); f.appendChild(costChips(c.items)); f.appendChild(costTable(c.items)); FOLD["mlc" + k] = 0; return f; });
+  var det = ["vm", "managed"].map(function (k) { var c = COSTD.mainlab[k]; var f = fold("mlc" + k, c.title + ": รายการค่าใช้จ่าย"); f.appendChild(costChips(c.items)); f.appendChild(costTable(c.items, c.ex)); FOLD["mlc" + k] = 0; return f; });
   var panel = h("div", { cls: "cd-panel" }, [h("div", { cls: "cd-ph" }, [h("div", {}, [h("b", { text: sel.name }), h("small", { text: sel.big })]), h("button", { cls: "btn", type: "button", style: "white-space:nowrap", text: UC.some(function (u) { return u.id === sel.id; }) ? "เปิด use case นี้" : "ไปที่แท็บค่าใช้จ่าย", onclick: function () { if (UC.some(function (u) { return u.id === sel.id; })) { UC_SEL.id = sel.id; UC_SEL.sec = "cost"; go("lab-uc", {}, "Lab"); } } })]), costChips(sel.items, sel.bench), h("div", { cls: "cd-sub", text: "องค์ประกอบของค่าคงที่ (ต่อเดือน)" }), cdStack(sel)]);
-  var detail = h("div", { cls: "cd-card", style: "margin-top:14px" }, [h("h3", { text: "รายการค่าใช้จ่ายของ " + sel.name }), costTable(sel.items)]);
+  var detail = h("div", { cls: "cd-card", style: "margin-top:14px" }, [h("h3", { text: "รายการค่าใช้จ่ายของ " + sel.name }), costTable(sel.items, sel.ex)]);
   return h("div", { cls: "cd" }, [crumbEl("Lab › Cost & Billing"), h("h1", { text: "ค่าใช้จ่าย & Bill management" }), h("p", { cls: "hint", style: "margin:-6px 0 12px" }, rich("เป็นเงินบาทตามอัตราสมมติ **" + COST_THB + " บาท/ดอลลาร์** · เปิดทิ้ง = คิดเต็ม 730 ชม./เดือน · คลิกแท่งเพื่อดูรายละเอียด")), kpis,
     h("div", { cls: "cd-grid" }, [h("div", { cls: "cd-card" }, [h("h3", { text: "เปิดทิ้งไว้ 1 เดือน: lab ไหนแพงเท่าไร" }), cdBars(labs)]), h("div", { cls: "cd-card" }, [panel])]), detail,
     h("div", { cls: "cd-rule" }, [h("div", { cls: "r1" }, [h("b", { text: "คิดตามชั่วโมงที่เปิดอยู่" }), h("span", { text: "NAT · ALB · EC2 · RDS · EKS" }), h("em", { text: "แพงถ้าลืมลบ" })]), h("div", { cls: "r2" }, [h("b", { text: "คิดตามการใช้" }), h("span", { text: "Lambda · S3 · CloudFront" }), h("em", { text: "แทบไม่เสียถ้าไม่มีคนใช้" })])]), costCaveat(),

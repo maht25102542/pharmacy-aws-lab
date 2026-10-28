@@ -5,6 +5,9 @@ var COST_HRS = 730; // ชม./เดือน
 var COST_THB = 35; // อัตราสมมติ บาท/ดอลลาร์ (ไม่ใช่เรทจริง: แก้ตรงนี้ให้ตรงวันที่ดู)
 function baht(usd) { var b = usd * COST_THB; return "฿" + (b < 100 ? b.toFixed(b < 10 ? 1 : 0) : Math.round(b).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")); }
 var CR = { nat: 0.059, natGb: 0.059, ipv4: 0.005, alb: 0.0252, t3micro: 0.0132, t3small: 0.0264, t3medium: 0.0528, fgCpu: 0.0506, fgGb: 0.00553, eks: 0.10, rdsMicro: 0.025, rdsSmallMulti: 0.102, aprMemGb: 0.00885, ebsGb: 0.096 };
+// ตัวอย่างค่าใช้จ่ายแบบคิดตามการใช้ (ต่อเดือน): n = ชื่อ, a = สมมติว่าใช้เท่าไร, usd = คำนวณจากอัตราจริง, free = หักโควต้าฟรีอะไรไว้
+function cE(n, a, usd, free) { return { n: n, a: a, usd: usd, free: free || "" }; }
+var CU = { apigwHttp: 1.25e-6, apigwRest: 4.25e-6, lamReq: 0.2e-6, lamGbs: 0.0000166667, ddbR: 0.1425e-6, ddbW: 0.71e-6, cwGb: 0.7, cwStoreGb: 0.03, cfGb: 0.12, cfReq: 1.2e-6, r53q: 0.4e-6, s3Gb: 0.025, cbMin: 0.005, dtGb: 0.12, lcu: 0.008, snapGb: 0.05, aprVcpu: 0.0809 };
 function cH(n, r, q, note, idle) { return { n: n, k: "hr", r: r, q: q || 1, note: note || "", idle: idle !== false }; }   // คิดต่อชั่วโมงที่เปิดอยู่
 function cM(n, usd, note, idle) { return { n: n, k: "mo", r: usd, q: 1, note: note || "", idle: idle !== false }; }    // คิดต่อเดือนคงที่
 function cU(n, unit, note, idle) { if (typeof note === "boolean") { idle = note; note = ""; } return { n: n, k: "use", unit: unit, note: note || "", idle: !!idle }; }            // คิดตามการใช้ (ไม่มีรายการคงที่)
@@ -21,6 +24,9 @@ var COSTD = {
   ],
   uc: {
     static: {
+      ex: [cE("เว็บเล็ก: 10,000 ครั้ง/เดือน (หน้าละ ~2 MB)", "20 GB ออกจาก CloudFront · 10,000 request · DNS 30,000 query · S3 1 GB", 30000 * CU.r53q + 1 * CU.s3Gb, "CloudFront ฟรี 1 TB + 10 ล้าน request"),
+        cE("เว็บคนเข้าเยอะ: 1 ล้านครั้ง/เดือน (หน้าละ ~2 MB)", "2 TB ออกจาก CloudFront · 3 ล้าน request · DNS 3 ล้าน query · S3 1 GB", (2048 - 1024) * CU.cfGb + 3e6 * CU.r53q + 1 * CU.s3Gb, "หักฟรี 1 TB แรก · request ยังอยู่ในโควต้า 10 ล้าน"),
+        cE("invalidate ทั้งเว็บ `/*` วันละครั้ง", "30 path/เดือน", 0, "1,000 path แรกต่อเดือนฟรี")],
       bench: [3, 8, 25, 80], benchRef: "เว็บ static เล็กทั่วไปบน AWS จ่ายราว $1–10/เดือน", benchWhy: "แทบเป็นต้นทุนที่ถูกที่สุดของวิธี deploy ทั้งหมด เพราะไม่มีเครื่องรันตลอด",
       title: "เว็บ static (S3 + CloudFront + Route 53 + ACM)", big: "แทบไม่มีค่าเดินเครื่อง: จ่ายตามปริมาณ data transfer + request",
       items: [cM("Route 53 hosted zone ×1", 0.5, "คิดแม้ไม่มีคนเข้าเว็บ"), cU("Route 53 query", "$0.40 / 1 ล้านครั้ง"), cU("CloudFront", "ฟรี 1 TB + 10 ล้าน request/เดือน (always-free) · เกินคิด $0.12/GB (เอเชีย) + request HTTPS $0.012 / 10,000"), cU("S3 storage + request", "$0.025/GB-เดือน · เว็บเล็กไม่ถึง $0.1"), cU("CloudFront invalidation", "1,000 path แรกต่อเดือนฟรี · เกิน $0.005/path"), cU("ACM public certificate", "ฟรี")],
@@ -30,6 +36,8 @@ var COSTD = {
       stop: "`terraform destroy` (S3 ต้อง empty ก่อน หรือ `force_destroy = true`) · ลบ hosted zone ด้วยถ้าไม่ใช้โดเมนต่อ ($0.50/เดือนหยุด)"
     },
     ecs: {
+      ex: [cE("API ทราฟฟิกน้อย (dev/ทดสอบ)", "50 GB ผ่าน NAT · log 2 GB · ALB เฉลี่ย 1 LCU · ECR 3 GB", 50 * 0.059 + 2 * CU.cwGb + 730 * CU.lcu + 3 * 0.1, "ไม่หัก free tier"),
+        cE("API ทราฟฟิกกลาง (production เล็ก)", "300 GB ผ่าน NAT · log 20 GB · ALB เฉลี่ย 5 LCU · ECR 5 GB", 300 * 0.059 + 20 * CU.cwGb + 5 * 730 * CU.lcu + 5 * 0.1, "ไม่หัก free tier")],
       bench: [40, 90, 300, 600], benchRef: "ระบบ API สำหรับ production ของทีมเล็ก (ALB + NAT + RDS + container) ทั่วไปราว $100–300/เดือน", benchWhy: "ปกติสำหรับระบบใช้จริง แต่ถ้าเป็น dev/ทดลอง ถือว่าแพง: ลด NAT เหลือตัวเดียว, RDS single-AZ, ปิดนอกเวลา",
       title: "ECS Fargate + ALB + RDS", big: "แพงเพราะของที่ ‘เปิดทิ้ง’: NAT + ALB + RDS ไม่ขึ้นกับทราฟฟิก",
       items: [cH("NAT gateway ×1", CR.nat, 1, "+ data processing $0.059/GB · เป็นตัวแพงอันดับต้น"), cH("Application Load Balancer", CR.alb, 1, "+ LCU ตามทราฟฟิก"), cH("public IPv4 (NAT 1 + ALB 3 AZ)", CR.ipv4, 4, "คิดตั้งแต่ ก.พ. 2024"),
@@ -42,6 +50,9 @@ var COSTD = {
       stop: "`terraform destroy` · ตรวจ RDS final snapshot กับ automated backup ที่ยังเก็บ (คิดเงินตามขนาด) · ลบ CloudWatch log group และ ECR image"
     },
     sls: {
+      ex: [cE("ใช้น้อย: 1 ล้าน request/เดือน", "HTTP API 1M · Lambda 256 MB × 100 ms · DynamoDB อ่าน 1M เขียน 200k · log 1 GB", 1e6 * CU.apigwHttp + 1e6 * CU.ddbR + 2e5 * CU.ddbW + 1 * CU.cwGb, "Lambda: 1M request + 25,000 GB-วินาที อยู่ในโควต้าฟรี"),
+        cE("ใช้กลาง: 10 ล้าน request/เดือน", "HTTP API 10M · Lambda 256 MB × 100 ms (250,000 GB-วินาที) · DynamoDB อ่าน 10M เขียน 2M · log 10 GB", 10e6 * CU.apigwHttp + 9e6 * CU.lamReq + 10e6 * CU.ddbR + 2e6 * CU.ddbW + 10 * CU.cwGb, "Lambda หัก 1M request แรก · GB-วินาทียังในโควต้า 400,000"),
+        cE("ใช้ REST API แทน HTTP API (10 ล้าน request)", "เหมือนข้างบนแต่ API Gateway แบบ REST", 10e6 * CU.apigwRest + 9e6 * CU.lamReq + 10e6 * CU.ddbR + 2e6 * CU.ddbW + 10 * CU.cwGb, "Lambda หัก 1M request แรกเหมือนกัน (ต่างกันที่ราคา API Gateway เท่านั้น)")],
       bench: [3, 10, 60, 200], benchRef: "API serverless ทราฟฟิกน้อย-กลางทั่วไปราว $0–30/เดือน", benchWhy: "ถูกมากตอนไม่มีคนใช้ แต่ราคาขึ้นตามทราฟฟิกจริง ต้องตั้ง Budget กันโหลดพุ่ง",
       title: "Serverless API (API Gateway + Lambda + DynamoDB)", big: "จ่ายตามการเรียกใช้: ไม่มีคนใช้ = ค่าใกล้ศูนย์ แต่ระวังโหลดพุ่ง/วนลูป",
       items: [cU("API Gateway (HTTP API)", "$1.25 / 1 ล้าน request (REST API $4.25 / ล้าน แพงกว่า ~3.4 เท่า)"), cU("Lambda", "ฟรี 1 ล้าน request + 400,000 GB-วินาที/เดือน · เกิน $0.20/ล้าน request + $0.0000166667/GB-วินาที"), cU("DynamoDB on-demand", "read $0.1425 / write $0.71 ต่อล้านหน่วย · storage 25 GB แรกฟรี เกินนั้น $0.285/GB-เดือน"), cU("DynamoDB PITR (prd)", "$0.228/GB-เดือน ของ table"), cU("CloudWatch Logs", "$0.70/GB ingest · มักเป็นก้อนใหญ่สุดที่คนลืม", true)],
@@ -51,6 +62,8 @@ var COSTD = {
       stop: "`terraform destroy` (ลบ table = ลบ PITR backup ด้วย) · ลบ log group `/aws/lambda/…`"
     },
     cd: {
+      ex: [cE("ทีมเล็ก: build 20 ครั้ง/เดือน", "5 นาที/ครั้ง = 100 นาที · ECR 2 GB", 100 * CU.cbMin + 2 * 0.1, "ไม่หัก free tier"),
+        cE("push ถี่: build 300 ครั้ง/เดือน", "5 นาที/ครั้ง = 1,500 นาที · ECR 10 GB", 1500 * CU.cbMin + 10 * 0.1, "ไม่หัก free tier")],
       bench: [3, 8, 25, 80], benchRef: "pipeline CI/CD ของ AWS เองทั่วไปราว $1–10/เดือน (ยังไม่รวมปลายทาง)", benchWhy: "ถูก: ค่าจริงอยู่ที่ปลายทางที่ deploy ไปมากกว่าตัว pipeline",
       title: "CI/CD: CodePipeline + CodeBuild", big: "ถูก: จ่ายต่อ pipeline + นาทีที่ build · ปลายทาง ECS (use case 2) แพงกว่ามาก",
       items: [cM("CodePipeline (V1) 1 pipeline", 1, "pipeline แรกต่อบัญชีฟรี (ตามเงื่อนไขปัจจุบัน)"), cU("CodeBuild", "คิดต่อนาทีตามขนาดเครื่อง เช่น general1.small $0.005/นาที · build 5 นาที ≈ $0.03", false), cU("S3 artifact bucket", "เพนนี · ตั้ง lifecycle ลบของเก่า"), cU("ECR storage", "$0.10/GB-เดือน · ตั้ง lifecycle เก็บ 10 image ล่าสุด"), cU("Manual approval", "ฟรี"), cU("ปลายทาง ECS/ALB/NAT/RDS", "ดู use case 2 — เป็นก้อนหลักของ lab นี้", true)],
@@ -60,6 +73,7 @@ var COSTD = {
       stop: "`terraform destroy` · ลบ pipeline ที่ไม่ใช้ (V1 มีค่าต่อ pipeline ที่ active)"
     },
     gha: {
+      ex: [cE("ฝั่ง AWS: deploy 40 ครั้ง/เดือน", "OIDC/STS ฟรี · ECR 3 GB (นาที runner จ่ายที่ GitHub)", 3 * 0.1, "")],
       bench: [3, 8, 25, 80], benchRef: "ฝั่ง AWS ของ GitHub Actions + OIDC ทั่วไปแทบไม่มีค่าเพิ่ม", benchWhy: "ถูกมาก: ค่า build ไปอยู่ที่ GitHub และไม่มี key ให้รั่ว",
       title: "GitHub Actions + OIDC → ECR → ECS", big: "ฝั่ง AWS แทบไม่มีค่าเพิ่ม · ค่า build อยู่ที่ GitHub · ข้อดีใหญ่คือไม่มี access key ให้รั่ว",
       items: [cU("GitHub Actions minutes (จ่ายที่ GitHub ไม่ใช่ AWS)", "public repo ฟรี · private บนแผน Free ~2,000 นาที/เดือน (ตรวจเงื่อนไขล่าสุดที่ GitHub)"), cU("IAM OIDC provider + STS", "ฟรี"), cU("ECR storage", "$0.10/GB-เดือน · ตั้ง lifecycle"), cU("ปลายทาง ECS/ALB/NAT/RDS", "ดู use case 2 — ก้อนหลัก", true)],
@@ -69,6 +83,8 @@ var COSTD = {
       stop: "`terraform destroy` · ลบ OIDC provider/role ถ้าเลิกใช้ · ปิด workflow ที่ไม่ใช้"
     },
     single: {
+      ex: [cE("เว็บเล็ก: ออกอินเทอร์เน็ต 50 GB/เดือน", "50 GB · snapshot 20 GB", 20 * CU.snapGb, "data transfer 100 GB แรกฟรี"),
+        cE("เว็บคนเข้าเยอะ: ออกอินเทอร์เน็ต 500 GB/เดือน", "500 GB · snapshot 20 GB", (500 - 100) * CU.dtGb + 20 * CU.snapGb, "หัก 100 GB แรกฟรี")],
       bench: [8, 15, 50, 120], benchRef: "เซิร์ฟเวอร์เดียว (t3.small) ทั่วไปราว $15–40/เดือน", benchWhy: "ปกติ/ค่อนข้างถูก เทียบกับแบบ ECS ที่แพงกว่าเกือบ 10 เท่า แลกกับต้องดูแลเครื่องเองและไม่มี HA",
       title: "EC2 เครื่องเดียว + Docker Compose + Caddy", big: "ถูกและเดาง่ายที่สุด: เครื่องคิดเงินตลอดที่เปิด (stop เครื่อง ≠ หยุดทุกอย่าง)",
       items: [cH("EC2 t3.small", CR.t3small, 1, "stop เครื่อง = หยุดค่า compute"), cM("EBS gp3 20 GB", 20 * CR.ebsGb, "$0.096/GB-เดือน · คิดแม้ stop เครื่อง"), cH("public IPv4 / Elastic IP", CR.ipv4, 1, "คิดแม้ stop เครื่อง และ EIP ที่ไม่ผูกก็คิด"), cM("Route 53 hosted zone", 0.5), cU("Data transfer ออกอินเทอร์เน็ต", "100 GB/เดือนแรกฟรี (รวมทุกบริการ) · เกิน $0.12/GB (สิงคโปร์)"), cU("EBS snapshot", "$0.05/GB-เดือน ของข้อมูลที่เก็บ", false)],
@@ -78,6 +94,8 @@ var COSTD = {
       stop: "`terraform destroy` · ถ้าแค่ stop: อย่าลืม EIP + EBS ยังคิดเงิน · release EIP ที่ไม่ใช้"
     },
     apr: {
+      ex: [cE("ใช้งานเบา: active 50 ชม./เดือน (1 vCPU + 2 GB)", "(0.0809 + 2 × 0.00885) × 50 ชม.", 50 * (CU.aprVcpu + 2 * 0.00885), "ค่า provisioned memory ตอน idle อยู่ในรายการคงที่แล้ว"),
+        cE("ใช้งานหนัก: active 400 ชม./เดือน (1 vCPU + 2 GB)", "(0.0809 + 2 × 0.00885) × 400 ชม.", 400 * (CU.aprVcpu + 2 * 0.00885), "")],
       bench: [8, 20, 70, 200], benchRef: "App Runner ขนาดเล็กทั่วไปราว $15–50/เดือน", benchWhy: "ถูกเมื่อเทียบ ECS แต่มีค่าพื้นแม้ไม่มีคนใช้ และ App Runner ปิดรับลูกค้าใหม่แล้ว",
       title: "App Runner (image → URL HTTPS)", big: "มีค่า ‘พื้น’ ตามหน่วยความจำที่จองไว้ แม้ไม่มีคนเรียก + ค่า active ตาม vCPU/memory ตอนรับงาน",
       items: [cH("Provisioned memory dev (0.5 GB ×1 instance)", 0.5 * CR.aprMemGb, 1, "ค่าพื้นตอน idle (provisioned memory $0.00885/GB-ชม.)"), cH("Provisioned memory prd (2 GB ×1 instance)", 2 * CR.aprMemGb, 1, "ค่าพื้นตอน idle (provisioned memory $0.00885/GB-ชม.)"), cU("Active vCPU + memory", "คิดเพิ่มเฉพาะช่วงที่รับ request ($0.0809/vCPU-ชม. + memory $0.00885/GB-ชม.)", false), cU("ECR storage", "$0.10/GB-เดือน", false)],
@@ -88,8 +106,8 @@ var COSTD = {
     }
   },
   mainlab: {
-    vm: { bench: [20, 60, 150, 300], benchRef: "lab เรียนรู้ขนาด 10 เครื่องทั่วไปจ่ายราวตามชั่วโมงที่เปิด", benchWhy: "แพงถ้าเปิดทิ้ง: ทำเสร็จต้อง destroy ทุกครั้ง หรือลดเหลือ k8s 1 node + db 1 node", title: "main lab (VM): k3s + Jenkins + ArgoCD + MariaDB Galera", items: [cH("EC2 t3.micro (bastion)", CR.t3micro, 1), cH("EC2 t3.medium ×6 (jenkins, sonarqube, k8s ×3, dev)", CR.t3medium, 6), cH("EC2 t3.small ×3 (DB Galera)", CR.t3small, 3), cH("NAT gateway ×1", CR.nat, 1, "+ ข้อมูลที่ผ่าน"), cH("ALB", CR.alb, 1), cH("public IPv4 (bastion, jenkins, sonarqube, NAT, ALB ×3)", CR.ipv4, 7), cM("EBS gp3 10 volume ×20 GB", 200 * CR.ebsGb, "$0.096/GB-เดือน")], note: "ทำ lab เสร็จใน 1 วัน ~ ไม่กี่ดอลลาร์ แต่ลืมเปิดทิ้งทั้งเดือน = หลายร้อยดอลลาร์ · ลดด้วย `k8s_node_count = 1`, `db_count = 1`" },
-    managed: { bench: [20, 60, 150, 300], benchRef: "EKS + RDS Multi-AZ ขนาดเล็กทั่วไปราว $250–350/เดือน", benchWhy: "ปกติสำหรับ production แต่แพงสำหรับฝึกเรียน: control plane EKS $73 เสียแม้ไม่มี node", title: "terraform-managed: EKS + RDS Multi-AZ + SSM", items: [cH("EKS control plane", CR.eks, 1, "$73/เดือนก่อนมี node"), cH("EC2 t3.medium ×3 (node group)", CR.t3medium, 3), cH("RDS db.t4g.small Multi-AZ", CR.rdsSmallMulti, 1), cH("NAT gateway ×1", CR.nat, 1), cH("ALB", CR.alb, 1), cH("public IPv4 (NAT, ALB ×3)", CR.ipv4, 4)], note: "ไม่ต้องดูแล k8s/DB เอง แต่ค่า control plane + Multi-AZ เป็นค่าคงที่ที่แพงกว่าแบบ VM เมื่อรันน้อยชั่วโมง" }
+    vm: { ex: [cE("ทราฟฟิกน้อย", "100 GB ผ่าน NAT + ออกอินเทอร์เน็ต 50 GB", 100 * 0.059, "data transfer 100 GB แรกฟรี")], bench: [20, 60, 150, 300], benchRef: "lab เรียนรู้ขนาด 10 เครื่องทั่วไปจ่ายราวตามชั่วโมงที่เปิด", benchWhy: "แพงถ้าเปิดทิ้ง: ทำเสร็จต้อง destroy ทุกครั้ง หรือลดเหลือ k8s 1 node + db 1 node", title: "main lab (VM): k3s + Jenkins + ArgoCD + MariaDB Galera", items: [cH("EC2 t3.micro (bastion)", CR.t3micro, 1), cH("EC2 t3.medium ×6 (jenkins, sonarqube, k8s ×3, dev)", CR.t3medium, 6), cH("EC2 t3.small ×3 (DB Galera)", CR.t3small, 3), cH("NAT gateway ×1", CR.nat, 1, "+ ข้อมูลที่ผ่าน"), cH("ALB", CR.alb, 1), cH("public IPv4 (bastion, jenkins, sonarqube, NAT, ALB ×3)", CR.ipv4, 7), cM("EBS gp3 10 volume ×20 GB", 200 * CR.ebsGb, "$0.096/GB-เดือน")], note: "ทำ lab เสร็จใน 1 วัน ~ ไม่กี่ดอลลาร์ แต่ลืมเปิดทิ้งทั้งเดือน = หลายร้อยดอลลาร์ · ลดด้วย `k8s_node_count = 1`, `db_count = 1`" },
+    managed: { ex: [cE("ทราฟฟิกน้อย", "100 GB ผ่าน NAT + ออกอินเทอร์เน็ต 50 GB", 100 * 0.059, "data transfer 100 GB แรกฟรี")], bench: [20, 60, 150, 300], benchRef: "EKS + RDS Multi-AZ ขนาดเล็กทั่วไปราว $250–350/เดือน", benchWhy: "ปกติสำหรับ production แต่แพงสำหรับฝึกเรียน: control plane EKS $73 เสียแม้ไม่มี node", title: "terraform-managed: EKS + RDS Multi-AZ + SSM", items: [cH("EKS control plane", CR.eks, 1, "$73/เดือนก่อนมี node"), cH("EC2 t3.medium ×3 (node group)", CR.t3medium, 3), cH("RDS db.t4g.small Multi-AZ", CR.rdsSmallMulti, 1), cH("NAT gateway ×1", CR.nat, 1), cH("ALB", CR.alb, 1), cH("public IPv4 (NAT, ALB ×3)", CR.ipv4, 4)], note: "ไม่ต้องดูแล k8s/DB เอง แต่ค่า control plane + Multi-AZ เป็นค่าคงที่ที่แพงกว่าแบบ VM เมื่อรันน้อยชั่วโมง" }
   }
 };
 // สรุปตัวเลขของรายการ: fixed ต่อชม., ต่อเดือน (730 ชม.), ต่อ n ชม.
