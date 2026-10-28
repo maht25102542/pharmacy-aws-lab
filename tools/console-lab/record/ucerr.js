@@ -175,6 +175,6 @@ CASES["single-dns"] = { out: "usecase6-err2", title: "Use case 6 · เคส er
   await L.cap("⑤ " + (C.retestCap || "Browser → Go ซ้ำ"), C.retestSay || "กลับไปที่ Browser แล้วกด Go ซ้ำ"); if (C.retest) await C.retest(); else { await L.click(B("Browser", { nth: 0 })); await L.hold(0.5); await L.click(B("Go")); await L.hold(2.5); }
   await L.tick(3, "หายแล้ว", "หายแล้ว ใช้งานได้ตามปกติ");
   await L.cap("✓ " + C.done, "สรุป " + C.done); await L.hold(1);
-  await L.encode(require("path").resolve(__dirname, "../videos/" + C.out + ".mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/" + C.out + (process.env.SFX || "") + ".mp4"));
   await L.finish();
 })().catch(async (e) => { console.error("ERR", e.message); try { console.log("ALERT", await L.ev(`(document.querySelector(".alert.error")||{innerText:"none"}).innerText`)); } catch (x) {} process.exit(1); });
