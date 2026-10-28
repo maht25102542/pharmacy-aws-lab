@@ -572,6 +572,34 @@ body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb,
 :root[data-theme="dark"] .cd-idle.off, :root[data-pal="mixdark"] .cd-idle.off, :root[data-pal="navy"] .cd-idle.off { color: #8ff0c4; background: rgba(79,209,160,.18); box-shadow: inset 0 0 0 1px rgba(79,209,160,.4); }
 /* ป้ายระดับราคา (ถูกมาก/ถูก/ปกติ/แพง): พื้นเข้มขึ้น ตัวอักษรเข้ม อ่านชัด */
 .cd-row .vd { background: color-mix(in oklab, var(--f, var(--c)) 30%, #fff) !important; color: color-mix(in oklab, var(--f, var(--c)) 40%, #1a1a1a) !important; box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--f, var(--c)) 80%, #fff); padding: 1px 10px; }
+/* ===== GitHub จำลอง: login / header / เมนูโปรไฟล์ / dashboard (สีและขนาดตาม Primer) ===== */
+.gh.gx-bare { border: 0; border-radius: 0; background: #fff; }
+.gh { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, "IBM Plex Sans Thai", sans-serif; }
+.gx-hd { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; position: relative; z-index: 3; }
+.gx-hl, .gx-hr { display: flex; align-items: center; gap: 12px; } .gx-mark { color: #1f2328; display: inline-flex; } .gx-ctx { font-size: 14px; color: #1f2328; display: flex; gap: 6px; align-items: center; } .gx-ctx a { color: #1f2328; text-decoration: none; } .gx-ctx a:hover { text-decoration: underline; }
+.gx-sq { width: 32px; height: 32px; border: 1px solid #d1d9e0; border-radius: 6px; background: #f6f8fa; color: #59636e; display: inline-grid; place-items: center; cursor: pointer; padding: 0; } .gx-sq:hover { background: #eff2f5; }
+.gx-sbox { display: inline-flex; align-items: center; gap: 8px; width: 272px; height: 32px; padding: 0 12px; background: #fff; border: 1px solid #d1d9e0; border-radius: 6px; color: #59636e; font-size: 14px; }
+.gx-pair { display: inline-flex; border: 1px solid #d1d9e0; border-radius: 6px; background: #f6f8fa; } .gx-pair .gx-sq { border: 0; border-radius: 6px 0 0 6px; } .gx-caret { display: inline-grid; place-items: center; width: 22px; color: #59636e; border-left: 1px solid #d1d9e0; }
+.gx-avawrap { position: relative; } .gx-ava { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #d1d9e0; background: linear-gradient(135deg, #8250df, #0969da); color: #fff; font: 700 13px inherit; cursor: pointer; display: inline-grid; place-items: center; padding: 0; } .gx-ava-s { width: 20px; height: 20px; font-size: 10px; cursor: default; flex: none; }
+.gx-menu { position: absolute; right: 0; top: 40px; width: 256px; background: #fff; border: 1px solid #d1d9e0; border-radius: 12px; box-shadow: 0 8px 24px rgba(140,149,159,.2); padding: 8px 0; z-index: 9; font-size: 14px; }
+.gx-mh { padding: 8px 16px; color: #1f2328; } .gx-mhs { color: #59636e; font-size: 12px; } .gx-ms { height: 1px; background: #d1d9e0; margin: 8px 0; } .gx-mi { display: block; padding: 6px 16px; margin: 0 8px; border-radius: 6px; color: #1f2328; text-decoration: none; } .gx-mi:hover { background: #818b981a; }
+.gx-btn { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid #d1d9e0; border-radius: 6px; color: #1f2328; text-decoration: none; font-weight: 500; font-size: 14px; background: #f6f8fa; } .gx-btn-o { background: #fff; }
+.gx-page { background: #fff; color: #1f2328; font-size: 14px; } .gx-login { min-height: 640px; display: flex; flex-direction: column; }
+.gx-lwrap { width: 340px; max-width: 100%; margin: 0 auto; padding: 32px 0 24px; flex: 1; display: flex; flex-direction: column; } .gx-lh { text-align: center; margin-bottom: 16px; } .gx-lh h1 { font-size: 24px; font-weight: 600; margin: 16px 0 0; color: #1f2328; }
+.gx-form { display: flex; flex-direction: column; } .gx-form label { font-weight: 600; font-size: 14px; margin: 16px 0 8px; } .gx-prow { display: flex; justify-content: space-between; align-items: baseline; } .gx-prow label { margin-top: 16px; }
+.gx-in { height: 40px; width: 100%; padding: 5px 12px; font-size: 14px; border: 1px solid #d1d9e0; border-radius: 6px; background: #fff; color: #1f2328; box-shadow: inset 0 1px 0 rgba(208,215,222,.2); } .gx-in:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 2px #0969da; }
+.gx-lnk, .gx-new a { color: #0969da; text-decoration: none; font-size: 12px; } .gx-new a { font-size: 14px; } .gx-lnk:hover, .gx-new a:hover { text-decoration: underline; }
+.gx-green { height: 40px; margin-top: 16px; border: 1px solid rgba(31,35,40,.15); border-radius: 6px; background: #1f883d; color: #fff; font: 500 14px inherit; cursor: pointer; box-shadow: 0 1px 0 rgba(31,35,40,.1); display: inline-flex; align-items: center; justify-content: center; gap: 6px; } .gx-green:hover { background: #1a7f37; } .gx-green.gx-sm { height: 28px; margin: 0; padding: 0 12px; font-size: 12px; }
+.gx-or { display: flex; align-items: center; gap: 12px; color: #1f2328; margin: 16px 0; } .gx-or::before, .gx-or::after { content: ""; flex: 1; height: 1px; background: #d1d9e0; }
+.gx-alt { height: 40px; margin-bottom: 8px; width: 100%; border: 1px solid #d1d9e0; border-radius: 6px; background: #f6f8fa; color: #1f2328; font: 400 14px inherit; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; } .gx-alt:hover { background: #eff2f5; } .gx-g { font-weight: 700; color: #4285f4; } .gx-ap::before { content: "\f8ff"; font-family: -apple-system, system-ui; }
+.gx-new { text-align: center; margin: 16px 0 0; font-size: 14px; }
+.gx-flash { border: 1px solid #d1d9e0; border-radius: 6px; padding: 12px 16px; margin: 0 0 8px; background: #ddf4ff; border-color: #54aeff66; font-size: 14px; } .gx-flash.gx-err { background: #ffebe9; border-color: #ff818266; color: #82071e; }
+.gx-ft { background: #f6f8fa; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; padding: 24px 16px; font-size: 12px; } .gx-ft a { color: #59636e; text-decoration: none; } .gx-ft a:hover { color: #0969da; }
+.gx-cols { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 24px; padding: 24px 24px 40px; min-height: 480px; } .gx-side { border-right: 1px solid #d1d9e0; padding-right: 24px; display: flex; flex-direction: column; gap: 12px; } .gx-sh { display: flex; justify-content: space-between; align-items: center; } .gx-find { height: 32px; } .gx-repos { display: flex; flex-direction: column; gap: 4px; } .gx-repo { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: #1f2328; text-decoration: none; font-size: 14px; } .gx-repo:hover { text-decoration: underline; }
+.gx-feed h2 { font-size: 20px; font-weight: 600; margin: 0 0 16px; } .gx-ask { border: 1px solid #d1d9e0; border-radius: 12px; padding: 16px; margin-bottom: 16px; background: #f6f8fa; } .gx-card { border: 1px solid #d1d9e0; border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 6px; } .gx-mut { color: #59636e; margin: 0; }
+body .gh .gx-in { background: #fff !important; border: 1px solid #d1d9e0 !important; border-radius: 6px !important; height: 40px !important; color: #1f2328 !important; box-shadow: inset 0 1px 0 rgba(208,215,222,.2) !important; } body .gh .gx-in:focus { border-color: #0969da !important; box-shadow: 0 0 0 2px #0969da !important; }
+body .gh .gx-find { height: 32px !important; } body .gh .gx-lh h1 { font-size: 24px !important; font-weight: 600 !important; line-height: 1.25 !important; }
+.gh:not(.gx-bare) { min-height: 560px; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
@@ -11897,6 +11925,103 @@ function pharmBody(json) {
   return pharmApp({ env: String(json && json.env || "prd"), login: false, up: true, pod: json && (json.task ? "task-" + json.task : json.served_by) || "", foot: foot });
 }
 
+// ===== GitHub จำลอง: login / dashboard / header / เมนูรูปโปรไฟล์ — โครงข้อความและสีตาม github.com จริง (ดึง HTML+render หน้า /login จริงมาเทียบ) =====
+// หน้าหลัง login (dashboard, settings) ไม่ได้เปิดดูจากของจริงได้ → ทำตามเอกสาร docs.github.com + Primer; ไม่ใช่การ copy พิกเซล
+var GH_MARK = "M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z";
+function ghSvg(d, size, extra) {
+  var NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), p = document.createElementNS(NS, "path");
+  s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("width", size || 16); s.setAttribute("height", size || 16); s.setAttribute("aria-hidden", "true"); s.style.fill = "currentColor"; s.style.display = "inline-block"; s.style.verticalAlign = "text-bottom";
+  p.setAttribute("d", d); s.appendChild(p); if (extra) s.setAttribute("class", extra); return s;
+}
+function ghStroke(kind, size) { // ไอคอนเส้นง่ายๆ ใช้ในแถบบน (แทน octicons)
+  var NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), g = document.createElementNS(NS, "g");
+  s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("width", size || 16); s.setAttribute("height", size || 16); g.setAttribute("fill", "none"); g.setAttribute("stroke", "currentColor"); g.setAttribute("stroke-width", "1.5"); g.setAttribute("stroke-linecap", "round"); g.setAttribute("stroke-linejoin", "round");
+  var add = function (t, a) { var e = document.createElementNS(NS, t); Object.keys(a).forEach(function (k) { e.setAttribute(k, a[k]); }); g.appendChild(e); };
+  if (kind === "menu") { add("path", { d: "M2 4h12M2 8h12M2 12h12" }); }
+  else if (kind === "search") { add("circle", { cx: 7, cy: 7, r: 4.5 }); add("path", { d: "M10.5 10.5 14 14" }); }
+  else if (kind === "plus") { add("path", { d: "M8 3v10M3 8h10" }); }
+  else if (kind === "caret") { add("path", { d: "M4.5 6.5 8 10l3.5-3.5" }); }
+  else if (kind === "issue") { add("circle", { cx: 8, cy: 8, r: 6 }); add("circle", { cx: 8, cy: 8, r: 1, fill: "currentColor" }); }
+  else if (kind === "pr") { add("circle", { cx: 4, cy: 3.5, r: 1.6 }); add("circle", { cx: 4, cy: 12.5, r: 1.6 }); add("circle", { cx: 12, cy: 12.5, r: 1.6 }); add("path", { d: "M4 5.1v5.8M12 10.9V6.5a2 2 0 0 0-2-2H8M9.5 3 8 4.5 9.5 6" }); }
+  else if (kind === "inbox") { add("path", { d: "M2 9l1.8-5.5h8.4L14 9v4H2zM2 9h3.5l1 1.5h3L11 9H14" }); }
+  s.appendChild(g); return s;
+}
+function ghSess() { ghInit(); return S.gh.session && S.gh.session.user ? S.gh.session : null; }
+function ghGo(path) { W.addr = "https://github.com" + path; W.res = webOpen(W.addr); W.page = ""; W.ghMenu = false; render(); }
+function ghLinkEl(path, kids, cls) { return h("a", { href: "#", cls: cls || "", onclick: function (e) { e.preventDefault(); ghGo(path); } }, [].concat(kids)); }
+function ghBtnSq(kind, title, on) { return h("button", { type: "button", cls: "gx-sq", title: title, "aria-label": title, onclick: on || function () {} }, [ghStroke(kind, 16)]); }
+
+// ---- เมนูรูปโปรไฟล์ (ข้อความตามเมนูจริงของ github.com)
+function ghAvatarMenu(user) {
+  var item = function (t, path, extra) { return h("a", { href: "#", cls: "gx-mi" + (extra || ""), onclick: function (e) { e.preventDefault(); if (path === "!out") { S.gh.session = null; ghGo("/login"); } else if (path) ghGo(path); else { W.ghMenu = false; render(); } } }, [t]); };
+  return h("div", { cls: "gx-menu" }, [
+    h("div", { cls: "gx-mh" }, [h("div", { cls: "gx-mhs", text: "Signed in as" }), h("b", { text: user })]),
+    h("div", { cls: "gx-ms" }), item("Set status"), h("div", { cls: "gx-ms" }),
+    item("Your profile", "/" + user), item("Your repositories", "/" + user + "?tab=repositories"), item("Your projects"), item("Your stars"), item("Your gists"), item("Your organizations"), item("Your enterprises"), item("Your sponsors"),
+    h("div", { cls: "gx-ms" }), item("Try Enterprise"), item("Feature preview"), item("Settings", "/settings/profile"),
+    h("div", { cls: "gx-ms" }), item("GitHub Docs"), item("GitHub Support"), item("GitHub Community"),
+    h("div", { cls: "gx-ms" }), item("Sign out", "!out")
+  ]);
+}
+function ghHeader(ctxKids) {
+  var u = ghSess();
+  var left = [ghBtnSq("menu", "Open global navigation menu"), ghLinkEl("/", ghSvg(GH_MARK, 32), "gx-mark"), h("div", { cls: "gx-ctx" }, ctxKids || [h("b", { text: "Dashboard" })])];
+  if (!u) return h("header", { cls: "gx-hd" }, [h("div", { cls: "gx-hl" }, [ghLinkEl("/", ghSvg(GH_MARK, 32), "gx-mark"), h("div", { cls: "gx-ctx" }, ctxKids || [])]), h("div", { cls: "gx-hr" }, [h("span", { cls: "gx-sbox" }, [ghStroke("search", 16), h("span", { text: "Search or jump to…" })]), ghLinkEl("/login", "Sign in", "gx-btn"), ghLinkEl("/signup", "Sign up", "gx-btn gx-btn-o")])]);
+  var ava = h("button", { type: "button", cls: "gx-ava", "aria-label": "Open user navigation menu", onclick: function () { W.ghMenu = !W.ghMenu; render(); } }, [u.user.slice(0, 1).toUpperCase()]);
+  return h("header", { cls: "gx-hd" }, [h("div", { cls: "gx-hl" }, left), h("div", { cls: "gx-hr" }, [
+    h("span", { cls: "gx-sbox" }, [ghStroke("search", 16), h("span", { text: "Type / to search" })]),
+    h("span", { cls: "gx-pair" }, [ghBtnSq("plus", "Create new…"), h("span", { cls: "gx-caret" }, [ghStroke("caret", 12)])]),
+    ghBtnSq("issue", "Issues"), ghBtnSq("pr", "Pull requests"), ghBtnSq("inbox", "You have no unread notifications"),
+    h("div", { cls: "gx-avawrap" }, [ava, W.ghMenu ? ghAvatarMenu(u.user) : null].filter(Boolean))
+  ])]);
+}
+function ghFooterLinks() { return h("footer", { cls: "gx-ft" }, ["Terms", "Privacy", "Docs", "Contact GitHub Support", "Manage cookies", "Do not share my personal information"].map(function (t) { return h("a", { href: "#", text: t, onclick: function (e) { e.preventDefault(); } }); })); }
+
+// ---- หน้า /login (ข้อความ/ปุ่ม/ลำดับตามหน้าจริง)
+function wbGhLogin(returnTo, notice) {
+  var G = W.gl = W.gl || { u: "", p: "", err: "" };
+  var input = function (id, type, key, extra) { return h("input", Object.assign({ type: type, id: id, cls: "gx-in", autocomplete: type === "password" ? "current-password" : "username", value: G[key], oninput: function (e) { G[key] = e.target.value; }, onkeydown: function (e) { if (e.key === "Enter") { e.preventDefault(); sub(); } } }, extra || {})); };
+  var sub = function () {
+    var u = (document.getElementById("login_field") || {}).value || "", p = (document.getElementById("password") || {}).value || ""; G.u = u; G.p = p;
+    if (!u.trim() || !p) { G.err = "Incorrect username or password."; render(); return; }
+    var name = u.indexOf("@") > 0 ? u.split("@")[0] : u.trim(); // รับชื่ออะไรก็ได้ (lab จำลอง ไม่ตรวจรหัสผ่าน)
+    S.gh.session = { user: name }; G.err = ""; G.p = ""; W.ghMenu = false;
+    var rt = returnTo && returnTo.charAt(0) === "/" ? returnTo : "/"; ghGo(rt);
+  };
+  var kids = [
+    h("div", { cls: "gx-lh" }, [ghSvg(GH_MARK, 48), h("h1", { text: "Sign in to GitHub" })]),
+    notice ? h("div", { cls: "gx-flash", text: notice }) : null,
+    G.err ? h("div", { cls: "gx-flash gx-err", role: "alert", text: G.err }) : null,
+    h("div", { cls: "gx-form" }, [
+      h("label", { for: "login_field", text: "Username or email address" }), input("login_field", "text", "u"),
+      h("div", { cls: "gx-prow" }, [h("label", { for: "password", text: "Password" }), h("a", { href: "#", cls: "gx-lnk", text: "Forgot password?", onclick: function (e) { e.preventDefault(); } })]), input("password", "password", "p"),
+      h("button", { type: "button", cls: "gx-green", text: "Sign in", onclick: sub })
+    ]),
+    h("div", { cls: "gx-or" }, [h("span", { text: "or" })]),
+    h("button", { type: "button", cls: "gx-alt" }, [h("span", { cls: "gx-g", text: "G" }), "Continue with Google"]),
+    h("button", { type: "button", cls: "gx-alt" }, [ghSvg("M11.2 8.5c0-1.6 1.3-2.4 1.4-2.4-.8-1.1-1.9-1.3-2.3-1.3-1-.1-1.9.6-2.4.6s-1.3-.6-2.1-.5c-1.1 0-2.1.6-2.6 1.6-1.1 1.9-.3 4.8.8 6.4.5.8 1.2 1.6 2 1.6.8 0 1.1-.5 2.1-.5s1.3.5 2.1.5 1.4-.8 1.9-1.5c.6-.9.8-1.7.9-1.8-.1 0-1.8-.7-1.8-2.6zM9.6 3.6c.4-.5.7-1.2.6-1.9-.6 0-1.4.4-1.8.9-.4.4-.7 1.1-.6 1.8.7.1 1.4-.3 1.8-.8z", 16), "Continue with Apple"]),
+    h("p", { cls: "gx-new" }, ["New to GitHub? ", h("a", { href: "#", text: "Create an account", onclick: function (e) { e.preventDefault(); } })]),
+    h("p", { cls: "gx-new" }, [h("a", { href: "#", text: "Sign in with a passkey", onclick: function (e) { e.preventDefault(); } })])
+  ].filter(Boolean);
+  return h("div", { cls: "gx-page gx-login" }, [h("div", { cls: "gx-lwrap" }, kids), ghFooterLinks()]);
+}
+
+// ---- หน้าแรกหลัง login (Dashboard): sidebar Top repositories + Home feed
+function wbGhDashboard(user) {
+  ghInit(); var repos = Object.keys(S.gh.repos).map(function (n) { return S.gh.repos[n]; });
+  var rows = repos.length ? repos.map(function (r) { var nm = Object.keys(S.gh.repos).filter(function (k) { return S.gh.repos[k] === r; })[0]; return h("a", { href: "#", cls: "gx-repo", onclick: function (e) { e.preventDefault(); ghGo("/" + r.user + "/" + nm); } }, [h("span", { cls: "gx-ava gx-ava-s", text: String(r.user).slice(0, 1).toUpperCase() }), r.user + "/" + nm]); }) : [h("p", { cls: "gx-mut", text: "You don't have any repositories yet." })];
+  var side = h("aside", { cls: "gx-side" }, [
+    h("div", { cls: "gx-sh" }, [h("b", { text: "Top repositories" }), h("button", { type: "button", cls: "gx-green gx-sm", onclick: function () { ghGo("/new"); } }, [ghStroke("plus", 12), " New"])]),
+    h("input", { type: "text", cls: "gx-in gx-find", placeholder: "Find a repository…", "aria-label": "Find a repository…" }), h("div", { cls: "gx-repos" }, rows)
+  ]);
+  var feed = h("main", { cls: "gx-feed" }, [
+    h("h2", { text: "Home" }),
+    h("div", { cls: "gx-ask" }, [h("span", { cls: "gx-mut", text: "Ask Copilot about your code, issues, or pull requests…" })]),
+    h("div", { cls: "gx-card" }, [h("b", { text: "Welcome to GitHub, " + user + "!" }), h("p", { cls: "gx-mut", text: "ใน lab นี้: สร้าง repo ด้วย New → ตั้ง token ที่ Settings › Developer settings → git push จาก Terminal แล้วดู Actions" })])
+  ]);
+  return h("div", { cls: "gx-page gx-dash" }, [h("div", { cls: "gx-cols" }, [side, feed])]);
+}
+
 // ===== หน้า GitHub จำลอง (repo / ไฟล์ / tags / Actions) หน้าตาตามของจริง: header, แท็บพร้อมตัวเลข, commit ล่าสุด, README, About, ภาษา · อ่านอย่างเดียว =====
 var GH_LANG = { py: ["Python", "#3572A5"], ts: ["TypeScript", "#3178c6"], tsx: ["TypeScript", "#3178c6"], js: ["JavaScript", "#f1e05a"], yaml: ["YAML", "#cb171e"], yml: ["YAML", "#cb171e"], json: ["JSON", "#8a8a8a"], tf: ["HCL", "#844fba"], md: ["Markdown", "#083fa1"], css: ["CSS", "#563d7c"], html: ["HTML", "#e34c26"], sh: ["Shell", "#89e051"], j2: ["Jinja", "#a52a22"] };
 var GH_MSG = { ".github": "Add deploy workflow", Dockerfile: "Add Dockerfile", "README.md": "Initial commit", Jenkinsfile: "Add Jenkinsfile", "requirements": "Pin dependencies", "package.json": "Set up Next.js", "config": "Add Django settings", "manage.py": "Initial commit" };
@@ -11915,16 +12040,21 @@ function ghMd(text) {
   }
   flush(); return out;
 }
+function d0(cls, kids) { return h("div", { cls: cls }, kids); }
 function wbGithub(r) {
   ghInit(); var parts = r.path.split("/").filter(Boolean);
+  if (parts[0] === "login") return d0("gh gx-bare", [wbGhLogin(W.ghRet)]);
+  var needAuth = parts[0] === "new" || parts[0] === "settings" || (parts.length >= 3 && parts[2] === "settings");
+  if (needAuth && !ghSess()) { W.ghRet = r.path; return d0("gh gx-bare", [wbGhLogin(r.path)]); }
+  if (!parts.length && ghSess()) return d0("gh", [ghHeader(), wbGhDashboard(ghSess().user)]);
   var d = function (cls, kids, at) { return h("div", Object.assign({ cls: cls }, at || {}), kids || []); };
   function go2(path) { return function (e) { if (e) e.preventDefault(); W.addr = "https://github.com" + path; W.res = webOpen(W.addr); render(); }; }
   function link(path, text, cls) { return h("a", { href: "#", cls: cls || "gh-a", text: text, onclick: go2(path) }); }
   var mark = function (sz) { return h("span", { cls: "gh-mark", style: "font-size:" + (sz || 22) + "px", text: "⌥" }); };
-  var gh = function (kids, rp, user) { return d("gh", [d("gh-top", [mark(26), h("span", { cls: "gh-search", text: "Search or jump to…" }), h("span", { cls: "gh-sp" }), h("span", { cls: "gh-plus", text: "＋" }), h("span", { cls: "gh-ava", text: (user || ghUser() || "U").slice(0, 1).toUpperCase() })]), d("gh-main", kids)]); };
+  var gh = function (kids, rp, user) { return d("gh", [ghHeader(parts.length >= 2 ? [ghLinkEl("/" + parts[0], parts[0]), " / ", h("b", { text: parts[1] })] : null), d("gh-main", kids)]); };
   if (parts.length < 2) return gh([h("h1", { text: "Where the world builds software" }), h("p", { cls: "gh-mut", text: "หน้า GitHub จำลองแสดงเฉพาะ repo ที่คุณ git push จาก Terminal (ใน lab นี้ push แล้ว repo ถูกสร้างให้เอง) เปิดตัวอย่างจากช่อง URL ด้านบน" })]);
   var user = parts[0], name = parts[1], rp = ghRepoOf(user, name);
-  if (!rp) return gh([d("gh-404", [h("h1", { text: "404" }), h("p", { text: "This is not the web page you are looking for." }), h("p", { cls: "gh-mut", text: "ไม่พบ repo " + user + "/" + name + " (ยังไม่ได้ git push จาก Terminal)" })])], null, user);
+  if (!rp) return gh([d("gh-404", [h("h1", { text: "404" }), h("p", { text: "This is not the web page you are looking for." }), h("p", { cls: "gh-mut", text: parts[0] === "settings" || parts[0] === "new" ? "หน้านี้ของ GitHub ยังไม่ได้จำลอง (กำลังทำทีละหน้า)" : "ไม่พบ repo " + user + "/" + name + " (ยังไม่ได้ git push จาก Terminal)" })])], null, user);
   var files = rp.files || {}, mode = parts[2] || "", rest = parts.slice(4).join("/"), base = "/" + user + "/" + name, tags = (rp.tags || []).slice().sort().reverse(), commits = (rp.n || 0) + 1, runs = (typeof ghaRunsOf === "function" ? ghaRunsOf(user + "/" + name) : []).length;
   var head = d("gh-rhead", [d("gh-title", [h("span", { cls: "gh-repoic", text: "▢" }), link("/" + user, user), h("span", { cls: "gh-mut", text: "/" }), link(base, name, "gh-a b"), h("span", { cls: "gh-badge", text: "Public" })]), d("gh-btns", [["◉ Watch", "1"], ["⑂ Fork", "0"], ["☆ Star", "0"]].map(function (b) { return h("span", { cls: "gh-btn" }, [b[0], h("span", { cls: "gh-cnt", text: b[1] })]); }))]);
   var tabsFor = function (active) { return d("gh-tabs", [["Code", "‹›", ""], ["Issues", "◌", "0"], ["Pull requests", "⇄", "0"], ["Actions", "▷", runs ? String(runs) : ""], ["Settings", "⚙", ""]].map(function (t) { var on = t[0] === active, live = t[0] === "Code" || t[0] === "Actions", kids = [t[0]].concat(t[2] ? [h("span", { cls: "gh-cnt", text: t[2] })] : []); return live ? h("a", { href: "#", cls: "gh-tab" + (on ? " on" : ""), "data-ic": t[1], onclick: go2(t[0] === "Code" ? base : base + "/actions") }, kids) : h("span", { cls: "gh-tab dim", "data-ic": t[1] }, kids); })); };

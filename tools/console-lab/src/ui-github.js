@@ -16,16 +16,21 @@ function ghMd(text) {
   }
   flush(); return out;
 }
+function d0(cls, kids) { return h("div", { cls: cls }, kids); }
 function wbGithub(r) {
   ghInit(); var parts = r.path.split("/").filter(Boolean);
+  if (parts[0] === "login") return d0("gh gx-bare", [wbGhLogin(W.ghRet)]);
+  var needAuth = parts[0] === "new" || parts[0] === "settings" || (parts.length >= 3 && parts[2] === "settings");
+  if (needAuth && !ghSess()) { W.ghRet = r.path; return d0("gh gx-bare", [wbGhLogin(r.path)]); }
+  if (!parts.length && ghSess()) return d0("gh", [ghHeader(), wbGhDashboard(ghSess().user)]);
   var d = function (cls, kids, at) { return h("div", Object.assign({ cls: cls }, at || {}), kids || []); };
   function go2(path) { return function (e) { if (e) e.preventDefault(); W.addr = "https://github.com" + path; W.res = webOpen(W.addr); render(); }; }
   function link(path, text, cls) { return h("a", { href: "#", cls: cls || "gh-a", text: text, onclick: go2(path) }); }
   var mark = function (sz) { return h("span", { cls: "gh-mark", style: "font-size:" + (sz || 22) + "px", text: "⌥" }); };
-  var gh = function (kids, rp, user) { return d("gh", [d("gh-top", [mark(26), h("span", { cls: "gh-search", text: "Search or jump to…" }), h("span", { cls: "gh-sp" }), h("span", { cls: "gh-plus", text: "＋" }), h("span", { cls: "gh-ava", text: (user || ghUser() || "U").slice(0, 1).toUpperCase() })]), d("gh-main", kids)]); };
+  var gh = function (kids, rp, user) { return d("gh", [ghHeader(parts.length >= 2 ? [ghLinkEl("/" + parts[0], parts[0]), " / ", h("b", { text: parts[1] })] : null), d("gh-main", kids)]); };
   if (parts.length < 2) return gh([h("h1", { text: "Where the world builds software" }), h("p", { cls: "gh-mut", text: "หน้า GitHub จำลองแสดงเฉพาะ repo ที่คุณ git push จาก Terminal (ใน lab นี้ push แล้ว repo ถูกสร้างให้เอง) เปิดตัวอย่างจากช่อง URL ด้านบน" })]);
   var user = parts[0], name = parts[1], rp = ghRepoOf(user, name);
-  if (!rp) return gh([d("gh-404", [h("h1", { text: "404" }), h("p", { text: "This is not the web page you are looking for." }), h("p", { cls: "gh-mut", text: "ไม่พบ repo " + user + "/" + name + " (ยังไม่ได้ git push จาก Terminal)" })])], null, user);
+  if (!rp) return gh([d("gh-404", [h("h1", { text: "404" }), h("p", { text: "This is not the web page you are looking for." }), h("p", { cls: "gh-mut", text: parts[0] === "settings" || parts[0] === "new" ? "หน้านี้ของ GitHub ยังไม่ได้จำลอง (กำลังทำทีละหน้า)" : "ไม่พบ repo " + user + "/" + name + " (ยังไม่ได้ git push จาก Terminal)" })])], null, user);
   var files = rp.files || {}, mode = parts[2] || "", rest = parts.slice(4).join("/"), base = "/" + user + "/" + name, tags = (rp.tags || []).slice().sort().reverse(), commits = (rp.n || 0) + 1, runs = (typeof ghaRunsOf === "function" ? ghaRunsOf(user + "/" + name) : []).length;
   var head = d("gh-rhead", [d("gh-title", [h("span", { cls: "gh-repoic", text: "▢" }), link("/" + user, user), h("span", { cls: "gh-mut", text: "/" }), link(base, name, "gh-a b"), h("span", { cls: "gh-badge", text: "Public" })]), d("gh-btns", [["◉ Watch", "1"], ["⑂ Fork", "0"], ["☆ Star", "0"]].map(function (b) { return h("span", { cls: "gh-btn" }, [b[0], h("span", { cls: "gh-cnt", text: b[1] })]); }))]);
   var tabsFor = function (active) { return d("gh-tabs", [["Code", "‹›", ""], ["Issues", "◌", "0"], ["Pull requests", "⇄", "0"], ["Actions", "▷", runs ? String(runs) : ""], ["Settings", "⚙", ""]].map(function (t) { var on = t[0] === active, live = t[0] === "Code" || t[0] === "Actions", kids = [t[0]].concat(t[2] ? [h("span", { cls: "gh-cnt", text: t[2] })] : []); return live ? h("a", { href: "#", cls: "gh-tab" + (on ? " on" : ""), "data-ic": t[1], onclick: go2(t[0] === "Code" ? base : base + "/actions") }, kids) : h("span", { cls: "gh-tab dim", "data-ic": t[1] }, kids); })); };
