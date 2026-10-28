@@ -57,7 +57,7 @@ UC.push({
 });
 
 UC.push({
-  id: "ecs", no: 2, video: "videos/usecase2-d.mp4", title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
+  id: "ecs", no: 2, videos: [["ตอน A · เครือข่าย VPC + NAT, Security Group 3 ชั้น, IAM role", "videos/usecase2a-m.mp4"], ["ตอน B · ECR + push image, RDS, Target group, ALB", "videos/usecase2b-m.mp4"], ["ตอน C · ECS cluster, Task definition, Service แล้วเปิดเว็บ", "videos/usecase2c-m.mp4"]], title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
   tag: "ทีมเล็ก-กลางนิยม · ได้ container โดยไม่ต้องดูแล Kubernetes หรือเครื่อง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **backend API ที่เป็น container** (Django/Node/Go) โดย **ไม่ต้องมีเครื่อง** ไม่ต้องดูแล k8s · AWS รัน task ให้ตาม CPU/RAM ที่ขอ · มี **ALB** กระจายโหลด + **RDS** เก็บข้อมูล"],
