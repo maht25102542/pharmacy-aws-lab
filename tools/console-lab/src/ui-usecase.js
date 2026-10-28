@@ -370,6 +370,7 @@ UC.push({
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** + **role 2 ตัว** แล้ว **ECS Express Mode** สร้างให้ครบ: Fargate service, ALB พร้อม HTTPS (ใบรับรอง ACM), target group, security group, auto scaling, log group, alarm และ URL `https://<ชื่อ>.ecs.<region>.on.aws` · ทุกอย่างอยู่ในบัญชีเราและเข้าไปแก้ได้"],
     ["ต่างจาก App Runner", "#c2185b", "ของที่สร้างเป็น **ECS service ปกติ** (เห็นใน Clusters พร้อมป้าย Express) ไม่ใช่ของปิดทึบ · ALB **แชร์ได้ ≤25 service** ใน VPC เดียว (host-header rule) ค่า ALB หารกัน · รองรับเฉพาะ container image (ไม่ deploy จาก source code)"],
+    ["ความนิยม", "#6b7280", "**ยังใหม่** (ประกาศ พ.ย. 2025) · AWS ผลักดันเป็นตัวแทน App Runner แต่ **ไม่มีตัวเลขการใช้งานจริงที่ยืนยันได้** · ตัวที่ใช้กันเยอะจริงคือ ECS Fargate ปกติ (use case 2) กับ GitHub Actions + OIDC (use case 5) · lab นี้คุ้มเรียนเพราะระบบเก่าบน App Runner ต้องย้ายมาทางนี้"],
     ["ใครใช้", "#1d8102", "ทีมที่อยากได้ความง่ายแบบ PaaS แต่ยังอยู่บน ECS/Fargate · API/เว็บ stateless · ทีมแพลตฟอร์มที่อยากให้ทีมอื่น deploy เองได้"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① role 2 ตัวคนละหน้าที่: **execution** (task ดึง image/เขียน log) กับ **infrastructure** (ECS สร้าง ALB/SG/scaling แทนเรา ใช้ตอน create/update/delete เท่านั้น) ② infrastructure role **เปลี่ยนไม่ได้หลังสร้าง** ③ ค่าเริ่มต้น port 80, health path `/`, 1 vCPU/2 GB, scale 1–20 ตาม CPU 60% ④ ไม่ระบุ network = **Default VPC** + public subnet ⑤ ลบ service ต้องให้ policy ของ role อยู่จนลบเสร็จ (Terraform ใส่ depends_on)"]
   ],
