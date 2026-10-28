@@ -56,7 +56,7 @@ async function where2() { return await ev(`(function(){var h=[].slice.call(docum
 
 // ---- เสียงบรรยาย (edge-tts) + ซิงก์กับเฟรม ----
 const crypto = require("crypto");
-const VENV = process.env.REC_VENV || "/tmp/claude-1000/-home-swd-Desktop-work-pharmacy-aws-lab/e26c2d62-bc7d-42b2-9d98-9b40ddadd580/scratchpad/venv";
+const VENV = process.env.REC_VENV || (process.env.HOME + "/.cache/console-lab-rec/venv"); // ติดตั้ง: python3 -m venv $VENV && $VENV/bin/pip install edge-tts imageio-ffmpeg
 const EDGE = process.env.EDGE_TTS || VENV + "/bin/edge-tts", FFMPEG = process.env.FFMPEG || VENV + "/lib/python3.12/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2";
 const VOICE = process.env.REC_VOICE || "th-TH-NiwatNeural", RATE = process.env.REC_RATE || "-15%", PITCH = process.env.REC_PITCH || "-3Hz", ADIR = __dirname + "/audio";
 // edge-tts ปฏิเสธข้อความไทยปนอังกฤษบางแบบ → สะกดคำอังกฤษเป็นไทยก่อนส่ง (ยาวก่อนสั้น)
@@ -146,14 +146,21 @@ async function choose(label, optText) {
 // คลิกการ์ดตัวเลือก (rcard) ตามข้อความ
 async function card(text) { await click({ t: text, tag: "main .rcard", starts: true }); await sleep(300); }
 // เลือก dropdown ตัวสุดท้ายที่ข้อความปุ่มขึ้นต้นด้วย btnText (เช่น แถวที่เพิ่งกด Add rule) แล้วเลือกตัวเลือก
-async function chooseLast(btnText, optText) {
-  const r = await ev(`(function(t){ [].slice.call(document.querySelectorAll("[data-fx]")).forEach(function(e){e.removeAttribute("data-fx")}); var bs=[].slice.call(document.querySelectorAll("main .csel-btn")).filter(function(b){return (b.innerText||"").trim().indexOf(t)===0}); var b=bs[bs.length-1]; if(!b) return "none"; b.setAttribute("data-fx","1"); return "ok"; })(${JSON.stringify(btnText)})`);
+async function chooseNth(btnText, optText, fromEnd) { // fromEnd=0 → ตัวสุดท้าย, 1 → ตัวรองสุดท้าย
+  const r = await ev(`(function(t,k){ [].slice.call(document.querySelectorAll("[data-fx]")).forEach(function(e){e.removeAttribute("data-fx")}); var bs=[].slice.call(document.querySelectorAll("main .csel-btn")).filter(function(b){return (b.innerText||"").trim().indexOf(t)===0}); var b=bs[bs.length-1-k]; if(!b) return "none"; b.setAttribute("data-fx","1"); var q=b.getBoundingClientRect(); window.__fxRect={cy:q.top+q.height/2,left:q.left}; return "ok"; })(${JSON.stringify(btnText)},${fromEnd | 0})`);
   if (r !== "ok") throw new Error("ไม่พบ dropdown " + btnText);
   await click("[data-fx]"); await sleep(150);
   const op = await whereWait({ t: optText, starts: true, tag: ".csel-opt" }); if (!op) throw new Error("ไม่พบตัวเลือก " + optText);
   await shot(0.4); await moveTo(op); await shot(0.6);
   await ev(`(function(t){ var o=[].slice.call(document.querySelectorAll(".csel-opt")).filter(function(e){return e.getBoundingClientRect().width>2 && (e.innerText||"").trim().indexOf(t)===0})[0]; ["mousedown","mouseup","click"].forEach(function(x){o.dispatchEvent(new MouseEvent(x,{bubbles:true}))}); })(${JSON.stringify(optText)})`);
   await sleep(250);
+}
+const chooseLast = (b, o) => chooseNth(b, o, 0);
+// มาร์กช่องข้อความที่อยู่แถวเดียวกับปุ่ม data-fx (ซ้ายสุด) ด้วย data-fx2 แล้วพิมพ์
+async function typeInRowOf(text) { // พิมพ์ลงช่องข้อความที่อยู่แถวเดียวกับ dropdown ที่เพิ่งเลือก (ตำแหน่งจาก chooseNth)
+  const ok = await ev(`(function(){ var r=window.__fxRect; if(!r) return "norect"; [].slice.call(document.querySelectorAll("[data-fx2]")).forEach(function(e){e.removeAttribute("data-fx2")}); var ins=[].slice.call(document.querySelectorAll("main input:not([type=checkbox]):not([type=radio]):not([type=search]):not([type=hidden])")).filter(function(e){var q=e.getBoundingClientRect(); return q.width>2 && Math.abs(q.left-r.left)<12 && q.top+q.height/2>=r.cy-10 && q.top+q.height/2<r.cy+90;}).sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top}); if(!ins.length) return "noinput"; ins[0].setAttribute("data-fx2","1"); return "ok"; })()`);
+  if (ok !== "ok") throw new Error("ไม่พบช่องพิมพ์แถวเดียวกัน: " + ok);
+  await type("[data-fx2]", text);
 }
 async function encode(out) { // เฟรม + เสียง → mp4
   const l = narr[narr.length - 1]; if (l) padTo(l.t0 + l.dur + 0.8);
@@ -169,4 +176,4 @@ async function encode(out) { // เฟรม + เสียง → mp4
   // webm (VP9+Opus) ไว้ให้ VS Code/Electron ที่ถอดรหัส AAC ไม่ได้
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-i", out, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-c:a", "libopus", "-b:a", "48k", out.replace(/\.mp4$/, ".webm")], { stdio: "inherit" });
 }
-module.exports = { chooseLast, fill, choose, card, costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
+module.exports = { chooseNth, typeInRowOf, chooseLast, fill, choose, card, costScene, intro, say, plan, cur, tick, encode, tts, pickBtn, where2, start, send, ev, shot, cap: cap2, click, type, pick, dump, text, hold, finish, sleep, where };
