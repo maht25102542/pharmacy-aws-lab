@@ -453,7 +453,7 @@ function ucErrTable(u) {
   return w;
 }
 // หมู่ตามแกน "แอปรันที่ไหน" + แกน CI/CD แยก (CI/CD 4,5 ปล่อยลง ECS ของ use case 2)
-var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"]];
+var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"]];
 // player: ดับเบิลคลิก/แตะครึ่งขวา = ข้าม 5 วิ, ครึ่งซ้าย = ย้อน 5 วิ, คลิกเดียว = เล่น/หยุด + ปุ่มเปิด-ปิดเสียง
 var VI = {
   play: '<path d="M8 5v14l11-7z" fill="currentColor"/>', pause: '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>',
@@ -552,5 +552,5 @@ function ucTab() {
   return cb;
 }
 FOLD.ucvid = 1; FOLD.ucevid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
-PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (7 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (7 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();
+PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (8 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
+(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (8 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();
