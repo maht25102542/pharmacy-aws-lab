@@ -10018,6 +10018,7 @@ UC.push({
   id: "static", no: 1, video: "videos/usecase1-k.mp4", errVideos: [["เคส: ปล่อยเว็บใหม่แล้วยังเห็นของเก่า (cache ต้อง invalidate)", "videos/usecase1-err.mp4"]], title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
   tag: "นิยมที่สุด · ถูกสุด · ไม่มีเซิร์ฟเวอร์ให้ดูแล",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "บล็อก · หน้าแนะนำร้าน/บริษัท · เว็บ React/Vue (SPA) ที่ build เป็นไฟล์ HTML/JS แล้ว — **เพราะ** ไม่มีโค้ดฝั่ง server ให้รัน จ่ายแค่ที่เก็บไฟล์ + ทราฟฟิก"],
     ["ใช้ทำอะไร", "#2b6cb0", "เว็บ **ที่เป็นไฟล์** (React/Vue/Next export, เว็บบริษัท, หน้า landing, เอกสาร) ไม่มี backend · ผู้ใช้ทั่วโลกได้ไฟล์จาก **edge ใกล้ตัว** (CloudFront) ส่วน S3 เก็บต้นฉบับแบบส่วนตัว"],
     ["ใครใช้", "#1d8102", "แทบทุกทีมที่ทำ frontend · หลายที่ย้ายมาใช้เพราะ **ไม่ต้องดูแลเซิร์ฟเวอร์ ไม่ต้อง patch ไม่ต้อง scale** และค่าใช้จ่ายต่ำ (จ่ายตามการใช้ ไม่มีเครื่องเปิดทิ้ง)"],
     ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = `dev.<โดเมน>` ใช้ทดลองก่อน, prd = `www.<โดเมน>` ผู้ใช้จริง · แต่ละ env มี **bucket + distribution + policy ของตัวเอง** ใช้ **ใบรับรองและ OAC ร่วมกัน**"],
@@ -10071,6 +10072,7 @@ UC.push({
   id: "ecs", no: 2, errVideos: [["เคส: task ไม่ขึ้น เพราะ execution role ขาดสิทธิ์ (ALB ตอบ 503)", "videos/usecase2-err.mp4"]], videos: [["ตอน A · เครือข่าย VPC + NAT, Security Group 3 ชั้น, IAM role", "videos/usecase2a-m.mp4"], ["ตอน B · ECR + push image, RDS, Target group, ALB", "videos/usecase2b-m.mp4"], ["ตอน C · ECS cluster, Task definition, Service แล้วเปิดเว็บ", "videos/usecase2c-m.mp4"]], title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
   tag: "ทีมเล็ก-กลางนิยม · ได้ container โดยไม่ต้องดูแล Kubernetes หรือเครื่อง",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "API หลังบ้านร้านขายยา (REST + Postgres) ที่ต้องรันตลอดและ scale ได้ — **เพราะ** มี server process + ฐานข้อมูล + ต้องคุมเครือข่าย/security group เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **backend API ที่เป็น container** (Django/Node/Go) โดย **ไม่ต้องมีเครื่อง** ไม่ต้องดูแล k8s · AWS รัน task ให้ตาม CPU/RAM ที่ขอ · มี **ALB** กระจายโหลด + **RDS** เก็บข้อมูล"],
     ["ใครใช้", "#1d8102", "ทีมที่อยากได้ container แต่ไม่อยากแบก Kubernetes (EKS) · เหมาะ API ทั่วไป · ถ้าต้องการ ecosystem k8s ค่อยย้ายไป EKS"],
     ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = 1 task เล็ก DB single-AZ พอร์ต 8080 · prd = 2 task ใหญ่กว่า DB **Multi-AZ** พอร์ต 80 · แต่ละ env มี cluster / service / target group / DB ของตัวเอง ใช้ VPC + ECR ร่วมกัน"],
@@ -10133,6 +10135,7 @@ UC.push({
   id: "sls", no: 3, video: "videos/usecase3-h.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-b.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "ฟอร์มรับสมัคร · webhook · API ค้นข้อมูลที่ถูกเรียกเป็นช่วงๆ — **เพราะ** ไม่มีคนเรียกก็ไม่เสียเงิน และไม่ต้องดูแลเซิร์ฟเวอร์"],
     ["ใช้ทำอะไร", "#2b6cb0", "ทำ **API ที่ไม่มีเครื่อง** เลย: ผู้ใช้เรียก **API Gateway** → ปลุก **Lambda** รันโค้ดแค่ตอนมีคำขอ → อ่าน/เขียน **DynamoDB** · ไม่มีอะไรให้ patch/scale · ไม่มีคำขอ = ไม่เสียเงิน"],
     ["ใครใช้", "#1d8102", "ทีมที่อยากส่งงานเร็ว · API ภายในองค์กร · งาน event (อัปโหลด, ตั้งเวลา) · ระบบที่ traffic กระชากเป็นช่วง ๆ · ข้อจำกัด: cold start, เวลารันสูงสุด 15 นาที, ติด lock-in กับ AWS"],
     ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = Lambda 128 MB, ไม่เปิด PITR, log เก็บ 7 วัน · prd = 256 MB, **เปิด point-in-time recovery**, log 30 วัน · แต่ละ env มี **API + Lambda + role + table ของตัวเอง** (ไม่ปนข้อมูลกัน)"],
@@ -10188,6 +10191,7 @@ UC.push({
   id: "cd", no: 4, video: "videos/usecase4-i.mp4", errVideos: [["เคส: pipeline ล้มที่ Build เพราะ CodeBuild ไม่เปิด Privileged", "videos/usecase4-err.mp4"]], title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
   tag: "ปล่อยของอัตโนมัติ ไม่ต้อง docker build/push เอง · ต่อยอดจาก use case 2",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่อยาก push โค้ดแล้วปล่อย dev → อนุมัติ → prd อัตโนมัติด้วย AWS ล้วน — **เพราะ** ไม่ต้องดูแลเครื่อง Jenkins เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "แทนที่ที่ต้อง `docker build/push` และกด update service เอง: push โค้ดขึ้น GitHub → **CodePipeline** ดึงโค้ด → **CodeBuild** build + push image ขึ้น ECR → deploy **ECS dev** → **คนอนุมัติ** → deploy **ECS prd**"],
     ["ใครใช้", "#1d8102", "ทีมที่ใช้ AWS ล้วน (ไม่อยากดูแล Jenkins เอง) · เทียบกับ lab หลัก: Jenkins + ArgoCD ทำงานแบบเดียวกันแต่ต้องดูแลเครื่อง · ที่นี่ทุกอย่างเป็น managed"],
     ["dev vs prd", "#c0392b", "pipeline เดียวส่งไปทั้งสอง env ตามลำดับ: **dev อัตโนมัติ** → ตรวจ → **กด Approve** → prd · image ตัวเดียวกัน (tag = commit 8 ตัว) ไม่ build ใหม่ระหว่าง env · rollback = Release change ของ commit เก่า"],
@@ -10242,6 +10246,7 @@ UC.push({
   id: "gha", no: 5, video: "videos/usecase5-j.mp4", errVideos: [["เคส: run ล้มที่ Configure AWS credentials เพราะไม่มี id-token: write", "videos/usecase5-err.mp4"]], title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
   tag: "โค้ดอยู่ GitHub อยู่แล้ว ไม่ต้องมีเครื่อง CI · ไม่มี access key ถาวร · ต่อยอดจาก use case 2",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่เก็บโค้ดบน GitHub อยู่แล้วและปล่อยลง ECS — **เพราะ** workflow อยู่ใน repo เดียวกัน และไม่ต้องเก็บ access key ถาวร (OIDC)"],
     ["ใช้ทำอะไร", "#2b6cb0", "push โค้ดขึ้น **GitHub** → **GitHub Actions** (รันบนเครื่องของ GitHub) build image → push **ECR** → deploy **ECS dev** อัตโนมัติ · สร้าง **tag** → รอ **คนอนุมัติ** → deploy **ECS prd**"],
     ["ทำไมนิยม", "#1d8102", "ไม่ต้องดูแล Jenkins · config เป็น YAML อยู่กับโค้ด · ฟรีสำหรับ repo ส่วนตัวในระดับหนึ่ง · มี action สำเร็จรูปของ AWS (configure-credentials, ecr-login, ecs-deploy)"],
     ["เรื่องสำคัญ: OIDC", "#c0392b", "สมัยก่อนเก็บ **AWS access key** เป็น secret ใน GitHub (รั่ว = อันตราย หมุนยาก) · ตอนนี้ใช้ **OIDC**: GitHub ออก **ID token** ให้ทุก job → job ขอ `AssumeRoleWithWebIdentity` → ได้ **credential ชั่วคราว** · AWS เชื่อ token เพราะมี **OIDC provider** + **trust policy** ที่ระบุว่า repo ไหน/branch ไหน/environment ไหนขอ role นี้ได้"],
@@ -10291,6 +10296,7 @@ UC.push({
   id: "single", no: 6, video: "videos/usecase6-f.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-b.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "MVP · เว็บร้านค้าท้องถิ่น (Next.js + DB) ทราฟฟิกน้อย — **เพราะ** ถูกสุด เครื่องเดียวจบ แลกกับต้อง patch/backup เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
     ["ใครใช้", "#1d8102", "สตาร์ทอัพช่วงแรก · ฟรีแลนซ์/เอเจนซี่ · เครื่องมือภายใน · งานที่ traffic น้อย-กลาง · ค่าใช้จ่ายหลักร้อย-พันบาท/เดือน (เทียบ ECS+ALB+RDS ที่ ALB อย่างเดียวก็ ~600 บาท/เดือน)"],
     ["ข้อแลกเปลี่ยน", "#c0392b", "**จุดล้มเดียว** (เครื่องดับ = เว็บดับ) · **ต้อง patch/backup เอง** · scale ได้แค่ขยายเครื่อง · deploy มักเป็น `ssh` + `docker compose pull && up -d` หรือ GitHub Actions ผ่าน SSH · ข้อมูลอยู่ในดิสก์เครื่อง (ต้อง snapshot EBS)"],
@@ -10339,6 +10345,7 @@ UC.push({
   id: "apr", no: 7, video: "videos/usecase7-g.mp4", errVideos: [["เคส: port ไม่ตรงกับที่แอปฟัง (prd เปิดไม่ได้)", "videos/usecase7-err-b.mp4"]], title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
   tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "ระบบเก่าที่รัน container เว็บ/API ขนาดเล็กบน App Runner อยู่แล้ว — **เพราะ** ย้ายยังไม่จำเป็น · โปรเจกต์ใหม่ไม่ควรเริ่มที่นี่"],
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
     ["สถานะ", "#c62828", "**App Runner ปิดรับ customer ใหม่แล้ว** · คนที่ใช้อยู่ยังสร้าง service ใหม่ได้ · AWS ไม่เพิ่ม feature · โปรเจกต์ใหม่ใช้ **ECS Express Mode** (image + 2 role → ได้ Fargate + ALB + autoscale) · lab นี้ไว้เข้าใจแนวคิด PaaS + อ่านระบบเก่า"], ["ใครใช้", "#1d8102", "ทีมที่มี App Runner อยู่แล้ว · เว็บ/API container ขนาดเล็ก-กลาง"],
     ["ข้อแลกเปลี่ยน", "#c0392b", "คุมเครือข่าย/เครื่องได้น้อย (เข้า VPC ผ่าน VPC connector) · ไม่มี sidecar/EFS · แพงต่อ vCPU กว่า Fargate · ต้อง **access role** ดึง ECR ส่วนตัว"],
@@ -10379,6 +10386,7 @@ UC.push({
   id: "exp", no: 8, video: "videos/usecase8.mp4", errVideos: [["เคส: health check path ผิด (prd ได้ 503)", "videos/usecase8-err.mp4"]], title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
   tag: "✅ ตัวที่ AWS แนะนำสำหรับโปรเจกต์ใหม่แทน App Runner (ปิดรับลูกค้าใหม่ 30 เม.ย. 2026) · ไม่มีค่า Express เพิ่ม จ่ายแค่ของที่ถูกสร้าง",
   intro: [
+    ["ตัวอย่างงาน", "#0b7a8f", "backend ร้านขายยา/API stateless ของทีมเล็กที่อยากได้ HTTPS + scale แบบ PaaS แต่ยังอยู่บน ECS — **เพราะ** ได้ ALB, ใบรับรอง, auto scaling และ URL ให้เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** + **role 2 ตัว** แล้ว **ECS Express Mode** สร้างให้ครบ: Fargate service, ALB พร้อม HTTPS (ใบรับรอง ACM), target group, security group, auto scaling, log group, alarm และ URL `https://<ชื่อ>.ecs.<region>.on.aws` · ทุกอย่างอยู่ในบัญชีเราและเข้าไปแก้ได้"],
     ["ต่างจาก App Runner", "#c2185b", "ของที่สร้างเป็น **ECS service ปกติ** (เห็นใน Clusters พร้อมป้าย Express) ไม่ใช่ของปิดทึบ · ALB **แชร์ได้ ≤25 service** ใน VPC เดียว (host-header rule) ค่า ALB หารกัน · รองรับเฉพาะ container image (ไม่ deploy จาก source code)"],
     ["ความนิยม", "#6b7280", "**ยังใหม่** (ประกาศ พ.ย. 2025) · AWS ผลักดันเป็นตัวแทน App Runner แต่ **ไม่มีตัวเลขการใช้งานจริงที่ยืนยันได้** · ตัวที่ใช้กันเยอะจริงคือ ECS Fargate ปกติ (use case 2) กับ GitHub Actions + OIDC (use case 5) · lab นี้คุ้มเรียนเพราะระบบเก่าบน App Runner ต้องย้ายมาทางนี้"],
