@@ -251,7 +251,7 @@ function scenGroups(cb, sc, card) {
     var items = sc.filter(function (s) { return g.re.test(s[0]); }); if (!items.length) return;
     var bad = items.filter(function (s) { return SCEN_ERR.indexOf(s[0]) >= 0; }).length, key = "scen" + gi;
     if (FOLD[key] === undefined) FOLD[key] = 1;
-    var f = fold(key, h("span", { style: "color:var(--h-navy,#1e2f5e)" }, [g.t, h("span", { style: "font-weight:400;font-size:.8rem;margin-left:10px;color:var(--muted,#5f6b7a)", text: items.length + " แบบ" + (bad ? " · เคส error " + bad : "") + " · " + g.d })]));
+    var f = fold(key, h("span", { style: "color:" + g.c }, [g.t, h("span", { style: "font-weight:400;font-size:.8rem;margin-left:10px;color:var(--muted,#5f6b7a)", text: items.length + " แบบ" + (bad ? " · เคส error " + bad : "") + " · " + g.d })]));
     f.style.borderLeft = "5px solid " + g.c; f.style.paddingLeft = "10px";
     f.appendChild(h("div", { cls: "scen", style: "margin-top:8px" }, items.map(function (s) {
       var bd = SCEN_ERR.indexOf(s[0]) >= 0, el = card(s);
