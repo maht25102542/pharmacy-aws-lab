@@ -112,3 +112,14 @@ TF_PROV.aws_ecs_express_gateway_service = {
   del: function (st) { API.deleteExpress(st.sim.cluster, st.sim.name); },
   read: function (st) { var x = expOf(st.sim.cluster, st.sim.name); return x ? { cfg: {}, computed: { ingress_paths: [{ access_type: "PUBLIC", endpoint: x.host }] } } : null; }
 };
+// ---------- export Terraform (Express เป็น resource เดียว: ALB/target group/SG/task definition ที่ ECS สร้างให้ไม่ถูกเขียนซ้ำ) ----------
+function expOwnedTg(t) { return S.exps.some(function (x) { return x.tgId === t.id; }); }
+function expOwnedSg(g) { return S.exps.some(function (x) { return x.sgId === g.id; }) || S.albs.some(function (a) { return a.express && a.sgIds.indexOf(g.id) >= 0; }); }
+function expOwnedTd(t) { return S.exps.some(function (x) { return x.svcId && x.name === t.family; }); }
+function expHcl(o, ref) {
+  S.exps.forEach(function (x) {
+    var er = byName(S.roles, x.execRole), ir = byName(S.roles, x.infraRole), env = x.env.map(function (e) { return '\n    environment {\n      name  = "' + e.name + '"\n      value = "' + e.value + '"\n    }'; }).join("");
+    var deps = [er && er.policies.map(function (p) { return "aws_iam_role_policy_attachment." + slug(er.name + "_" + p); }), ir && ir.policies.map(function (p) { return "aws_iam_role_policy_attachment." + slug(ir.name + "_" + p); })].filter(Boolean).reduce(function (a, b) { return a.concat(b); }, []);
+    o.push(hcm("exp", x.cluster + "/" + x.name) + 'resource "aws_ecs_express_gateway_service" "' + slug(x.cluster + "_" + x.name) + '" {\n  service_name            = "' + x.name + '"\n  cluster                 = aws_ecs_cluster.' + slug(x.cluster) + '.name\n  execution_role_arn      = ' + (er ? ref(er.id, "arn") : '"' + x.execRole + '"') + '\n  infrastructure_role_arn = ' + (ir ? ref(ir.id, "arn") : '"' + x.infraRole + '"') + '\n  health_check_path       = "' + x.healthPath + '"\n  cpu                     = "' + x.cpu + '"\n  memory                  = "' + x.memory + '"\n\n  primary_container {\n    image          = "' + x.image + '"\n    container_port = ' + x.port + '\n\n    aws_logs_configuration {\n      log_group = "' + x.logGroup + '"\n    }' + env + '\n  }\n\n  scaling_target {\n    min_task_count            = ' + x.min + '\n    max_task_count            = ' + x.max + '\n    auto_scaling_metric       = "' + x.metric + '"\n    auto_scaling_target_value = ' + x.target + '\n  }\n' + (deps.length ? '\n  depends_on = [' + deps.join(", ") + ']\n' : "") + '}');
+  });
+}

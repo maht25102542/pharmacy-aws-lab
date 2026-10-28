@@ -754,6 +754,7 @@ var HCL_INFO = {
   cdproj: [4, "CodeBuild project", "เครื่องชั่วคราวที่รัน buildspec: docker build + push ขึ้น ECR", "CodeBuild › Build projects › Create build project", "IAM role (codebuild), ECR repository"],
   cdpipe: [6, "CodePipeline", "สายพานส่งโค้ด: Source → Build → Deploy dev → อนุมัติ → Deploy prd", "CodePipeline › Pipelines › Create pipeline", "Connection, CodeBuild project, ECS service, IAM role (codepipeline)"],
   oidc: [1, "IAM OIDC provider (GitHub)", "บอก AWS ว่าเชื่อ ID token ที่ GitHub ออกให้ (ไม่ต้องเก็บ access key ถาวรใน GitHub)", "IAM › Identity providers › Add provider", ""],
+  exp: [4, "ECS Express service", "ให้ image + 2 role ได้ ALB/HTTPS/URL: ECS สร้าง ALB/target group/SG/scaling ให้เอง จึงไม่ต้องเขียน resource เหล่านั้น", "ECS › Express mode", "ECR image, IAM execution + infrastructure role"],
   apr: [4, "App Runner service", "PaaS สำหรับ container: ให้ image ได้ URL HTTPS + scale ให้เอง ไม่ต้องมี cluster/ALB", "App Runner › Create service", "ECR image, IAM access role"],
   ecsc: [1, "ECS cluster", "กลุ่มที่รวม service ของ Fargate (ไม่มีเครื่องให้ดูแล)", "ECS › Clusters › Create cluster", ""],
   ecstd: [4, "ECS task definition", "แม่แบบของคอนเทนเนอร์: image, CPU/RAM, port, env, secret, log, role", "ECS › Task definitions › Create new task definition", "IAM role (execution/task), ECR repo, log group, RDS (DB_HOST/secret)"],
@@ -775,10 +776,10 @@ function hcl() {
   var ig = S.igws.filter(function (g) { return g.vpcId && vids.indexOf(g.vpcId) >= 0; }); reg(ig, "aws_internet_gateway");
   var nt = S.nats.filter(function (n) { return vids.indexOf(n.vpcId) >= 0 && n.state !== "deleted"; }); reg(nt, "aws_nat_gateway"); nt.forEach(function (n) { map[n.eipId] = "aws_eip." + slug(n.name || n.id); });
   var rt = S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }); reg(rt, "aws_route_table");
-  var sg = S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }); reg(sg, "aws_security_group");
+  var sg = S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default" && !expOwnedSg(g); }); reg(sg, "aws_security_group");
   reg(S.keys, "aws_key_pair"); reg(S.roles, "aws_iam_role"); reg(S.repos, "aws_ecr_repository");
   var is = liveInsts().filter(function (i) { return !i.nodeRole; }); is.forEach(function (i, ix) { map[i.id] = "aws_instance." + slug((i.name || "instance") + (is.filter(function (j) { return j.name === i.name; }).length > 1 ? "_" + (ix + 1) : "")); });
-  reg(S.tgs, "aws_lb_target_group"); reg(S.albs, "aws_lb");
+  reg(S.tgs.filter(function (t) { return !expOwnedTg(t); }), "aws_lb_target_group"); reg(S.albs.filter(function (a) { return !a.express; }), "aws_lb");
   function ref(id, attr) { return map[id] ? map[id] + "." + (attr || "id") : '"' + id + '"'; }
   function tags(t) { var a = t.filter(function (x) { return x.k; }); return a.length ? "  tags = { " + a.map(function (x) { return x.k + ' = "' + x.v + '"'; }).join(", ") + " }\n" : ""; }
   var o = [];
@@ -808,15 +809,15 @@ function hcl() {
   is.forEach(function (i) {
     o.push(hcm("instance", i.name) + 'resource "aws_instance" "' + map[i.id].split(".")[1] + '" {\n  ami           = "' + i.ami + '"\n  instance_type = "' + i.type + '"\n  subnet_id     = ' + ref(i.subnetId) + "\n" + (i.keyName ? '  key_name      = "' + i.keyName + '"\n' : "") + "  vpc_security_group_ids = [" + i.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n" + (i.profile ? '  iam_instance_profile   = "' + i.profile + '"\n' : "") + "  metadata_options {\n    http_tokens                 = \"" + i.imds.tokens + '"\n    http_put_response_hop_limit = ' + i.imds.hop + "\n  }\n  root_block_device {\n    volume_size = " + i.disk.size + '\n    volume_type = "' + i.disk.type + '"\n  }\n' + tags((i.name ? [{ k: "Name", v: i.name }] : []).concat(i.tags)) + "}");
   });
-  S.tgs.forEach(function (t) {
+  S.tgs.filter(function (t) { return !expOwnedTg(t); }).forEach(function (t) {
     o.push(hcm("tg", t.name) + 'resource "aws_lb_target_group" "' + slug(t.name) + '" {\n  port     = ' + t.port + '\n  protocol = "' + t.proto + '"\n  vpc_id   = ' + ref(t.vpcId) + '\n  health_check { path = "' + t.hcPath + '" }\n}');
      t.targets.filter(function (x) { return !(find(S.insts, x.instId) || {}).nodeRole; }).forEach(function (x) { o.push(hcm("tgatt", t.name + " ← " + ((find(S.insts, x.instId) || {}).name || "")) + 'resource "aws_lb_target_group_attachment" "' + slug(t.name + "_" + (find(S.insts, x.instId) || {}).name) + '" {\n  target_group_arn = ' + ref(t.id, "arn") + "\n  target_id        = " + ref(x.instId) + "\n  port             = " + x.port + "\n}"); });
   });
-  S.albs.forEach(function (a) {
+  S.albs.filter(function (a) { return !a.express; }).forEach(function (a) {
     o.push(hcm("alb", a.name) + 'resource "aws_lb" "' + slug(a.name) + '" {\n  name               = "' + a.name + '"\n  load_balancer_type = "application"\n  internal           = ' + (a.scheme === "Internal") + "\n  security_groups    = [" + a.sgIds.map(function (id) { return ref(id); }).join(", ") + "]\n  subnets            = [" + a.subnetIds.map(function (id) { return ref(id); }).join(", ") + "]\n}");
      a.listeners.forEach(function (l) { o.push(hcm("listener", a.name + ":" + l.port) + 'resource "aws_lb_listener" "' + slug(a.name + "_" + l.port) + '" {\n  load_balancer_arn = ' + ref(a.id, "arn") + "\n  port              = " + l.port + '\n  protocol          = "HTTP"\n  default_action {\n    type             = "forward"\n    target_group_arn = ' + ref(l.tgId, "arn") + "\n  }\n}"); });
   });
-  mgHcl(o, ref, map); stHcl(o, ref); ecsHcl(o, ref); slsHcl(o, ref); cdHcl(o, ref); ghaHcl(o, ref); aprHcl(o, ref);
+  mgHcl(o, ref, map); stHcl(o, ref); ecsHcl(o, ref); slsHcl(o, ref); cdHcl(o, ref); ghaHcl(o, ref); aprHcl(o, ref); expHcl(o, ref);
   return o.length ? "# อ่านยังไง: แต่ละก้อนมีป้าย \"ขั้นที่ N\" = ลำดับที่ Terraform สร้าง (เลขเท่ากันสร้างพร้อมกันได้)\n# \"กดที่\" = เมนูใน console ที่ทำสิ่งเดียวกัน · \"ต้องมีก่อน\" = อ้างถึงอะไร (เลื่อนดูแผนภาพด้านบนของหน้านี้)\n\n" + o.join("\n\n") : "# ยังไม่มีอะไรให้แปลง ลองสร้าง VPC หรือกดโหลดตัวอย่างในแท็บ 'ตัวอย่างสำเร็จรูป'";
 }
 
@@ -941,14 +942,14 @@ function hclPlan() {
   S.subnets.filter(function (x) { return vids.indexOf(x.vpcId) >= 0; }).forEach(function (x) { add("subnet", x.name || x.id); });
   S.igws.filter(function (g) { return g.vpcId && vids.indexOf(g.vpcId) >= 0; }).forEach(function (g) { add("igw", g.name || g.id); });
   S.nats.filter(function (n) { return vids.indexOf(n.vpcId) >= 0 && n.state !== "deleted"; }).forEach(function (n) { add("eip", n.name || n.id); add("nat", n.name || n.id); });
-  S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default"; }).forEach(function (g) { add("sg", g.name); });
+  S.sgs.filter(function (g) { return vids.indexOf(g.vpcId) >= 0 && g.name !== "default" && !expOwnedSg(g); }).forEach(function (g) { add("sg", g.name); });
   S.rtbs.filter(function (r) { return vids.indexOf(r.vpcId) >= 0 && !r.main; }).forEach(function (r) { add("rtb", r.name || r.id); r.assoc.forEach(function (sid) { add("rtba", nm(r) + "↔" + nm(find(S.subnets, sid))); }); });
   S.keys.forEach(function (k) { if (k.imported) add("key", k.name); });
   S.roles.forEach(function (r) { add("role", r.name); if (r.profile) add("profile", r.name); r.policies.forEach(function (p) { add("attach", p); }); });
   S.repos.forEach(function (r) { add("ecr", r.name); });
   liveInsts().filter(function (i) { return !i.nodeRole; }).forEach(function (i) { add("instance", i.name || i.id); });
-  S.tgs.forEach(function (t) { add("tg", t.name); t.targets.filter(function (x) { return !(find(S.insts, x.instId) || {}).nodeRole; }).forEach(function (x) { add("tgatt", t.name + "←" + ((find(S.insts, x.instId) || {}).name || "")); }); });
-  S.albs.forEach(function (a) { add("alb", a.name); a.listeners.forEach(function (l) { add("listener", ":" + l.port); }); });
+  S.tgs.filter(function (t) { return !expOwnedTg(t); }).forEach(function (t) { add("tg", t.name); t.targets.filter(function (x) { return !(find(S.insts, x.instId) || {}).nodeRole; }).forEach(function (x) { add("tgatt", t.name + "←" + ((find(S.insts, x.instId) || {}).name || "")); }); });
+  S.albs.filter(function (a) { return !a.express; }).forEach(function (a) { add("alb", a.name); a.listeners.forEach(function (l) { add("listener", ":" + l.port); }); });
   S.dbsg.forEach(function (g) { add("dbsg", g.name); });
   S.eks.forEach(function (c) { add("eks", c.name); });
   S.ngs.forEach(function (g) { add("ng", g.cluster + "/" + g.name); });
@@ -959,7 +960,7 @@ function hclPlan() {
   S.certs.forEach(function (c) { add("cert", c.names[0]); c.records.forEach(function (r) { add("certrec", r.name); }); add("certval", c.names[0]); }); S.cfds.forEach(function (d) { add("cfd", d.comment || d.id); });
   S.lgs.forEach(function (g) { add("lg", g.name); }); S.ecsc.forEach(function (c) { add("ecsc", c.name); }); S.tds.forEach(function (t) { add("ecstd", t.id); }); S.esvcs.forEach(function (x) { add("ecssvc", x.cluster + "/" + x.name); });
   S.ddb.forEach(function (t) { add("ddb", t.name); }); S.lams.forEach(function (l) { add("lamfn", l.name); }); S.apis.forEach(function (a) { add("apigw", a.name); a.integrations.forEach(function (i) { add("apiint", a.name + "/" + i.id); }); a.routes.forEach(function (r) { add("apiroute", a.name + " " + r.key); }); a.stages.forEach(function (s) { add("apistage", a.name + "/" + s.name); }); }); S.lperms.forEach(function (p) { add("lamperm", p.fn + " ← " + p.principal); });
-  S.conns.forEach(function (c) { add("cdconn", c.name); }); S.cbps.forEach(function (p) { add("cdproj", p.name); }); S.pipes.forEach(function (p) { add("cdpipe", p.name); }); S.oidcs.forEach(function (p) { add("oidc", p.host); }); S.aprs.forEach(function (a) { add("apr", a.name); });
+  S.conns.forEach(function (c) { add("cdconn", c.name); }); S.cbps.forEach(function (p) { add("cdproj", p.name); }); S.pipes.forEach(function (p) { add("cdpipe", p.name); }); S.oidcs.forEach(function (p) { add("oidc", p.host); }); S.aprs.forEach(function (a) { add("apr", a.name); }); S.exps.forEach(function (x) { add("exp", x.cluster + "/" + x.name); });
   var layers = [[], [], [], [], [], [], []];
   Object.keys(acc).forEach(function (k) { var d = HCL_INFO[k]; layers[d[0] - 1].push({ key: k, label: d[1], names: acc[k], needs: d[4], where: d[3] }); });
   while (layers.length > 5 && !layers[layers.length - 1].length) layers.pop(); // แบบ managed มี 6 ขั้น แบบ VM มี 5
