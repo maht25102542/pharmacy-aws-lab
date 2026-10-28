@@ -486,11 +486,11 @@ body .uc-hero { background: linear-gradient(115deg, color-mix(in srgb, var(--sc)
 .nav button[data-p="lab-scen"] { --accent:#0ea5e9 !important; --accent-bg:#e4f5ff !important; }
 /* ข้อความเมนูซ้าย (Lab/Browser/Laptop): น้ำเงินเข้ม */
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button { color: #061246 !important; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button[aria-current="true"] { color: var(--accent) !important; }
-:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]), :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]) { color: #9db8ff !important; }
+:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]), :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]), :root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:not([aria-current="true"]) { color: #9db8ff !important; }
 /* ชื่อหน้า + breadcrumb: น้ำเงินเข้มเหมือนเมนู */
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main > h1, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main > div > h1 { color: #061246; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb { color: #ec4899; }
-:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb { color: #9db8ff; }
+:root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb, :root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb { color: #9db8ff; }
 /* KPI การ์ดหน้า Cost: เรียบ ไล่สีอ่อนเฉียงซ้าย→ขวา (เหมือนการ์ด use case) ไม่มี blob/เงาหนา */
 body .cd-kpi { background: linear-gradient(115deg, color-mix(in srgb, var(--g1, #475569) 6%, var(--surface)), color-mix(in srgb, var(--g2, #64748b) 18%, var(--surface))) !important; border: 1px solid color-mix(in srgb, var(--g1, #475569) 30%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 10px 20px -8px color-mix(in srgb, var(--g1, #475569) 60%, transparent); }
 body .cd-kpi::after { background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--g2, #64748b) 11%, transparent), transparent 70%); }
@@ -499,9 +499,55 @@ body .cd-kpi .ic { background: transparent; box-shadow: none; font-size: 20px; }
 body .uc-tabs { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
 body .uc-tab { color: #3b4f8c; font-weight: 700; font-size: 13.5px; } body .uc-tab:hover { color: #061246; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 30%, transparent); }
-:root[data-theme="dark"] .uc-tab, :root[data-pal="navy"] .uc-tab { color: #9db8ff; }
+:root[data-theme="dark"] .uc-tab, :root[data-pal="navy"] .uc-tab, :root[data-pal="mixdark"] .uc-tab { color: #9db8ff; }
 :root[data-pal="mix"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chip:not(.on) { border-color: #c3d0ee; }
 :root[data-pal="mix"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chip:not(.on):hover { border-color: #0972d3; }
+/* ===== ธีมผสมมืด (จากธีมผสมพื้นชานม): พื้นกรมท่าเข้มไล่เฉียง · สีเน้นหมุนสัดส่วนเดิม สว่างขึ้นให้อ่านบนพื้นมืด ===== */
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --bg:#0b1226;--surface:#131c38;--fg:#e8edfb;--muted:#94a3cc;--line:#263460;--ctl:#0f1830;--ctl-line:#3a4a7c;--code-bg:#0e1730;--hl:#4a3f10;--lab:#0f1830;color-scheme:dark;--accent:#ff7ab8;--accent-bg:#3a1830;--accent-fg:#2a0a1a;--ok:#72d3a3;--ok-bg:#12301f;--bad:#ff8a80;--bad-bg:#3b1c1a;--warn:#f0b966;--warn-bg:#38280f; }
+:root[data-pal="mixdark"] body[data-svc="Lab"], :root[data-pal="mixdark"] body[data-svc="Browser"], :root[data-pal="mixdark"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #1a2550 0%, #101938 35%, #0b1226 70%, #080e1f 100%) fixed; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+1) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+2) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+3) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+4) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+5) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+6) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+7) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+8) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+9) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+10) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+11) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+12) { --accent:#8fa8ff;--accent-bg:#1b2850; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+13) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+14) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+15) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+16) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+17) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+18) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+19) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button:nth-of-type(20n+20) { --accent:#b9c8ff;--accent-bg:#222f63; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chip:not(.on) { border-color: #3a4a7c; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chip:not(.on):hover { border-color: #4cc3ff; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+1) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+2) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+3) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+4) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+5) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+6) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+7) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+8) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+9) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+10) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+11) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+12) { --accent:#8fa8ff;--accent-bg:#1b2850; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+13) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+14) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+15) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+16) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+17) { --accent:#ff7ab8;--accent-bg:#3a1830; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+18) { --accent:#4cc3ff;--accent-bg:#10324d; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+19) { --accent:#ffa14d;--accent-bg:#3a2614; }
+:root[data-pal="mixdark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main :not(.card) > .card:nth-child(20n+20) { --accent:#b9c8ff;--accent-bg:#222f63; }
+:root[data-pal="mixdark"] .nav button[data-p="lab-scen"] { --accent:#4cc3ff !important; --accent-bg:#10324d !important; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
@@ -792,7 +838,7 @@ body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb,
   <label>บัญชี <select id="acct" aria-label="ชนิดบัญชี"><option value="normal">ปกติ</option><option value="free">Free plan (สร้างหลัง 15 ก.ค. 2025)</option><option value="suspended">ถูกระงับ (suspended)</option></select></label>
   <label>ความเร็ว <select id="speedsel" aria-label="ความเร็วทั้งระบบ"><option value="instant">เสร็จทันที</option><option value="real">เวลาเหมือนจริง</option></select></label>
   <label>ธีม <select id="theme" aria-label="Visual mode"><option value="">ตามระบบ</option><option value="light">สว่าง</option><option value="dark">มืด</option></select></label>
-  <label>สี <select id="pal" aria-label="สีธีม Lab"><option value="mix">ผสม (พื้นชานม)</option><option value="pink">ชมพู</option><option value="orange">ส้มอ่อน</option><option value="sky">ฟ้าสด</option><option value="milktea">ชานม</option><option value="milknavy">น้ำเงินนม</option><option value="navy">กรมท่าเข้ม</option></select></label>
+  <label>สี <select id="pal" aria-label="สีธีม Lab"><option value="mix">ผสม (พื้นชานม)</option><option value="mixdark">ผสมมืด (กรมท่า)</option><option value="pink">ชมพู</option><option value="orange">ส้มอ่อน</option><option value="sky">ฟ้าสด</option><option value="milktea">ชานม</option><option value="milknavy">น้ำเงินนม</option><option value="navy">กรมท่าเข้ม</option></select></label>
   <button type="button" id="reset">Reset</button>
 </div>
 <div class="body"><nav class="nav" id="nav" aria-label="เมนูซ้าย"></nav><main class="main" id="main"></main></div>
