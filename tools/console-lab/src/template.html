@@ -493,7 +493,7 @@ body .uc-hero { background: linear-gradient(115deg, color-mix(in srgb, var(--sc)
 :root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main h1, :root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb, :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .crumb { color: #9db8ff; }
 /* KPI การ์ดหน้า Cost: เรียบ ไล่สีอ่อนเฉียงซ้าย→ขวา (เหมือนการ์ด use case) ไม่มี blob/เงาหนา */
 body .cd-kpi { background: linear-gradient(115deg, color-mix(in srgb, var(--g1, #475569) 5%, var(--surface)), color-mix(in srgb, var(--g1, #475569) 17%, var(--surface))) !important; border: 1px solid color-mix(in srgb, var(--g1, #475569) 30%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 10px 20px -8px color-mix(in srgb, var(--g1, #475569) 60%, transparent); }
-body .cd-kpi::after { display: none; }
+body .cd-kpi::after { background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--g2, #64748b) 11%, transparent), transparent 70%); }
 body .cd-kpi .ic { background: transparent; box-shadow: none; font-size: 20px; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
