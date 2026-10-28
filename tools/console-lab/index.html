@@ -500,6 +500,8 @@ body .uc-tabs { background: color-mix(in srgb, var(--accent) 8%, var(--surface))
 body .uc-tab { color: #3b4f8c; font-weight: 700; font-size: 13.5px; } body .uc-tab:hover { color: #061246; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 30%, transparent); }
 :root[data-theme="dark"] .uc-tab, :root[data-pal="navy"] .uc-tab { color: #9db8ff; }
+:root[data-pal="mix"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chip:not(.on) { border-color: #c3d0ee; }
+:root[data-pal="mix"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .chip:not(.on):hover { border-color: #0972d3; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
