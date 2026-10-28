@@ -495,6 +495,11 @@ body .uc-hero { background: linear-gradient(115deg, color-mix(in srgb, var(--sc)
 body .cd-kpi { background: linear-gradient(115deg, color-mix(in srgb, var(--g1, #475569) 6%, var(--surface)), color-mix(in srgb, var(--g2, #64748b) 18%, var(--surface))) !important; border: 1px solid color-mix(in srgb, var(--g1, #475569) 30%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 10px 20px -8px color-mix(in srgb, var(--g1, #475569) 60%, transparent); }
 body .cd-kpi::after { background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--g2, #64748b) 11%, transparent), transparent 70%); }
 body .cd-kpi .ic { background: transparent; box-shadow: none; font-size: 20px; }
+/* แท็บใน use case: พื้นนมอมสีเน้น ตัวอักษรน้ำเงินนวล ไม่เทาดำ */
+body .uc-tabs { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
+body .uc-tab { color: #3b4f8c; } body .uc-tab:hover { color: #061246; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+:root[data-theme="dark"] .uc-tab, :root[data-pal="navy"] .uc-tab { color: #9db8ff; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
