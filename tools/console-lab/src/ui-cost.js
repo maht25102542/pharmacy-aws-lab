@@ -1,8 +1,8 @@
 // ===== Cost & Bill management: การ์ดในหน้า use case ทุกใบ + หน้า Lab รวม =====
 function money(n) { return "$" + (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n)); }
 function moneyH(n) { return "$" + (n < 1 ? n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2)); }
-var CG = { red: ["#d23a22", "#f76045"], green: ["#6aa81a", "#6fe0b5"], amber: ["#d97706", "#f59e0b"], blue: ["#2563eb", "#7c3aed"], slate: ["#334155", "#64748b"] };
-var CG_LV = [["#0e9f62", "#34d399"], ["#3f9a1c", "#8bdc4a"], ["#b58900", "#ffd23f"], ["#cc5a1f", "#f7a46a"], ["#d23a22", "#f76045"]]; // ไล่ตามระดับราคา (เขียว→เหลือง→ส้ม→แดง)
+var CG = { red: ["#d23a22", "#f76045"], green: ["#6aa81a", "#6fe0b5"], amber: ["#c99700", "#ffd23f"], blue: ["#2563eb", "#7c3aed"], slate: ["#334155", "#64748b"] };
+var CG_LV = [["#0e9f62", "#34d399"], ["#3f9a1c", "#8bdc4a"], ["#dba800", "#ffe14d"], ["#cc5a1f", "#f7a46a"], ["#d23a22", "#f76045"]]; // ไล่ตามระดับราคา (เขียว→เหลือง→ส้ม→แดง)
 function gstyle(g) { return "--g1:" + g[0] + ";--g2:" + g[1]; }
 function bahtS(usd, perHr) { var b = usd * COST_THB; if (b <= 0) return "ฟรี"; if (b < (perHr ? 0.01 : 1)) return perHr ? "<฿0.01" : "<฿1"; return baht(usd).replace(/(\.\d)$/, "$1").replace(/^฿(\d)\.(\d)$/, function (m) { return perHr ? "฿" + b.toFixed(2) : m; }); }
 function usdS(n) { return n <= 0 ? "$0" : n < 0.01 ? "<$0.01" : money(n); }
