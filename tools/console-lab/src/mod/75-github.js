@@ -37,3 +37,11 @@ function ghTokenCanPush(t) { return t.kind === "classic" ? t.scopes.indexOf("rep
 function ghTokenByHash(hv) { var all = ghTokens().concat(S.gh.tokDel.map(function (t) { return Object.assign({ deleted: true }, t); })); return all.filter(function (t) { return hash32(t.token) === hv; })[0]; }
 
 
+// ---- Environments ของ repo (Settings › Environments): ด่านอนุมัติของ job ที่ใช้ environment: X
+// ค่าเริ่มต้น: มี production + Required reviewers (ตามที่ lab 05 เตรียมไว้) · ถ้าลบ environment ทิ้ง workflow จะสร้างใหม่แบบไม่มี protection = ไม่ต้องรออนุมัติ
+function ghEnvReview(repoFull, env) {
+  var nm = String(repoFull || "").split("/").pop(), rp = S.gh && S.gh.repos && S.gh.repos[nm]; if (!rp) return true;
+  rp.envs = rp.envs || { production: { reviewers: [rp.user], wait: 0, branches: "All branches" } };
+  var e = rp.envs[env]; if (!e) { rp.envs[env] = { reviewers: [], wait: 0, branches: "All branches" }; return false; }
+  return !!(e.reviewers && e.reviewers.length);
+}

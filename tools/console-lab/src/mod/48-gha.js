@@ -113,7 +113,7 @@ function ghaRunsOf(repo) { return S.gruns.filter(function (r) { return r.repo ==
 function ghaNew(w, trigger, ref) {
   var sha = ghaSha(), n = ghaRunsOf(w.repo).length + 1, kind = trigger === "tag" ? "prd" : "dev", run = { id: n, repo: w.repo, trigger: trigger, ref: ref, sha: sha, status: "in_progress", kind: kind, born: Date.now(), jobs: [], waiting: false };
   S.gruns.unshift(run);
-  if (kind === "prd" && w.prdEnv) { run.waiting = true; run.status = "waiting"; run.jobs = [{ name: "deploy-prd", status: "waiting", steps: [] }]; return run; }
+  if (kind === "prd" && w.prdEnv && ghEnvReview(w.repo, w.prdEnv)) { run.waiting = true; run.status = "waiting"; run.jobs = [{ name: "deploy-prd", status: "waiting", steps: [] }]; return run; }
   ghaFinish(w, run); return run;
 }
 function ghaFinish(w, run) { var r = ghaRunJob(w, run.kind, { sha: run.sha, ref: run.ref }); run.jobs = [{ name: "deploy-" + run.kind, status: r.ok ? "success" : "failure", steps: r.steps, sub: r.sub }]; run.waiting = false; run.status = r.ok ? "success" : "failure"; }
