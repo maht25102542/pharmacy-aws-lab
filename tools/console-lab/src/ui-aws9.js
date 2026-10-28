@@ -49,6 +49,7 @@ var AP_ROWS = [
   ["① ดูแลเครื่องเอง", "k3s + Jenkins + ArgoCD บน VM", "เรียนรู้ / on-prem / คุมต้นทุน", "สูงมาก", "฿ กลาง (VM หลายเครื่อง)", { lab: "lab-check", note: "main lab (README.md)" }],
   ["② Managed container", "ECS Fargate + ALB + RDS", "ทีมกลาง · นิยมสุดบน AWS", "ต่ำ", "฿ กลาง", { uc: "ecs" }],
   ["② Managed container", "EKS + RDS + ArgoCD", "ต้อง k8s จริง / มี platform team", "กลาง", "฿ สูง (EKS ~$73/เดือน + node)", { lab: "lab-managed", note: "Lab › เทียบ VM กับ Managed (ArgoCD ใช้ของ main lab)" }],
+  ["② Managed container", "ECS Express Mode (ใหม่ · AWS แนะนำแทน App Runner)", "โปรเจกต์ใหม่ที่อยากได้ง่ายแบบ PaaS แต่อยู่บน ECS", "ต่ำ", "฿ กลาง (Fargate + ALB แชร์)", { uc: "exp" }],
   ["② Managed container", "App Runner + ECR (legacy)", "⚠️ ปิดรับลูกค้าใหม่แล้ว · ของใหม่ใช้ ECS Express Mode", "ต่ำมาก", "฿ ต่ำ-กลาง", { uc: "apr" }],
   ["③ ไม่มี server", "API Gateway + Lambda + DynamoDB", "งานเป็นช่วง ๆ / event", "ต่ำมาก", "฿ จ่ายตามใช้", { uc: "sls" }],
   ["③ ไม่มี server", "S3 + CloudFront + Route 53 + ACM", "เว็บ static / SPA", "ต่ำมาก", "฿ ต่ำสุด", { uc: "static" }],

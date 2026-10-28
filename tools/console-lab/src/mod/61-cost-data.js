@@ -93,6 +93,19 @@ var COSTD = {
       watch: ["Budget $30/เดือน", "CloudWatch alarm CPUCreditBalance / CPU", "Billing alert สำหรับ EIP idle"],
       stop: "`terraform destroy` · ถ้าแค่ stop: อย่าลืม EIP + EBS ยังคิดเงิน · release EIP ที่ไม่ใช้"
     },
+    exp: {
+      ex: [cE("ทราฟฟิกน้อย: ALB เฉลี่ย 1 LCU · log 2 GB · ออกอินเทอร์เน็ต 50 GB", "dev + prd แชร์ ALB ตัวเดียว", 730 * CU.lcu + 2 * CU.cwGb, "data transfer 100 GB แรกฟรี"),
+        cE("ทราฟฟิกกลาง: ALB เฉลี่ย 5 LCU · log 20 GB · ออกอินเทอร์เน็ต 300 GB", "task scale ออกเกิน min บางช่วง (ไม่รวมในตัวอย่างนี้)", 5 * 730 * CU.lcu + 20 * CU.cwGb + (300 - 100) * CU.dtGb, "หัก 100 GB แรกฟรี")],
+      bench: [15, 35, 110, 280], benchRef: "API container ขนาดเล็ก (Fargate + ALB แชร์ ไม่มี NAT) ทั่วไปราว $40–110/เดือน", benchWhy: "ถูกกว่า use case 2 เพราะใช้ default VPC (ไม่มี NAT) และ ALB ตัวเดียวแชร์ dev+prd · ค่าหลักคือ Fargate ที่เปิดตลอด + ALB + public IPv4",
+      title: "ECS Express Mode (Fargate + ALB แชร์)", big: "ไม่มีค่า Express เพิ่ม: จ่ายค่า Fargate + ALB (ตัวเดียวแชร์หลาย service) + public IPv4 + log · ไม่มี NAT ถ้าใช้ default VPC",
+      items: [cH("Application Load Balancer ×1 (แชร์ dev + prd)", CR.alb, 1, "+ LCU ตามทราฟฟิก · ALB แชร์ได้ ≤25 service"), cH("public IPv4 ของ ALB (3 AZ ใน default VPC)", CR.ipv4, 3, "คิดตั้งแต่ ก.พ. 2024"), cH("public IPv4 ของ task (default VPC ให้ public IP ทุก task)", CR.ipv4, 3, "dev 1 + prd 2 ตัว (ตาม min tasks)"),
+        cH("Fargate dev: 1 task (.25 vCPU / .5 GB)", 0.25 * CR.fgCpu + 0.5 * CR.fgGb, 1, "ตั้ง min=0 ไม่ได้ผ่านตัวจำลอง · ลบ service เมื่อไม่ใช้"), cH("Fargate prd: 2 tasks (.5 vCPU / 1 GB)", 0.5 * CR.fgCpu + 1 * CR.fgGb, 2, "min tasks = 2"),
+        cM("CloudWatch alarm (faulty deployment) ×2", 0.2, "$0.10/alarm-เดือน · Express สร้างให้ service ละ 1"), cU("CloudWatch Logs", "$0.70/GB ingest + $0.03/GB-เดือน เก็บ · ตั้ง retention", true), cU("ACM certificate", "ฟรี (public cert)", false), cU("Application Auto Scaling", "ฟรี", false), cU("ECR storage", "$0.10/GB-เดือน", true)],
+      drivers: ["จำนวน task × ขนาด × เวลา (Fargate เปิดตลอด)", "public IPv4 ของ ALB + ทุก task", "ALB ต่อชั่วโมง + LCU", "log ที่เขียน"],
+      cut: ["dev: ลดเหลือ 1 task เล็กสุด หรือลบ service นอกเวลา", "แชร์ ALB เดียวกันหลาย service (Express ทำให้เองเมื่ออยู่ VPC เดียวกัน)", "ใส่ task ใน private subnet + NAT/VPC endpoint จะเสีย NAT แทน (ไม่ถูกลง) · ใช้ default VPC ถูกสุดสำหรับ lab", "ตั้ง log retention 7 วัน"],
+      watch: ["Budget + Anomaly Detection", "Cost Explorer: Usage type `LoadBalancerUsage`, `PublicIPv4:InUseAddress`, Fargate", "ดู desired/running tasks ใน cluster"],
+      stop: "`terraform destroy` (ลบ service ต้องให้ policy ของ role อยู่ก่อน มิฉะนั้นค้าง DRAINING) · ลบ log group `/ecs/pharmacy-express-*` ที่ค้าง"
+    },
     apr: {
       ex: [cE("ใช้งานเบา: active 50 ชม./เดือน (1 vCPU + 2 GB)", "(0.0809 + 2 × 0.00885) × 50 ชม.", 50 * (CU.aprVcpu + 2 * 0.00885), "ค่า provisioned memory ตอน idle อยู่ในรายการคงที่แล้ว"),
         cE("ใช้งานหนัก: active 400 ชม./เดือน (1 vCPU + 2 GB)", "(0.0809 + 2 × 0.00885) × 400 ชม.", 400 * (CU.aprVcpu + 2 * 0.00885), "")],

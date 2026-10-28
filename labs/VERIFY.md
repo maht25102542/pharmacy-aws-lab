@@ -78,6 +78,25 @@
 | TF defaults: port "8080", cpu 1024, memory 2048, auto_deployments_enabled true | ตามโค้ด provider | ตรง | ✅ |
 | สถานะ RUNNING / OPERATION_IN_PROGRESS / CREATE_FAILED | ชื่อสถานะ API | ตรง | ✅ |
 
+## Lab 8 (labs/08-ecs-express) — โครงสร้างตามเอกสาร AWS (express-service-*); ไม่เคยเห็นหน้าจริง
+
+| เรื่อง | ตัวจำลองทำ | ตรวจกับ | สถานะ |
+|---|---|---|---|
+| Terraform resource `aws_ecs_express_gateway_service` (provider ≥ 6.23.0) | ใช้ argument ตามเอกสาร provider · `terraform validate` + `fmt -check` ผ่านกับ provider 6.70 | เอกสาร provider + CHANGELOG | ✅ |
+| input ขั้นต่ำ: image + execution role + infrastructure role | ตรง | เอกสาร AWS express-service-overview | ✅ |
+| ค่าเริ่มต้น: port 80, health `/`, 1 vCPU/2 GB, scale 1–20 ที่ CPU 60%, cluster `default`, default VPC | ตรง | เอกสาร express-service-first-run / work | ✅ |
+| task definition ตั้งชื่อ container `Main` · log group `/aws/ecs/<cluster>/<name>-####` · stream prefix `ecs` | ตรง | เอกสาร express-service-work | ✅ |
+| ALB แชร์ ≤25 service ใน VPC เดียว (host-header rule) | ตัวจำลองแชร์ 1 ALB | บล็อกประกาศ + express-service-work | ✅ |
+| URL `https://<service-name>.ecs.<region>.on.aws/` | ตรง | เอกสาร express-service-getting-started | ✅ |
+| ชื่อ SG / ALB / target group ที่ Express สร้าง | `ecs-express-gateway-*` | ไม่มีในเอกสาร | ⚠️ เดา |
+| ข้อความ error เมื่อ infrastructure role ไม่มี policy | `AccessDenied: … elasticloadbalancing:CreateLoadBalancer …` | ไม่มีในเอกสาร | ⚠️ เดา |
+| ข้อความ error เมื่อ trust ของ infrastructure role ผิด | `Unable to assume the role …` | ไม่มีในเอกสาร | ⚠️ เดา |
+| `Unable to assume the service linked role` ตอนสร้างครั้งแรก | ยังไม่จำลอง (ตัวจำลองไม่มี eventual consistency ของ IAM) | เอกสาร express-service-first-run | ⚠️ ไม่จำลอง |
+| port/health path ผิด → ALB health check ไม่ผ่าน (503) | ใช้ engine ECS เดิม | ตามพฤติกรรม ALB ทั่วไป | ⚠️ ข้อความย่อ |
+| หน้า console (ชื่อฟิลด์/ลำดับ/7 แท็บ, ป้าย Express) | ตามเอกสาร express-service-first-run + view-service | เอกสาร AWS | ✅ ข้อความ · ⚠️ สี/ไอคอน/ตำแหน่งปุ่มไม่ได้เห็นหน้าจริง |
+| `ingress_paths[].endpoint` มี `https://` นำหน้าหรือไม่ | ใส่เฉพาะ host | เอกสารไม่ระบุ | ⚠️ |
+| ชื่อ role ที่ปุ่ม "Create new role" สร้าง | `ecsTaskExecutionRole` / `ecsInfrastructureRoleForExpressServices` (ชื่อจากตัวอย่าง CLI ในเอกสาร) | เอกสาร express-service-getting-started | ⚠️ ชื่อใน console จริงอาจต่าง |
+
 ## ที่ยังต่างจากของจริงแน่นอน
 - เวลา: ของจริง ALB/NAT/RDS/CloudFront ใช้เวลาหลายนาที ตัวจำลองมี "ความเร็ว" ให้เลือกแต่ไม่แม่นเป๊ะ
 - ตัวเลข Duration / Init Duration / Max Memory Used เป็นค่าสุ่มแบบคงที่ ไม่ใช่การวัดจริง

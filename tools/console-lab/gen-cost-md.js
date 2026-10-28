@@ -15,7 +15,7 @@ const table = (items, ex) => {
 };
 const CAV = "> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`";
 const gen = D.gen.map((g) => `- **${g[0]}**: ${strip(g[2])}`).join("\n");
-const DIRS = { static: "01-static-site", ecs: "02-ecs-fargate", sls: "03-serverless", cd: "04-cicd", gha: "05-github-actions", single: "06-single-vm", apr: "07-app-runner" };
+const DIRS = { static: "01-static-site", ecs: "02-ecs-fargate", sls: "03-serverless", cd: "04-cicd", gha: "05-github-actions", single: "06-single-vm", apr: "07-app-runner", exp: "08-ecs-express" };
 Object.keys(DIRS).forEach((k) => {
   const c = D.uc[k], s = sum(c.items), dir = path.join(__dirname, "../../labs", DIRS[k]);
   const md = `# ค่าใช้จ่าย & bill management — ${c.title}\n\n> ${c.big}\n\n- เปิดทิ้งไว้ 1 เดือน ≈ **${money(s.month)} (${baht(s.month)})** (เฉพาะรายการคงที่ · อัตราสมมติ ${THB} บาท/ดอลลาร์)\n- **ราคานี้ถือว่า: ${LV[verdict(s.month, c.bench).i][0]}** — ${c.benchRef} · ${c.benchWhy}

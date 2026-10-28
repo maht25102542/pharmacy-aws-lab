@@ -364,6 +364,50 @@ UC.push({
   errGo: function (e) { buildApr(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ดู service ที่ App Runner"); go("aprs", {}, "App Runner"); }
 });
 
+UC.push({
+  id: "exp", no: 8, title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
+  tag: "✅ ตัวที่ AWS แนะนำสำหรับโปรเจกต์ใหม่แทน App Runner (ปิดรับลูกค้าใหม่ 30 เม.ย. 2026) · ไม่มีค่า Express เพิ่ม จ่ายแค่ของที่ถูกสร้าง",
+  intro: [
+    ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** + **role 2 ตัว** แล้ว **ECS Express Mode** สร้างให้ครบ: Fargate service, ALB พร้อม HTTPS (ใบรับรอง ACM), target group, security group, auto scaling, log group, alarm และ URL `https://<ชื่อ>.ecs.<region>.on.aws` · ทุกอย่างอยู่ในบัญชีเราและเข้าไปแก้ได้"],
+    ["ต่างจาก App Runner", "#c2185b", "ของที่สร้างเป็น **ECS service ปกติ** (เห็นใน Clusters พร้อมป้าย Express) ไม่ใช่ของปิดทึบ · ALB **แชร์ได้ ≤25 service** ใน VPC เดียว (host-header rule) ค่า ALB หารกัน · รองรับเฉพาะ container image (ไม่ deploy จาก source code)"],
+    ["ใครใช้", "#1d8102", "ทีมที่อยากได้ความง่ายแบบ PaaS แต่ยังอยู่บน ECS/Fargate · API/เว็บ stateless · ทีมแพลตฟอร์มที่อยากให้ทีมอื่น deploy เองได้"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① role 2 ตัวคนละหน้าที่: **execution** (task ดึง image/เขียน log) กับ **infrastructure** (ECS สร้าง ALB/SG/scaling แทนเรา ใช้ตอน create/update/delete เท่านั้น) ② infrastructure role **เปลี่ยนไม่ได้หลังสร้าง** ③ ค่าเริ่มต้น port 80, health path `/`, 1 vCPU/2 GB, scale 1–20 ตาม CPU 60% ④ ไม่ระบุ network = **Default VPC** + public subnet ⑤ ลบ service ต้องให้ policy ของ role อยู่จนลบเสร็จ (Terraform ใส่ depends_on)"]
+  ],
+  envs: [["", "dev", "prd"], ["CPU / Memory", "0.25 vCPU / 0.5 GB", "0.5 vCPU / 1 GB"], ["Tasks (min–max)", "1–2", "2–6"], ["Auto scaling", "Average CPU 60%", "Average CPU 60%"], ["URL", "pharmacy-api-dev.ecs.<region>.on.aws", "pharmacy-api-prd.ecs.<region>.on.aws"], ["ALB", "ตัวเดียวกัน (แชร์)", "ตัวเดียวกัน (แชร์)"]],
+  nodes: [
+    { id: "user", x: 24, y: 150, w: 120, h: 64, t: "ผู้ใช้", s: "https://…on.aws", c: "#2a4a7a" },
+    { id: "alb", ico: "alb", x: 230, y: 120, w: 220, h: 100, t: "ALB (แชร์) + ACM", s: "HTTPS · host-header rule", c: "#8c4fff" },
+    { id: "task", x: 560, y: 120, w: 240, h: 100, t: "Fargate tasks (Main)", s: "port 8000 · auto scaling", c: "#2e6bd0" },
+    { id: "infra", ico: "iam", x: 230, y: 300, w: 220, h: 64, t: "Infrastructure role", s: "trust ecs.amazonaws.com", c: "#c0392b" },
+    { id: "exec", ico: "iam", x: 560, y: 300, w: 240, h: 64, t: "Execution role", s: "trust ecs-tasks · ดึง ECR + log", c: "#d9480f" }
+  ],
+  links: [["user", "alb"], ["alb", "task"], ["infra", "alb"], ["exec", "task"]],
+  scenes: [
+    { t: "สร้าง service: ECS ประกอบของให้", on: ["infra", "alb", "task"], flow: [["infra", "สวม role"], ["alb", "สร้าง ALB/TG/SG/cert"], ["task", "สร้าง service"]], rows: [["เกิดอะไร", "#0b7a8f", "ECS สวม **infrastructure role** สร้าง ALB (หรือใช้ตัวเดิมที่แชร์), target group, security group, ใบรับรอง ACM, auto scaling, log group แล้วสร้าง ECS service · role ไม่มี policy = Provisioning failed"]] },
+    { t: "task เริ่มทำงาน", on: ["exec", "task"], flow: [["exec", "สวม role"], ["task", "pull image + เขียน log"]], rows: [["เกิดอะไร", "#d9480f", "Fargate สวม **execution role** ดึง image จาก ECR และเขียน log ลง CloudWatch · แล้วแอปเริ่มฟัง port ที่ตั้งไว้"]] },
+    { t: "คำขอของผู้ใช้", on: ["user", "alb", "task"], flow: [["user", "GET /healthz"], ["alb", "TLS + host rule"], ["task", "200"]], rows: [["เกิดอะไร", "#1d8102", "ALB ถอด TLS แล้วเลือก target group ตาม host ของ service · ตรวจสุขภาพที่ health check path · scale ตาม CPU"]] },
+    { t: "เคส error 1: สิทธิ์ role", on: ["infra", "exec", "alb", "task"], bad: ["infra"], flow: [["infra", "✗ AccessDenied"]], rows: [["อาการ", "#c62828", "ไม่มี URL (provisioning failed) หรือ task ดึง image ไม่ได้ (ค้าง Deployment in progress)"], ["สาเหตุ", "#a85a00", "infrastructure role ไม่มี AmazonECSInfrastructureRoleforExpressGatewayServices / execution role ไม่มี AmazonECSTaskExecutionRolePolicy"]] },
+    { t: "เคส error 2: health check ไม่ผ่าน", on: ["alb", "task"], bad: ["task"], flow: [["alb", "health check"], ["task", "✗ refused / 404"]], rows: [["อาการ", "#c62828", "ALB ตอบ 503 · task ถูก stop วน"], ["สาเหตุ", "#a85a00", "container port ไม่ตรงกับที่แอปฟัง · หรือ health check path ผิด · หรือ image tag ไม่มี"]] }
+  ],
+  tf: [
+    { type: "aws_iam_role", name: "execution", file: "labs/08-ecs-express/iam.tf", console: ["IAM › Roles › Create role", "Elastic Container Service Task (trust ecs-tasks.amazonaws.com)"], err: "trust ผิด/ไม่มี policy = ดึง image ไม่ได้ (เคส exp-exec)" },
+    { type: "aws_iam_role_policy_attachment", name: "execution", file: "labs/08-ecs-express/iam.tf", console: ["IAM › Roles › role › Add permissions", "AmazonECSTaskExecutionRolePolicy"], err: "ลืมแนบ = exp-exec" },
+    { type: "aws_iam_role", name: "infrastructure", file: "labs/08-ecs-express/iam.tf", console: ["IAM › Roles › Create role", "Elastic Container Service (trust ecs.amazonaws.com)"], err: "trust ผิด = สร้างไม่ผ่าน" },
+    { type: "aws_iam_role_policy_attachment", name: "infrastructure", file: "labs/08-ecs-express/iam.tf", console: ["IAM › Roles › role › Add permissions", "AmazonECSInfrastructureRoleforExpressGatewayServices"], err: "ลืมแนบ = Provisioning failed (เคส exp-infra)" },
+    { type: "aws_ecs_cluster", name: "express", file: "labs/08-ecs-express/main.tf", console: ["ECS › Clusters › Create cluster", "ชื่อ cluster ที่ service จะอยู่ (ไม่ระบุ = default)"], err: "" },
+    { type: "aws_ecs_express_gateway_service", name: "api", file: "labs/08-ecs-express/main.tf", console: ["ECS › Express mode › Create", "Image URI · 2 role · Additional configurations: port, health path, CPU/Memory, auto scaling"], err: "tag ไม่มี = exp-tag · port ผิด = exp-port · health path ผิด = exp-health" }
+  ],
+  errors: [
+    { load: "exp-exec", t: "execution role ไม่มี policy", sym: "Deployment in progress ไม่จบ · task STOPPED: ResourceInitializationError: unable to pull secrets or registry auth", find: "service › Overview ขั้น ✗ · IAM › role › Permissions", fix: "แนบ AmazonECSTaskExecutionRolePolicy ให้ execution role" },
+    { load: "exp-infra", t: "infrastructure role ไม่มี policy", sym: "Provisioning failed · AccessDenied … elasticloadbalancing:CreateLoadBalancer · ไม่มี URL", find: "service › Resources (ขั้น ALB ล้ม) · IAM › role › Permissions", fix: "แนบ AmazonECSInfrastructureRoleforExpressGatewayServices แล้วลบ service สร้างใหม่ (เปลี่ยน infrastructure role ไม่ได้)" },
+    { load: "exp-tag", t: "tag image ไม่มีใน ECR", sym: "task STOPPED: CannotPullContainerError … not found", find: "service › Configuration › Image เทียบกับ ECR › Images", fix: "Update › Image URI เป็น tag ที่มีจริง หรือ push tag นั้นก่อน" },
+    { load: "exp-port", t: "container port ไม่ตรงกับที่แอปฟัง", sym: "ALB health check ไม่ผ่าน · task ถูก stop วน · URL ได้ 503", find: "Overview ขั้น ✗ 'container port' · Logs: แอปฟัง :8000", fix: "แก้ container port เป็น 8000 (Terraform: container_port) แล้ว apply" },
+    { load: "exp-health", t: "health check path ผิด", sym: "ALB health check ได้ 404 · URL ได้ 503", find: "Overview ขั้น ✗ 'Health check path'", fix: "Update › Health check path = /healthz (หรือ /)" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด", function () { buildExpress("exp"); UI.sel = {}; UI.expSel = "pharmacy-express/pharmacy-api-prd"; UI.expTab = "overview"; flash("ok", "โหลด use case 8 แล้ว"); go("ecs-exp", {}, "ECS"); }], ["โหลดแบบสร้างเอง (มี image ใน ECR)", function () { buildExpress("exp-base"); UI.sel = {}; UI.form = null; flash("ok", "โหลดแล้ว"); go("ecs-express", {}, "ECS"); }]],
+  errGo: function (e) { buildExpress(e.load); UI.sel = {}; UI.form = null; UI.expSel = "pharmacy-express/pharmacy-api-prd"; UI.expTab = "overview"; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ดู service ที่ ECS › Express mode"); go("ecs-exp", {}, "ECS"); }
+});
+
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
 function ucNodeBox(svg, n, tx) {
   var ic = n.ico ? svgIco(n.ico, n.x + 8, n.y + 8, 30) : null, ox = ic ? 22 : 0, g = sv("g", {}, [sv("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10, fill: "#fff", stroke: n.c, "stroke-width": 2 }), tx(n.x + n.w / 2 + ox, n.y + 22, n.t, { a: "middle", b: 1, c: n.c, sz: 13 }), tx(n.x + n.w / 2 + ox, n.y + 40, n.s, { a: "middle", sz: 10, c: "#64748b" })]); if (ic) g.appendChild(ic);

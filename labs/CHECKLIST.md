@@ -162,6 +162,32 @@ terraform apply
 
 ---
 
+## Lab 08 · ECS Express Mode
+
+**ก่อน:** lab 02 พร้อม (ECR `pharmacy/api` + image v1.0.0) · provider aws **>= 6.23** (resource `aws_ecs_express_gateway_service`) · account ต้องมี **default VPC** + public subnet (lab นี้ไม่ระบุ network) · ⚠️ ครั้งแรกที่สร้าง อาจเจอ `Unable to assume the service linked role` ให้รอ ~1 นาทีแล้ว apply ซ้ำ (เอกสาร AWS)
+
+```bash
+cd labs/08-ecs-express && terraform init && terraform plan
+```
+
+```bash
+terraform apply
+```
+
+**เช็ก**
+- [ ] ECS › Clusters › `pharmacy-express` › Services: dev + prd มีป้าย **Express**
+- [ ] EC2 › Load balancers: มี ALB **ตัวเดียว** (แชร์) และมี host-header rule ของทั้งสอง service
+- [ ] `terraform output service_endpoints` ได้ host (ตรวจว่ามี `https://` นำหน้าหรือไม่ แล้วจดลง VERIFY.md)
+- [ ] `curl https://<endpoint>/healthz` ได้ JSON
+- [ ] ลอง `-var port=8080` → ดูอาการ health check ล้ม + ข้อความจริง
+- [ ] ลอง `-var image_tag=v9.9.9` → ดู error ตอนดึง image
+- [ ] ลบ `aws_iam_role_policy_attachment.infrastructure` ออกแล้ว apply ใหม่ → ดูข้อความ error จริงของ infrastructure role ที่ไม่มีสิทธิ์ (ตัวจำลองเขียนตามรูปแบบ AccessDenied ทั่วไป)
+- [ ] `terraform destroy` — ถ้าค้าง `DRAINING` แปลว่า policy ถูกลบก่อน service
+
+**VERIFY.md:** ตาราง Lab 8
+
+---
+
 ## Lab 05 · GitHub Actions + OIDC
 
 **ก่อน:** lab 02 พร้อม (cluster/service dev + prd) · repo GitHub ตามตัวแปร `github_repo` · ⚠️ ถ้ามี OIDC provider ของ GitHub ใน account อยู่แล้ว apply จะ error (มีได้ 1 ตัว) → `terraform import` หรือใช้ตัวเดิม
@@ -216,6 +242,6 @@ terraform apply -var github_repo=<owner>/<repo>
 
 ## หลังทดสอบทุก lab
 
-- [ ] `terraform destroy` ครบทุก lab (ลำดับกลับ: 04 → 05 → 07 → 02 → 06 → 01 → 03)
+- [ ] `terraform destroy` ครบทุก lab (ลำดับกลับ: 04 → 05 → 08 → 07 → 02 → 06 → 01 → 03)
 - [ ] ตรวจ console: ไม่เหลือ NAT Gateway, ALB, RDS, Elastic IP ที่ไม่ได้ผูก
 - [ ] จดผลลง `labs/VERIFY.md` → ส่งข้อความ error ที่ต่างจากตัวจำลองมาแก้
