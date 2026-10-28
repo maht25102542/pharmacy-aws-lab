@@ -557,6 +557,12 @@ body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb,
 :root[data-pal="mixdark"] body .cd-kpi::after { background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--g2) 28%, transparent), transparent 70%); }
 :root[data-pal="mixdark"] body .vd { color: color-mix(in oklab, var(--c) 40%, #fff) !important; background: color-mix(in oklab, var(--c) 38%, transparent) !important; }
 :root[data-pal="mixdark"] body .cd-verdict .lv, :root[data-pal="mixdark"] body .cd-verdict .sc span { filter: brightness(1.5); }
+/* KPI หน้า Cost (ธีมสว่าง): พื้นพาสเทลสะอาด · ตัวเลขสีเต็มอ่านชัด · ไอคอนในแผ่นขาว */
+:root:not([data-pal="mixdark"]) body .cd-kpi { background: linear-gradient(115deg, #fff 0%, color-mix(in oklab, var(--g2) 22%, #fff) 100%) !important; border: 1px solid color-mix(in oklab, var(--g2) 45%, #fff) !important; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 10px 22px -14px color-mix(in oklab, var(--g1) 70%, transparent); }
+:root:not([data-pal="mixdark"]) body .cd-kpi::after { display: none; }
+:root:not([data-pal="mixdark"]) body .cd-kpi .ic { background: #fff; box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--g1) 45%, transparent); border-radius: 12px; }
+:root:not([data-pal="mixdark"]) body .cd-kpi .v { color: var(--g1) !important; }
+:root:not([data-pal="mixdark"]) body .cd-kpi .l { color: color-mix(in oklab, var(--g1) 55%, #061246) !important; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
