@@ -484,8 +484,6 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#0d1c3e;--bg:#0a1630;--surface:#11214a;--fg:#e4eaf8;--muted:#9aaccf;--line:#243a6b;--ctl:#0d1c3e;--ctl-line:#3b548c;--code-bg:#0b1936;--hl:#4a3f10;--accent:#6c9bff;--accent-bg:#182c5a;--accent-fg:#081329;--ok:#72d3a3;--ok-bg:#12301f;--bad:#ff8a80;--bad-bg:#3b1c1a;--warn:#f0b966;--warn-bg:#38280f;color-scheme:dark; }
 .nav button[data-p="lab-scen"] { --accent:#1e40af !important; --accent-bg:#dbe6fb !important; }
 :root[data-theme="dark"] .nav button[data-p="lab-scen"], :root[data-pal="navy"] .nav button[data-p="lab-scen"] { --accent:#9db8ff !important; --accent-bg:#182c5a !important; }
-/* การ์ดทั่วไป: ไล่อ่อนเฉียงซ้าย→ขวา */
-:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .main .card { background: linear-gradient(115deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface) 65%); }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
@@ -753,7 +751,7 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 .cd-kpi .l { color: color-mix(in srgb, var(--g1, #475569) 40%, var(--fg)) !important; font-weight: 700 !important; padding-right: 42px; } .cd-kpi .v { color: color-mix(in srgb, var(--g1, #475569) 88%, var(--fg)) !important; text-shadow: none; } .cd-kpi .v small { color: var(--muted) !important; } .cd-kpi .u { color: var(--muted) !important; }
 
 /* ===== การ์ดมีสีทั้งหมด: pastel gradient ตามสีของการ์ด (ชุดเดียวกับ KPI) ===== */
-.uc-hero, .cd-call, .cd-guide .gc, .cd-rule > div, .cd-verdict, .ap-card { --sc: var(--c, var(--uc, #64748b)); background: linear-gradient(115deg, color-mix(in srgb, var(--sc) 20%, var(--surface)), color-mix(in srgb, var(--sc) 2%, var(--surface)) 95%) !important; border: 1px solid color-mix(in srgb, var(--sc) 36%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 18px -10px color-mix(in srgb, var(--sc) 50%, transparent); }
+.uc-hero, .cd-call, .cd-guide .gc, .cd-rule > div, .cd-verdict, .ap-card { --sc: var(--c, var(--uc, #64748b)); background: linear-gradient(135deg, color-mix(in srgb, var(--sc) 20%, var(--surface)), color-mix(in srgb, var(--sc) 7%, var(--surface)) 92%) !important; border: 1px solid color-mix(in srgb, var(--sc) 36%, var(--line)) !important; box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 18px -10px color-mix(in srgb, var(--sc) 50%, transparent); }
 .ap-card { position: relative; overflow: hidden; border-radius: 12px; padding: 12px 14px 12px 20px; display: flex; flex-direction: column; gap: 6px; color: var(--fg); } .ap-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
 .cd-verdict { --c: var(--c, #64748b); } .cd-guide .gc .hd b, .ap-card b { color: color-mix(in srgb, var(--sc) 70%, var(--fg)); }
 .uc-hero .mc { background: color-mix(in srgb, var(--sc) 10%, var(--surface)); border-color: color-mix(in srgb, var(--sc) 30%, var(--line)); }
