@@ -23,6 +23,8 @@ function wbGithub(r) {
   var needAuth = parts[0] === "new" || parts[0] === "settings" || (parts.length >= 3 && parts[2] === "settings");
   if (needAuth && !ghSess()) { W.ghRet = r.path; return d0("gh gx-bare", [wbGhLogin(r.path)]); }
   if (!parts.length && ghSess()) return d0("gh", [ghHeader(), wbGhDashboard(ghSess().user)]);
+  if (parts[0] === "settings" && parts.length < 3 + 1 && ghSess() && !(parts[1] === "profile" && false)) { var sv = wbGhSettings(parts); if (sv) return sv; }
+  if (parts[0] === "settings" && ghSess()) return wbGhSettings(parts);
   var d = function (cls, kids, at) { return h("div", Object.assign({ cls: cls }, at || {}), kids || []); };
   function go2(path) { return function (e) { if (e) e.preventDefault(); W.addr = "https://github.com" + path; W.res = webOpen(W.addr); render(); }; }
   function link(path, text, cls) { return h("a", { href: "#", cls: cls || "gh-a", text: text, onclick: go2(path) }); }

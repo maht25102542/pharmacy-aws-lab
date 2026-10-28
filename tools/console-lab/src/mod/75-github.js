@@ -29,3 +29,11 @@ function gitCmd(a, cwd) {
 }
 // อ่านค่า image ของ deployment.yaml ใน snapshot ของ repo manifests
 function ghImageOf(rp, path) { var t = rp && rp.files[path + "/deployment.yaml"]; var m = t && /image:\s*(\S+)/.exec(t); return m ? m[1] : ""; }
+
+// ---- personal access token ที่สร้างจากหน้า GitHub จำลอง (เก็บใน S.gh.tokens) · classic ต้องมี scope repo · fine-grained ต้อง Contents: Read and write
+function ghTokens() { ghInit(); S.gh.tokens = S.gh.tokens || []; S.gh.tokDel = S.gh.tokDel || []; return S.gh.tokens; }
+function ghTokenValue(kind) { var n = ghTokens().length + S.gh.tokDel.length + 1, h0 = hash32("ghtok" + kind + n), o = ""; for (var k = 0; o.length < (kind === "fg" ? 79 : 36); k++) o += hash32(h0 + k); var A = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; o = o.split("").map(function (c, i) { return A.charAt((c.charCodeAt(0) * 7 + i * 13) % A.length); }).join(""); return kind === "fg" ? "github_pat_" + "11" + o.slice(0, 20) + "_" + o.slice(20, 79) : "ghp_" + o.slice(0, 36); }
+function ghTokenCanPush(t) { return t.kind === "classic" ? t.scopes.indexOf("repo") >= 0 : t.perms && t.perms.Contents === "Read and write"; }
+function ghTokenByHash(hv) { var all = ghTokens().concat(S.gh.tokDel.map(function (t) { return Object.assign({ deleted: true }, t); })); return all.filter(function (t) { return hash32(t.token) === hv; })[0]; }
+
+
