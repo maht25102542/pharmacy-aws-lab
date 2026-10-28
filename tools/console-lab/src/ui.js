@@ -1559,35 +1559,6 @@ function wbArgo(res) {
 }
 // ---- เว็บ pharmacy ผ่าน ALB
 // ---- หน้าเว็บ GitHub จำลอง (อ่านอย่างเดียว): หน้า repo, เปิดโฟลเดอร์/ไฟล์, tags  ใช้ข้อมูลจาก git push ใน Terminal
-function wbGithub(r) {
-  ghInit(); var parts = r.path.split("/").filter(Boolean), GH = "#0969da", B = "#d0d7de";
-  function go2(path) { return function (e) { if (e) e.preventDefault(); W.addr = "https://github.com" + path; W.res = webOpen(W.addr); render(); }; }
-  function link(path, text, st) { return h("a", { href: "#", style: "color:" + GH + ";text-decoration:none;" + (st || ""), text: text, onclick: go2(path) }); }
-  function shell(kids) { return h("div", { style: "background:#fff;color:#1f2328;border:1px solid " + B + ";border-radius:6px;overflow:hidden;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" }, [h("div", { style: "background:#24292f;color:#fff;padding:12px 20px;display:flex;gap:16px;align-items:center" }, [h("b", { style: "font-size:1.1rem", text: "⌥ GitHub" }), h("span", { style: "margin-left:auto;font-size:.85rem;opacity:.85", text: "(จำลอง · อ่านอย่างเดียว)" })]), h("div", { style: "padding:20px 24px" }, kids)]); }
-  if (parts.length < 2) return shell([h("h1", { style: "margin:0 0 8px", text: "Where the world builds software" }), h("p", { text: "หน้า GitHub จำลองแสดงเฉพาะ repo ที่คุณ git push จาก Terminal (ใน lab นี้ push แล้ว repo ถูกสร้างให้เอง) ลองเปิด:" }), h("ul", {}, ["pharmacy-backend", "pharmacy-frontend", "pharmacy-manifests"].map(function (n) { var u = ghUser(); return h("li", {}, [link("/" + u + "/" + n, "github.com/" + u + "/" + n)]); }))]);
-  var user = parts[0], name = parts[1], rp = ghRepoOf(user, name);
-  if (!rp) return shell([h("div", { style: "text-align:center;padding:40px 0" }, [h("h1", { style: "font-size:3rem;margin:0", text: "404" }), h("p", { text: "This is not the web page you are looking for." }), h("p", { cls: "sub", text: "ไม่พบ repo " + user + "/" + name + " (ยังไม่ได้ git push จาก Terminal หรือชื่อผู้ใช้/ชื่อ repo ไม่ตรง)" })])]);
-  var files = rp.files || {}, mode = parts[2] || "", ref = parts[3] || "main", rest = parts.slice(4).join("/"), base = "/" + user + "/" + name;
-  var head = h("div", { style: "display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:1.25rem" }, [h("span", { text: "▢" }), link("/" + user, user), "/", h("b", { text: name }), h("span", { style: "border:1px solid " + B + ";border-radius:2em;padding:0 8px;font-size:.75rem;color:#59636e;margin-left:6px", text: "Public" })]);
-  var tabsFor = function (active) { return h("div", { style: "display:flex;gap:18px;border-bottom:1px solid " + B + ";margin-bottom:16px;font-size:.92rem" }, ["Code", "Issues", "Pull requests", "Actions", "Settings"].map(function (t) { var on = t === active, live = t === "Code" || t === "Actions"; return live ? h("a", { href: "#", style: "padding:8px 4px;text-decoration:none;color:#1f2328;" + (on ? "border-bottom:2px solid #fd8c73;font-weight:600" : ""), text: t, onclick: go2(t === "Code" ? "/" + user + "/" + name : "/" + user + "/" + name + "/actions") }) : h("span", { style: "padding:8px 4px;color:#59636e", text: t }); })); }, tabs = tabsFor("Code");
-  if (mode === "actions") return shell([head, tabsFor("Actions"), wbGhActions(user, name, rp, parts, go2, link)]);
-  var tags = (rp.tags || []).slice().sort().reverse(), commits = (rp.n || 0) + 1;
-  if (mode === "tags") return shell([head, tabs, h("h2", { style: "font-size:1.2rem", text: "Tags" }), tags.length ? h("ul", {}, tags.map(function (t) { return h("li", {}, [h("b", { text: t })]); })) : h("p", { cls: "sub", text: "ยังไม่มี tag (ใน Terminal: git tag v1.0.0 && git push origin v1.0.0)" }), link(base, "← กลับไปที่ Code")]);
-  var isFile = mode === "blob" && Object.prototype.hasOwnProperty.call(files, rest), dir = mode === "tree" ? rest : "";
-  var crumb = h("div", { style: "margin:0 0 10px;font-size:1rem" }, [link(base, name, "font-weight:700")].concat(rest ? rest.split("/").reduce(function (acc, seg, i, arr) { var pth = arr.slice(0, i + 1).join("/"); return acc.concat([" / ", i === arr.length - 1 && isFile ? h("b", { text: seg }) : link(base + "/tree/main/" + pth, seg)]); }, []) : []));
-  if (isFile) {
-    var lines = String(files[rest]).split("\n"); if (/\n$/.test(files[rest])) lines.pop();
-    return shell([head, tabs, crumb, h("div", { style: "border:1px solid " + B + ";border-radius:6px;overflow:hidden" }, [h("div", { style: "background:#f6f8fa;padding:8px 14px;border-bottom:1px solid " + B + ";font-size:.85rem;color:#59636e", text: lines.length + " lines · " + files[rest].length + " bytes" }), h("pre", { style: "margin:0;padding:10px 14px;overflow:auto;font-size:.8rem;line-height:1.5;max-height:520px" }, [lines.map(function (l, i) { return (i + 1) + "\t" + l; }).join("\n")])])]);
-  }
-  if (mode === "blob") return shell([head, tabs, h("p", { text: "404 - ไม่พบไฟล์ " + rest })]);
-  var pre = dir ? dir + "/" : "", seen = {}, entries = [];
-  Object.keys(files).forEach(function (k) { if (k.indexOf(pre) !== 0) return; var rem = k.slice(pre.length), seg = rem.split("/")[0], isDir = rem.indexOf("/") >= 0; if (!seen[seg]) { seen[seg] = 1; entries.push({ name: seg, dir: isDir }); } });
-  entries.sort(function (a, b) { return a.dir !== b.dir ? (a.dir ? -1 : 1) : a.name < b.name ? -1 : 1; });
-  var rows = (dir ? [{ up: 1 }] : []).concat(entries).map(function (e) { if (e.up) return h("tr", {}, [h("td", { colspan: "2" }, [link(dir.indexOf("/") > 0 ? base + "/tree/main/" + dir.split("/").slice(0, -1).join("/") : base, "..")])]); return h("tr", {}, [h("td", { style: "padding:6px 14px;border-top:1px solid " + B }, [(e.dir ? "📁 " : "📄 "), link(base + (e.dir ? "/tree/main/" : "/blob/main/") + pre + e.name, e.name, "color:#1f2328")])]); });
-  var bar = h("div", { style: "display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap" }, [h("span", { style: "border:1px solid " + B + ";border-radius:6px;padding:3px 12px;background:#f6f8fa;font-weight:600", text: "⎇ main" }), link(base + "/tags", tags.length + " Tags", "color:#1f2328"), h("span", { style: "color:#59636e", text: commits + " Commits" }), h("span", { style: "margin-left:auto;background:#1f883d;color:#fff;border-radius:6px;padding:4px 14px;font-weight:600", text: "<> Code ▾" })]);
-  var clone = h("div", { style: "margin-top:14px;font-size:.85rem;color:#59636e" }, ["Clone: ", h("code", { text: "https://github.com/" + user + "/" + name + ".git" })]);
-  return shell([head, tabs, bar, crumb, Object.keys(files).length ? h("table", { style: "width:100%;border:1px solid " + B + ";border-radius:6px;border-collapse:separate;border-spacing:0;font-size:.92rem" }, [h("tbody", {}, rows)]) : h("p", { cls: "sub", text: "repo ว่าง (ยังไม่มีไฟล์)" }), clone]);
-}
 // Enter ในหน้า Browser = กด Go (ทั้งหลังพิมพ์ URL และหลังเลือกตัวอย่าง: หน้ารีเรนเดอร์ทำให้โฟกัสหาย จึงดักที่ document)
 document.addEventListener("keydown", function (e) {
   if (e.key !== "Enter" || e.isComposing || !document.querySelector(".addrbar")) return;
