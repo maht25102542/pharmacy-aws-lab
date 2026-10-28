@@ -9,14 +9,14 @@
 | รายการ | คิดตาม | ≈ ต่อเดือน (730 ชม.) | ตอนไม่มีคนใช้ |
 |---|---|---|---|
 | CodePipeline (V1) 1 pipeline — pipeline แรกต่อบัญชีฟรี (ตามเงื่อนไขปัจจุบัน) | $1.00/เดือน | $1.00 | คิดเงิน |
-| CodeBuild | คิดต่อนาทีตามขนาดเครื่อง เช่น general1.small ~$0.005/นาที · build 5 นาที ≈ $0.03 | – | ไม่คิด |
+| CodeBuild | คิดต่อนาทีตามขนาดเครื่อง เช่น general1.small $0.005/นาที · build 5 นาที ≈ $0.03 | – | ไม่คิด |
 | S3 artifact bucket | เพนนี · ตั้ง lifecycle ลบของเก่า | – | ไม่คิด |
-| ECR storage | ~$0.10/GB-เดือน · ตั้ง lifecycle เก็บ 10 image ล่าสุด | – | ไม่คิด |
+| ECR storage | $0.10/GB-เดือน · ตั้ง lifecycle เก็บ 10 image ล่าสุด | – | ไม่คิด |
 | Manual approval | ฟรี | – | ไม่คิด |
 | ปลายทาง ECS/ALB/NAT/RDS | ดู use case 2 — เป็นก้อนหลักของ lab นี้ | – | คิดเงิน |
 | **รวมรายการคงที่** | $0/ชม. | **$1.00 (฿35)** | |
 
-> ⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง และ **ยังไม่ยืนยันกับหน้า pricing ของ AWS** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. กับ EKS $0.10/ชม.) → ตรวจที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
+> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
 
 ## อะไรทำให้บิลพุ่ง
 - นาที build × ขนาดเครื่อง × จำนวนครั้งที่ trigger

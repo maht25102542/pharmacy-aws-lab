@@ -8,14 +8,14 @@
 
 | รายการ | คิดตาม | ≈ ต่อเดือน (730 ชม.) | ตอนไม่มีคนใช้ |
 |---|---|---|---|
-| API Gateway (HTTP API) | ~$1 / 1 ล้าน request (REST API แพงกว่า ~3 เท่า) | – | ไม่คิด |
-| Lambda | ฟรี 1 ล้าน request + 400,000 GB-วินาที/เดือน · เกิน ~$0.20/ล้าน + ตาม GB-วินาที | – | ไม่คิด |
-| DynamoDB on-demand | คิดต่อ read/write (ตัวเลขหลัก ~$0.25 / $1.25 ต่อล้านหน่วย) · storage 25 GB แรกฟรี | – | ไม่คิด |
-| DynamoDB PITR (prd) | ~$0.2/GB-เดือน ของ table | – | ไม่คิด |
-| CloudWatch Logs | ~$0.5-0.7/GB ingest · มักเป็นก้อนใหญ่สุดที่คนลืม | – | คิดเงิน |
+| API Gateway (HTTP API) | $1.25 / 1 ล้าน request (REST API $4.25 / ล้าน แพงกว่า ~3.4 เท่า) | – | ไม่คิด |
+| Lambda | ฟรี 1 ล้าน request + 400,000 GB-วินาที/เดือน · เกิน $0.20/ล้าน request + $0.0000166667/GB-วินาที | – | ไม่คิด |
+| DynamoDB on-demand | read $0.1425 / write $0.71 ต่อล้านหน่วย · storage 25 GB แรกฟรี เกินนั้น $0.285/GB-เดือน | – | ไม่คิด |
+| DynamoDB PITR (prd) | $0.228/GB-เดือน ของ table | – | ไม่คิด |
+| CloudWatch Logs | $0.70/GB ingest · มักเป็นก้อนใหญ่สุดที่คนลืม | – | คิดเงิน |
 | **รวมรายการคงที่** | $0/ชม. | **$0.00 (฿0)** | |
 
-> ⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง และ **ยังไม่ยืนยันกับหน้า pricing ของ AWS** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. กับ EKS $0.10/ชม.) → ตรวจที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
+> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
 
 ## อะไรทำให้บิลพุ่ง
 - จำนวน request (และ memory × เวลาของ Lambda)

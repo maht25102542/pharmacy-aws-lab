@@ -120,4 +120,4 @@
 
 ## ราคาใน COST.md / หน้า Cost & Bill
 
-อัตราทั้งหมด (NAT $0.059/ชม. + $0.045/GB, ALB ~$0.0252/ชม., Fargate ~$0.0506/vCPU-ชม. + $0.00553/GB-ชม., t3.* , RDS, App Runner memory $0.007/GB-ชม. ฯลฯ) เป็นประมาณการจากความจำ/บล็อกภายนอก **ยังไม่ได้ยืนยันกับหน้า pricing ของ AWS สำหรับ ap-southeast-1** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. จากประกาศ AWS และ EKS $0.10/ชม.) → ตรวจที่ calculator.aws แล้วแก้ใน `61-cost-data.js`
+อัตรา On-Demand ap-southeast-1 ใน `tools/console-lab/src/mod/61-cost-data.js` **ตรวจกับ AWS Price List API แล้วเมื่อ 28 ต.ค. 2026** (NAT $0.059/ชม. + $0.059/GB, ALB $0.0252/ชม., Fargate $0.0506/vCPU-ชม. + $0.00553/GB-ชม., RDS t4g.micro $0.025 / small Multi-AZ $0.102, App Runner $0.0809/vCPU-ชม. + $0.00885/GB-ชม., EBS gp3 $0.096/GB-เดือน, HTTP API $1.25/ล้าน, public IPv4 $0.005/ชม., EKS $0.10/ชม. ฯลฯ) · ที่ยังต้องดูเอง: โควต้า free tier (มาจากเอกสาร), ปริมาณการใช้จริง, ภาษี, เรทบาท (สมมติ 35) → เทียบกับ Cost Explorer หลังรันจริง

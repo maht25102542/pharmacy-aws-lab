@@ -10,11 +10,11 @@
 |---|---|---|---|
 | GitHub Actions minutes (จ่ายที่ GitHub ไม่ใช่ AWS) | public repo ฟรี · private บนแผน Free ~2,000 นาที/เดือน (ตรวจเงื่อนไขล่าสุดที่ GitHub) | – | ไม่คิด |
 | IAM OIDC provider + STS | ฟรี | – | ไม่คิด |
-| ECR storage | ~$0.10/GB-เดือน · ตั้ง lifecycle | – | ไม่คิด |
+| ECR storage | $0.10/GB-เดือน · ตั้ง lifecycle | – | ไม่คิด |
 | ปลายทาง ECS/ALB/NAT/RDS | ดู use case 2 — ก้อนหลัก | – | คิดเงิน |
 | **รวมรายการคงที่** | $0/ชม. | **$0.00 (฿0)** | |
 
-> ⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง และ **ยังไม่ยืนยันกับหน้า pricing ของ AWS** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. กับ EKS $0.10/ชม.) → ตรวจที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
+> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
 
 ## อะไรทำให้บิลพุ่ง
 - นาทีของ runner (ฝั่ง GitHub)

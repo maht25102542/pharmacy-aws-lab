@@ -2,26 +2,26 @@
 
 > แพงเพราะของที่ ‘เปิดทิ้ง’: NAT + ALB + RDS ไม่ขึ้นกับทราฟฟิก
 
-- เปิดทิ้งไว้ 1 เดือน ≈ **$208 (฿7,297)** (เฉพาะรายการคงที่ · อัตราสมมติ 35 บาท/ดอลลาร์)
+- เปิดทิ้งไว้ 1 เดือน ≈ **$234 (฿8,194)** (เฉพาะรายการคงที่ · อัตราสมมติ 35 บาท/ดอลลาร์)
 - **ราคานี้ถือว่า: ปกติ** — ระบบ API สำหรับ production ของทีมเล็ก (ALB + NAT + RDS + container) ทั่วไปราว $100–300/เดือน · ปกติสำหรับระบบใช้จริง แต่ถ้าเป็น dev/ทดลอง ถือว่าแพง: ลด NAT เหลือตัวเดียว, RDS single-AZ, ปิดนอกเวลา
-- ทำ lab 4 ชั่วโมงแล้ว `terraform destroy` ≈ **$1.14 (฿40)**
+- ทำ lab 4 ชั่วโมงแล้ว `terraform destroy` ≈ **$1.28 (฿45)**
 
 | รายการ | คิดตาม | ≈ ต่อเดือน (730 ชม.) | ตอนไม่มีคนใช้ |
 |---|---|---|---|
-| NAT gateway ×1 — + data processing ~$0.045/GB · เป็นตัวแพงอันดับต้น | $0.059/ชม. | $43.1 | คิดเงิน |
+| NAT gateway ×1 — + data processing $0.059/GB · เป็นตัวแพงอันดับต้น | $0.059/ชม. | $43.1 | คิดเงิน |
 | Application Load Balancer — + LCU ตามทราฟฟิก | $0.0252/ชม. | $18.4 | คิดเงิน |
 | public IPv4 (NAT 1 + ALB 3 AZ) — คิดตั้งแต่ ก.พ. 2024 | $0.02/ชม. | $14.6 | คิดเงิน |
 | Fargate dev: 1 task (.25 vCPU / .5 GB) — ปิดได้ด้วย desired=0 | $0.0154/ชม. | $11.3 | คิดเงิน |
 | Fargate prd: 2 tasks (.5 vCPU / 1 GB) | $0.0617/ชม. | $45.0 | คิดเงิน |
-| RDS Postgres dev (db.t4g.micro, single-AZ) — ประมาณ · stop ได้ครั้งละ 7 วัน | $0.02/ชม. | $14.6 | คิดเงิน |
-| RDS Postgres prd (db.t4g.small, Multi-AZ) — ประมาณ · Multi-AZ ≈ 2 เท่า | $0.075/ชม. | $54.8 | คิดเงิน |
-| RDS storage 20 GB ×2 + backup — ประมาณ | $6.00/เดือน | $6.00 | คิดเงิน |
+| RDS Postgres dev (db.t4g.micro, single-AZ) — stop ได้ครั้งละ 7 วัน | $0.025/ชม. | $18.3 | คิดเงิน |
+| RDS Postgres prd (db.t4g.small, Multi-AZ) — Multi-AZ ≈ 2 เท่าของ single-AZ | $0.102/ชม. | $74.5 | คิดเงิน |
+| RDS storage gp3 20 GB: dev single-AZ + prd Multi-AZ — $0.138/GB single · $0.276/GB Multi-AZ · backup เท่าขนาด DB ฟรี | $8.28/เดือน | $8.28 | คิดเงิน |
 | Secrets Manager ×2 | $0.80/เดือน | $0.80 | คิดเงิน |
-| CloudWatch Logs | ~$0.5-0.7/GB ingest + เก็บ · ตั้ง retention | – | คิดเงิน |
-| ECR storage | ~$0.10/GB-เดือน | – | คิดเงิน |
-| **รวมรายการคงที่** | $0.2763/ชม. | **$208 (฿7,297)** | |
+| CloudWatch Logs | $0.70/GB ingest + $0.03/GB-เดือน เก็บ · ตั้ง retention | – | คิดเงิน |
+| ECR storage | $0.10/GB-เดือน | – | คิดเงิน |
+| **รวมรายการคงที่** | $0.3083/ชม. | **$234 (฿8,194)** | |
 
-> ⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง และ **ยังไม่ยืนยันกับหน้า pricing ของ AWS** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. กับ EKS $0.10/ชม.) → ตรวจที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
+> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
 
 ## อะไรทำให้บิลพุ่ง
 - NAT gateway (ชม. + GB ที่ผ่าน เช่น pull image/ส่ง log)

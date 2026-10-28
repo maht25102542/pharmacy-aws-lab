@@ -12,7 +12,7 @@ const table = (items) => {
   const s = sum(items); rows.push(`| **รวมรายการคงที่** | ${moneyH(s.hr)}/ชม. | **${money(s.month)} (${baht(s.month)})** | |`);
   return "| รายการ | คิดตาม | ≈ ต่อเดือน (730 ชม.) | ตอนไม่มีคนใช้ |\n|---|---|---|---|\n" + rows.join("\n");
 };
-const CAV = "> ⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง และ **ยังไม่ยืนยันกับหน้า pricing ของ AWS** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. กับ EKS $0.10/ชม.) → ตรวจที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`";
+const CAV = "> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`";
 const gen = D.gen.map((g) => `- **${g[0]}**: ${strip(g[2])}`).join("\n");
 const DIRS = { static: "01-static-site", ecs: "02-ecs-fargate", sls: "03-serverless", cd: "04-cicd", gha: "05-github-actions", single: "06-single-vm", apr: "07-app-runner" };
 Object.keys(DIRS).forEach((k) => {

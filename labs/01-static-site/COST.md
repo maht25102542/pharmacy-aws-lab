@@ -9,14 +9,14 @@
 | รายการ | คิดตาม | ≈ ต่อเดือน (730 ชม.) | ตอนไม่มีคนใช้ |
 |---|---|---|---|
 | Route 53 hosted zone ×1 — คิดแม้ไม่มีคนเข้าเว็บ | $0.50/เดือน | $0.50 | คิดเงิน |
-| Route 53 query | ~$0.40 / 1 ล้านครั้ง | – | ไม่คิด |
-| CloudFront | ฟรี 1 TB + 10 ล้าน request/เดือน (always-free) · เกินคิดตามภูมิภาค ~$0.12/GB (เอเชีย) | – | ไม่คิด |
-| S3 storage + request | ~$0.025/GB-เดือน · เว็บเล็กไม่ถึง $0.1 | – | ไม่คิด |
-| CloudFront invalidation | 1,000 path แรกต่อเดือนฟรี · เกิน ~$0.005/path | – | ไม่คิด |
+| Route 53 query | $0.40 / 1 ล้านครั้ง | – | ไม่คิด |
+| CloudFront | ฟรี 1 TB + 10 ล้าน request/เดือน (always-free) · เกินคิด $0.12/GB (เอเชีย) + request HTTPS $0.012 / 10,000 | – | ไม่คิด |
+| S3 storage + request | $0.025/GB-เดือน · เว็บเล็กไม่ถึง $0.1 | – | ไม่คิด |
+| CloudFront invalidation | 1,000 path แรกต่อเดือนฟรี · เกิน $0.005/path | – | ไม่คิด |
 | ACM public certificate | ฟรี | – | ไม่คิด |
 | **รวมรายการคงที่** | $0/ชม. | **$0.50 (฿18)** | |
 
-> ⚠ ตัวเลขเป็น **ประมาณการ** ap-southeast-1 (USD) ไม่รวมภาษี/ค่าโอนข้อมูลจริง และ **ยังไม่ยืนยันกับหน้า pricing ของ AWS** (ยืนยันแล้วเฉพาะ public IPv4 $0.005/ชม. กับ EKS $0.10/ชม.) → ตรวจที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
+> ✓ ราคา On-Demand ap-southeast-1 (USD) **ตรวจกับ AWS Price List API เมื่อ 28 ต.ค. 2026** · ไม่รวมภาษี/ค่าโอนข้อมูลตามการใช้จริง · โควต้า free tier มาจากเอกสาร AWS · ราคาเปลี่ยนได้ ตรวจซ้ำที่ <https://calculator.aws> ก่อนตัดสินใจ · แก้ตัวเลขที่ `tools/console-lab/src/mod/61-cost-data.js` แล้วรัน `node gen-cost-md.js`
 
 ## อะไรทำให้บิลพุ่ง
 - data transfer ออกจาก CloudFront (เกินฟรีเทียร์)
