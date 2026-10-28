@@ -179,6 +179,8 @@ a.lnk:hover, .crumb a:hover { text-decoration: underline; }
 .term .te { color: var(--t-err, #ff6b6b); } .term .to { color: var(--t-ok, #7ee787); } .term .tw { color: var(--t-warn, #f2cc60); } .term .td { color: var(--t-dim, #7d8896); } .term .th { color: var(--t-head, #79c0ff); font-weight: 700; }
 .termrow input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--t-cmd, #d9e4ef); font: inherit; caret-color: var(--t-user, #8fd18f); }
 #termwrap select { background: #fff; color: #17222d; }
+#terminp, #terminp:hover, #terminp:focus { background: transparent !important; border: 0 !important; box-shadow: none !important; outline: 0 !important; border-radius: 0 !important; height: auto !important; padding: 0 !important; color: var(--t-cmd, #d9e4ef) !important; font: inherit !important; }
+.termrow:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--t-user, #8fd18f) 45%, transparent); }
 .filewrap { display: grid; grid-template-columns: 260px 1fr; gap: 14px; }
 .filelist { max-height: 560px; overflow: auto; border: 1px solid var(--line, #ccd); border-radius: 8px; padding: 4px; }
 .fbtn { display: block; width: 100%; text-align: left; background: transparent; border: 0; padding: 3px 6px; font-family: var(--mono); font-size: .74rem; word-break: break-all; cursor: pointer; color: inherit; }
