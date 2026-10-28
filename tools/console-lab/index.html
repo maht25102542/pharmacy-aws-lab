@@ -482,6 +482,8 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 :root[data-pal="milktea"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#efe2d2;--accent:#b57f55;--accent-bg:#f6e8da;--accent-fg:#ffffff;--bg:#f6ecdf;--surface:#fffaf3;--fg:#3a2b20;--muted:#85705e;--line:#e8d6c1;--ctl:#fffbf5;--ctl-line:#d6bda1;--code-bg:#f0e2d1;--hl:#fde8b4;color-scheme:light; }
 :root[data-pal="milknavy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#e4e9f5;--accent:#34509a;--accent-bg:#e6ebf8;--accent-fg:#ffffff;--bg:#eef1f8;--surface:#ffffff;--fg:#16213d;--muted:#5d6a8c;--line:#d8def0;--ctl:#fafbfe;--ctl-line:#aab6d6;--code-bg:#e6eaf5;--hl:#fff1b8;color-scheme:light; }
 :root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#0d1c3e;--bg:#0a1630;--surface:#11214a;--fg:#e4eaf8;--muted:#9aaccf;--line:#243a6b;--ctl:#0d1c3e;--ctl-line:#3b548c;--code-bg:#0b1936;--hl:#4a3f10;--accent:#6c9bff;--accent-bg:#182c5a;--accent-fg:#081329;--ok:#72d3a3;--ok-bg:#12301f;--bad:#ff8a80;--bad-bg:#3b1c1a;--warn:#f0b966;--warn-bg:#38280f;color-scheme:dark; }
+.nav button[data-p="lab-scen"] { --accent:#1e2f5e !important; --accent-bg:#e3e8f5 !important; }
+:root[data-theme="dark"] .nav button[data-p="lab-scen"], :root[data-pal="navy"] .nav button[data-p="lab-scen"] { --accent:#9db8ff !important; --accent-bg:#182c5a !important; }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
@@ -6698,7 +6700,7 @@ function render() {
     if (g[0]) nv.appendChild(h("div", { cls: "grp", text: g[0] }));
     g[1].forEach(function (p) {
       var on = !!p[0] && (UI.page === p[0] || UI.params.from === p[0]);
-      nv.appendChild(h("button", { type: "button", cls: p[0] ? "" : "off", title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", "aria-current": String(on), onclick: function () { if (p[0]) go(p[0], {}, UI.svc); else { flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); render(); } } }, NAVICO[p[0]] ? [h("span", { cls: "ni", text: NAVICO[p[0]] }), h("span", { text: p[1] })] : [p[1]]));
+      nv.appendChild(h("button", { type: "button", "data-p": p[0] || null, cls: p[0] ? "" : "off", title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", "aria-current": String(on), onclick: function () { if (p[0]) go(p[0], {}, UI.svc); else { flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); render(); } } }, NAVICO[p[0]] ? [h("span", { cls: "ni", text: NAVICO[p[0]] }), h("span", { text: p[1] })] : [p[1]]));
     });
   });
   var m = document.getElementById("main"); m.textContent = "";

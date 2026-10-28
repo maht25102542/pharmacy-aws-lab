@@ -78,7 +78,7 @@ function render() {
     if (g[0]) nv.appendChild(h("div", { cls: "grp", text: g[0] }));
     g[1].forEach(function (p) {
       var on = !!p[0] && (UI.page === p[0] || UI.params.from === p[0]);
-      nv.appendChild(h("button", { type: "button", cls: p[0] ? "" : "off", title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", "aria-current": String(on), onclick: function () { if (p[0]) go(p[0], {}, UI.svc); else { flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); render(); } } }, NAVICO[p[0]] ? [h("span", { cls: "ni", text: NAVICO[p[0]] }), h("span", { text: p[1] })] : [p[1]]));
+      nv.appendChild(h("button", { type: "button", "data-p": p[0] || null, cls: p[0] ? "" : "off", title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", "aria-current": String(on), onclick: function () { if (p[0]) go(p[0], {}, UI.svc); else { flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); render(); } } }, NAVICO[p[0]] ? [h("span", { cls: "ni", text: NAVICO[p[0]] }), h("span", { text: p[1] })] : [p[1]]));
     });
   });
   var m = document.getElementById("main"); m.textContent = "";
