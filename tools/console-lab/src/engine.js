@@ -13,6 +13,7 @@ var POLICY_DEF = {
   AWSLambdaBasicExecutionRole: { desc: "Provides write permissions to CloudWatch Logs.", actions: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"] },
   AmazonDynamoDBFullAccess: { desc: "Provides full access to Amazon DynamoDB via the AWS Management Console. (ของจริงควรเขียน policy เฉพาะ table)", actions: ["dynamodb:*"] },
   AmazonDynamoDBReadOnlyAccess: { desc: "Provides read only access to Amazon DynamoDB via the AWS Management Console.", actions: ["dynamodb:BatchGetItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:DescribeTable", "dynamodb:ListTables"] },
+  AmazonECSInfrastructureRoleforExpressGatewayServices: { desc: "Allows ECS to create and manage the AWS resources (load balancer, target groups, security groups, auto scaling, certificates) behind an Amazon ECS Express Mode service.", actions: ["elasticloadbalancing:CreateLoadBalancer", "elasticloadbalancing:CreateTargetGroup", "elasticloadbalancing:CreateListener", "elasticloadbalancing:CreateRule", "ec2:CreateSecurityGroup", "ec2:AuthorizeSecurityGroupIngress", "application-autoscaling:RegisterScalableTarget", "application-autoscaling:PutScalingPolicy", "acm:RequestCertificate", "logs:CreateLogGroup"] },
   AWSAppRunnerServicePolicyForECRAccess: { desc: "This policy allows App Runner to access ECR images in your account.", actions: ["ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage", "ecr:DescribeImages", "ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability"] },
   AmazonECSTaskExecutionRolePolicy: { desc: "Provides access to other AWS service resources that are required to run Amazon ECS tasks (pull images from ECR, write CloudWatch Logs).", actions: ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage", "logs:CreateLogStream", "logs:PutLogEvents"] },
   SecretsManagerReadWrite: { desc: "Provides read/write access to AWS Secrets Manager via the AWS Management Console. (ของจริงควรเขียน policy เฉพาะ secret)", actions: ["secretsmanager:*"] },
@@ -74,7 +75,7 @@ function ensureState() {
   if (!S.nats) S.nats = [];
   if (!S.faults) S.faults = {};
   ghInit();
-  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs", "ecsc", "tds", "esvcs", "lgs", "ddb", "lams", "apis", "lperms", "lamLogs", "layers", "adoms", "alarms", "conns", "cbps", "pipes", "vpces", "oidcs", "gwf", "gruns", "aprs"].forEach(function (k) { if (!S[k]) S[k] = []; });
+  ["users", "eips", "policies", "eks", "ngs", "asgs", "dbsg", "rds", "buckets", "oacs", "cfds", "zones", "certs", "ecsc", "tds", "esvcs", "lgs", "ddb", "lams", "apis", "lperms", "lamLogs", "layers", "adoms", "alarms", "conns", "cbps", "pipes", "vpces", "oidcs", "gwf", "gruns", "aprs", "exps"].forEach(function (k) { if (!S[k]) S[k] = []; });
   if (!S.cfCache) S.cfCache = {};
   if (!S.policies.length) S.policies = POLICIES.map(function (n) { return { id: n, name: n, desc: POLICY_DEF[n].desc }; });
   S.repos.forEach(function (r) { if (!r.images) r.images = []; });
@@ -282,11 +283,11 @@ API.createKey = function (o) {
 API.createRole = function (o) {
   var n = o.name || "", er = {};
   if (o.entity !== "AWS service") er.entity = "จำลองเฉพาะ AWS service";
-  if (o.usecase !== "EC2" && o.usecase !== "EKS" && o.usecase !== "ECS" && o.usecase !== "Lambda" && o.usecase !== "CodeBuild" && o.usecase !== "CodePipeline" && o.usecase !== "AppRunner") er.usecase = "จำลองเฉพาะ use case EC2, EKS, ECS, Lambda, CodeBuild และ CodePipeline";
+  if (o.usecase !== "EC2" && o.usecase !== "EKS" && o.usecase !== "ECS" && o.usecase !== "Lambda" && o.usecase !== "CodeBuild" && o.usecase !== "CodePipeline" && o.usecase !== "AppRunner" && o.usecase !== "ECSService") er.usecase = "จำลองเฉพาะ use case EC2, EKS, ECS, Lambda, CodeBuild และ CodePipeline";
   if (!n) er.name = "ต้องกรอก Role name"; else if (n.length > 64) er.name = "ยาวได้ไม่เกิน 64 ตัวอักษร"; else if (!/^[A-Za-z0-9+=,.@_-]+$/.test(n)) er.name = "ใช้ได้เฉพาะตัวอักษร ตัวเลข และ + = , . @ _ -";
   else if (S.roles.some(function (r) { return r.name.toLowerCase() === n.toLowerCase(); })) er.name = "มี role ชื่อนี้แล้ว (ชื่อซ้ำกันไม่ได้ แม้ต่างกันแค่ตัวพิมพ์ใหญ่เล็ก)";
   if (Object.keys(er).length) return { errors: er };
-  var eksRole = o.usecase === "EKS", r = { id: rid("role"), name: n, desc: o.desc || "", policies: eksRole ? ["AmazonEKSClusterPolicy"] : (o.policies || []).slice(), profile: eksRole || /^(ECS|Lambda|CodeBuild|CodePipeline|AppRunner)$/.test(o.usecase) ? "" : n, trustSvc: eksRole ? "eks.amazonaws.com" : o.usecase === "ECS" ? "ecs-tasks.amazonaws.com" : o.usecase === "Lambda" ? "lambda.amazonaws.com" : o.usecase === "CodeBuild" ? "codebuild.amazonaws.com" : o.usecase === "CodePipeline" ? "codepipeline.amazonaws.com" : o.usecase === "AppRunner" ? "build.apprunner.amazonaws.com" : "ec2.amazonaws.com" }; S.roles.push(r); return { res: r };
+  var eksRole = o.usecase === "EKS", r = { id: rid("role"), name: n, desc: o.desc || "", policies: eksRole ? ["AmazonEKSClusterPolicy"] : (o.policies || []).slice(), profile: eksRole || /^(ECS|ECSService|Lambda|CodeBuild|CodePipeline|AppRunner)$/.test(o.usecase) ? "" : n, trustSvc: eksRole ? "eks.amazonaws.com" : o.usecase === "ECSService" ? "ecs.amazonaws.com" : o.usecase === "ECS" ? "ecs-tasks.amazonaws.com" : o.usecase === "Lambda" ? "lambda.amazonaws.com" : o.usecase === "CodeBuild" ? "codebuild.amazonaws.com" : o.usecase === "CodePipeline" ? "codepipeline.amazonaws.com" : o.usecase === "AppRunner" ? "build.apprunner.amazonaws.com" : "ec2.amazonaws.com" }; S.roles.push(r); return { res: r };
 };
 API.setRoleTrust = function (id, text) { var r = find(S.roles, id); if (!r) return E("_", "NoSuchEntity: ไม่พบ role"); var d; try { d = JSON.parse(text); } catch (e) { return E("trust", "MalformedPolicyDocument: Syntax errors in policy."); } if (!d || !Array.isArray(d.Statement || (d.Statement ? [d.Statement] : null)) && typeof d.Statement !== "object") return E("trust", "MalformedPolicyDocument: Policy document should contain at least one Statement."); r.trust = d; return { res: r }; };
 API.createRepo = function (o) {
@@ -635,7 +636,7 @@ API.del = function (kind, id, word) {
   else if (kind === "inst") API.instState(id, "terminate");
   else if (kind === "repo") S.repos = S.repos.filter(function (x) { return x.id !== id; });
   else if (kind === "eip") S.eips = S.eips.filter(function (x) { return x.id !== id; });
-  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn|vpce|oidc|apr)$/.test(kind)) return mgDelDo(kind, id);
+  else if (/^(eks|ng|rds|dbsg|bucket|cfd|zone|cert|oac|esvc|ecsc|lg|td|lam|api|ddb|layer|adom|alarm|pipe|cbp|conn|vpce|oidc|apr|exp)$/.test(kind)) return mgDelDo(kind, id);
   return { res: true };
 };
 
@@ -643,6 +644,7 @@ API.del = function (kind, id, word) {
 function checks() {
   if (isManagedLab()) return checksManaged();
   if (isStaticLab()) return checksStatic();
+  if (isExpLab()) return checksExpress();
   if (isEcsLab()) return checksEcs();
   if (isAprLab()) return checksApr();
   if (isGhaLab()) return checksGha();

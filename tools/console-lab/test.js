@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {buildExpress,checksExpress,expEval,expOf,expResources,buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -843,4 +843,29 @@ console.log("ok");
   sh("cd ~/Desktop/work/pharmacy-aws-lab/labs/07-app-runner"); sh("terraform init");
   const ap = sh("terraform apply -var image_tag=v9.9.9", ["yes"]);
   assert(/unexpected state 'CREATE_FAILED'/.test(ap) && !/Apply complete! Resources: 4 added/.test(ap), "TF apply ต้องล้มเมื่อ image ไม่มี: " + ap.slice(-500));
+}
+
+// ---- Lab 8: ECS Express Mode
+{
+  L.buildExpress("exp"); assert(L.checksExpress().every(c => c.ok), "exp: ต้องผ่านทุกข้อ: " + L.checksExpress().filter(c => !c.ok).map(c => c.label).join(" | "));
+  let r = L.webOpen("https://pharmacy-api-prd.ecs.ap-southeast-1.on.aws/"); assert(r.site === "api" && r.json.env === "prd", "เปิด URL Express ได้");
+  assert(L.expEval(L.expOf("pharmacy-express", "pharmacy-api-dev")).status === "Active", "dev Active");
+  const st = (k, n) => { L.buildExpress(k); const x = L.expOf("pharmacy-express", n || "pharmacy-api-prd"); return x && L.expEval(x); };
+  let e = st("exp-exec"); assert(e.status === "In progress" && /unable to pull secrets or registry auth/.test(e.reason), "exec role ไม่มี policy");
+  e = st("exp-infra"); assert(e.status === "Failed" && /elasticloadbalancing:CreateLoadBalancer/.test(e.reason), "infra role ไม่มี policy");
+  assert(L.webOpen("https://pharmacy-api-prd.ecs.ap-southeast-1.on.aws/").err === "ERR_NAME_NOT_RESOLVED", "provisioning ล้ม = เปิดไม่ได้");
+  e = st("exp-tag"); assert(/CannotPullContainerError/.test(e.reason), "tag ไม่มี");
+  e = st("exp-port"); assert(e.status === "In progress" && e.steps.some(s => !s.ok && /container port/.test(s.t)), "port ผิด");
+  e = st("exp-health"); assert(e.status === "In progress" && e.steps.some(s => !s.ok && /Health check path/.test(s.t)), "health path ผิด");
+  assert(st("exp-health", "pharmacy-api-dev").status === "Active", "dev ยังปกติ");
+  L.buildExpress("exp-base"); assert(!L.S.exps.length, "exp-base ยังไม่มี service");
+  let c = L.API.createExpress({ image: "bad", execRole: "", infraRole: "", port: "0", cpu: "256", memory: "4096" }); assert(c.errors && c.errors.image && c.errors.execRole && c.errors.infraRole && c.errors.port && c.errors.memory, "validate");
+  L.buildExpress("exp-base");
+  function sh10(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  sh10("cd ~/Desktop/work/pharmacy-aws-lab/labs/08-ecs-express"); sh10("terraform init"); const pl = sh10("terraform plan"); assert(/Plan: 9 to add/.test(pl), pl.slice(-600));
+  const ap = sh10("terraform apply", ["yes"]); assert(/Apply complete! Resources: 9 added/.test(ap), ap.slice(-800));
+  assert(L.S.exps.length === 2 && L.S.exps.every(x => L.expEval(x).status === "Active") && L.checksExpress().every(c => c.ok), "apply แล้ว Active + checks ผ่าน");
+  assert(/No changes/.test(sh10("terraform plan")), "plan ซ้ำไม่เปลี่ยน");
+  const ds = sh10("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 9 destroyed/.test(ds), ds.slice(-500));
+  assert(!L.S.exps.length && !L.S.albs.filter(a => a.express).length, "destroy แล้วไม่เหลือ ALB ของ Express");
 }

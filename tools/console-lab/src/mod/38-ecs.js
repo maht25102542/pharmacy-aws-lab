@@ -104,10 +104,12 @@ function ecsDiagTask(svc, td, sn, idx) {
   // 6) ALB health check
   if (svc.lb) {
     var tg = byArnTg(svc.lb.tgArn), alb = tg && S.albs.filter(function (a) { return a.listeners.some(function (l) { return l.tgId === tg.id; }); })[0];
-    var sgOk = !alb || sgAllows(svc.sgIds, svc.lb.port, { sgIds: alb.sgIds }), pathOk = !tg || tg.hcPath === APP_HEALTH_PATH;
+    var sgOk = !alb || sgAllows(svc.sgIds, svc.lb.port, { sgIds: alb.sgIds }), pathOk = !tg || tg.hcPath === APP_HEALTH_PATH || (!!svc.express && tg.hcPath === "/"), portOk = !svc.express || +svc.lb.port === EXP_APP_PORT;
     steps.push({ ok: sgOk, t: "SG ของ task รับ port " + svc.lb.port + " จาก SG ของ ALB", d: sgOk ? "มีกฎ" : "ไม่มีกฎ ALB เข้า task ไม่ได้ (Target.Timeout)" });
     steps.push({ ok: pathOk, t: "Health check path ตรงกับที่แอปตอบ 200 (" + APP_HEALTH_PATH + ")", d: pathOk ? "target group ใช้ " + (tg ? tg.hcPath : "-") : "target group ตรวจ " + tg.hcPath + " แต่แอปตอบ 404 (ต้อง " + APP_HEALTH_PATH + ")" });
+    if (svc.express) steps.push({ ok: portOk, t: "container port (" + svc.lb.port + ") ตรงกับ port ที่แอปฟังจริง (" + EXP_APP_PORT + ")", d: portOk ? "ตรง" : "แอปฟัง :" + EXP_APP_PORT + " แต่ตั้งไว้ :" + svc.lb.port });
     if (!sgOk) { out.healthy = false; out.reason = "Task failed ELB health checks in (target-group " + svc.lb.tgArn + ")"; out.code = "Target.Timeout"; out.why = "Request timed out"; out.stage = "lb-sg"; out.logs.push("(ไม่มีคำขอเข้ามาเลย เพราะ SG ของ task ไม่รับจาก ALB)"); }
+    else if (!portOk) { out.healthy = false; out.reason = "Task failed ELB health checks in (target-group " + svc.lb.tgArn + ")"; out.code = "Target.FailedHealthChecks"; out.why = "Health checks failed"; out.stage = "lb-port"; out.logs.push("INFO  listening on :" + EXP_APP_PORT + " (แต่ ALB ตรวจที่ :" + svc.lb.port + " → connection refused)"); }
     else if (!pathOk) { out.healthy = false; out.reason = "Task failed ELB health checks in (target-group " + svc.lb.tgArn + ")"; out.code = "Target.FailedHealthChecks"; out.why = "Health checks failed with these codes: [404]"; out.stage = "lb-path"; out.logs.push("INFO  GET " + tg.hcPath + " 404 (ELB-HealthChecker/2.0)"); }
     else out.logs.push("INFO  GET /healthz 200 (ELB-HealthChecker/2.0)");
   }
