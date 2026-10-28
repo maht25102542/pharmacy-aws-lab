@@ -310,6 +310,9 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   sh2("cd ../repo-backend"); ["git init -b main", "git add .", "git commit -m initial", "git remote add origin https://github.com/me/pharmacy-backend.git", "git push -u origin main", "git tag v1.0.0"].forEach(c => sh2(c));
   assert(L.S.gh.repos["pharmacy-manifests"].user === "me" && L.S.gh.repos["pharmacy-backend"].tags.length === 0, "push แล้ว แต่ tag ยังไม่ push"); sh2("git push origin v1.0.0");
   sh2("cd ../repo-frontend"); ["git init -b main", "git add .", "git commit -m initial", "git remote add origin https://github.com/me/pharmacy-frontend.git", "git push -u origin main", "git tag v1.0.0", "git push origin v1.0.0"].forEach(c => sh2(c));
+  // repo ที่สร้างจากหน้า New repository (ว่าง, empty:true): push แรกต้องเติมไฟล์และเอา empty ออก
+  { const keep = L.S.gh.repos["pharmacy-manifests"]; L.S.gh.repos["pharmacy-manifests"] = { user: "me", files: {}, tags: [], n: 0, empty: true }; sh2("cd ../repo-manifests"); sh2("git push -u origin main");
+    const r1 = L.S.gh.repos["pharmacy-manifests"]; assert(r1.empty === false && Object.keys(r1.files).length > 0, "push เข้า repo ว่างที่สร้างจากเว็บ: เติมไฟล์ + empty=false"); }
   assert(!L.S.gh.repos["pharmacy-app"] && L.S.gh.repos["pharmacy-frontend"].tags.includes("v1.0.0") && L.S.gh.repos["pharmacy-backend"].files["Dockerfile"] && !L.S.gh.repos["pharmacy-backend"].files["frontend/index.html"], "แยก 2 repo: backend ไม่มีไฟล์ frontend");
   // Jenkins wizard
   assert(L.jkSetup() === "unlock" && !L.jkUnlock("wrong") && L.jkUnlock(L.jkPwdOf(L.jkInst())), "unlock"); L.jkCustomize();
