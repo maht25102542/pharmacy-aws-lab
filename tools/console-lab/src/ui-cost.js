@@ -16,7 +16,7 @@ function costTable(items, ex) {
   var rows = items.map(function (x) {
     var per = x.k === "hr" ? moneyH(x.r * x.q) + "/ชม." + (x.q > 1 ? " (" + x.q + " ตัว)" : "") : x.k === "mo" ? money(x.r * x.q) + "/เดือน" : "ตามการใช้";
     var moU = x.k === "hr" ? x.r * x.q * COST_HRS : x.k === "mo" ? x.r * x.q : null, mo = moU == null ? "–" : baht(moU) + " (" + money(moU) + ")";
-    return h("tr", {}, [h("td", {}, [h("b", { text: x.n }), x.note ? h("div", { cls: "hint", style: "margin:2px 0 0", text: x.note }) : h("span")]), h("td", { text: x.k === "use" ? x.unit : per }), h("td", { style: "text-align:right;white-space:nowrap", text: mo }), h("td", { style: "text-align:center", text: x.idle ? "🔴 คิดเงิน" : "🟢 ไม่คิด" })]);
+    return h("tr", {}, [h("td", {}, [h("b", { text: x.n }), x.note ? h("div", { cls: "hint", style: "margin:2px 0 0", text: x.note }) : h("span")]), h("td", { text: x.k === "use" ? x.unit : per }), h("td", { style: "text-align:right;white-space:nowrap", text: mo }), h("td", { style: "text-align:center" }, [h("span", { cls: "cd-idle " + (x.idle ? "on" : "off"), title: x.idle ? "เครื่อง/ทรัพยากรนี้คิดเงินต่อเนื่อง แม้ไม่มีใครใช้" : "ไม่มีผู้ใช้ = ไม่เสียเงิน", text: x.idle ? "คิดเงินตลอด" : "ไม่คิดเงิน" })])]);
   });
   var s = costSum(items);
   rows.push(h("tr", { cls: "cd-total" }, [h("td", { text: "รวมรายการคงที่ (ไม่รวมที่คิดตามการใช้)" }), h("td", { text: s.hr > 0 ? moneyH(s.hr) + "/ชม." : "–" }), h("td", { style: "text-align:right", text: baht(s.month) + " (" + money(s.month) + ")" }), h("td")]));

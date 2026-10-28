@@ -563,6 +563,13 @@ body .uc-tab.on { color: var(--accent); box-shadow: 0 1px 3px color-mix(in srgb,
 :root:not([data-pal="mixdark"]) body .cd-kpi .ic { background: #fff; box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--g1) 45%, transparent); border-radius: 12px; }
 :root:not([data-pal="mixdark"]) body .cd-kpi .v { color: var(--g1) !important; }
 :root:not([data-pal="mixdark"]) body .cd-kpi .l { color: color-mix(in oklab, var(--g1) 55%, #061246) !important; }
+/* ป้ายสถานะ 'ตอนไม่มีคนใช้' ในตารางค่าใช้จ่าย: pill นวล มีจุดสี ไม่ใช้อีโมจิ */
+.cd-idle { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px 3px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.cd-idle::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.cd-idle.on { color: #c23a55; background: #fde8ec; box-shadow: inset 0 0 0 1px #f7c6d0; }
+.cd-idle.off { color: #1f8f63; background: #e3f7ee; box-shadow: inset 0 0 0 1px #bfead7; }
+:root[data-theme="dark"] .cd-idle.on, :root[data-pal="mixdark"] .cd-idle.on, :root[data-pal="navy"] .cd-idle.on { color: #ffb3c0; background: rgba(242,122,143,.2); box-shadow: inset 0 0 0 1px rgba(242,122,143,.4); }
+:root[data-theme="dark"] .cd-idle.off, :root[data-pal="mixdark"] .cd-idle.off, :root[data-pal="navy"] .cd-idle.off { color: #8ff0c4; background: rgba(79,209,160,.18); box-shadow: inset 0 0 0 1px rgba(79,209,160,.4); }
 /* แถบ/หลอดทุกแบบ: ไล่โทนอ่อน→สีจริงบางๆ ทับสีเดิม (สีกำหนดแบบ inline จึงใช้ background-image !important) */
 .cd-row .tr i, .cd-stack .bar i, .pa-bar i, .gh-langbar i, .gbar { background-image: linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,0) 80%) !important; }
 :root[data-pal="mix"] body[data-svc="Lab"], :root[data-pal="mix"] body[data-svc="Browser"], :root[data-pal="mix"] body[data-svc="Laptop"] { background: linear-gradient(to bottom left, #f8e9d2 0%, #fcf2e4 30%, #fffaf3 65%, #fffefc 100%) fixed; }
@@ -12014,7 +12021,7 @@ function costTable(items, ex) {
   var rows = items.map(function (x) {
     var per = x.k === "hr" ? moneyH(x.r * x.q) + "/ชม." + (x.q > 1 ? " (" + x.q + " ตัว)" : "") : x.k === "mo" ? money(x.r * x.q) + "/เดือน" : "ตามการใช้";
     var moU = x.k === "hr" ? x.r * x.q * COST_HRS : x.k === "mo" ? x.r * x.q : null, mo = moU == null ? "–" : baht(moU) + " (" + money(moU) + ")";
-    return h("tr", {}, [h("td", {}, [h("b", { text: x.n }), x.note ? h("div", { cls: "hint", style: "margin:2px 0 0", text: x.note }) : h("span")]), h("td", { text: x.k === "use" ? x.unit : per }), h("td", { style: "text-align:right;white-space:nowrap", text: mo }), h("td", { style: "text-align:center", text: x.idle ? "🔴 คิดเงิน" : "🟢 ไม่คิด" })]);
+    return h("tr", {}, [h("td", {}, [h("b", { text: x.n }), x.note ? h("div", { cls: "hint", style: "margin:2px 0 0", text: x.note }) : h("span")]), h("td", { text: x.k === "use" ? x.unit : per }), h("td", { style: "text-align:right;white-space:nowrap", text: mo }), h("td", { style: "text-align:center" }, [h("span", { cls: "cd-idle " + (x.idle ? "on" : "off"), title: x.idle ? "เครื่อง/ทรัพยากรนี้คิดเงินต่อเนื่อง แม้ไม่มีใครใช้" : "ไม่มีผู้ใช้ = ไม่เสียเงิน", text: x.idle ? "คิดเงินตลอด" : "ไม่คิดเงิน" })])]);
   });
   var s = costSum(items);
   rows.push(h("tr", { cls: "cd-total" }, [h("td", { text: "รวมรายการคงที่ (ไม่รวมที่คิดตามการใช้)" }), h("td", { text: s.hr > 0 ? moneyH(s.hr) + "/ชม." : "–" }), h("td", { style: "text-align:right", text: baht(s.month) + " (" + money(s.month) + ")" }), h("td")]));
