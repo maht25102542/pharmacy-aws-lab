@@ -1635,6 +1635,14 @@ function wbPharmacy(res) {
     h("div", { style: "display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px" }, [h("span", { cls: "sub", text: list.code === 200 ? list.body.count + " รายการ · หน้า " + P.page + "/" + pages : "" }), B("ก่อนหน้า", function () { if (P.page > 1) { P.page--; render(); } }), B("ถัดไป", function () { if (P.page < pages) { P.page++; render(); } })]),
     adjPanel || h("span"), h("h2", { text: "เพิ่มยาใหม่" }), form]);
 }
+// Enter ในหน้า Browser = กด Go (ทั้งหลังพิมพ์ URL และหลังเลือกตัวอย่าง: หน้ารีเรนเดอร์ทำให้โฟกัสหาย จึงดักที่ document)
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" || e.isComposing || !document.querySelector(".addrbar")) return;
+  var t = e.target, tag = t && t.tagName, inBar = !!(t && t.closest && t.closest(".addrbar"));
+  if (tag === "TEXTAREA" || (tag === "BUTTON" && !(t.classList && t.classList.contains("csel-btn") && t.getAttribute("aria-expanded") !== "true"))) return;
+  if (!inBar && tag !== "BODY") return;
+  e.preventDefault(); wbGo(W.addr);
+}, true);
 PAGES.browser = function () {
   var urls = []; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
   S.cfds.forEach(function (d) { d.aliases.forEach(function (a) { urls.push("https://" + a); }); urls.push("https://" + d.domain); });
