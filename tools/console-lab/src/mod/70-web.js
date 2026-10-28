@@ -42,6 +42,7 @@ function webOpen(raw) {
     var h = albHealth(alb).filter(function (r) { return r.l === l && r.state === "healthy"; });
     var tgp = find(S.tgs, l.tgId);
     if (tgp && tgp.ttype === "ip") { var ar = ecsApiResponse(tgp), pth2 = String(m[4] || "/").split("?")[0]; return ar ? { site: "api", host: host, path: pth2, json: pth2 === "/healthz" ? { status: "ok" } : ar, health: pth2 === "/healthz" } : { site: "alb503", host: host }; }
+    if (h.length && tgp && tgp.port === 30443 && !argoInst()) return { site: "alb503", host: host }; // ArgoCD ยังไม่ติดตั้ง (ยังไม่รัน ansible) = ไม่มีอะไรตอบที่ NodePort
     return h.length ? { site: tgp && tgp.port === 30443 ? "argocd" : "app", host: host } : { site: "alb503", host: host };
   }
   var inst = S.insts.filter(function (i) { return i.state !== "terminated" && (i.publicIp === host || i.privateIp === host); })[0];

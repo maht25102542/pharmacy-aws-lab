@@ -322,7 +322,7 @@ API.launch = function (o) {
   for (var i = 0; i < cnt; i++) {
     var used = S.insts.filter(function (x) { return x.subnetId === sn.id; }).length + made.filter(function (x) { return x.subnetId === sn.id; }).length;
     var pub = (o.autoIp === "Enable") ? "203.0.113." + (S.pubSeq = S.pubSeq % 250 + 1) : "";
-    made.push({ id: rid("i"), ud: String(o.userData || ""), name: o.name || "", tags: tags, ami: o.ami, type: o.type, keyName: o.keyName || "", vpcId: v.id, subnetId: sn.id, az: sn.az, sgIds: sgIds.slice(), publicIp: pub, hadPub: !!pub, volId: rid("vol"), eipId: null, privateIp: n2ip(parseCidr(sn.cidr).base + 4 + used), profile: o.profile || "", imds: { tokens: o.tokens, hop: hop }, disk: { size: size, type: o.diskType }, state: "running", born: Date.now() });
+    made.push({ id: rid("i"), ud: String(o.userData || ""), name: o.name || "", tags: tags, ami: o.ami, type: o.type, keyName: o.keyName || "", vpcId: v.id, subnetId: sn.id, az: sn.az, sgIds: sgIds.slice(), publicIp: pub, hadPub: !!pub, volId: rid("vol"), eipId: null, privateIp: n2ip(parseCidr(sn.cidr).base + 4 + used), profile: o.profile || "", imds: { tokens: o.tokens || "optional", hop: hop }, disk: { size: size, type: o.diskType }, state: "running", born: Date.now() });
   }
   made.forEach(function (x) { S.insts.push(x); });
   return { res: made };

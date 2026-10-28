@@ -152,7 +152,7 @@ var JKX_RE = /((?:^|\s)(?:\/\/|#).*)|('[^']*'|"[^"]*")|(\$\{?[A-Za-z_][\w.]*\}?)
 // แปลงหนึ่งบรรทัดเป็น span สี (ใช้ regex เดียวแยกส่วน: คอมเมนต์ string ตัวแปร flag ตัวเลข คำ)
 function jkxHi(ln, kind, T) {
   var out = [], last = 0, kws = {}, m, add = function (txt, col, extra) { if (txt) out.push(h("span", { style: (col ? "color:" + col : "") + (extra || ""), text: txt })); };
-  JKX_KW[kind].split(" ").forEach(function (w) { if (w) kws[w] = 1; });
+  (JKX_KW[kind] || "").split(" ").forEach(function (w) { if (w) kws[w] = 1; });
   JKX_RE.lastIndex = 0;
   while ((m = JKX_RE.exec(ln))) {
     add(ln.slice(last, m.index), T[2]);
