@@ -1725,8 +1725,8 @@ document.getElementById("myip").addEventListener("change", function (e) { var v 
 document.getElementById("acct").addEventListener("change", function (e) { S.acct = e.target.value; S.newAcct = S.acct === "free"; render(); });
 (function () { var sel = document.getElementById("theme"), saved = ""; try { saved = sessionStorage.getItem("console-lab-theme") || ""; } catch (e) {} sel.value = saved; if (saved) document.documentElement.setAttribute("data-theme", saved);
   sel.addEventListener("change", function (e) { var v = e.target.value; if (v) document.documentElement.setAttribute("data-theme", v); else document.documentElement.removeAttribute("data-theme"); try { sessionStorage.setItem("console-lab-theme", v); } catch (x) {} }); })();
-(function () { var sel = document.getElementById("pal"), root = document.documentElement, saved = ""; try { saved = localStorage.getItem("console-lab-pal") || ""; } catch (e) {} sel.value = saved; if (sel.value) root.setAttribute("data-pal", sel.value);
-  sel.addEventListener("change", function (e) { var v = e.target.value; if (v) root.setAttribute("data-pal", v); else root.removeAttribute("data-pal"); try { localStorage.setItem("console-lab-pal", v); } catch (x) {} }); })();
+(function () { var sel = document.getElementById("pal"), root = document.documentElement, saved = ""; try { saved = localStorage.getItem("console-lab-pal") || ""; } catch (e) {} sel.value = saved || "mix"; root.setAttribute("data-pal", sel.value);
+  sel.addEventListener("change", function (e) { var v = e.target.value; root.setAttribute("data-pal", v); try { localStorage.setItem("console-lab-pal", v); } catch (x) {} }); })();
 document.getElementById("speedsel").addEventListener("change", function (e) { S.speed = e.target.value; save(); render(); });
 document.getElementById("reset").addEventListener("click", function () { fresh(); UI.sel = {}; UI.form = null; UI.held = null; flash("info", "ล้างสถานะแล้ว เหลือแค่ default VPC เหมือนบัญชีใหม่"); go("vpc-dash", {}, "VPC"); });
 load(); render();
