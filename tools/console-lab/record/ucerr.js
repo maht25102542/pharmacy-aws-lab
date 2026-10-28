@@ -77,6 +77,14 @@ CASES["gha-perm"] = { out: "usecase5-err", title: "Use case 5 · เคส error
   retestCap: "git push → main → deploy #2 ผ่านทุกขั้น", retestSay: "กด git push เข้า main อีกครั้ง เปิด run ใหม่ ทุกขั้นผ่านแล้ว",
   retest: async () => { await L.click({ t: "Actions", tag: "a", starts: true }); await L.hold(1); await L.click(B("git push", { starts: true })); await L.hold(1.5); await step("g4", async () => { await L.click({ t: "deploy #2", tag: "a" }); }); await L.hold(3); },
   done: "run ผ่านแล้ว: workflow ต้องมี permissions id-token: write ให้ OIDC ขอ token ได้" };
+CASES["exp-health"] = { out: "usecase8-err", title: "Use case 8 · เคส error: Express service prd เปิดไม่ได้ (health check path ผิด)", intro: "เคส error ของ use case แปด สร้าง Express service แล้วแต่ URL ของ prd ตอบ ห้าร้อยสาม",
+  build: `buildExpress("exp-health")`, url: `"https://" + expOf("pharmacy-express","pharmacy-api-prd").host + "/"`, fixSvc: ["ECS", "ECS"],
+  sym: "เปิด URL ของ prd แล้วได้ 503 เพราะไม่มี task ที่ผ่าน health check", cause: "ตัวจำลองไล่ให้ดูว่า ALB ตรวจ health check ที่ path /health แต่แอปตอบ 200 ที่ / กับ /healthz เท่านั้น จึงได้ 404 ทุกครั้ง task ถูก stop วน",
+  nav: async () => { await svc("Elastic Container Service", "Containers"); await step("exn", async () => { await L.click({ t: "Express mode", tag: "a,button" }); }); await step("exs", async () => { await L.click({ t: "pharmacy-api-prd", tag: "a" }); }); await L.hold(1); await step("excf", async () => { await L.click({ t: "Configuration", tag: "button" }); }); await L.hold(2.5); },
+  navCap: "ECS › Express mode › pharmacy-api-prd › Configuration: Health check path = /health", navSay: "เปิด ECS เมนู Express mode เลือก service prd ดูแท็บ Configuration จะเห็น health check path เป็น health ซึ่งแอปไม่มี",
+  fixReal: async () => { await step("exu", async () => { await L.click(B("Update", { nth: 0 })); }); await step("exhp", async () => { await L.fill("Health check path", "/healthz"); }); await L.hold(1.5); await L.click(B("Update", { nth: 0 })); await L.hold(2); },
+  fixCap: "Update › Health check path = /healthz → Update", fixSay: "กด Update แก้ health check path เป็น healthz แล้วบันทึก ECS จะปล่อย revision ใหม่แบบ canary",
+  done: "prd ตอบ 200 แล้ว: health check path ต้องเป็น path ที่แอปตอบ 200 จริง" };
 
 (async () => {
   const C = CASES[process.argv[2]]; if (!C) { console.log("ERR unknown case"); process.exit(1); }

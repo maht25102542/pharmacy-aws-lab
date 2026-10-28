@@ -365,7 +365,7 @@ UC.push({
 });
 
 UC.push({
-  id: "exp", no: 8, title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
+  id: "exp", no: 8, video: "videos/usecase8.mp4", errVideos: [["เคส: health check path ผิด (prd ได้ 503)", "videos/usecase8-err.mp4"]], title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
   tag: "✅ ตัวที่ AWS แนะนำสำหรับโปรเจกต์ใหม่แทน App Runner (ปิดรับลูกค้าใหม่ 30 เม.ย. 2026) · ไม่มีค่า Express เพิ่ม จ่ายแค่ของที่ถูกสร้าง",
   intro: [
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** + **role 2 ตัว** แล้ว **ECS Express Mode** สร้างให้ครบ: Fargate service, ALB พร้อม HTTPS (ใบรับรอง ACM), target group, security group, auto scaling, log group, alarm และ URL `https://<ชื่อ>.ecs.<region>.on.aws` · ทุกอย่างอยู่ในบัญชีเราและเข้าไปแก้ได้"],
