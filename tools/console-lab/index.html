@@ -476,6 +476,12 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#ec4899; --accent-bg:#fdf0f7; --accent-fg:#ffffff; --sh-1:0 1px 2px rgba(16,24,40,.05); --sh-2:0 14px 34px -20px rgba(30,41,59,.45); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#ff7ab8; --accent-bg:#3a1428; --accent-fg:#2a0a1a; } }
 :root[data-theme="dark"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --accent:#ff7ab8; --accent-bg:#3a1428; --accent-fg:#2a0a1a; }
+/* ===== สีธีม Lab/Laptop/Browser (เลือกที่แถบบน): ชมพู(ค่าเริ่มต้น) · ส้มอ่อน · ฟ้าสด · ชานม · น้ำเงินนม · กรมท่าเข้ม ===== */
+:root[data-pal="orange"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#fbeedd;--accent:#f0852d;--accent-bg:#fff2e2;--accent-fg:#ffffff;--bg:#fffaf4;--surface:#ffffff;--fg:#2b2118;--muted:#7a6a5c;--line:#f1e1cf;--ctl:#fffdf9;--ctl-line:#e3cdb4;--code-bg:#fbefdf;--hl:#ffe9b0;color-scheme:light; }
+:root[data-pal="sky"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#e6f3fc;--accent:#0ea5e9;--accent-bg:#e4f5ff;--accent-fg:#ffffff;--bg:#f3faff;--surface:#ffffff;--fg:#12263a;--muted:#5b7287;--line:#d7eaf7;--ctl:#fbfeff;--ctl-line:#a9cde4;--code-bg:#e4f1fa;--hl:#fff1b8;color-scheme:light; }
+:root[data-pal="milktea"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#efe2d2;--accent:#b57f55;--accent-bg:#f6e8da;--accent-fg:#ffffff;--bg:#f6ecdf;--surface:#fffaf3;--fg:#3a2b20;--muted:#85705e;--line:#e8d6c1;--ctl:#fffbf5;--ctl-line:#d6bda1;--code-bg:#f0e2d1;--hl:#fde8b4;color-scheme:light; }
+:root[data-pal="milknavy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#e4e9f5;--accent:#34509a;--accent-bg:#e6ebf8;--accent-fg:#ffffff;--bg:#eef1f8;--surface:#ffffff;--fg:#16213d;--muted:#5d6a8c;--line:#d8def0;--ctl:#fafbfe;--ctl-line:#aab6d6;--code-bg:#e6eaf5;--hl:#fff1b8;color-scheme:light; }
+:root[data-pal="navy"] :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) { --lab:#0d1c3e;--bg:#0a1630;--surface:#11214a;--fg:#e4eaf8;--muted:#9aaccf;--line:#243a6b;--ctl:#0d1c3e;--ctl-line:#3b548c;--code-bg:#0b1936;--hl:#4a3f10;--accent:#6c9bff;--accent-bg:#182c5a;--accent-fg:#081329;--ok:#72d3a3;--ok-bg:#12301f;--bad:#ff8a80;--bad-bg:#3b1c1a;--warn:#f0b966;--warn-bg:#38280f;color-scheme:dark; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn { min-height: 36px; padding: 6px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--ctl-line); box-shadow: none; font-weight: 600; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn:hover:not(:disabled) { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .btn.pri { color: var(--accent-fg); background: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
@@ -721,6 +727,7 @@ pre.term::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); backgroun
   <label>บัญชี <select id="acct" aria-label="ชนิดบัญชี"><option value="normal">ปกติ</option><option value="free">Free plan (สร้างหลัง 15 ก.ค. 2025)</option><option value="suspended">ถูกระงับ (suspended)</option></select></label>
   <label>ความเร็ว <select id="speedsel" aria-label="ความเร็วทั้งระบบ"><option value="instant">เสร็จทันที</option><option value="real">เวลาเหมือนจริง</option></select></label>
   <label>ธีม <select id="theme" aria-label="Visual mode"><option value="">ตามระบบ</option><option value="light">สว่าง</option><option value="dark">มืด</option></select></label>
+  <label>สี <select id="pal" aria-label="สีธีม Lab"><option value="">ชมพู</option><option value="orange">ส้มอ่อน</option><option value="sky">ฟ้าสด</option><option value="milktea">ชานม</option><option value="milknavy">น้ำเงินนม</option><option value="navy">กรมท่าเข้ม</option></select></label>
   <button type="button" id="reset">Reset</button>
 </div>
 <div class="body"><nav class="nav" id="nav" aria-label="เมนูซ้าย"></nav><main class="main" id="main"></main></div>
@@ -8293,6 +8300,8 @@ document.getElementById("myip").addEventListener("change", function (e) { var v 
 document.getElementById("acct").addEventListener("change", function (e) { S.acct = e.target.value; S.newAcct = S.acct === "free"; render(); });
 (function () { var sel = document.getElementById("theme"), saved = ""; try { saved = sessionStorage.getItem("console-lab-theme") || ""; } catch (e) {} sel.value = saved; if (saved) document.documentElement.setAttribute("data-theme", saved);
   sel.addEventListener("change", function (e) { var v = e.target.value; if (v) document.documentElement.setAttribute("data-theme", v); else document.documentElement.removeAttribute("data-theme"); try { sessionStorage.setItem("console-lab-theme", v); } catch (x) {} }); })();
+(function () { var sel = document.getElementById("pal"), root = document.documentElement, saved = ""; try { saved = localStorage.getItem("console-lab-pal") || ""; } catch (e) {} sel.value = saved; if (sel.value) root.setAttribute("data-pal", sel.value);
+  sel.addEventListener("change", function (e) { var v = e.target.value; if (v) root.setAttribute("data-pal", v); else root.removeAttribute("data-pal"); try { localStorage.setItem("console-lab-pal", v); } catch (x) {} }); })();
 document.getElementById("speedsel").addEventListener("change", function (e) { S.speed = e.target.value; save(); render(); });
 document.getElementById("reset").addEventListener("click", function () { fresh(); UI.sel = {}; UI.form = null; UI.held = null; flash("info", "ล้างสถานะแล้ว เหลือแค่ default VPC เหมือนบัญชีใหม่"); go("vpc-dash", {}, "VPC"); });
 load(); render();
