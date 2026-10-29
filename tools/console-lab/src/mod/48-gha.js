@@ -111,7 +111,7 @@ function ghaRunJob(w, kind, ctx) {
 }
 function ghaRunsOf(repo) { return S.gruns.filter(function (r) { return r.repo === repo; }); }
 function ghaNew(w, trigger, ref) {
-  var sha = ghaSha(), n = ghaRunsOf(w.repo).length + 1, kind = trigger === "tag" ? "prd" : "dev", run = { id: n, repo: w.repo, trigger: trigger, ref: ref, sha: sha, status: "in_progress", kind: kind, born: Date.now(), jobs: [], waiting: false };
+  var sha = ghaSha(), n = ghaRunsOf(w.repo).length + 1, kind = trigger === "tag" ? "prd" : "dev", run = { id: n, repo: w.repo, actor: (typeof ghSess === "function" && ghSess() || {}).user || ghUser(), trigger: trigger, ref: ref, sha: sha, status: "in_progress", kind: kind, born: Date.now(), jobs: [], waiting: false };
   S.gruns.unshift(run);
   if (kind === "prd" && w.prdEnv && ghEnvReview(w.repo, w.prdEnv)) { run.waiting = true; run.status = "waiting"; run.jobs = [{ name: "deploy-prd", status: "waiting", steps: [] }]; return run; }
   ghaFinish(w, run); return run;
@@ -121,7 +121,7 @@ API.ghaPush = function (repo, branch) { var w = ghaWf(repo); if (!w) return E("_
 // workflow ที่มี on.pull_request: รัน job "checks" (ไม่ deploy) · token ของ PR ส่ง sub = repo:<owner>/<repo>:pull_request (ไม่ใช่ ref:refs/heads/...) → trust policy ที่ผูก branch จะไม่ผ่าน
 API.ghaPr = function (repo, head) {
   var w = ghaWf(repo); if (!w || !w.onPr) return { res: null, skipped: true }; var sha = ghaSha(), n = ghaRunsOf(repo).length + 1, steps = [], parts = repo.split("/"), rpart = w.immutable ? parts[0] + "@" + GHA_OWNER_ID + "/" + parts[1] + "@" + GHA_REPO_ID : repo, sub = "repo:" + rpart + ":pull_request";
-  var run = { id: n, repo: repo, trigger: "pull_request", ref: head, sha: sha, status: "in_progress", kind: "pr", born: Date.now(), jobs: [], waiting: false }; S.gruns.unshift(run);
+  var run = { id: n, repo: repo, actor: (typeof ghSess === "function" && ghSess() || {}).user || ghUser(), trigger: "pull_request", ref: head, sha: sha, status: "in_progress", kind: "pr", born: Date.now(), jobs: [], waiting: false }; S.gruns.unshift(run);
   steps.push(ghaStep("Set up job", true, ["Runner: " + (w.runner || "ubuntu-latest"), "Job: checks · event: pull_request"])); steps.push(ghaStep("Checkout (actions/checkout@v4)", true, ["HEAD is now at " + sha.slice(0, 7) + " (merge commit of " + head + " into main)"]));
   var prov = ghaOidc(), role = prov && w.idToken ? roleByRef(w.roleArn) : null, tr = role ? ghaTrust(role, sub, "sts.amazonaws.com") : { ok: false, why: !w.idToken ? "workflow ไม่มี permissions: id-token: write" : !prov ? "ยังไม่มี OIDC provider" : "ไม่พบ role " + w.roleArn };
   var ok = tr.ok; steps.push(ghaStep("Configure AWS credentials (OIDC)", ok, ok ? ["Assuming role with OIDC (sub: " + sub + ")", "Authenticated as assumedRoleId " + role.name] : ["Error: Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity"], ok ? "" : "job ของ PR ส่ง sub = " + sub + " · " + (tr.why || "trust policy ไม่ตรง") + " → ให้ trust policy อนุญาต sub นี้ (StringLike repo:" + repo + ":*)"));
