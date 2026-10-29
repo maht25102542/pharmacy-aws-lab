@@ -8438,10 +8438,10 @@ function wbTick() {
 var W = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" };
 // ประวัติหน้าของเว็บใน Browser: บันทึกอัตโนมัติทุกครั้งที่ตำแหน่ง (URL + หน้าภายในเว็บ) เปลี่ยน · ปุ่ม ← → ใน address bar
 var WH = { st: [], i: -1 }, WH_KEYS = ["addr", "page", "bid", "lg", "sq", "ar", "sp", "btab"];
-function whCur() { var o = {}; WH_KEYS.forEach(function (k) { o[k] = W[k] === undefined ? "" : W[k]; }); o.job = S.jk && S.jk.job ? S.jk.job.name : ""; return o; }
+function whCur() { var o = {}; WH_KEYS.forEach(function (k) { o[k] = W[k] === undefined ? "" : W[k]; }); o.job = S.jk && S.jk.job ? S.jk.job.name : ""; o.ph = W.ph ? { view: W.ph.view, page: W.ph.page, mpage: W.ph.mpage, low: W.ph.low } : null; return o; }
 function whTrack() { if (!W.addr || (typeof PV !== "undefined" && PV && PV.on)) return; var c = whCur(), l = WH.st[WH.i]; if (l && JSON.stringify(l) === JSON.stringify(c)) return; WH.st = WH.st.slice(0, WH.i + 1); WH.st.push(c); WH.i = WH.st.length - 1; if (WH.st.length > 60) { WH.st.shift(); WH.i--; } }
 function whCan(d) { return !(typeof PV !== "undefined" && PV && PV.on) && !!WH.st[WH.i + d]; }
-function whGo(d) { var t = WH.st[WH.i + d]; if (!t) return; WH.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); W.res = webOpen(W.addr); render(); }
+function whGo(d) { var t = WH.st[WH.i + d]; if (!t) return; WH.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); if (t.ph && W.ph) Object.assign(W.ph, t.ph); W.res = webOpen(W.addr); render(); }
 function wbGo(a) { W.addr = a; W.res = webOpen(a); W.page = ""; W.sq = ""; W.ar = ""; W.sp = ""; W.lg = ""; render(); }
 function wbBadge(r) { return h("span", { cls: "tag " + (r === "SUCCESS" ? "ok" : r === "FAILURE" || r === "ABORTED" ? "bad" : "warn"), text: r || "RUNNING" }); }
 function wbSel(label, id, opts, get, set) { return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), h("select", { id: "w-" + id, "aria-label": label, onchange: function (e) { set(e.target.value); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(get()) ? "selected" : null }); }))]); }
