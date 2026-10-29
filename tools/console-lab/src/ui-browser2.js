@@ -13,7 +13,7 @@ function wbWin(o) {
   var u = o.url || "", https = /^https:/i.test(u), m = /^(https?:\/\/)([^\/]+)(.*)$/i.exec(u) || ["", "", u, ""];
   var cls = o.status ? (o.status < 300 ? "ok" : o.status < 500 ? "warn" : "bad") : "";
   var bar = h("div", { cls: "bw-bar" }, [
-    h("button", { type: "button", cls: "bw-nav", "aria-label": "Back", html: bwSvg("back", 18), disabled: true }), h("button", { type: "button", cls: "bw-nav", "aria-label": "Forward", html: bwSvg("fwd", 18), disabled: true }),
+    h("button", { type: "button", cls: "bw-nav", "aria-label": "Back", title: "Back", html: bwSvg("back", 18), disabled: whCan(-1) ? null : "disabled", onclick: function () { whGo(-1); } }), h("button", { type: "button", cls: "bw-nav", "aria-label": "Forward", title: "Forward", html: bwSvg("fwd", 18), disabled: whCan(1) ? null : "disabled", onclick: function () { whGo(1); } }),
     h("button", { type: "button", cls: "bw-nav", "aria-label": "Reload", title: "Reload", html: bwSvg("reload", 18), onclick: function () { wbGo(W.addr); } }),
     h("div", { cls: "bw-url" }, [h("span", { cls: "bw-lock " + (https && !o.insecure ? "ok" : "no"), title: https ? (o.secure || "Connection is secure") : "Not secure", html: bwSvg(https && !o.insecure ? "lock" : "warn", 15) + (https && !o.insecure ? "" : "<b>Not secure</b>") }),
       h("span", { cls: "bw-u" }, [h("span", { cls: "d", text: m[1] }), h("span", { cls: "h", text: m[2] }), h("span", { cls: "d", text: m[3] })])]),
