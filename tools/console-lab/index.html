@@ -12791,9 +12791,9 @@ var GH_EX = [
 function ghExFor(el) { var hit = null; [el.id, el.getAttribute("aria-label"), el.getAttribute("placeholder")].forEach(function (k) { if (!hit && k) GH_EX.some(function (g) { if (g[0].test(k)) { hit = g[1]; return true; } }); }); return hit; }
 function ghDecorate() {
   // ช่องค้นหาบน header: ใช้ datalist ของเบราว์เซอร์ (dropdown ตัวอย่างโดยไม่เบียด layout)
-  var sin = document.querySelector("#main .gx-sin"); if (sin) { sin.setAttribute("list", "gh-sg"); if (!document.getElementById("gh-sg")) document.body.appendChild(h("datalist", { id: "gh-sg" }, ["pharmacy", "deploy", "Jenkinsfile", "Dockerfile"].map(function (x) { return h("option", { value: x }); }))); }
+  var sin = document.querySelector("#main .gx-sin"); if (sin) { sin.setAttribute("list", "gh-sg"); if (!document.getElementById("gh-sg")) document.body.appendChild(h("datalist", { id: "gh-sg" }, ["pharmacy", "cafe", "deploy", "Jenkinsfile", "Dockerfile"].map(function (x) { return h("option", { value: x }); }))); }
   [].forEach.call(document.querySelectorAll("#main .gh input[type=text], #main .gh textarea"), function (el) {
-    if (el.dataset.exd || el.readOnly || el.disabled || el.closest(".gx-hd")) return; var ex = ghExFor(el); if (!ex) return; el.dataset.exd = "1";
+    if (el.dataset.exd || el.readOnly || el.disabled || el.closest(".gx-hd")) return; var ex = ghExFor(el); if (!ex) return; ex = cafeEx(ex.map(function (x) { return [x, x]; })).map(function (e) { return e[0]; }); el.dataset.exd = "1";
     var s = h("select", { cls: "gx-in gx-exsel", "aria-label": "ตัวอย่าง: " + (el.getAttribute("aria-label") || el.id || el.placeholder || "ช่องกรอก"), onchange: function (e) { var v = e.target.value; e.target.selectedIndex = 0; if (v === "\u0000") { el.value = ""; el.dispatchEvent(new Event("input", { bubbles: true })); el.focus(); return; } if (!v) return; el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); } }, [h("option", { value: "", text: "— เลือกตัวอย่าง —" })].concat(ex.map(function (x) { return h("option", { value: x, text: x }); })).concat([h("option", { value: "\u0000", text: "ไม่ระบุ — พิมพ์เอง" })]));
     el.parentNode.insertBefore(s, el);
   });
