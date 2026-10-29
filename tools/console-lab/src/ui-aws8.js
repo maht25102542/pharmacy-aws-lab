@@ -45,7 +45,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
   if (parts[3] === "runs") {
     var run = S.gruns.filter(function (r) { return r.repo === repo && r.id === +parts[4]; })[0];
     if (!run) return h("p", { text: "ไม่พบ run" });
-    var s0 = ghSt(run.status);
+    var s0 = ghSt(run.status); box.appendChild(h("div", { style: "margin:0 0 8px" }, [btn("↻ Re-run all jobs", function () { var r = ghaNew(w, run.trigger === "pull_request" ? "push" : run.trigger, run.ref); flash("ok", "re-run → run #" + r.id); W.res = webOpen(W.addr); render(); })]));
     box.appendChild(h("div", { style: "margin-bottom:8px" }, [link(base, "← All workflows"), h("h2", { style: "margin:8px 0;font-size:1.25rem" }, [h("span", { style: "color:" + s0[1], text: s0[0] + " " }), (run.trigger === "pull_request" ? "checks" : "deploy") + " #" + run.id + " · " + (run.trigger === "tag" ? "tag " : run.trigger === "pull_request" ? "pull_request " : "push ") + run.ref]), h("div", { cls: "sub", text: "commit " + run.sha.slice(0, 7) + " · " + run.status })]));
     if (run.waiting) box.appendChild(h("div", { style: "border:1px solid #d4a72c;background:#fff8c5;border-radius:6px;padding:10px 14px;margin-bottom:10px" }, [h("b", { text: "Waiting for review: environment “" + (w ? w.prdEnv : "production") + "”" }), h("p", { cls: "sub", text: "ผู้ตรวจที่ตั้งไว้ใน Settings › Environments ต้องกด Approve ก่อน job นี้จะเริ่ม" }), btn("Approve and deploy", function () { API.ghaApprove(repo, run.id, true); W.res = webOpen(W.addr); render(); }, "btn pri"), " ", btn("Reject", function () { API.ghaApprove(repo, run.id, false); W.res = webOpen(W.addr); render(); })]));
     run.jobs.forEach(function (j) {
@@ -60,6 +60,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
   }
   // รายการ run + ตัวแก้ workflow
   var tops = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px" }, [
+    w ? btn("▷ Run workflow (workflow_dispatch)", function () { var r = ghaNew(w, "workflow_dispatch", "main"); flash("ok", "workflow_dispatch → run #" + r.id); W.res = webOpen(W.addr); render(); }) : null,
     btn("git push → main", function () { var r = API.ghaPush(repo, "main"); if (r.skipped) flash("info", r.msg); else if (r.errors) flash("bad", r.errors._); rp.n = (rp.n || 0) + 1; W.res = webOpen(W.addr); render(); }, "btn pri"),
     h("span", { cls: "sub", text: "หรือ tag:" }), h("div", { style: "width:170px" }, [exPick([["v1.1.0", "v1.1.0"], ["v1.2.0", "v1.2.0"], ["v1.0.0 (มีใน ECR แล้ว)", "v1.0.0"]].map(function (x) { return [x[1], x[0]]; }), function () { return F.tag; }, function (v) { F.tag = v; }, F, "_tag", "v1.1.0", "tag", false)]),
     btn("create tag + push", function () { rp.tags = rp.tags || []; if (rp.tags.indexOf(F.tag) < 0) rp.tags.push(F.tag); var r = API.ghaTag(repo, F.tag); if (r.skipped) flash("info", r.msg); else if (r.errors) flash("bad", r.errors._); W.res = webOpen(W.addr); render(); })]);

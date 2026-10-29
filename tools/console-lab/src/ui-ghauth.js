@@ -26,12 +26,12 @@ function ghBtnSq(kind, title, on) { return h("button", { type: "button", cls: "g
 
 // ---- เมนูรูปโปรไฟล์ (ข้อความตามเมนูจริงของ github.com)
 function ghAvatarMenu(user) {
-  var item = function (ic, t, path, extra) { return h("a", { href: "#", cls: "gx-mi gx-mic" + (extra || ""), onclick: function (e) { e.preventDefault(); if (path === "!out") { S.gh.session = null; ghGo("/login"); } else if (path === "!status") { W.ghMenu = false; W.ghStatus = true; render(); } else if (path === "!repos" || path === "!projects") { W.ghPT = path === "!repos" ? "repositories" : "projects"; ghGo("/" + user); } else if (path) ghGo(path); else { W.ghMenu = false; render(); } } }, [h("span", { cls: "gx-mico", text: ic }), t]); };
+  var item = function (ic, t, path, extra) { return h("a", { href: "#", cls: "gx-mi gx-mic" + (extra || ""), onclick: function (e) { e.preventDefault(); if (path === "!out") { S.gh.session = null; ghGo("/login"); } else if (path === "!status") { W.ghMenu = false; W.ghStatus = true; render(); } else if (path === "!repos" || path === "!projects" || path === "!stars") { W.ghPT = path === "!repos" ? "repositories" : path === "!stars" ? "stars" : "projects"; ghGo("/" + user); } else if (path) ghGo(path); else { W.ghMenu = false; render(); } } }, [h("span", { cls: "gx-mico", text: ic }), t]); };
   return h("div", { cls: "gx-menu" }, [
     h("div", { cls: "gx-mh2" }, [h("span", { cls: "gx-ava gx-ava-s2", text: user.slice(0, 1).toUpperCase() }), h("div", {}, [h("b", { text: user }), h("div", { cls: "gx-mut gx-sm", text: user }), (S.gh.status || {}).text ? h("div", { cls: "gx-mut gx-sm", text: (S.gh.status.emoji || "") + " " + S.gh.status.text }) : null]), h("span", { cls: "gx-x", text: "✕", onclick: function () { W.ghMenu = false; render(); } })]),
     item("☺", "Set status", "!status"), h("div", { cls: "gx-ms" }),
     item("👤", "Your profile", "/" + user), h("div", { cls: "gx-ms" }),
-    item("▢", "Your repositories", "!repos"), item("▦", "Your projects", "!projects"), item("▥", "Your organizations"), item("◍", "Your enterprises"), item("☆", "Your stars"), item("♡", "Your sponsors"), item("‹›", "Your gists"),
+    item("▢", "Your repositories", "!repos"), item("▦", "Your projects", "!projects"), item("▥", "Your organizations"), item("◍", "Your enterprises"), item("☆", "Your stars", "!stars"), item("♡", "Your sponsors"), item("‹›", "Your gists"),
     h("div", { cls: "gx-ms" }), item("⇧", "Upgrade"), item("⚗", "Feature preview"), item("⚙", "Settings", "/settings/profile"), item("✦", "Copilot settings"),
     h("div", { cls: "gx-ms" }), item("", "GitHub Docs"), item("", "GitHub Support"), item("", "GitHub Community"), h("div", { cls: "gx-ms" }), item("", "Sign out", "!out")
   ]);

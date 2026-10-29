@@ -139,6 +139,7 @@ function wbGhSettings(parts) {
   if (p === "personal-access-tokens/new") return wbGhFgNew();
   if (p === "apps") return wbGhDevApps("apps");
   if (p === "developers") return wbGhDevApps("oauth");
+  var ac = typeof wbGhAcct === "function" ? wbGhAcct(p) : null; if (ac) return ac;
   var name = ""; GH_SET_NAV.forEach(function (g) { g[1].forEach(function (it) { if (it[1] === "/settings/" + p) name = it[0]; }); });
   return ghSetShell(name || "Public profile", name, [ghPageHead(name || "Settings"), h("p", { cls: "gx-mut", text: "หน้านี้ของ GitHub ยังไม่ได้จำลอง (ใน lab ใช้ Developer settings › Personal access tokens และ Settings ของ repo)" })]);
 }
