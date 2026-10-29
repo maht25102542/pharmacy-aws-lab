@@ -7075,7 +7075,7 @@ function crumbEl(text) {
 
 function render() {
   if (typeof PV !== "undefined" && PV) pvSync();
-  var y = window.scrollY; save(); document.body.setAttribute("data-svc", UI.svc);
+  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.svc);
   document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal"; document.getElementById("speedsel").value = S.speed || "instant";
   var sv = document.getElementById("svc"); sv.textContent = "";
   var aws = !!SVC_ICO[UI.svc]; if (aws) sv.appendChild(h("button", { type: "button", cls: "cur-svc", "aria-current": "true", title: "บริการที่เปิดอยู่ (เปลี่ยนที่เมนู Services)", onclick: function () { go(NAVHOME[UI.svc], {}, UI.svc); } }, [awsIco(SVC_ICO[UI.svc], 18), SVC_NAME[UI.svc] || UI.svc]));
@@ -8413,6 +8413,11 @@ function wbTick() {
   WTM = setTimeout(function () { WTM = null; if (b && S.jk.builds.indexOf(b) >= 0 && b.state === "running") jkAdvance(b, true); render(); }, b ? jkNextDelay(b) * 1000 : 3000);
 }
 var W = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" };
+// ประวัติหน้าของเว็บใน Browser: บันทึกอัตโนมัติทุกครั้งที่ตำแหน่ง (URL + หน้าภายในเว็บ) เปลี่ยน · ปุ่ม ← → ใน address bar
+var WH = { st: [], i: -1 }, WH_KEYS = ["addr", "page", "bid", "lg", "sq", "ar", "sp", "btab"];
+function whCur() { var o = {}; WH_KEYS.forEach(function (k) { o[k] = W[k] === undefined ? "" : W[k]; }); o.job = S.jk && S.jk.job ? S.jk.job.name : ""; return o; }
+function whTrack() { if (!W.addr || (typeof PV !== "undefined" && PV && PV.on)) return; var c = whCur(), l = WH.st[WH.i]; if (l && JSON.stringify(l) === JSON.stringify(c)) return; WH.st = WH.st.slice(0, WH.i + 1); WH.st.push(c); WH.i = WH.st.length - 1; if (WH.st.length > 60) { WH.st.shift(); WH.i--; } }
+function whGo(d) { var t = WH.st[WH.i + d]; if (!t) return; WH.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); W.res = webOpen(W.addr); render(); }
 function wbGo(a) { W.addr = a; W.res = webOpen(a); W.page = ""; W.sq = ""; W.ar = ""; W.sp = ""; W.lg = ""; render(); }
 function wbBadge(r) { return h("span", { cls: "tag " + (r === "SUCCESS" ? "ok" : r === "FAILURE" || r === "ABORTED" ? "bad" : "warn"), text: r || "RUNNING" }); }
 function wbSel(label, id, opts, get, set) { return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), h("select", { id: "w-" + id, "aria-label": label, onchange: function (e) { set(e.target.value); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(get()) ? "selected" : null }); }))]); }
@@ -8596,7 +8601,7 @@ PAGES.browser = function () {
   S.apis.forEach(function (a) { a.stages.forEach(function (s) { urls.push("https://" + slsApiHost(a) + (s.name === "$default" ? "" : "/" + s.name) + "/drugs"); }); });
   S.albs.forEach(function (a) { a.listeners.forEach(function (l) { var t = find(S.tgs, l.tgId); if (t && t.ttype === "ip" && a.dns) urls.push("http://" + a.dns + (l.port === 80 ? "" : ":" + l.port) + "/api/drugs"); }); });
   var ex = (urls.length ? urls : ["http://203.0.113.15:8080"]).map(function (x) { return [x, x]; });
-  var bar = h("div", { cls: "addrbar" }, [h("span", { cls: "gl", text: "🌐" }), h("div", { style: "flex:1" }, [exPick(ex, function () { return W.addr; }, function (v) { W.addr = v; }, W, "_cu", "http://203.0.113.15:8080", "URL", false)]), h("button", { cls: "btn pri", type: "button", text: "Go", onclick: function () { wbGo(W.addr); } })]);
+  var bar = h("div", { cls: "addrbar" }, [h("button", { type: "button", cls: "btn", title: "Back", "aria-label": "Back", text: "←", disabled: WH.i > 0 ? null : "disabled", onclick: function () { whGo(-1); } }), h("button", { type: "button", cls: "btn", title: "Forward", "aria-label": "Forward", text: "→", disabled: WH.i < WH.st.length - 1 ? null : "disabled", onclick: function () { whGo(1); } }), h("span", { cls: "gl", text: "🌐" }), h("div", { style: "flex:1" }, [exPick(ex, function () { return W.addr; }, function (v) { W.addr = v; }, W, "_cu", "http://203.0.113.15:8080", "URL", false)]), h("button", { cls: "btn pri", type: "button", text: "Go", onclick: function () { wbGo(W.addr); } })]);
   var r = W.res, view;
   var noOut = !urls.some(function (u) { return /^https?:\/\/(?!github\.com)/.test(u); });
   if (!r && noOut) view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "ยังไม่มี link ของ Jenkins / SonarQube / ArgoCD / เว็บ" }), h("p", { text: "link พวกนี้มาจาก terraform output หลังสร้างเครื่องแล้ว (state ถูกล้างเมื่อกด Reset หรือเปิดแท็บใหม่)" }), h("p", { text: "ทางลัด: Lab › ตัวอย่างสำเร็จรูป › \"พร้อมปล่อย\" แล้วกดโหลด จะได้ครบทุก link ทันที หรือทำเองที่แท็บ Laptop: terraform apply" }), h("button", { type: "button", cls: "btn pri", text: "ไปที่ ตัวอย่างสำเร็จรูป", onclick: function () { go("lab-scen", {}, "Lab"); } })])]);
