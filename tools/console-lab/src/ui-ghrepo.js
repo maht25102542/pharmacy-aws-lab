@@ -65,7 +65,7 @@ function wbGhRepoSettings(user, name, rp, sub) {
   // ----- Actions (general) -----
   if (p === "/actions") { var AF = U.ac = U.ac || { perm: "all" }, rd2 = function (v, t) { return h("label", { cls: "gx-rad" }, [h("input", { type: "radio", name: "gh-acp", checked: AF.perm === v ? "checked" : null, onchange: function () { AF.perm = v; render(); } }), " " + t]); }; return shell("Actions permissions", null, [h("div", { cls: "gx-fld" }, [rd2("all", "Allow all actions and reusable workflows"), rd2("own", "Disable actions"), rd2("sel", "Allow user actions and reusable workflows, and select non-user actions")]), h("div", { cls: "gx-fld" }, [h("label", { text: "Workflow permissions" }), h("p", { cls: "gx-mut gx-sm", text: "Choose the default permissions granted to the GITHUB_TOKEN when running workflows in this repository. Note: id-token: write ต้องประกาศใน workflow (permissions) เพื่อขอ OIDC token ไปแลก role ของ AWS" })])]); }
   // ----- Branches -----
-  if (p === "/branches") return shell("Branches", h("button", { type: "button", cls: "gx-btn", text: "Add classic branch protection rule" }), [h("div", { cls: "gx-fld" }, [h("label", { text: "Default branch" }), h("div", { cls: "gx-trow gx-tbox" }, [h("b", { text: "main" })])]), h("div", { cls: "gx-fld" }, [h("label", { text: "Branch protection rules" }), h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-blank", text: "No branch protection rules defined yet." })])])]);
+  if (p === "/branches") return wbGhBranchRules(user, name, rp, shell);
   // ----- General (default) -----
   if (p === "/") {
     return shell("General", null, [h("div", { cls: "gx-fld" }, [h("label", { for: "gh-rname", text: "Repository name" }), h("div", { style: "display:flex;gap:8px" }, [h("input", { type: "text", id: "gh-rname", cls: "gx-in gx-w", value: name, readonly: "readonly" }), h("button", { type: "button", cls: "gx-btn", text: "Rename" })])]),
@@ -73,6 +73,7 @@ function wbGhRepoSettings(user, name, rp, sub) {
       h("div", { cls: "gx-fld" }, [h("label", { text: "Features" }), ["Wikis", "Issues", "Sponsorships", "Projects", "Preserve this repository", "Discussions"].map(function (f) { return h("label", { cls: "gx-rad" }, [h("input", { type: "checkbox", checked: f === "Issues" ? "checked" : null, disabled: "disabled" }), " " + f]); })]),
       h("div", { cls: "gx-danger" }, [h("b", { text: "Danger Zone" }), h("p", { cls: "gx-mut gx-sm", text: "Change repository visibility · Transfer ownership · Archive this repository · Delete this repository (จำลองเฉพาะหน้าตา: ไม่มีปุ่มทำงานในหน้านี้)" })])]);
   }
+  var sv = wbGhSetList(user, name, rp, p, shell) || wbGhSetToggle(user, name, rp, p, shell); if (sv) return sv;
   var nm = ""; GH_RS_NAV.forEach(function (g) { g[1].forEach(function (it) { if (it[1] && p.indexOf(it[1]) === 0) nm = it[0]; }); });
   return shell(nm || "Settings", null, [h("p", { cls: "gx-mut", text: "หน้านี้ของ GitHub ยังไม่ได้จำลอง (ที่ lab ใช้: Environments, Secrets and variables, Webhooks, Actions, Branches)" })]);
 }
