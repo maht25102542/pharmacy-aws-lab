@@ -41,7 +41,10 @@ function wbGithub(r) {
   if (mode === "pulls" || mode === "issues") return gh([head, tabsFor(mode === "pulls" ? "Pull requests" : "Issues"), d("gh-pad", [wbGhPulls(user, name, mode)])], rp, user);
   if (!mode && rp.empty && !Object.keys(files).length) return gh([head, tabsFor("Code"), d("gh-pad", [wbGhQuick(user, name, rp, link)])], rp, user);
   if (mode === "settings") return gh([head, tabsFor("Settings"), d("gh-pad", [wbGhRepoSettings(user, name, rp, parts.slice(3))])], rp, user);
-  if (mode === "actions") return gh([head, tabsFor("Actions"), d("gh-pad", [wbGhActions(user, name, rp, parts, go2, link)])], rp, user);
+  if (mode === "actions") { var wfx = typeof ghaWf === "function" ? ghaWf(user + "/" + name) : null, runsN = typeof ghaRunsOf === "function" ? ghaRunsOf(user + "/" + name).length : 0, sl = function (t, on, ind) { return d("gx-asi" + (on ? " on" : "") + (ind ? " ind" : ""), [t]); };
+    var side = d("gx-aside", [d("gx-ahd", [h("b", { text: "Actions" }), h("span", { cls: "gx-btn gx-xs", text: "New workflow" })]), sl("All workflows", true), d("gx-asp"), sl(wfx ? "deploy" : ".github/workflows", false), d("gx-ahd2", ["Management"]), sl("⛁ Caches", false), sl("⚑ Deployments", false), sl("▤ Attestations", false), sl("⌘ Runners", false)]);
+    var bar = d("gx-abar", [h("b", { text: runsN + " workflow run" + (runsN === 1 ? "" : "s") }), h("span", { style: "flex:1" }), ["Event", "Status", "Branch", "Actor"].map(function (x) { return h("span", { cls: "gx-fl", text: x + " ▾" }); })]);
+    return gh([head, tabsFor("Actions"), d("gx-aw", [side, d("gx-amain", [d("gx-atop", [h("h2", { text: "All workflows" }), h("span", { cls: "gx-sbox2", text: "⌕ Filter workflow runs" })]), bar, wbGhActions(user, name, rp, parts, go2, link)])])], rp, user); }
   var tabs = tabsFor("Code");
   if (mode === "tags") return gh([head, tabs, d("gh-pad", [h("h2", { text: "Tags" }), tags.length ? d("gh-card", tags.map(function (t) { return d("gh-row", [h("b", { text: "🏷 " + t }), h("span", { cls: "gh-mut", text: "ชี้ commit " + hash32(user + name + t).slice(0, 7) })]); })) : h("p", { cls: "gh-mut", text: "ยังไม่มี tag (ใน Terminal: git tag v1.0.0 && git push origin v1.0.0)" }), link(base, "← กลับไปหน้า Code")])], rp, user);
   var isFile = mode === "blob" && Object.prototype.hasOwnProperty.call(files, rest), dir = mode === "tree" ? rest : "";

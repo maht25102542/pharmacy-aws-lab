@@ -20,7 +20,7 @@ function ghStroke(kind, size) { // ไอคอนเส้นง่ายๆ �
   s.appendChild(g); return s;
 }
 function ghSess() { ghInit(); return S.gh.session && S.gh.session.user ? S.gh.session : null; }
-function ghGo(path) { W.addr = "https://github.com" + path; W.res = webOpen(W.addr); W.page = ""; W.ghMenu = false; render(); }
+function ghGo(path) { W.addr = "https://github.com" + path; W.res = webOpen(W.addr); W.page = ""; W.ghMenu = false; W.ghPlus = false; render(); }
 function ghLinkEl(path, kids, cls) { return h("a", { href: "#", cls: cls || "", onclick: function (e) { e.preventDefault(); ghGo(path); } }, [].concat(kids)); }
 function ghBtnSq(kind, title, on) { return h("button", { type: "button", cls: "gx-sq", title: title, "aria-label": title, onclick: on || function () {} }, [ghStroke(kind, 16)]); }
 
@@ -43,7 +43,7 @@ function ghHeader(ctxKids) {
   var ava = h("button", { type: "button", cls: "gx-ava", "aria-label": "Open user navigation menu", onclick: function () { W.ghMenu = !W.ghMenu; render(); } }, [u.user.slice(0, 1).toUpperCase()]);
   return h("header", { cls: "gx-hd" }, [h("div", { cls: "gx-hl" }, left), h("div", { cls: "gx-hr" }, [
     h("span", { cls: "gx-sbox" }, [ghStroke("search", 16), h("span", { text: "Type / to search" })]),
-    h("span", { cls: "gx-pair" }, [ghBtnSq("plus", "Create new…"), h("span", { cls: "gx-caret" }, [ghStroke("caret", 12)])]),
+    h("span", { cls: "gx-avawrap" }, [h("span", { cls: "gx-pair", onclick: function () { W.ghPlus = !W.ghPlus; W.ghMenu = false; render(); } }, [ghBtnSq("plus", "Create new…"), h("span", { cls: "gx-caret" }, [ghStroke("caret", 12)])]), W.ghPlus ? h("div", { cls: "gx-menu gx-plus" }, [["▢ New repository", "/new"], ["⇩ Import repository", ""], null, ["▭ New codespace", ""], ["‹› New gist", ""], null, ["▦ New organization", ""]].map(function (it) { return it ? h("a", { href: "#", cls: "gx-mi", onclick: function (e) { e.preventDefault(); W.ghPlus = false; if (it[1]) ghGo(it[1]); else render(); } }, [it[0]]) : h("div", { cls: "gx-ms" }); })) : null]),
     ghBtnSq("issue", "Issues"), ghBtnSq("pr", "Pull requests"), ghBtnSq("inbox", "You have no unread notifications"),
     h("div", { cls: "gx-avawrap" }, [ava, W.ghMenu ? ghAvatarMenu(u.user) : null].filter(Boolean))
   ])]);
