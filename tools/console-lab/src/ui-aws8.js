@@ -46,7 +46,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
     var run = S.gruns.filter(function (r) { return r.repo === repo && r.id === +parts[4]; })[0];
     if (!run) return h("p", { text: "ไม่พบ run" });
     var s0 = ghSt(run.status);
-    box.appendChild(h("div", { style: "margin-bottom:8px" }, [link(base, "← All workflows"), h("h2", { style: "margin:8px 0;font-size:1.25rem" }, [h("span", { style: "color:" + s0[1], text: s0[0] + " " }), "deploy #" + run.id + " · " + (run.trigger === "tag" ? "tag " : "push ") + run.ref]), h("div", { cls: "sub", text: "commit " + run.sha.slice(0, 7) + " · " + run.status })]));
+    box.appendChild(h("div", { style: "margin-bottom:8px" }, [link(base, "← All workflows"), h("h2", { style: "margin:8px 0;font-size:1.25rem" }, [h("span", { style: "color:" + s0[1], text: s0[0] + " " }), (run.trigger === "pull_request" ? "checks" : "deploy") + " #" + run.id + " · " + (run.trigger === "tag" ? "tag " : run.trigger === "pull_request" ? "pull_request " : "push ") + run.ref]), h("div", { cls: "sub", text: "commit " + run.sha.slice(0, 7) + " · " + run.status })]));
     if (run.waiting) box.appendChild(h("div", { style: "border:1px solid #d4a72c;background:#fff8c5;border-radius:6px;padding:10px 14px;margin-bottom:10px" }, [h("b", { text: "Waiting for review: environment “" + (w ? w.prdEnv : "production") + "”" }), h("p", { cls: "sub", text: "ผู้ตรวจที่ตั้งไว้ใน Settings › Environments ต้องกด Approve ก่อน job นี้จะเริ่ม" }), btn("Approve and deploy", function () { API.ghaApprove(repo, run.id, true); W.res = webOpen(W.addr); render(); }, "btn pri"), " ", btn("Reject", function () { API.ghaApprove(repo, run.id, false); W.res = webOpen(W.addr); render(); })]));
     run.jobs.forEach(function (j) {
       var js = ghSt(j.status === "cancelled" ? "failure" : j.status);
@@ -80,6 +80,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
     fld("on.push.tags (prd)", "tagPattern", [["v*", "v*"], ["release-*", "release-*"]]),
     fld("CONTAINER_NAME (ชื่อ container ใน task definition)", "containerName", [["api", "api"], ["app", "app"], ["frontend", "frontend"]]),
     fld("ECR repository", "ecrRepo", [["pharmacy/api", "pharmacy/api"], ["pharmacy/frontend", "pharmacy/frontend"]]),
+    fld("on.pull_request (รัน checks ตอนเปิด PR)", "onPr", [["true", "true (เปิด)"], ["", "(ไม่ใช้)"]], "token ของ PR ส่ง sub = repo:owner/repo:pull_request — trust policy ที่ผูกแค่ branch main จะไม่ผ่าน"),
     fld("environment ของ job prd (ว่าง = ไม่ต้องอนุมัติ)", "prdEnv", [["production", "production"], ["", "(ไม่ใช้ environment)"]], "ใส่ environment แล้ว sub ของ token จะเป็น …:environment:production ไม่ใช่ branch/tag"),
     btn("Commit changes", function () { cfg.repo = repo; var r = API.saveWorkflow(Object.assign({ repo: repo }, cfg)); if (r.errors) { flash("bad", Object.keys(r.errors).map(function (k) { return r.errors[k]; }).join(" · ")); return; } F.loaded = true; flash("ok", "commit .github/workflows/deploy.yml แล้ว"); W.res = webOpen(W.addr); render(); }, "btn pri")]);
   box.appendChild(h("details", { open: !w }, [h("summary", { style: "cursor:pointer;font-weight:600;margin-bottom:8px", text: w ? "แก้ไข workflow (ตัวจำลองสร้าง YAML จากฟอร์ม)" : "สร้าง workflow" }), form]));
