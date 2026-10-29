@@ -85,9 +85,9 @@ function jkBuildsOf(job) { jkJobs(); return S.jk.builds.filter(function (b) { re
 function jkRepoName(job) { var m = JK_REPO_RE.exec(job.repo || ""); return m ? m[2] : ""; }
 function jkCreateJob(o, isNew) {
   var er = {}; if (!/^[A-Za-z0-9_-]+$/.test(o.name || "")) er.name = "ชื่อใช้ได้เฉพาะ A-Z a-z 0-9 _ -"; else if (isNew && jkJob(o.name)) er.name = "A job already exists with the name ‘" + o.name + "’";
-  if (!JK_REPO_RE.test(o.repo || "")) er.repo = "Repository URL ต้องเป็นรูปแบบ https://github.com/<user>/<repo>.git (หนึ่ง job ต่อหนึ่ง repo)"; if (!o.script) er.script = "ต้องระบุ Script Path"; if (!o.branch) er.branch = "ต้องระบุ Branch Specifier";
+  if (o.defn === "script") { if (!/\bstage\s*\(/.test(o.inline || "")) er.inline = "Pipeline ต้องมีอย่างน้อย 1 stage เช่น stage('Build') { steps { echo 'hi' } }"; } else if (!JK_REPO_RE.test(o.repo || "")) er.repo = "Repository URL ต้องเป็นรูปแบบ https://github.com/<user>/<repo>.git (หนึ่ง job ต่อหนึ่ง repo)"; if (o.defn !== "script" && !o.script) er.script = "ต้องระบุ Script Path"; if (o.defn !== "script" && !o.branch) er.branch = "ต้องระบุ Branch Specifier";
   if (Object.keys(er).length) return { errors: er };
-  var old = jkJob(o.name), m = JK_REPO_RE.exec(o.repo), job = { name: o.name, repo: o.repo, svc: jkSvcOf(m[2]), cred: o.cred || "", branch: o.branch, script: o.script, paramsKnown: old ? old.paramsKnown : false, seq: old ? old.seq : 0 };
+  var scr = o.defn === "script", old = jkJob(o.name), m = scr ? null : JK_REPO_RE.exec(o.repo), job = { name: o.name, repo: scr ? "" : o.repo, svc: m ? jkSvcOf(m[2]) : o.name, defn: scr ? "script" : "scm", inline: scr ? o.inline : "", cfg: old ? old.cfg : undefined, cred: o.cred || "", branch: o.branch || "*/main", script: o.script || "Jenkinsfile", paramsKnown: old ? old.paramsKnown : false, seq: old ? old.seq : 0 };
   if (old) S.jk.jobs[S.jk.jobs.indexOf(old)] = job; else S.jk.jobs.push(job); S.jk.job = job; return { res: o.name };
 }
 function jkEnv() { var i = jkInst(), e = i && ansVm(i).f.env, o = {}; (e || "").split("\n").forEach(function (l) { var m = /^(\w+)=(.*)$/.exec(l); if (m) o[m[1]] = m[2]; }); return o; }
@@ -103,10 +103,11 @@ function jkNodesOk(envName) {
 var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 2, "SonarQube scan": 12, "Test": 6, "Build image": 10, "Scan image": 5, "Push image": 4, "Check image exists": 1, "Update manifest": 2, "Sync ArgoCD": 6 };
 function jkReal(b) { return b && b.mode ? b.mode === "real" : S.speed === "real"; } // b.mode: เลือกต่อ build ได้ ("real" | "instant") ไม่เลือก = ตามค่าความเร็วทั้งระบบ
 function jkMarkNext(b) { while (b.idx < b.stages.length && b.stages[b.idx].st === "skipped") { b.idx++; } if (b.idx < b.stages.length && b.stages[b.idx].st === "pending") b.stages[b.idx].st = "running"; }
-function jkNextDelay(b) { var s = b.stages[b.idx]; return s ? (JK_SEC[s.name] || 1) : 0; }
+function jkNextDelay(b) { var s = b.stages[b.idx]; if (!s) return 0; if (s.steps) { var sl = s.steps.filter(function (x) { return x.t === "sleep"; }).reduce(function (a, x) { return a + Math.min(+x.v || 0, 6); }, 0); return Math.max(2, sl || 3); } return JK_SEC[s.name] || 1; }
 function jkNew(p, who) {
   var jb = S.jk.job; jkJobs(); p.SERVICE = jb.svc; // service คงที่ต่อ job (repo นี้มีแค่ service เดียว)
   var b = { id: ++jb.seq, job: jb.name, params: p, state: "running", result: "", stages: [], log: [], who: who || S.jk.login || "admin", mode: S.jk.nextMode || "" }; S.jk.nextMode = ""; S.jk.seq = (S.jk.seq || 0) + 1; S.jk.builds.push(b);
+  if (jb.defn === "script") return jkInlineStart(b, jb);
   b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {", "[Pipeline] stage", "[Pipeline] { (Declarative: Checkout SCM)", "[Pipeline] checkout", "The recommended git tool is: NONE");
   var want = [["Validate", 1], ["Confirm production", p.TARGET_ENV === "prd"], ["Checkout version", p.ACTION === "build-and-deploy"], ["Test", p.ACTION === "build-and-deploy"], ["SonarQube scan", p.ACTION === "build-and-deploy"], ["Build image", p.ACTION === "build-and-deploy"], ["Scan image", p.ACTION === "build-and-deploy"], ["Push image", p.ACTION === "build-and-deploy"], ["Check image exists", p.ACTION === "deploy-only"], ["Update manifest", 1], ["Sync ArgoCD", !!p.AUTO_SYNC]];
   b.stages = want.map(function (w) { return { name: w[0], st: w[1] ? "pending" : "skipped" }; });
@@ -114,15 +115,19 @@ function jkNew(p, who) {
   var m = JK_REPO_RE.exec(jb.repo), jc = jb.cred;
   b.log.push(jc ? "using credential " + jc : "No credentials specified", "Cloning the remote Git repository", "Cloning repository " + jb.repo);
   if (!ghRepoOf(m[1], m[2])) { b.log.push(" > git fetch --tags --force --progress -- " + jb.repo + " +refs/heads/*:refs/remotes/origin/* # timeout=10", "ERROR: Error cloning remote repo 'origin'", "hudson.plugins.git.GitException: Command \"git fetch --tags --force --progress -- " + jb.repo + " +refs/heads/*:refs/remotes/origin/*\" returned status code 128:", "stderr: remote: Repository not found.", "fatal: repository '" + jb.repo + "/' not found  (ยังไม่ได้ git push repo-" + jb.svc + " ขึ้น GitHub หรือ URL/ชื่อ user ไม่ตรง)", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.state = "done"; b.result = "FAILURE"; b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); return b; }
+  { var rpx = ghRepoOf(m[1], m[2]), brn = String(jb.branch || "*/main").replace(/^(\*\/|origin\/|refs\/heads\/)/, ""), bf = brn === "main" ? rpx.files : (rpx.branches || {})[brn];
+    if (!bf) return jkCheckoutFail(b, jb, ["Fetching upstream changes from " + jb.repo, "ERROR: Couldn't find any revision to build. Verify the repository and branch configuration for this job.", "(branch ‘" + brn + "’ ยังไม่มีบน GitHub — ต้องสร้าง/push branch นี้ก่อน หรือแก้ Branch Specifier)"]);
+    if (!(jb.script in bf)) return jkCheckoutFail(b, jb, ["ERROR: Unable to find " + jb.script + " from git " + jb.repo, "hudson.AbortException: Unable to find " + jb.script + " from git " + jb.repo, "(ไม่มีไฟล์ " + jb.script + " ใน branch " + brn + " — เช็ค Script Path หรือ push Jenkinsfile ก่อน)"]); }
   b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {");
   b.stages.unshift({ name: "Declarative: Checkout SCM", st: "success" });
   b.idx = 1; if (jkReal(b)) { jkMarkNext(b); } else jkAdvance(b); return b;
 }
 // หยุด build ที่กำลังรัน (Stop) — ใช้ได้ทั้งหน้า build ปกติและ Blue Ocean
 function jkAbort(b) { if (!b || b.state === "done") return; b.stages.forEach(function (x) { if (x.st === "pending" || x.st === "running") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] End of Pipeline", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; }
-function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ return b; }
+function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ if (j.defn === "script") j.paramsKnown = false; /* Pipeline script: ไม่มี parameters ของ pharmacy */ return b; }
 function jkWithParams(p) { S.jk.job.paramsKnown = true; return jkNew(p); }
 function jkAdvance(b, once) {
+  { var jb0 = jkJob(b.job); if (jb0 && jb0.defn === "script") return jkInlineAdvance(b, once); }
   var jb = jkJob(b.job) || S.jk.job, env = jkEnv(), p = b.params, ji = jkInst(), image = (env.ECR_REGISTRY || "") + "/pharmacy/" + p.SERVICE + ":" + p.VERSION, app = "pharmacy-" + p.SERVICE + "-" + p.TARGET_ENV;
   function end(res) { b.log.push("[Pipeline] }", "[Pipeline] // withEnv", "[Pipeline] }", "[Pipeline] // node", "[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] sh", "+ rm -rf manifests", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline"); }
   function fail(s, msg) {
@@ -217,4 +222,29 @@ function ec2Web(inst, app, port, vhost, ip, reach, scheme, path) {
   var sni = vhost && vhost === app.domain; steps.push({ ok: sni, t: "เข้าด้วยชื่อ " + app.domain + " (SNI ตรงกับใบรับรอง)", d: sni ? "ใบรับรอง Let's Encrypt ใช้ได้" : "เข้าด้วย " + (vhost || ip) + " ใบรับรองไม่ตรง" });
   if (!sni) return { err: "NET::ERR_CERT_COMMON_NAME_INVALID", host: vhost || ip, steps: steps, inst: inst };
   return { site: "compose", host: vhost, inst: inst, app: app, tls: "Let's Encrypt (Caddy)", steps: steps };
+}
+
+// ---- checkout ล้ม (branch ไม่มี / ไม่เจอ Jenkinsfile) ----
+function jkCheckoutFail(b, jb, lines) { b.log.push.apply(b.log, lines.concat(["[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"])); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); b.state = "done"; b.result = "FAILURE"; return b; }
+// ---- job แบบ "Pipeline script" (เขียน stage/step ใน Jenkins เอง): ตัวจำลองอ่าน stage('X') และ step echo/sh/sleep/error แล้วรันตามลำดับ ----
+function jkParseStages(txt) {
+  var parts = String(txt || "").split(/\bstage\s*\(/).slice(1), out = [];
+  parts.forEach(function (p) { var nm = /^\s*['"]([^'"]+)['"]/.exec(p); if (!nm) return; var steps = [], re = /\b(echo|sh|error|sleep)\s*\(?\s*(?:'([^']*)'|"([^"]*)"|(\d+))/g, m; while ((m = re.exec(p))) steps.push({ t: m[1], v: m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4] }); out.push({ name: nm[1], steps: steps }); });
+  return out;
+}
+function jkInlineStart(b, jb) {
+  b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {");
+  b.stages = jkParseStages(jb.inline).map(function (s) { return { name: s.name, st: "pending", steps: s.steps }; }); b.idx = 0;
+  if (!b.stages.length) { b.log.push("WorkflowScript: no stages found", "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return b; }
+  if (jkReal(b)) jkMarkNext(b); else jkInlineAdvance(b); return b;
+}
+function jkInlineAdvance(b, once) {
+  while (b.idx < b.stages.length) {
+    var s = b.stages[b.idx], bad = null; s.st = "running"; b.log.push("[Pipeline] stage", "[Pipeline] { (" + s.name + ")");
+    for (var k = 0; k < (s.steps || []).length && !bad; k++) { var t = s.steps[k]; if (t.t === "echo") b.log.push("[Pipeline] echo", t.v); else if (t.t === "sleep") b.log.push("[Pipeline] sleep", "Sleeping for " + t.v + " sec"); else if (t.t === "error") { bad = t.v; b.log.push("[Pipeline] error"); } else { b.log.push("[Pipeline] sh", "+ " + t.v); if (/\bexit\s+[1-9]|\bfalse\b/.test(t.v)) bad = "script returned exit code 1"; else b.log.push("(ตัวจำลอง: ไม่ได้รันคำสั่งจริง)"); } }
+    if (bad) { s.st = "failed"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.log.push("[Pipeline] End of Pipeline", "ERROR: " + bad, "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return; }
+    s.st = "success"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.idx++;
+    if (once && jkReal(b)) { if (b.idx < b.stages.length) { jkMarkNext(b); return; } break; }
+  }
+  if (b.idx >= b.stages.length) { b.log.push("[Pipeline] }", "[Pipeline] // node", "[Pipeline] End of Pipeline", "Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS"; }
 }
