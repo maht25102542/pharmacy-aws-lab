@@ -9,11 +9,6 @@ function ghTextDiff(a, b) {
 function ghLogOf(rp, br) { var l = br && br !== "main" ? (rp.blog || {})[br] : null; return l && l.length ? l : rp.log && rp.log.length ? rp.log : [{ m: "Initial commit", t: Date.now() }]; }
 function ghLogList(user, name, rp, br) { var log = ghLogOf(rp, br); return log.slice().reverse().map(function (c, i) { return { c: c, h: hash32(user + name + c.m + i).slice(0, 7) }; }); }
 // Commits (กรองตามไฟล์ได้ = History ของไฟล์) + หน้า commit detail
-function wbGhCommits(user, name, rp, path, br) {
-  br = br || "main"; var base = "/" + user + "/" + name, list = ghLogList(user, name, rp, br).filter(function (x) { return !path || (x.c.ch && path in x.c.ch); });
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: path ? "History for " + path : "Commits" })]), h("div", { cls: "gx-mut gx-sm", text: br }),
-    h("div", { cls: "gx-tbox" }, list.length ? list.map(function (x) { return h("div", { cls: "gx-trow" }, [h("div", { style: "flex:1" }, [h("a", { href: "#", cls: "gh-a b", text: x.c.m, onclick: function (e) { e.preventDefault(); ghGo(base + "/commit/" + x.h); } }), h("div", { cls: "gx-mut gx-sm", text: user + " committed " + ghTimeAgo(x.c.t) })]), h("a", { href: "#", cls: "gx-mut", text: x.h, onclick: function (e) { e.preventDefault(); ghGo(base + "/commit/" + x.h); } })]); }) : [h("div", { cls: "gx-blank", text: "No commits history for this file." })])]);
-}
 function wbGhCommit(user, name, rp, hv) {
   var x = null; ["main"].concat(Object.keys(rp.blog || {})).some(function (b) { x = ghLogList(user, name, rp, b).filter(function (y) { return y.h === hv; })[0] || null; return !!x; }); if (!x) return h("p", { cls: "gx-mut", text: "404 — commit " + hv + " not found" });
   var ch = x.c.ch || {}, ks = Object.keys(ch);
@@ -22,12 +17,6 @@ function wbGhCommit(user, name, rp, hv) {
     h("a", { href: "#", cls: "gh-a", text: "← back to commits", onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/commits/main"); } })]);
 }
 // labels + assignee + แก้ title (ใช้ทั้ง Issue และ PR)
-function ghMeta(it) {
-  it.labels = it.labels || []; var rm = function (l) { return function () { it.labels = it.labels.filter(function (x) { return x !== l; }); save(); render(); }; };
-  return h("div", { cls: "gx-tbox", style: "padding:10px" }, [h("b", { text: "Labels " }), h("span", {}, it.labels.map(function (l) { return h("span", { cls: "gh-badge", style: "margin-right:4px", onclick: rm(l), title: "คลิกเพื่อเอาออก", text: l + " ×" }); })),
-    h("select", { cls: "gx-in", "aria-label": "Add label", onchange: function (e) { if (e.target.value && it.labels.indexOf(e.target.value) < 0) it.labels.push(e.target.value); save(); render(); } }, [h("option", { value: "", text: "+ Add label" })].concat(GH_LABELS.map(function (l) { return h("option", { value: l, text: l }); }))),
-    h("div", {}, [h("b", { text: "Assignee " }), h("select", { cls: "gx-in", "aria-label": "Assignee", onchange: function (e) { it.assignee = e.target.value; save(); render(); } }, GH_ASSIGN.map(function (a) { return h("option", { value: a, text: a || "No one", selected: (it.assignee || "") === a ? "selected" : null }); }))])]);
-}
 function ghEditTitle(it) {
   var F = W.ghte = W.ghte || {}; if (F.n !== it.n || F.k !== it.title) { if (!F.open || F.n !== it.n) F = W.ghte = { n: it.n }; }
   return F.open && F.n === it.n ? h("div", { style: "display:flex;gap:6px" }, [h("input", { type: "text", id: "gh-tte", cls: "gx-in gx-w", "aria-label": "Title", value: it.title }), h("button", { type: "button", cls: "gx-green gx-sm2", text: "Save", onclick: function () { var v = document.getElementById("gh-tte").value.trim(); if (v) it.title = v; F.open = false; save(); render(); } })]) : h("button", { type: "button", cls: "gx-btn", text: "Edit title", onclick: function () { F.open = true; F.n = it.n; render(); } });
@@ -40,10 +29,6 @@ function ghDelBranchBtn(rp, pr) { return pr.state !== "open" && rp.branches && r
 function wbGhBranchMenu(rp, cur) {
   var all = ["main"].concat(Object.keys(rp.branches || {})), inp = h("input", { type: "text", id: "gh-nbr", cls: "gx-in gx-w", "aria-label": "New branch name", placeholder: "Find or create a branch…" });
   return h("div", { cls: "gx-menu", style: "left:0;top:36px;width:280px;padding:8px;text-align:left" }, [h("b", { text: "Switch branches" })].concat(all.map(function (b) { return h("a", { href: "#", cls: "gx-mi", text: (b === cur ? "✓ " : "   ") + b, onclick: function (e) { e.preventDefault(); W.ghBr = b === "main" ? "" : b; W.ghBrMenu = false; render(); } }); })).concat([inp, h("button", { type: "button", cls: "gx-green gx-sm2", text: "Create branch from " + cur, onclick: function () { var n = inp.value.trim(); if (!/^[\w./-]+$/.test(n) || n === "main" || (rp.branches || {})[n]) { flash("bad", "Invalid or existing branch name"); render(); return; } rp.branches = rp.branches || {}; rp.branches[n] = JSON.parse(JSON.stringify(cur === "main" ? rp.files : rp.branches[cur])); rp.blog = rp.blog || {}; rp.blog[n] = ghLogOf(rp, cur).slice(); ghFireHooks(Object.keys(S.gh.repos).filter(function (k) { return S.gh.repos[k] === rp; })[0], "push", n); W.ghBr = n; W.ghBrMenu = false; save(); render(); } })]));
-}
-function wbGhBranchList(user, name, rp) {
-  var brs = Object.keys(rp.branches || {}), row = function (b, def) { var pr = (rp.prs || []).filter(function (x) { return x.head === b; })[0]; return h("div", { cls: "gx-trow" }, [h("b", { text: b }), def ? h("span", { cls: "gh-badge", text: "Default" }) : null, h("span", { style: "flex:1" }), pr ? h("a", { href: "#", cls: "gh-a", text: "#" + pr.n + " " + pr.state, onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/pulls/" + pr.n); } }) : def ? null : h("a", { href: "#", cls: "gh-a", text: "New pull request", onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/pulls/compare/" + b); } }), def ? null : h("button", { type: "button", cls: "gx-trash", title: "Delete branch", text: "🗑", onclick: function () { delete rp.branches[b]; if (rp.blog) delete rp.blog[b]; if (W.ghBr === b) W.ghBr = ""; save(); render(); } })]); };
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Branches" })]), h("div", { cls: "gx-tbox" }, [row("main", true)].concat(brs.map(function (b) { return row(b, false); })))]);
 }
 // About: description / website / topics
 function wbGhAboutForm(rp) {

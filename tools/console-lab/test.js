@@ -604,6 +604,13 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert(/connected to postgres/.test(sh4("aws logs tail /ecs/pharmacy-api-prd")), "aws logs tail เห็น log แอป");
   assert(/Destroy complete! Resources: 42 destroyed/.test(sh4("terraform destroy -auto-approve")), "destroy lab ecs");
 }
+// ชื่อ function ระดับบนซ้ำกันข้ามไฟล์ = ตัวหลังทับตัวแรกเงียบๆ (เคยทำให้ Settings › Public profile พัง) · ที่ซ้ำเดิมเป็นสำเนาเหมือนกัน
+{
+  const seen = {}, ALLOW = ["ip2n", "n2ip", "tagList", "tfSortedKeys"];
+  for (const d of ["", "mod"]) for (const f of fs.readdirSync(path.join(__dirname, "src", d)).filter(x => x.endsWith(".js"))) for (const m of fs.readFileSync(path.join(__dirname, "src", d, f), "utf8").matchAll(/^function ([A-Za-z0-9_$]+)\(/gm)) (seen[m[1]] = seen[m[1]] || []).push(path.join(d, f));
+  const dup = Object.keys(seen).filter(n => seen[n].length > 1 && !ALLOW.includes(n));
+  assert(!dup.length, "ชื่อ function ซ้ำ (ตัวหลังทับตัวแรก): " + dup.map(n => n + " [" + seen[n].join(", ") + "]").join(" ; "));
+}
 console.log("ok");
 
 // ---- ตัวอย่างสำเร็จรูป Ansible

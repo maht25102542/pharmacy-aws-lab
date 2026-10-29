@@ -1,6 +1,5 @@
 // ===== GitHub จำลอง: แท็บ Issues / Discussions / Projects / Security / Insights + หน้า Settings ที่เหลือ (Collaborators, Tags, Rules, Copilot, Pages, Keys ...) — กดทำงานได้จริง เก็บใน rp =====
 function ghMe() { return (ghSess() || {}).user || "you"; }
-function ghTimeAgo(t) { var s = Math.max(0, Math.round((Date.now() - (t || Date.now())) / 1000)); return s < 60 ? "just now" : s < 3600 ? Math.floor(s / 60) + " minutes ago" : Math.floor(s / 3600) + " hours ago"; }
 function ghTabsState(rp) { rp.issues = rp.issues || []; rp.discs = rp.discs || []; rp.proj = rp.proj || { backlog: [], todo: [], doing: [], review: [], done: [] }; rp.sec = rp.sec || { policy: false, dependabot: true, scanning: false, secrets: true }; rp.set = rp.set || {}; return rp; }
 function ghOpenCount(rp) { return ghTabsState(rp).issues.filter(function (i) { return i.state === "open"; }).length; }
 
@@ -33,32 +32,8 @@ function wbGhThreads(user, name, rp, kind, sub) {
 }
 
 // Projects: board 3 คอลัมน์ เพิ่ม/ย้าย/ลบการ์ดได้
-function wbGhProjects(user, name, rp) {
-  ghTabsState(rp); var cols = [["todo", "Todo"], ["doing", "In Progress"], ["done", "Done"]];
-  var add = function (k) { var v = (document.getElementById("gh-pj-" + k).value || "").trim(); if (v) { rp.proj[k].push(v); save(); render(); } };
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Projects — board" })]), h("div", { style: "display:grid;grid-template-columns:repeat(3,1fr);gap:12px" }, cols.map(function (c, ci) {
-    return h("div", { cls: "gx-tbox", style: "padding:8px" }, [h("b", { text: c[1] + " (" + rp.proj[c[0]].length + ")" })].concat(rp.proj[c[0]].map(function (t, ti) {
-      var mv = function (to) { return function () { rp.proj[c[0]].splice(ti, 1); if (to) rp.proj[to].push(t); save(); render(); }; };
-      var PE = W.ghpe = W.ghpe || {}; if (PE.c === c[0] && PE.i === ti) return ghInline("Edit card", t, function (v) { rp.proj[c[0]][ti] = v; W.ghpe = {}; save(); render(); }, function () { W.ghpe = {}; render(); });
-      return h("div", { cls: "gx-trow" }, [h("span", { text: t, style: "flex:1" }), h("button", { type: "button", cls: "gx-btn", title: "Edit card", text: "✎", onclick: function () { W.ghpe = { c: c[0], i: ti }; render(); } }), ci > 0 ? h("button", { type: "button", cls: "gx-btn", text: "←", onclick: function () { rp.proj[c[0]].splice(ti, 1); rp.proj[cols[ci - 1][0]].push(t); save(); render(); } }) : null, ci < 2 ? h("button", { type: "button", cls: "gx-btn", text: "→", onclick: function () { rp.proj[c[0]].splice(ti, 1); rp.proj[cols[ci + 1][0]].push(t); save(); render(); } }) : null, h("button", { type: "button", cls: "gx-trash", text: "🗑", onclick: mv(null) })]);
-    })).concat([h("input", { type: "text", id: "gh-pj-" + c[0], cls: "gx-in gx-w", placeholder: "+ Add item", onkeydown: function (e) { if (e.key === "Enter") add(c[0]); } })]));
-  }))]);
-}
-
 // Security: overview + เปิด/ปิดฟีเจอร์
-function wbGhSecurity(user, name, rp) {
-  ghTabsState(rp); var S1 = rp.sec, row = function (k, t, d) { return h("div", { cls: "gx-trow" }, [h("div", { style: "flex:1" }, [h("b", { text: t }), h("div", { cls: "gx-mut gx-sm", text: d })]), h("span", { cls: "gh-badge", text: S1[k] ? "Enabled" : "Disabled" }), h("button", { type: "button", cls: "gx-btn", text: S1[k] ? "Disable" : "Enable", onclick: function () { S1[k] = !S1[k]; save(); render(); } })]); };
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Security overview" })]), h("div", { cls: "gx-tbox" }, [row("policy", "Security policy", "Tell people how to report vulnerabilities (SECURITY.md)"), row("dependabot", "Dependabot alerts", S1.dependabot ? "0 open alerts — no vulnerable dependencies found" : "Get notified when dependencies are vulnerable"), row("scanning", "Code scanning", "Find vulnerabilities in code with CodeQL"), row("secrets", "Secret scanning", S1.secrets ? "0 leaked secrets detected" : "Detect secrets committed to the repo")])]);
-}
-
 // Insights: pulse + contributors + languages จากข้อมูลจริงของ repo
-function wbGhInsights(user, name, rp) {
-  ghTabsState(rp); var files = rp.files || {}, byLang = {}, tot = 0; Object.keys(files).forEach(function (k) { var e = (/\.([A-Za-z0-9]+)$/.exec(k) || [])[1], l = GH_LANG[e]; if (l) { byLang[l[0]] = (byLang[l[0]] || 0) + files[k].length; tot += files[k].length; } });
-  var stat = function (t, v) { return h("div", { cls: "gx-trow" }, [h("b", { text: v }), h("span", { cls: "gx-mut", text: t })]); };
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Pulse" })]), h("div", { cls: "gx-tbox" }, [stat("Commits on main", String((rp.n || 0) + 1)), stat("Contributors", "1 (" + user + ")"), stat("Tags", String((rp.tags || []).length)), stat("Open issues", String(ghOpenCount(rp))), stat("Closed issues", String(rp.issues.filter(function (i) { return i.state === "closed"; }).length)), stat("Workflow runs", String((typeof ghaRunsOf === "function" ? ghaRunsOf(user + "/" + name) : []).length))]),
-    h("h3", { text: "Languages" }), h("div", { cls: "gx-tbox" }, Object.keys(byLang).sort(function (a, b) { return byLang[b] - byLang[a]; }).map(function (l) { return stat(l, (byLang[l] * 100 / tot).toFixed(1) + "%"); }))]);
-}
-
 // Settings ที่เหลือ: รายการ + เพิ่ม/ลบ (Collaborators, Deploy keys, Tag/branch rules, Pages, Copilot ...)
 var GH_RS_LISTS = {
   "/access": ["Collaborators and teams", "Invite a collaborator", "username", "Add people"],
@@ -69,22 +44,12 @@ var GH_RS_LISTS = {
   "/installations": ["GitHub Apps", "Install app", "app name", "Install"],
   "/notifications": ["Email notifications", "Add address", "email", "Add"]
 };
-function wbGhSetList(user, name, rp, p, shell) {
-  var cfg = GH_RS_LISTS[p]; if (!cfg) return null; ghTabsState(rp); var L = rp.set[p] = rp.set[p] || (p === "/access" ? [user + " (Owner)"] : []);
-  return shell(cfg[0], null, [h("div", { cls: "gx-tbox" }, L.length ? L.map(function (x, i) { return h("div", { cls: "gx-trow" }, [h("span", { text: x, style: "flex:1" }), p === "/access" && i === 0 ? null : h("button", { type: "button", cls: "gx-trash", text: "🗑", onclick: function () { L.splice(i, 1); save(); render(); } })]); }) : [h("div", { cls: "gx-blank", text: "Nothing here yet." })]),
-    h("div", { cls: "gx-fld" }, [h("label", { text: cfg[1] }), h("input", { type: "text", id: "gh-sl", cls: "gx-in gx-w", placeholder: cfg[2] }), h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", text: cfg[3], onclick: function () { var v = document.getElementById("gh-sl").value.trim(); if (!v) { flash("bad", "Value can't be blank"); return; } L.push(v); save(); render(); } })])])]);
-}
 function wbGhSetToggle(user, name, rp, p, shell) {
   if (p !== "/pages" && p !== "/copilot" && p !== "/security_analysis") return null; ghTabsState(rp); var T = rp.set[p] = rp.set[p] || {};
   var opt = p === "/pages" ? [["Build and deployment source", ["Deploy from a branch", "GitHub Actions"]]] : [], on = !!T.on, ttl = p === "/pages" ? "GitHub Pages" : p === "/copilot" ? "Copilot" : "Advanced security";
   return shell(ttl, null, [h("div", { cls: "gx-fld" }, [h("label", { cls: "gx-rad" }, [h("input", { type: "checkbox", checked: on ? "checked" : null, onchange: function (e) { T.on = e.target.checked; save(); render(); } }), " Enable " + ttl]), on && p === "/pages" ? h("p", { cls: "gx-mut gx-sm", text: "Your site is live at https://" + user + ".github.io/" + name + "/" }) : null])].concat(opt.map(function (o) { return h("div", { cls: "gx-fld" }, [h("label", { text: o[0] }), h("select", { cls: "gx-in", onchange: function (e) { T.src = e.target.value; save(); } }, o[1].map(function (x) { return h("option", { text: x, selected: T.src === x ? "selected" : null }); }))]); })));
 }
 // Branches: เพิ่ม/ลบ branch protection rule
-function wbGhBranchRules(user, name, rp, shell) {
-  ghTabsState(rp); var R = rp.set.branchRules = rp.set.branchRules || [];
-  return shell("Branches", null, [h("div", { cls: "gx-fld" }, [h("label", { text: "Default branch" }), h("div", { cls: "gx-trow gx-tbox" }, [h("b", { text: "main" })])]), h("div", { cls: "gx-fld" }, [h("label", { text: "Branch protection rules" }), h("div", { cls: "gx-tbox" }, R.length ? R.map(function (x, i) { return h("div", { cls: "gx-trow" }, [h("b", { text: x }), h("span", { cls: "gx-mut gx-sm", text: "Require a pull request before merging", style: "flex:1" }), h("button", { type: "button", cls: "gx-trash", text: "🗑", onclick: function () { R.splice(i, 1); save(); render(); } })]); }) : [h("div", { cls: "gx-blank", text: "No branch protection rules defined yet." })]), h("input", { type: "text", id: "gh-br", cls: "gx-in gx-w", placeholder: "Branch name pattern (เช่น main)" }), h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", text: "Add classic branch protection rule", onclick: function () { var v = document.getElementById("gh-br").value.trim(); if (!v) { flash("bad", "Branch name pattern can't be blank"); return; } R.push(v); save(); render(); } })])])]);
-}
-
 // ===== Pull requests: compare branch → main, Create, Merge/Close (branch มาจาก git checkout -b + git push origin <branch>) =====
 function ghDiff(rp, br, base) { var a = (!base || base === "main" ? rp.files : (rp.branches || {})[base]) || {}, b = (rp.branches || {})[br] || {}, o = []; Object.keys(b).forEach(function (k) { if (!(k in a)) o.push({ f: k, s: "added", p: b[k].split("\n").length, m: 0 }); else if (a[k] !== b[k]) o.push({ f: k, s: "modified", p: Math.max(1, b[k].split("\n").length - a[k].split("\n").length + 1), m: 1 }); }); /* ponytail: ไม่นับไฟล์ที่ branch ไม่มี เป็น deleted — snapshot มาจากโฟลเดอร์ local ที่อาจไม่มีไฟล์ของ main · ถ้าต้อง rm ไฟล์ใน PR ค่อยเพิ่ม */ return o; }
 // diff ระดับบรรทัด: ตัด prefix/suffix ที่เหมือนกัน เหลือส่วนกลางเป็น −/+ พร้อม context 2 บรรทัด
@@ -196,23 +161,10 @@ function ghDimDead() {
   });
 }
 // ===== Code ▾ (clone) · Go to file · Commits · Branches · โปรไฟล์ · Set status =====
-function wbGhCodeMenu(user, name) {
-  var url = "https://github.com/" + user + "/" + name + ".git";
-  return h("div", { cls: "gx-menu", style: "right:0;left:auto;top:36px;width:360px;padding:12px;text-align:left" }, [h("b", { text: "Clone" }), h("div", { cls: "gx-mut gx-sm", text: "HTTPS" }), h("div", { style: "display:flex;gap:6px;margin:6px 0" }, [h("input", { type: "text", cls: "gx-in gx-w", readonly: "readonly", value: url, "aria-label": "Clone URL" }), h("button", { type: "button", cls: "gx-btn", text: "Copy", onclick: function () { try { navigator.clipboard.writeText(url); } catch (e) {} flash("ok", "คัดลอกแล้ว: " + url); render(); } })]),
-    h("div", { cls: "gx-mut gx-sm", text: "ใน Terminal: git clone " + url }), h("div", { cls: "gx-ms" }), h("a", { href: "#", cls: "gx-mi", text: "⇩ Download ZIP (จำลอง: ไม่ได้ดาวน์โหลดไฟล์จริง)", onclick: function (e) { e.preventDefault(); flash("info", "ตัวจำลองไม่ได้สร้างไฟล์ ZIP จริง"); render(); } })]);
-}
 function wbGhFind(user, name, rp) {
   var F = W.ghf = W.ghf || { q: "" }, q = (F.q || "").toLowerCase(), all = Object.keys(rp.files || {}).sort().filter(function (f) { return !q || f.toLowerCase().indexOf(q) >= 0; }).slice(0, 60);
   return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Go to file" })]), h("input", { type: "text", cls: "gx-in gx-w", placeholder: "Go to file", "aria-label": "Go to file", value: F.q, oninput: function (e) { F.q = e.target.value; render(); var el = document.querySelector(".gx-quick input:not(.gx-exsel)"); if (el) { el.focus(); el.setSelectionRange(99, 99); } } }),
     h("div", { cls: "gx-tbox" }, all.length ? all.map(function (f) { return h("div", { cls: "gx-trow" }, [h("a", { href: "#", cls: "gh-a", text: f, onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/blob/main/" + f); } })]); }) : [h("div", { cls: "gx-blank", text: "No matching files." })])]);
-}
-function wbGhCommits(user, name, rp) {
-  var log = (rp.log && rp.log.length ? rp.log : [{ m: "Initial commit", t: Date.now() }]).slice().reverse();
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Commits" })]), h("div", { cls: "gx-mut gx-sm", text: "main" }), h("div", { cls: "gx-tbox" }, log.map(function (c, i) { return h("div", { cls: "gx-trow" }, [h("div", { style: "flex:1" }, [h("b", { text: c.m }), h("div", { cls: "gx-mut gx-sm", text: user + " committed " + ghTimeAgo(c.t) })]), h("code", { cls: "gx-mut", text: hash32(user + name + c.m + i).slice(0, 7) })]); }))]);
-}
-function wbGhBranchList(user, name, rp) {
-  var brs = Object.keys(rp.branches || {}), row = function (b, def) { var pr = (rp.prs || []).filter(function (x) { return x.head === b; })[0]; return h("div", { cls: "gx-trow" }, [h("b", { text: b }), def ? h("span", { cls: "gh-badge", text: "Default" }) : null, h("span", { style: "flex:1" }), pr ? h("a", { href: "#", cls: "gh-a", text: "#" + pr.n + " " + pr.state, onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/pulls/" + pr.n); } }) : def ? null : h("a", { href: "#", cls: "gh-a", text: "New pull request", onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/pulls/compare/" + b); } })]); };
-  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Branches" })]), h("div", { cls: "gx-tbox" }, [row("main", true)].concat(brs.map(function (b) { return row(b, false); })))]);
 }
 function wbGhUserProfile(user) {
   ghInit(); var T = W.ghPT || "overview", me = ghSess() && ghSess().user === user, repos = Object.keys(S.gh.repos).filter(function (n) { return S.gh.repos[n].user === user; }), st = S.gh.status || {}, UP = S.gh.uprojects = S.gh.uprojects || [];
@@ -247,10 +199,6 @@ function ghCommit(user, name, rp, br, path, content, msg, newBranch, oldPath) {
   if (target === "main") { var chg = {}; chg[path] = [src[path] === undefined ? null : src[path], content]; rp.files = copy; rp.n = (rp.n || 0) + 1; rp.log = (rp.log || []).concat([{ m: msg, t: Date.now(), ch: chg }]); ghFireHooks(name, "push"); if (typeof API !== "undefined" && API.ghaPush) API.ghaPush(user + "/" + name, "main"); }
   else { rp.branches = rp.branches || {}; rp.branches[target] = copy; rp.blog = rp.blog || {}; rp.blog[target] = (rp.blog[target] || (br === "main" ? rp.log : rp.blog[br]) || rp.log || []).concat([{ m: msg, t: Date.now(), ch: { [path]: [src[path] === undefined ? null : src[path], content] } }]); ghFireHooks(name, "push", target); if (API.ghaPush) API.ghaPush(user + "/" + name, target); if ((rp.prs || []).some(function (x) { return x.head === target && x.state === "open"; }) && API.ghaPr) API.ghaPr(user + "/" + name, target); }
   save(); return target;
-}
-function wbGhBranchMenu(rp, cur) {
-  var all = ["main"].concat(Object.keys(rp.branches || {}));
-  return h("div", { cls: "gx-menu", style: "left:0;top:36px;width:260px;padding:8px;text-align:left" }, [h("b", { text: "Switch branches" })].concat(all.map(function (b) { return h("a", { href: "#", cls: "gx-mi", text: (b === cur ? "✓ " : "   ") + b, onclick: function (e) { e.preventDefault(); W.ghBr = b === "main" ? "" : b; W.ghBrMenu = false; render(); } }); })));
 }
 function wbGhAddMenu(user, name, br) {
   var base = "/" + user + "/" + name;
