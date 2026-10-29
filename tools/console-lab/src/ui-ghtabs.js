@@ -155,7 +155,21 @@ function ghDecorate() {
     el.parentNode.insertBefore(s, el);
   });
 }
-var ghRender0 = render; render = function () { ghRender0(); ghDecorate(); };
+// เมนูที่กดไม่ได้/ยังไม่ได้จำลอง → จาง (เฉพาะในหน้าเว็บจำลอง ไม่แตะ AWS console)
+function ghDimDead() {
+  var CL = /(^|\s)[a-z0-9]+-(btn|tab|ni|si|a|link|item)(\s|$)|(^|\s)btn(\s|$)/;
+  [].forEach.call(document.querySelectorAll("#main a, #main button, #main [class]"), function (el) {
+    if (el.classList.contains("na-dim") || el.disabled || el.type === "submit" || el.tagName === "SELECT" || el.tagName === "OPTION" || el.closest(".pf, .pvx, .csel, select, textarea, label, summary") || /csel/.test(el.className)) return;
+    if (el.hasAttribute("data-nh") && el.closest(".gh, .jx, [class*=sq-], [class*=ag-]")) { el.classList.add("na-dim"); if (!el.title) el.title = "ยังไม่ได้จำลองหน้านี้"; return; }
+    var tag = el.tagName; if (tag !== "A" && tag !== "BUTTON" && !CL.test(el.className || "")) return; if (!el.closest(".gh, .jx, [class*=sq-], [class*=ag-]")) return;
+    if (tag === "A" && el.getAttribute("href") && el.getAttribute("href") !== "#") return;
+    if (el.hasAttribute("data-nh")) { el.classList.add("na-dim"); return; }
+    for (var p = el; p && p !== document.body; p = p.parentElement) if (HAS.has(p)) return;
+    if (el.querySelector("input, select, textarea")) return;
+    el.classList.add("na-dim"); if (!el.title) el.title = "ยังไม่ได้จำลองหน้านี้";
+  });
+}
+var ghRender0 = render; render = function () { ghRender0(); ghDecorate(); ghDimDead(); };
 
 // branch protection rule ที่ main = ต้องมี approve ≥1 (จากคนที่ไม่ใช่เจ้าของ PR) และไม่มี changes requested ค้างอยู่
 function ghMergeBlock(rp, pr) { if ((rp.set.branchRules || []).indexOf("main") < 0) return ""; var last = {}; (pr.reviews || []).forEach(function (r) { last[r.by] = r.state; }); var st = Object.keys(last).map(function (k) { return last[k]; }); if (st.indexOf("changes") >= 0) return "Changes requested — resolve before merging"; if (st.indexOf("approved") < 0) return "At least 1 approving review is required by reviewers with write access (branch protection rule on main)"; return ""; }
