@@ -26,14 +26,14 @@ function ghBtnSq(kind, title, on) { return h("button", { type: "button", cls: "g
 
 // ---- เมนูรูปโปรไฟล์ (ข้อความตามเมนูจริงของ github.com)
 function ghAvatarMenu(user) {
-  var item = function (t, path, extra) { return h("a", { href: "#", cls: "gx-mi" + (extra || ""), onclick: function (e) { e.preventDefault(); if (path === "!out") { S.gh.session = null; ghGo("/login"); } else if (path) ghGo(path); else { W.ghMenu = false; render(); } } }, [t]); };
+  var item = function (ic, t, path, extra) { return h("a", { href: "#", cls: "gx-mi gx-mic" + (extra || ""), onclick: function (e) { e.preventDefault(); if (path === "!out") { S.gh.session = null; ghGo("/login"); } else if (path) ghGo(path); else { W.ghMenu = false; render(); } } }, [h("span", { cls: "gx-mico", text: ic }), t]); };
   return h("div", { cls: "gx-menu" }, [
-    h("div", { cls: "gx-mh" }, [h("div", { cls: "gx-mhs", text: "Signed in as" }), h("b", { text: user })]),
-    h("div", { cls: "gx-ms" }), item("Set status"), h("div", { cls: "gx-ms" }),
-    item("Your profile", "/" + user), item("Your repositories", "/" + user + "?tab=repositories"), item("Your projects"), item("Your stars"), item("Your gists"), item("Your organizations"), item("Your enterprises"), item("Your sponsors"),
-    h("div", { cls: "gx-ms" }), item("Try Enterprise"), item("Feature preview"), item("Settings", "/settings/profile"),
-    h("div", { cls: "gx-ms" }), item("GitHub Docs"), item("GitHub Support"), item("GitHub Community"),
-    h("div", { cls: "gx-ms" }), item("Sign out", "!out")
+    h("div", { cls: "gx-mh2" }, [h("span", { cls: "gx-ava gx-ava-s2", text: user.slice(0, 1).toUpperCase() }), h("div", {}, [h("b", { text: user }), h("div", { cls: "gx-mut gx-sm", text: user })]), h("span", { cls: "gx-x", text: "✕", onclick: function () { W.ghMenu = false; render(); } })]),
+    item("☺", "Set status"), h("div", { cls: "gx-ms" }),
+    item("👤", "Your profile", "/" + user), h("div", { cls: "gx-ms" }),
+    item("▢", "Your repositories", "/" + user + "?tab=repositories"), item("▦", "Your projects"), item("▥", "Your organizations"), item("◍", "Your enterprises"), item("☆", "Your stars"), item("♡", "Your sponsors"), item("‹›", "Your gists"),
+    h("div", { cls: "gx-ms" }), item("⇧", "Upgrade"), item("⚗", "Feature preview"), item("⚙", "Settings", "/settings/profile"), item("✦", "Copilot settings"),
+    h("div", { cls: "gx-ms" }), item("", "GitHub Docs"), item("", "GitHub Support"), item("", "GitHub Community"), h("div", { cls: "gx-ms" }), item("", "Sign out", "!out")
   ]);
 }
 function ghHeader(ctxKids) {
@@ -42,7 +42,7 @@ function ghHeader(ctxKids) {
   if (!u) return h("header", { cls: "gx-hd" }, [h("div", { cls: "gx-hl" }, [ghLinkEl("/", ghSvg(GH_MARK, 32), "gx-mark"), h("div", { cls: "gx-ctx" }, ctxKids || [])]), h("div", { cls: "gx-hr" }, [h("span", { cls: "gx-sbox" }, [ghStroke("search", 16), h("span", { text: "Search or jump to…" })]), ghLinkEl("/login", "Sign in", "gx-btn"), ghLinkEl("/signup", "Sign up", "gx-btn gx-btn-o")])]);
   var ava = h("button", { type: "button", cls: "gx-ava", "aria-label": "Open user navigation menu", onclick: function () { W.ghMenu = !W.ghMenu; render(); } }, [u.user.slice(0, 1).toUpperCase()]);
   return h("header", { cls: "gx-hd" }, [h("div", { cls: "gx-hl" }, left), h("div", { cls: "gx-hr" }, [
-    h("span", { cls: "gx-sbox" }, [ghStroke("search", 16), h("span", { text: "Type / to search" })]),
+    h("span", { cls: "gx-sbox" }, [ghStroke("search", 16), h("span", { style: "flex:1", text: "Type " }), h("kbd", { cls: "gx-kbd", text: "/" }), h("span", { text: " to search" }), h("span", { cls: "gx-term", text: ">_" })]),
     h("span", { cls: "gx-avawrap" }, [h("span", { cls: "gx-pair", onclick: function () { W.ghPlus = !W.ghPlus; W.ghMenu = false; render(); } }, [ghBtnSq("plus", "Create new…"), h("span", { cls: "gx-caret" }, [ghStroke("caret", 12)])]), W.ghPlus ? h("div", { cls: "gx-menu gx-plus" }, [["▢ New repository", "/new"], ["⇩ Import repository", ""], null, ["▭ New codespace", ""], ["‹› New gist", ""], null, ["▦ New organization", ""]].map(function (it) { return it ? h("a", { href: "#", cls: "gx-mi", onclick: function (e) { e.preventDefault(); W.ghPlus = false; if (it[1]) ghGo(it[1]); else render(); } }, [it[0]]) : h("div", { cls: "gx-ms" }); })) : null]),
     ghBtnSq("issue", "Issues"), ghBtnSq("pr", "Pull requests"), ghBtnSq("inbox", "You have no unread notifications"),
     h("div", { cls: "gx-avawrap" }, [ava, W.ghMenu ? ghAvatarMenu(u.user) : null].filter(Boolean))
