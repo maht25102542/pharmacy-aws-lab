@@ -33,7 +33,7 @@ function wbGithub(r) {
   var gh = function (kids, rp, user) { return d("gh", [ghHeader(parts.length >= 2 ? [ghLinkEl("/" + parts[0], parts[0]), " / ", h("b", { text: parts[1] })] : null), d("gh-main", kids)]); };
   if (/^(search|issues|pulls|notifications)$/.test(parts[0]) && parts.length === 1 && ghSess()) return d0("gh", [ghHeader([h("b", { text: parts[0][0].toUpperCase() + parts[0].slice(1) })]), wbGhGlobal(parts[0])]);
   if (parts[0] === "signup" && parts.length === 1) return d0("gh gx-bare", [wbGhSignup()]);
-  if (parts.length === 1 && !/^(login|signup|new|settings|search|issues|pulls|notifications)$/.test(parts[0])) return d0("gh", [ghHeader([h("b", { text: parts[0] })]), wbGhProfile(parts[0])]);
+  if (parts.length === 1 && !/^(login|signup|new|settings|search|issues|pulls|notifications)$/.test(parts[0])) return d0("gh", [ghHeader([h("b", { text: parts[0] })]), wbGhUserProfile(parts[0])]);
   if (parts.length < 2) return gh([h("h1", { text: "Where the world builds software" }), h("p", { cls: "gh-mut", text: "หน้า GitHub จำลองแสดงเฉพาะ repo ที่คุณ git push จาก Terminal (ใน lab นี้ push แล้ว repo ถูกสร้างให้เอง) เปิดตัวอย่างจากช่อง URL ด้านบน" })]);
   var user = parts[0], name = parts[1], rp = ghRepoOf(user, name); GH_CUR = rp;
   if (!rp) return gh([d("gh-404", [h("h1", { text: "404" }), h("p", { text: "This is not the web page you are looking for." }), h("p", { cls: "gh-mut", text: parts[0] === "settings" || parts[0] === "new" ? "หน้านี้ของ GitHub ยังไม่ได้จำลอง (กำลังทำทีละหน้า)" : "ไม่พบ repo " + user + "/" + name + " (ยังไม่ได้ git push จาก Terminal)" })])], null, user);
