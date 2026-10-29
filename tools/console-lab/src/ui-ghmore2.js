@@ -143,3 +143,78 @@ function ghaFilterBar(repo) {
   var sel = function (key, label, opts) { return h("select", { cls: "gx-fl", "aria-label": label, style: "border:0;background:transparent", onchange: function (e) { F[key] = e.target.value; render(); } }, [h("option", { value: "", text: label + " ▾" })].concat(opts.map(function (o) { return h("option", { value: o, text: o, selected: F[key] === o ? "selected" : null }); }))); };
   return h("span", {}, [sel("event", "Event", ["push", "pull_request", "workflow_dispatch"]), sel("status", "Status", ["success", "failure", "waiting", "in_progress"]), sel("branch", "Branch", uniq(function (r) { return r.ref; })), sel("actor", "Actor", uniq(function (r) { return r.actor || ghUser(); })), (F.event || F.status || F.branch || F.actor) ? h("a", { href: "#", cls: "gh-a", text: "✕ Clear filters", onclick: function (e) { e.preventDefault(); W.ghaf = {}; render(); } }) : null]);
 }
+
+// ===== Projects: บอร์ดงานของทีม (Kanban) · การ์ดผูกกับ Issue/PR · auto-add / auto-move เหมือน GitHub Projects =====
+var GH_PCOLS = [["backlog", "Backlog"], ["todo", "Todo"], ["doing", "In Progress"], ["review", "In Review"], ["done", "Done"]];
+function ghProjFix(rp) { ghTabsState(rp); GH_PCOLS.forEach(function (c) { rp.proj[c[0]] = rp.proj[c[0]] || []; }); return rp.proj; }
+function ghProjTag(kind, n) { return "[" + kind + " #" + n + "]"; }
+function ghProjAuto(rp, kind, n, title, col) { var P = ghProjFix(rp), tag = ghProjTag(kind, n); if (GH_PCOLS.some(function (c) { return P[c[0]].some(function (x) { return x.indexOf(tag) === 0; }); })) return; P[col].push(tag + " " + title); }
+function ghProjMove(rp, kind, n, to) { var P = ghProjFix(rp), tag = ghProjTag(kind, n), card = null; GH_PCOLS.forEach(function (c) { P[c[0]] = P[c[0]].filter(function (x) { if (x.indexOf(tag) === 0) { card = x; return false; } return true; }); }); if (card) P[to].push(card); }
+function wbGhProjects(user, name, rp) {
+  var P = ghProjFix(rp), base = "/" + user + "/" + name, PE = W.ghpe = W.ghpe || {};
+  var link = function (t) { var m = /^\[(Issue|PR) #(\d+)\]\s*(.*)$/.exec(t); return m ? h("a", { href: "#", cls: "gh-a", text: m[1] + " #" + m[2] + " " + m[3], onclick: function (e) { e.preventDefault(); ghGo(base + "/" + (m[1] === "Issue" ? "issues/" : "pulls/") + m[2]); } }) : h("span", { text: t }); };
+  var pool = (rp.issues || []).filter(function (i) { return i.state === "open"; }).map(function (i) { return ["Issue", i.n, i.title]; }).concat((rp.prs || []).filter(function (p) { return p.state === "open"; }).map(function (p) { return ["PR", p.n, p.title]; }));
+  var addSel = h("select", { cls: "gx-in", "aria-label": "Add Issue or PR as card", onchange: function (e) { var v = e.target.value; if (!v) return; var a = v.split("|"); ghProjAuto(rp, a[0], +a[1], a[2], a[0] === "PR" ? "review" : "todo"); save(); render(); } }, [h("option", { value: "", text: "+ เพิ่ม Issue/PR เป็นการ์ด" })].concat(pool.map(function (x) { return h("option", { value: x.join("|"), text: x[0] + " #" + x[1] + " — " + x[2] }); })));
+  var guide = h("details", { cls: "gx-tbox", style: "padding:10px", open: P.todo.length + P.doing.length + P.review.length + P.done.length + P.backlog.length ? null : "open" }, [h("summary", { style: "cursor:pointer;font-weight:600", text: "Projects ใช้ทำอะไร? (วิธีที่ทีมจริงใช้)" }), h("div", { cls: "gx-mut gx-sm" }, [h("p", { text: "Projects = บอร์ดติดตามงานของทีม (Kanban) ดึง Issue และ PR มาเป็นการ์ด แล้วดูว่าใครทำอะไรอยู่ ใช้วางแผนรอบงาน (sprint) และรู้สถานะของงานทั้งหมดในหน้าเดียว" }), h("p", { text: "ลำดับคอลัมน์ที่ทีมนิยม: Backlog (ไอเดีย/ยังไม่จัดลำดับ) → Todo (รอบนี้จะทำ) → In Progress (กำลังทำ) → In Review (เปิด PR รอรีวิว) → Done (merge/ปิดแล้ว)" }), h("p", { text: "ตัวจำลองทำให้เหมือนของจริง: สร้าง Issue → การ์ดเข้า Todo อัตโนมัติ · เปิด PR → เข้า In Review · merge PR หรือปิด Issue → ย้ายไป Done · ลากเอง = ปุ่ม ← →" }), h("p", { text: "ใช้ร่วมกับ git flow: feature branch ต่อหนึ่งการ์ด → PR เข้า develop → Done เมื่อ merge" })])]);
+  var col = function (c, ci) {
+    var add = function () { var v = (document.getElementById("gh-pj-" + c[0]).value || "").trim(); if (v) { P[c[0]].push(v); save(); render(); } };
+    return h("div", { cls: "gx-tbox", style: "padding:8px;min-width:0" }, [h("b", { text: c[1] + " (" + P[c[0]].length + ")" })].concat(P[c[0]].map(function (t, ti) {
+      if (PE.c === c[0] && PE.i === ti) return ghInline("Edit card", t, function (v) { P[c[0]][ti] = v; W.ghpe = {}; save(); render(); }, function () { W.ghpe = {}; render(); });
+      var mv = function (d) { return function () { P[c[0]].splice(ti, 1); P[GH_PCOLS[ci + d][0]].push(t); save(); render(); }; };
+      return h("div", { cls: "gx-trow", style: "flex-wrap:wrap" }, [h("div", { style: "flex:1;min-width:100%" }, [link(t)]), ci > 0 ? h("button", { type: "button", cls: "gx-btn", title: "ย้ายไป " + GH_PCOLS[ci - 1][1], text: "←", onclick: mv(-1) }) : null, ci < GH_PCOLS.length - 1 ? h("button", { type: "button", cls: "gx-btn", title: "ย้ายไป " + GH_PCOLS[ci + 1][1], text: "→", onclick: mv(1) }) : null, h("button", { type: "button", cls: "gx-btn", title: "Edit card", text: "✎", onclick: function () { W.ghpe = { c: c[0], i: ti }; render(); } }), h("button", { type: "button", cls: "gx-trash", title: "Delete card", text: "🗑", onclick: function () { P[c[0]].splice(ti, 1); save(); render(); } })]);
+    })).concat([h("input", { type: "text", id: "gh-pj-" + c[0], cls: "gx-in gx-w", placeholder: "+ Add item", onkeydown: function (e) { if (e.key === "Enter") add(); } })]));
+  };
+  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Projects — board" }), addSel]), guide, h("div", { style: "display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:10px" }, GH_PCOLS.map(col))]);
+}
+// ===== ข้อมูลตัวอย่างของ GitHub ใน Preview: branch/PR/Issue/Discussion/Release/Project ที่ทีมจริงมี =====
+function pvSeedGh(user) {
+  var T = Date.now(), D = 86400000, cp = function (o) { return JSON.parse(JSON.stringify(o)); };
+  var apply = function (files, ch) { Object.keys(ch).forEach(function (p) { files[p] = (files[p] || "") + ch[p]; }); return files; };
+  var diffOf = function (a, b) { var o = []; Object.keys(b).forEach(function (k) { if (!(k in a)) o.push({ f: k, s: "added", p: b[k].split("\n").length, m: 0 }); else if (a[k] !== b[k]) o.push({ f: k, s: "modified", p: Math.max(1, b[k].split("\n").length - a[k].split("\n").length + 1), m: 1 }); }); return o; };
+  var chOf = function (a, b) { var o = {}; Object.keys(b).forEach(function (k) { if (a[k] !== b[k]) o[k] = [a[k] === undefined ? null : a[k], b[k]]; }); return o; };
+  var cm = function (by, text, days) { return { by: by, text: text, t: T - days * D }; };
+  var SPEC = {
+    "pharmacy-backend": {
+      about: { desc: "Django REST backend ของระบบสต็อกร้านยา", topics: ["django", "drf", "mariadb", "pharmacy"] },
+      merged: [{ n: 2, title: "Rate-limit login endpoint", head: "feature/login-rate-limit", by: "somsri", days: 6, ch: { "config/settings.py": "\n# login throttle: 5 attempts / minute\nREST_FRAMEWORK_THROTTLE_RATES = {\"login\": \"5/min\"}\n" }, labels: ["enhancement"], body: "จำกัดการ login 5 ครั้ง/นาที ป้องกัน brute force", reviews: [["prasert", "approved", "LGTM 👍"]] }],
+      open: [{ n: 3, title: "Low stock alert endpoint", head: "feature/low-stock-alert", base: "develop", by: "prasert", days: 2, ch: { "stock/alerts.py": "from .models import Medicine\n\n\ndef low_stock():\n    return Medicine.objects.filter(stock__lte=models.F(\"reorder_level\"))\n" }, labels: ["enhancement"], assignee: "teammate", body: "เพิ่ม endpoint รายการยาที่ใกล้หมด (stock <= reorder_level)", reviews: [["somsri", "changes", "ช่วยเพิ่ม test ด้วยครับ"]], comments: [["prasert", "เพิ่ม test แล้ว รอรีวิวอีกรอบ", 1]] },
+               { n: 4, title: "Release 1.3.0", head: "develop", base: "main", by: "somsri", days: 1, ch: null, labels: [], body: "รวมของที่ merge เข้า develop แล้วขึ้น main เพื่อ tag v1.3.0", reviews: [] }],
+      closed: [{ n: 1, title: "Add HEALTHCHECK to Dockerfile", head: "fix/dockerfile-healthcheck", base: "develop", by: "manee", days: 9, ch: { "Dockerfile": "\nHEALTHCHECK CMD curl -f http://localhost:8000/healthz || exit 1\n" }, labels: [], body: "ปิดแล้ว: ใช้ probe ของ k8s แทน", reviews: [] }],
+      issues: [{ n: 1, title: "Stock page is slow with 10k medicines", state: "open", labels: ["bug"], assignee: "prasert", by: "manee", days: 5, body: "เปิดหน้า stock แล้วช้า ~8 วินาทีเมื่อมียา 10,000 รายการ", comments: [cm("prasert", "น่าจะ N+1 query ที่ category ลอง select_related ดู", 4), cm("manee", "ยืนยัน ใส่ index ที่ sku ด้วย", 3)] },
+               { n: 2, title: "Add expiry date to medicine", state: "open", labels: ["enhancement"], assignee: "", by: "somsri", days: 4, body: "อยากเห็นวันหมดอายุของล็อตยา และแจ้งเตือนก่อนหมด 30 วัน", comments: [] },
+               { n: 3, title: "Document how to run tests with pytest", state: "closed", labels: ["documentation"], assignee: "manee", by: "teammate", days: 10, body: "เพิ่มวิธีรัน pytest ใน README", comments: [cm("manee", "เพิ่มแล้ว ปิดนะ", 9)] },
+               { n: 4, title: "Add /healthz endpoint", state: "open", labels: ["good first issue"], assignee: "", by: "somsri", days: 3, body: "ALB ต้องมี endpoint /healthz ตอบ 200", comments: [] }],
+      proj: { backlog: ["[Issue #2] Add expiry date to medicine", "เขียน API docs ให้ครบ"], todo: ["[Issue #1] Stock page is slow with 10k medicines", "[Issue #4] Add /healthz endpoint"], doing: ["ทำ Swagger example ให้ทุก endpoint"], review: ["[PR #3] Low stock alert endpoint", "[PR #4] Release 1.3.0"], done: ["[PR #2] Rate-limit login endpoint", "[Issue #3] Document how to run tests with pytest"] },
+      discs: [{ n: 1, title: "How should we version releases?", cat: "Q&A", by: "teammate", days: 7, body: "ใช้ semver (vMAJOR.MINOR.PATCH) ไหม?", comments: [cm("somsri", "ใช่ครับ prd รับเฉพาะ tag vN.N.N", 6)] }, { n: 2, title: "Idea: barcode scanner for stock-in", cat: "Ideas", by: "manee", days: 3, body: "ใช้มือถือสแกนบาร์โค้ดตอนรับยาเข้า", comments: [] }] },
+    "pharmacy-frontend": {
+      about: { desc: "Next.js frontend ของระบบสต็อกร้านยา", topics: ["nextjs", "react", "typescript", "pharmacy"] },
+      merged: [{ n: 1, title: "Pharmacy theme for dashboard", head: "feature/pharmacy-theme", by: "manee", days: 8, ch: { "src/app/globals.css": "\n/* pharmacy green theme */\n:root { --brand: #0f8f82; }\n" }, labels: ["enhancement"], body: "ธีมสีเขียวร้านยา", reviews: [["somsri", "approved", "สวยดี"]] }],
+      open: [{ n: 2, title: "Add low-stock badge on medicines table", head: "feature/low-stock-badge", base: "develop", by: "somsri", days: 2, ch: { "src/components/MedicineTable.tsx": "\n// badge: stock <= reorder_level => red\n" }, labels: ["enhancement"], assignee: "manee", body: "แสดงป้ายแดงเมื่อยาใกล้หมด", reviews: [] }],
+      closed: [],
+      issues: [{ n: 1, title: "Sidebar overlaps content on mobile", state: "open", labels: ["bug"], assignee: "", by: "prasert", days: 4, body: "จอเล็กกว่า 600px sidebar ทับเนื้อหา", comments: [] }, { n: 2, title: "Add dark mode", state: "open", labels: ["enhancement"], assignee: "", by: "somsri", days: 6, body: "อยากได้โหมดมืด", comments: [] }],
+      proj: { backlog: ["[Issue #2] Add dark mode"], todo: ["[Issue #1] Sidebar overlaps content on mobile"], doing: [], review: ["[PR #2] Add low-stock badge on medicines table"], done: ["[PR #1] Pharmacy theme for dashboard"] }, discs: [] },
+    "pharmacy-manifests": {
+      about: { desc: "GitOps manifests (Argo CD) ของระบบร้านยา", topics: ["gitops", "argocd", "kubernetes"] },
+      merged: [{ n: 1, title: "Bump dev image to v1.2.0", head: "chore/bump-dev-v1.2.0", by: "jenkins-bot", days: 2, ch: { "dev/backend/deployment.yaml": "\n# image bumped by Jenkins: v1.2.0\n" }, labels: [], body: "Jenkins อัปเดต image tag อัตโนมัติ", reviews: [] }],
+      open: [{ n: 2, title: "Add resource limits to backend", head: "feature/resource-limits", base: "develop", by: "prasert", days: 1, ch: { "prd/backend/deployment.yaml": "\n# resources: limits cpu 500m / memory 512Mi\n" }, labels: ["enhancement"], assignee: "", body: "กัน pod กิน memory เกิน", reviews: [] },
+               { n: 3, title: "Promote v1.2.0 to prd", head: "develop", base: "main", by: "somsri", days: 1, ch: null, labels: ["release"], body: "ขึ้น prd ผ่าน Argo CD sync", reviews: [] }],
+      closed: [],
+      issues: [{ n: 1, title: "Argo CD shows OutOfSync after hotfix", state: "open", labels: ["bug"], assignee: "somsri", by: "manee", days: 3, body: "แก้ไขใน cluster ตรงๆ ทำให้ OutOfSync ควรแก้ที่ git", comments: [cm("somsri", "ใช้ selfHeal หรือ revert ใน cluster", 2)] }],
+      proj: { backlog: [], todo: ["[Issue #1] Argo CD shows OutOfSync after hotfix"], doing: [], review: ["[PR #2] Add resource limits to backend", "[PR #3] Promote v1.2.0 to prd"], done: ["[PR #1] Bump dev image to v1.2.0"] }, discs: [] }
+  };
+  var LB = ["bug", "documentation", "enhancement", "good first issue", "help wanted", "question", "release"];
+  Object.keys(SPEC).forEach(function (name) {
+    var rp = S.gh.repos[name], sp = SPEC[name]; if (!rp) return; ghTabsState(rp);
+    var dev = cp(rp.files || {}), blog = (rp.log || []).slice(); rp.branches = {}; rp.blog = {}; rp.prs = []; rp.stars = [user, "somsri", "prasert", "manee"]; rp.about = sp.about; rp.set.branchRules = ["main"]; rp.set["/access"] = [user + " (Owner)", "somsri", "prasert", "manee"]; rp.set.roles = { somsri: "Maintain", prasert: "Write", manee: "Triage" };
+    rp.labels = LB.map(function (n, i) { return { n: n, color: GH_COLORS[i % GH_COLORS.length][0], desc: "" }; });
+    var mk = function (x, state) { return { n: x.n, title: x.title, body: x.body || "", head: x.head, base: x.base || "develop", state: state, by: x.by, t: T - x.days * D, labels: x.labels || [], assignee: x.assignee || "", reviews: (x.reviews || []).map(function (r) { return { by: r[0], state: r[1], text: r[2], t: T - x.days * D + 3600000 }; }), comments: (x.comments || []).map(function (c) { return cm(c[0], c[1], c[2]); }) }; };
+    sp.merged.forEach(function (x) { var before = cp(dev); apply(dev, x.ch); var pr = mk(x, "merged"); pr.diff = diffOf(before, dev); rp.prs.push(pr); blog.push({ m: "Merge pull request #" + x.n + " from " + user + "/" + x.head + " — " + x.title, t: T - x.days * D, ch: chOf(before, dev) }); });
+    rp.branches.develop = dev; rp.blog.develop = blog.slice();
+    sp.open.concat(sp.closed).forEach(function (x) { var state = sp.closed.indexOf(x) >= 0 ? "closed" : "open", pr = mk(x, state); rp.prs.push(pr); if (x.head !== "develop") { var f = cp(x.base === "main" ? rp.files : dev); apply(f, x.ch || {}); rp.branches[x.head] = f; rp.blog[x.head] = blog.concat([{ m: x.title, t: T - x.days * D, ch: chOf(x.base === "main" ? rp.files : dev, f) }]); } });
+    rp.prs.sort(function (a, b) { return a.n - b.n; });
+    rp.issues = sp.issues.map(function (x) { return { n: x.n, title: x.title, body: x.body, state: x.state, by: x.by, t: T - x.days * D, labels: x.labels, assignee: x.assignee, comments: x.comments }; });
+    rp.discs = (sp.discs || []).map(function (x) { return { n: x.n, title: x.title, body: x.body, state: "open", by: x.by, t: T - x.days * D, cat: x.cat, comments: x.comments }; });
+    rp.proj = sp.proj;
+    var tg = rp.tags || []; rp.releases = tg.slice().sort().reverse().map(function (t, i) { return { tag: t, title: t + (t === "v1.2.0" ? " — stable" : ""), body: "Release " + t, n: tg.length - i }; });
+  });
+}
