@@ -12,7 +12,7 @@ function h(tag, p, kids) {
   (function add(k) { if (k == null || k === false) return; if (Array.isArray(k)) return k.forEach(add); e.appendChild(typeof k === "string" ? document.createTextNode(k) : k); })(kids);
   return e;
 }
-function save() { try { sessionStorage.setItem("console-lab-v1", JSON.stringify(S)); } catch (e) {} }
+function save() { if (typeof PV !== "undefined" && PV && PV.on) return; try { sessionStorage.setItem("console-lab-v1", JSON.stringify(S)); } catch (e) {} }
 function load() { try { var j = sessionStorage.getItem("console-lab-v1"); if (j) { var x = JSON.parse(j); if (x && x.vpcs) { S = x; ensureState(); } } } catch (e) {} }
 
 var PAGES = {}, LISTS = {};
@@ -31,7 +31,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เครื่องมือของตัวจำลอง", [["lab-check", "ตรวจกับ Terraform"], ["lab-hcl", "Terraform"], ["lab-ansible", "Ansible"], ["lab-flow", "ลำดับการปล่อย (Jenkins → ArgoCD)"], ["lab-jenkins", "Jenkins (ไฟล์ปล่อยจริง)"], ["lab-rules", "กฎที่จำลอง"], ["lab-managed", "เทียบ VM กับ Managed"], ["lab-scen", "ตัวอย่างสำเร็จรูป"]]]]
+  Lab: [["เครื่องมือของตัวจำลอง", [["lab-check", "ตรวจกับ Terraform"], ["lab-hcl", "Terraform"], ["lab-ansible", "Ansible"], ["lab-flow", "ลำดับการปล่อย (Jenkins → ArgoCD)"], ["lab-jenkins", "Jenkins (ไฟล์ปล่อยจริง)"], ["lab-rules", "กฎที่จำลอง"], ["lab-managed", "เทียบ VM กับ Managed"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]]]]
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
@@ -67,6 +67,7 @@ function crumbEl(text) {
 }
 
 function render() {
+  if (typeof PV !== "undefined" && PV) pvSync();
   var y = window.scrollY; save(); document.body.setAttribute("data-svc", UI.svc);
   document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal"; document.getElementById("speedsel").value = S.speed || "instant";
   var sv = document.getElementById("svc"); sv.textContent = "";

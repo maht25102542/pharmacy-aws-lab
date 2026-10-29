@@ -182,7 +182,7 @@ function jkxLine(ln, kind, num, stripe, tag, secIdx) {
   var body = h("span", { style: "flex:1" }, jkxHi(ln, kind, T));
   row.appendChild(body);
   if (tag) row.appendChild(h("span", { style: "flex:none;margin-left:10px;font:700 .68rem/1.7 var(--ui,system-ui);color:" + stripe + ";white-space:nowrap", text: tag }));
-  if (!isCm) JKX_SRC[kind].forEach(function (r) { if (r[0].test(ln)) body.appendChild(h("span", { title: r[3], style: "display:inline-block;margin-left:8px;padding:0 6px;border-radius:9px;font:600 .68rem/1.5 var(--ui,system-ui);color:" + r[2] + ";background:" + hexA(r[2], 0.18) + ";border:1px solid " + hexA(r[2], 0.55) + ";white-space:nowrap", text: "◀ " + r[1] })); });
+  if (!isCm) (JKX_SRC[kind] || []).forEach(function (r) { if (r[0].test(ln)) body.appendChild(h("span", { title: r[3], style: "display:inline-block;margin-left:8px;padding:0 6px;border-radius:9px;font:600 .68rem/1.5 var(--ui,system-ui);color:" + r[2] + ";background:" + hexA(r[2], 0.18) + ";border:1px solid " + hexA(r[2], 0.55) + ";white-space:nowrap", text: "◀ " + r[1] })); });
   return row;
 }
 var JKX_PAL = ["#d33833", "#1d6fb8", "#a85a00", "#1d8102", "#7b3fe4", "#00838f"];
