@@ -61,6 +61,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
   // รายการ run + ตัวแก้ workflow
   var tops = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px" }, [
     w ? btn("▷ Run workflow (workflow_dispatch)", function () { var r = ghaNew(w, "workflow_dispatch", "main"); flash("ok", "workflow_dispatch → run #" + r.id); W.res = webOpen(W.addr); render(); }) : null,
+    btn("git push → develop", function () { var r = API.ghaPush(repo, "develop"); if (r.skipped) flash("info", r.msg); else if (r.errors) flash("bad", r.errors._); rp.n = (rp.n || 0) + 1; W.res = webOpen(W.addr); render(); }),
     btn("git push → main", function () { var r = API.ghaPush(repo, "main"); if (r.skipped) flash("info", r.msg); else if (r.errors) flash("bad", r.errors._); rp.n = (rp.n || 0) + 1; W.res = webOpen(W.addr); render(); }, "btn pri"),
     h("span", { cls: "sub", text: "หรือ tag:" }), h("div", { style: "width:170px" }, [exPick([["v1.1.0", "v1.1.0"], ["v1.2.0", "v1.2.0"], ["v1.0.0 (มีใน ECR แล้ว)", "v1.0.0"]].map(function (x) { return [x[1], x[0]]; }), function () { return F.tag; }, function (v) { F.tag = v; }, F, "_tag", "v1.1.0", "tag", false)]),
     btn("create tag + push", function () { rp.tags = rp.tags || []; if (rp.tags.indexOf(F.tag) < 0) rp.tags.push(F.tag); var r = API.ghaTag(repo, F.tag); if (r.skipped) flash("info", r.msg); else if (r.errors) flash("bad", r.errors._); W.res = webOpen(W.addr); render(); })]);
