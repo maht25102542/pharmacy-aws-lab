@@ -69,7 +69,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
   if (!w) box.appendChild(h("div", { style: "border:1px dashed " + GHB + ";border-radius:6px;padding:14px;margin-bottom:12px" }, [h("b", { text: "ยังไม่มี workflow" }), h("p", { cls: "sub", text: "สร้างไฟล์ .github/workflows/deploy.yml ใน repo นี้ (ตัวจำลองสร้างจากฟอร์มด้านล่าง · ของจริงเขียน YAML เอง ดูตัวอย่างที่ labs/05-github-actions/workflow/deploy.yml)" })]));
   else box.appendChild(tops);
   // ฟอร์ม workflow
-  var cfg = F.wf = F.wf || { name: "deploy", pushBranch: "main", tagPattern: "v*", idToken: true, roleArn: "", region: REGION, ecrRepo: "pharmacy/api", containerName: "api", devCluster: "pharmacy-dev", devService: "pharmacy-api", prdCluster: "pharmacy-prd", prdService: "pharmacy-api", prdEnv: "production", waitStability: true };
+  var cfg = F.wf = F.wf || { name: "deploy", pushBranch: "develop", onPr: "true", tagPattern: "v*", idToken: true, roleArn: "", region: REGION, ecrRepo: "pharmacy/api", containerName: "api", devCluster: "pharmacy-dev", devService: "pharmacy-api", prdCluster: "pharmacy-prd", prdService: "pharmacy-api", prdEnv: "production", waitStability: true };
   if (w && !F.loaded) { Object.keys(cfg).forEach(function (k) { if (w[k] !== undefined) cfg[k] = w[k]; }); F.loaded = true; }
   function fld(label, key, ex, desc) { return h("div", { style: "margin:6px 0" }, [h("label", { style: "font-weight:600;font-size:.85rem", text: label }), desc ? h("div", { cls: "sub", style: "font-size:.78rem", text: desc }) : h("span"), exPick(ex, function () { return cfg[key]; }, function (v) { cfg[key] = v; }, F, "_" + key, "", label, false)]); }
   var roles = S.roles.map(function (r) { return ["arn:aws:iam::" + ACCOUNT + ":role/" + r.name, r.name]; });
@@ -78,7 +78,7 @@ function wbGhActions(user, name, rp, parts, go2, link) {
     h("label", { style: "display:flex;gap:8px;align-items:center;margin:8px 0" }, [h("input", { type: "checkbox", checked: cfg.immutable !== false, onchange: function (e) { cfg.immutable = e.target.checked; } }), h("span", { text: "repo สร้างหลัง 15 ก.ค. 2026 (token ส่ง sub แบบ immutable: repo:ORG@<id>/REPO@<id>:…)" })]),
     h("label", { style: "display:flex;gap:8px;align-items:center;margin:8px 0" }, [h("input", { type: "checkbox", checked: !!cfg.idToken, onchange: function (e) { cfg.idToken = e.target.checked; } }), h("span", { text: "permissions: id-token: write (ขอ ID token ให้ OIDC)" })]),
     fld("role-to-assume (ARN ของ role)", "roleArn", roles, "จากหน้า IAM › Roles หรือ output role_arn ของ terraform"),
-    fld("on.push.branches (dev deploy อัตโนมัติ)", "pushBranch", [["main", "main"], ["develop", "develop"]]),
+    fld("on.push.branches (merge PR เข้า branch นี้ = deploy dev)", "pushBranch", [["develop", "develop (แนะนำ: feature → develop → main)"], ["main", "main (trunk-based: main = dev)"]]),
     fld("on.push.tags (prd)", "tagPattern", [["v*", "v*"], ["release-*", "release-*"]]),
     fld("CONTAINER_NAME (ชื่อ container ใน task definition)", "containerName", [["api", "api"], ["app", "app"], ["frontend", "frontend"]]),
     fld("ECR repository", "ecrRepo", [["pharmacy/api", "pharmacy/api"], ["pharmacy/frontend", "pharmacy/frontend"]]),

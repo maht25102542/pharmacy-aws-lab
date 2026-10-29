@@ -1,9 +1,11 @@
 # ของจริงอยู่ที่: repo pharmacy-backend › .github/workflows/deploy.yml
 name: deploy
 on:
+  pull_request: # เปิด/อัปเดต PR = ตรวจอย่างเดียว (ไม่ deploy)
+    branches: [main, develop]
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [develop] # merge PR เข้า develop = deploy dev อัตโนมัติ
+    tags: ["v*"] # ติด tag บน main = deploy prd (ต้องมีคนอนุมัติ)
 
 permissions:
   id-token: write # ขอ ID token (OIDC) ไม่ใส่ = ขอ role ไม่ได้
@@ -15,8 +17,15 @@ env:
   CONTAINER_NAME: api # ต้องตรงชื่อ container ใน task definition
 
 jobs:
+  checks:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "lint / test / build ที่นี่ (ไม่ต้องใช้ role AWS)"
+
   deploy-dev:
-    if: github.ref_type == 'branch'
+    if: github.event_name == 'push' && github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

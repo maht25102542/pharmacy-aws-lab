@@ -14,8 +14,8 @@ variable "github_repo" {
 }
 
 variable "branch" {
-  description = "branch ที่ deploy dev อัตโนมัติ"
-  default     = "main"
+  description = "branch ที่ deploy dev อัตโนมัติ (git flow: feature → develop → main · prd = tag v* บน main)"
+  default     = "develop"
 }
 
 variable "prd_environment" {

@@ -15,11 +15,12 @@ function buildGha(kind) {
   if (kind === "gha-base") return;
   var prov = kind === "gha-provider" ? null : ok(API.createOidcProvider({ url: "https://" + GHA_ISSUER, audience: "sts.amazonaws.com" }));
   var role = null;
-  if (prov) { role = ok(API.createRoleWeb({ name: "github-actions-deploy", provider: prov.arn, audience: "sts.amazonaws.com", org: user, repo: GHA_REPO_NAME, branch: kind === "gha-sub" ? "main" : "", env: "", sub: kind === "gha-sub" ? "repo:" + user + "/" + GHA_REPO_NAME + ":ref:refs/heads/main" : "repo:" + user + "/" + GHA_REPO_NAME + ":*", policies: [] })); role.inline = [{ name: "deploy", doc: ghaRoleDoc(kind) }]; }
+  if (prov) { role = ok(API.createRoleWeb({ name: "github-actions-deploy", provider: prov.arn, audience: "sts.amazonaws.com", org: user, repo: GHA_REPO_NAME, branch: kind === "gha-sub" ? "develop" : "", env: "", sub: kind === "gha-sub" ? "repo:" + user + "/" + GHA_REPO_NAME + ":ref:refs/heads/develop" : "repo:" + user + "/" + GHA_REPO_NAME + ":*", policies: [] })); role.inline = [{ name: "deploy", doc: ghaRoleDoc(kind) }]; }
   else ok(API.createRoleRaw({ name: "github-actions-deploy", trust: JSON.stringify({ Version: "2012-10-17", Statement: [{ Effect: "Allow", Principal: { Federated: "arn:aws:iam::" + ACCOUNT + ":oidc-provider/" + GHA_ISSUER }, Action: "sts:AssumeRoleWithWebIdentity" }] }) })).inline = [{ name: "deploy", doc: ghaRoleDoc(kind) }];
-  ok(API.saveWorkflow({ repo: user + "/" + GHA_REPO_NAME, name: "deploy", pushBranch: "main", tagPattern: "v*", idToken: kind !== "gha-perm", immutable: kind === "gha-immutable", roleArn: "arn:aws:iam::" + ACCOUNT + ":role/github-actions-deploy", region: REGION, ecrRepo: "pharmacy/api", containerName: kind === "gha-deploy" ? "app" : "api", devCluster: "pharmacy-dev", devService: "pharmacy-api", prdCluster: "pharmacy-prd", prdService: "pharmacy-api", prdEnv: "production", waitStability: true }));
+  ok(API.saveWorkflow({ repo: user + "/" + GHA_REPO_NAME, name: "deploy", pushBranch: "develop", onPr: "true", tagPattern: "v*", idToken: kind !== "gha-perm", immutable: kind === "gha-immutable", roleArn: "arn:aws:iam::" + ACCOUNT + ":role/github-actions-deploy", region: REGION, ecrRepo: "pharmacy/api", containerName: kind === "gha-deploy" ? "app" : "api", devCluster: "pharmacy-dev", devService: "pharmacy-api", prdCluster: "pharmacy-prd", prdService: "pharmacy-api", prdEnv: "production", waitStability: true }));
   var rp = S.gh.repos[GHA_REPO_NAME]; rp.n++;
-  var r1 = API.ghaPush(user + "/" + GHA_REPO_NAME, "main").res;
+  rp.branches = rp.branches || {}; rp.branches.develop = JSON.parse(JSON.stringify(rp.files || {})); rp.blog = rp.blog || {}; rp.blog.develop = (rp.log || []).slice();
+  var r1 = API.ghaPush(user + "/" + GHA_REPO_NAME, "develop").res;
   if (kind === "gha" || kind === "gha-sub") { rp.tags.push("v1.1.0"); var r2 = API.ghaTag(user + "/" + GHA_REPO_NAME, "v1.1.0").res; if (r2 && r2.waiting) API.ghaApprove(user + "/" + GHA_REPO_NAME, r2.id, true); }
   void r1; S.ghaKind = kind;
 }
