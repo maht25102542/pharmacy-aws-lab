@@ -4,12 +4,14 @@ from decimal import Decimal
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.db.models import F, Sum
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import permissions, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from .accounts import user_payload
 from .models import Category, Medicine, StockMovement
 from .serializers import MAX_STOCK, AdjustSerializer, CategorySerializer, MedicineSerializer, MovementSerializer
 
@@ -23,6 +25,7 @@ class ReadAnyWriteStaff(permissions.BasePermission):
         return request.method in permissions.SAFE_METHODS or request.user.is_staff
 
 
+@extend_schema(tags=["categories"])
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -30,6 +33,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
     pagination_class = None  # หมวดหมู่มีไม่กี่อัน ส่งทั้งหมดในครั้งเดียว
 
 
+@extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("q", str, description="ค้นหาจากชื่อหรือ SKU"), OpenApiParameter("category", int, description="id หมวดหมู่"), OpenApiParameter("low_stock", bool, description="เฉพาะที่สต็อกต่ำกว่าจุดสั่งซื้อ")]))
+@extend_schema(tags=["medicines"])
 class MedicineViewSet(viewsets.ModelViewSet):
     serializer_class = MedicineSerializer
 
@@ -49,6 +54,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
             qs = qs.filter(stock__lte=F("reorder_level"))
         return qs.order_by("name", "id")
 
+    @extend_schema(request=AdjustSerializer, responses=MedicineSerializer, summary="รับเข้า/จ่ายออก/ปรับยอดสต็อก (บันทึกประวัติทุกครั้ง)")
     @action(detail=True, methods=["post"])
     def adjust(self, request, pk=None):
         ser = AdjustSerializer(data=request.data)
@@ -70,6 +76,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
         return Response(MedicineSerializer(med).data)
 
 
+@extend_schema(tags=["movements"], parameters=[OpenApiParameter("medicine", int, description="กรองตาม id ยา")])
 class MovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MovementSerializer
 
@@ -80,6 +87,7 @@ class MovementViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
+@extend_schema(tags=["summary"])
 @api_view(["GET"])
 def summary(_request):
     meds = Medicine.objects.filter(is_active=True)
@@ -93,6 +101,7 @@ def summary(_request):
     })
 
 
+@extend_schema(tags=["auth"], auth=[], summary="ล็อกอิน (ได้ token)")
 @api_view(["POST"])
 @permission_classes([permissions.AllowAny])
 @throttle_classes([ScopedRateThrottle])
@@ -101,18 +110,14 @@ def login(request):
     if user is None:
         return Response({"detail": "invalid username or password"}, status=status.HTTP_401_UNAUTHORIZED)
     token, _ = Token.objects.get_or_create(user=user)
-    return Response({"token": token.key, "user": {"username": user.username, "is_staff": user.is_staff}})
+    return Response({"token": token.key, "user": user_payload(user)})
 
 
 login.cls.throttle_scope = "login"  # ชื่อโควตาใน DEFAULT_THROTTLE_RATES
 
 
+@extend_schema(tags=["auth"], request=None, responses={204: None})
 @api_view(["POST"])
 def logout(request):
     Token.objects.filter(user=request.user).delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(["GET"])
-def me(request):
-    return Response({"username": request.user.username, "is_staff": request.user.is_staff})

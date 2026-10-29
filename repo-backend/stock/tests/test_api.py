@@ -16,7 +16,8 @@ def test_endpoints_require_login():
 def test_login_returns_token_then_token_works(clerk):
     c = APIClient()
     r = c.post("/api/auth/login", {"username": "clerk", "password": "Str0ng-Passw0rd!"}, format="json")
-    assert r.status_code == 200 and r.json()["user"] == {"username": "clerk", "is_staff": False}
+    u = r.json()["user"]
+    assert r.status_code == 200 and u["username"] == "clerk" and u["role"] == "clerk" and u["is_staff"] is False
     c.credentials(HTTP_AUTHORIZATION="Token " + r.json()["token"])
     assert c.get("/api/auth/me").json()["username"] == "clerk"
 
