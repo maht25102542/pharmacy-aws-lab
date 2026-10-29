@@ -16,7 +16,7 @@ function pvBuildCi() {
     readyBuild("dev"); readyBuild("prd");
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["backend", "frontend"].forEach(function (svc) { try { jkSelect("pharmacy-" + svc); jkNew({ TARGET_ENV: "dev", VERSION: tg, ACTION: "build-and-deploy", AUTO_SYNC: true, CHANGE_NOTE: "release " + tg }); } catch (e) {} }); });
     Object.keys(S.argo.apps).forEach(function (n) { try { argoSyncApp(n); } catch (e) {} });
-    try { pvSeedGh("demo-pharmacy"); pvSeedGh2("demo-pharmacy"); } catch (e) { PV.err = "seed: " + (e && e.message); }
+    try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh("demo-pharmacy"); pvSeedGh2("demo-pharmacy"); } catch (e) { PV.err = "seed: " + (e && e.message); }
     S.jk.login = ""; S.sq.login = false; S.argo.login = false; S.gh.session = null; S.laptop.cwd = REPO;
     PV.s = S;
   } catch (e) { PV.err = String(e && e.message); PV.s = S; }
