@@ -8,10 +8,7 @@ export const dynamic = "force-dynamic";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
-      <body>
-        {children}
-        <footer>Pharmacy Stock · เวอร์ชัน {process.env.APP_VERSION ?? "dev"}</footer>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

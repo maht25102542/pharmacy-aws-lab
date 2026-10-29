@@ -8,5 +8,5 @@ export function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// ยกเว้น: หน้า login, health check ของ Kubernetes, API (backend ตอบ 401 เอง), ไฟล์ของ Next
-export const config = { matcher: ["/((?!login|healthz|api|_next/static|_next/image|favicon.ico).*)"] };
+// ยกเว้น: หน้า login, health check ของ Kubernetes, API (backend ตอบ 401 เอง), static ของ Swagger UI, ไฟล์ของ Next
+export const config = { matcher: ["/((?!login|healthz|api|static|_next/static|_next/image|favicon.ico).*)"] };

@@ -4,3 +4,4 @@ coverage/
 .scannerwork/
 .env*
 !.env.example
+tsconfig.tsbuildinfo

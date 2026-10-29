@@ -2,9 +2,9 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/client";
 import { formatPrice, type Medicine, type Page, parseQty, stockStatus } from "@/lib/stock";
+import { canEditCatalog, type Me } from "@/lib/users";
 
 type Category = { id: number; name: string };
-type Me = { username: string; is_staff: boolean };
 const LABEL = { ok: "ปกติ", low: "ใกล้หมด", out: "หมด" } as const;
 const REASONS = { receive: "รับเข้า", dispense: "จ่ายออก", adjust: "ปรับยอด", expired: "หมดอายุ/ทิ้ง" } as const;
 
@@ -39,18 +39,18 @@ export default function MedicineTable() {
 
   const pages = rows ? Math.max(1, Math.ceil(rows.count / 10)) : 1;
   return (
-    <div className="card">
-      <div className="toolbar">
-        <input placeholder="ค้นหาชื่อหรือรหัส" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="ค้นหา" />
+    <div className="card flush">
+      <div className="toolbar" style={{ padding: "16px 16px 0" }}>
+        <input className="searchbox" placeholder="ค้นหาชื่อหรือรหัสยา" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="ค้นหา" />
         <select value={cat} onChange={(e) => { setCat(e.target.value); setPage(1); }} aria-label="หมวดหมู่">
           <option value="">ทุกหมวดหมู่</option>
           {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <label><input type="checkbox" checked={low} onChange={(e) => { setLow(e.target.checked); setPage(1); }} /> เฉพาะใกล้หมด</label>
         <span style={{ flex: 1 }} />
-        <button className="pri" onClick={() => setAdding(true)}>+ เพิ่มยา</button>
+        {canEditCatalog(me) && <button className="pri" onClick={() => setAdding(true)}>+ เพิ่มยา</button>}
       </div>
-      {error && <div className="err" role="alert">{error}</div>}
+      {error && <div className="err" role="alert" style={{ padding: "0 16px" }}>{error}</div>}
       <table>
         <thead><tr><th>รหัส</th><th>ชื่อยา</th><th>หมวดหมู่</th><th className="num">ราคา</th><th className="num">คงเหลือ</th><th>สถานะ</th><th></th></tr></thead>
         <tbody>
@@ -65,13 +65,13 @@ export default function MedicineTable() {
                 <td style={{ whiteSpace: "nowrap" }}>
                   <button className="sm" onClick={() => setAdjusting({ med: m, sign: 1 })}>+ รับเข้า</button>{" "}
                   <button className="sm" onClick={() => setAdjusting({ med: m, sign: -1 })}>− จ่ายออก</button>
-                  {me?.is_staff && <> <button className="sm danger" onClick={() => remove(m)}>ลบ</button></>}
+                  {canEditCatalog(me) && <> <button className="sm danger" onClick={() => remove(m)}>ลบ</button></>}
                 </td>
               </tr>
             );
           })}
-          {rows && rows.results.length === 0 && <tr><td colSpan={7} className="muted">ไม่พบรายการ</td></tr>}
-          {!rows && !error && <tr><td colSpan={7} className="muted">กำลังโหลด…</td></tr>}
+          {rows && rows.results.length === 0 && <tr><td colSpan={7} className="empty">ไม่พบรายการ</td></tr>}
+          {!rows && !error && <tr><td colSpan={7} className="empty">กำลังโหลด…</td></tr>}
         </tbody>
       </table>
       <div className="pager">

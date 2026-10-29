@@ -14,3 +14,8 @@
 ตัวแปรที่แอปอ่านตอนรัน (ใน Kubernetes มาจาก `deployment.yaml` และ Secret `db-credentials` / `app-secrets`): `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DJANGO_ADMIN_PASSWORD`, `LOG_LEVEL`
 
 ตัวโค้ดไม่เคยถูกวางบนเครื่อง Kubernetes โดยตรง สิ่งที่ไปถึงเครื่องคือ image ที่ build แล้ว
+
+## API ที่มี (ดูของจริงที่ `/api/docs` = Swagger UI)
+- `stock/accounts.py` — บทบาท `admin` (is_superuser) / `pharmacist` (is_staff) / `clerk` · `/api/users` จัดการผู้ใช้ (admin เท่านั้น กันลบ/ลดสิทธิ์ตัวเองและกันไม่เหลือ admin) · `/api/auth/me` (GET/PATCH) · `/api/auth/change-password`
+- Swagger: `drf-spectacular` + `drf-spectacular-sidecar` (ไฟล์ UI มากับแพ็กเกจ ไม่โหลดจาก CDN) · `/api/docs`, `/api/schema`, `/api/redoc` เปิดอ่านได้โดยไม่ต้องล็อกอิน
+- ไม่มี model/migration ใหม่ (บทบาทใช้ธงของ Django user เดิม) จึงไม่กระทบ Job `backend-migrate`

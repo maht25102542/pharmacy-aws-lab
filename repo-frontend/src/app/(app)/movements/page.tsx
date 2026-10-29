@@ -14,9 +14,9 @@ export default function MovementsPage() {
   const pages = data ? Math.max(1, Math.ceil(data.count / 10)) : 1;
   return (
     <>
-      <h1>ประวัติการเคลื่อนไหวของสต็อก</h1>
-      <div className="card">
-        {error && <div className="err" role="alert">{error}</div>}
+      <div className="pagehead"><div><h1>ประวัติการเคลื่อนไหวของสต็อก</h1><p className="sub" style={{ margin: 0 }}>ทุกครั้งที่สต็อกเปลี่ยน บันทึกว่าใคร ทำอะไร เมื่อไหร่ (แก้ไขหรือลบไม่ได้)</p></div></div>
+      <div className="card flush">
+        {error && <div className="err" role="alert" style={{ padding: "12px 16px" }}>{error}</div>}
         <table>
           <thead><tr><th>เวลา</th><th>ยา</th><th>เหตุผล</th><th className="num">เปลี่ยน</th><th className="num">คงเหลือ</th><th>โดย</th><th>หมายเหตุ</th></tr></thead>
           <tbody>
@@ -25,11 +25,11 @@ export default function MovementsPage() {
                 <td className="muted">{new Date(m.created_at).toLocaleString("th-TH")}</td>
                 <td>{m.medicine_name} <span className="muted">({m.medicine_sku})</span></td>
                 <td>{REASONS[m.reason] ?? m.reason}</td>
-                <td className="num" style={{ color: m.delta > 0 ? "var(--ok)" : "var(--out)" }}>{m.delta > 0 ? `+${m.delta}` : m.delta}</td>
+                <td className="num" style={{ color: m.delta > 0 ? "var(--ok)" : "var(--out)", fontWeight: 600 }}>{m.delta > 0 ? `+${m.delta}` : m.delta}</td>
                 <td className="num">{m.stock_after}</td><td>{m.created_by_name ?? "-"}</td><td className="muted">{m.note}</td>
               </tr>
             ))}
-            {data && data.results.length === 0 && <tr><td colSpan={7} className="muted">ยังไม่มีประวัติ</td></tr>}
+            {data && data.results.length === 0 && <tr><td colSpan={7} className="empty">ยังไม่มีประวัติ</td></tr>}
           </tbody>
         </table>
         <div className="pager">
