@@ -6635,16 +6635,17 @@ function jkNew(p, who) {
   { var rpx = ghRepoOf(m[1], m[2]), brn = String(jb.branch || "*/main").replace(/^(\*\/|origin\/|refs\/heads\/)/, ""), bf = brn === "main" ? rpx.files : (rpx.branches || {})[brn];
     if (!bf) return jkCheckoutFail(b, jb, ["Fetching upstream changes from " + jb.repo, "ERROR: Couldn't find any revision to build. Verify the repository and branch configuration for this job.", "(branch ‘" + brn + "’ ยังไม่มีบน GitHub — ต้องสร้าง/push branch นี้ก่อน หรือแก้ Branch Specifier)"]);
     if (!(jb.script in bf)) return jkCheckoutFail(b, jb, ["ERROR: Unable to find " + jb.script + " from git " + jb.repo, "hudson.AbortException: Unable to find " + jb.script + " from git " + jb.repo, "(ไม่มีไฟล์ " + jb.script + " ใน branch " + brn + " — เช็ค Script Path หรือ push Jenkinsfile ก่อน)"]); }
+  { var jtxt = bf[jb.script]; if (!jkIsPharmacyPipeline(jtxt) && /\bstage\s*\(/.test(jtxt)) { b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {"); b.stages = [{ name: "Declarative: Checkout SCM", st: "success" }]; return jkGenericStart(b, jb, jtxt, true); } }
   b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {");
   b.stages.unshift({ name: "Declarative: Checkout SCM", st: "success" });
   b.idx = 1; if (jkReal(b)) { jkMarkNext(b); } else jkAdvance(b); return b;
 }
 // หยุด build ที่กำลังรัน (Stop) — ใช้ได้ทั้งหน้า build ปกติและ Blue Ocean
 function jkAbort(b) { if (!b || b.state === "done") return; b.stages.forEach(function (x) { if (x.st === "pending" || x.st === "running") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] End of Pipeline", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; }
-function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ if (j.defn === "script") j.paramsKnown = false; /* Pipeline script: ไม่มี parameters ของ pharmacy */ return b; }
+function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ if (b.generic) j.paramsKnown = !!(j.genParams && j.genParams.length); /* pipeline แบบ generic: ใช้ parameters ที่ประกาศในสคริปต์ */ return b; }
 function jkWithParams(p) { S.jk.job.paramsKnown = true; return jkNew(p); }
 function jkAdvance(b, once) {
-  { var jb0 = jkJob(b.job); if (jb0 && jb0.defn === "script") return jkInlineAdvance(b, once); }
+  if (b.generic) return jkInlineAdvance(b, once);
   var jb = jkJob(b.job) || S.jk.job, env = jkEnv(), p = b.params, ji = jkInst(), image = (env.ECR_REGISTRY || "") + "/pharmacy/" + p.SERVICE + ":" + p.VERSION, app = "pharmacy-" + p.SERVICE + "-" + p.TARGET_ENV;
   function end(res) { b.log.push("[Pipeline] }", "[Pipeline] // withEnv", "[Pipeline] }", "[Pipeline] // node", "[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] sh", "+ rm -rf manifests", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline"); }
   function fail(s, msg) {
@@ -6743,28 +6744,6 @@ function ec2Web(inst, app, port, vhost, ip, reach, scheme, path) {
 
 // ---- checkout ล้ม (branch ไม่มี / ไม่เจอ Jenkinsfile) ----
 function jkCheckoutFail(b, jb, lines) { b.log.push.apply(b.log, lines.concat(["[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"])); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); b.state = "done"; b.result = "FAILURE"; return b; }
-// ---- job แบบ "Pipeline script" (เขียน stage/step ใน Jenkins เอง): ตัวจำลองอ่าน stage('X') และ step echo/sh/sleep/error แล้วรันตามลำดับ ----
-function jkParseStages(txt) {
-  var parts = String(txt || "").split(/\bstage\s*\(/).slice(1), out = [];
-  parts.forEach(function (p) { var nm = /^\s*['"]([^'"]+)['"]/.exec(p); if (!nm) return; var steps = [], re = /\b(echo|sh|error|sleep)\s*\(?\s*(?:'([^']*)'|"([^"]*)"|(\d+))/g, m; while ((m = re.exec(p))) steps.push({ t: m[1], v: m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4] }); out.push({ name: nm[1], steps: steps }); });
-  return out;
-}
-function jkInlineStart(b, jb) {
-  b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {");
-  b.stages = jkParseStages(jb.inline).map(function (s) { return { name: s.name, st: "pending", steps: s.steps }; }); b.idx = 0;
-  if (!b.stages.length) { b.log.push("WorkflowScript: no stages found", "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return b; }
-  if (jkReal(b)) jkMarkNext(b); else jkInlineAdvance(b); return b;
-}
-function jkInlineAdvance(b, once) {
-  while (b.idx < b.stages.length) {
-    var s = b.stages[b.idx], bad = null; s.st = "running"; b.log.push("[Pipeline] stage", "[Pipeline] { (" + s.name + ")");
-    for (var k = 0; k < (s.steps || []).length && !bad; k++) { var t = s.steps[k]; if (t.t === "echo") b.log.push("[Pipeline] echo", t.v); else if (t.t === "sleep") b.log.push("[Pipeline] sleep", "Sleeping for " + t.v + " sec"); else if (t.t === "error") { bad = t.v; b.log.push("[Pipeline] error"); } else { b.log.push("[Pipeline] sh", "+ " + t.v); if (/\bexit\s+[1-9]|\bfalse\b/.test(t.v)) bad = "script returned exit code 1"; else b.log.push("(ตัวจำลอง: ไม่ได้รันคำสั่งจริง)"); } }
-    if (bad) { s.st = "failed"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.log.push("[Pipeline] End of Pipeline", "ERROR: " + bad, "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return; }
-    s.st = "success"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.idx++;
-    if (once && jkReal(b)) { if (b.idx < b.stages.length) { jkMarkNext(b); return; } break; }
-  }
-  if (b.idx >= b.stages.length) { b.log.push("[Pipeline] }", "[Pipeline] // node", "[Pipeline] End of Pipeline", "Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS"; }
-}
 
 // ---- mod/75-github.js
 // ===== GitHub + git จำลอง (ไม่มี DOM): repo-backend / repo-frontend / repo-manifests บน laptop → push → GitHub =====
@@ -7051,6 +7030,117 @@ function buildAnsibleLab(kind) {
   sh("cd " + REPO + "/ansible");
   if (kind === "ans-half") { ["db.yml", "k8s.yml"].forEach(function (f) { var r = sh("ansible-playbook " + f); if (!/PLAY RECAP/.test(r.lines.join("\n")) || /(failed|unreachable)=[1-9]/.test(r.lines.join("\n"))) throw new Error(f + " ไม่ผ่าน"); }); }
   return { kind: kind, lines: out };
+}
+
+// ---- mod/79-jkpipe.js
+// ===== Jenkins: Declarative Pipeline parser + runner =====
+// ใช้กับ (1) job แบบ "Pipeline script" และ (2) Jenkinsfile ใน repo ที่ไม่ใช่ pipeline ของ pharmacy (pipeline ของ pharmacy = มี stage 'Update manifest' → ใช้ flow เดิมที่ต่อ ECR/manifests/Argo)
+// ponytail: parser แบบ regex + จับคู่ปีกกา ไม่ใช่ Groovy จริง — รองรับ environment / parameters / when / parallel / post / script{} และ step echo, sh, sleep, error, checkout, archiveArtifacts, junit · ถ้าต้องการ Groovy เต็ม ต้องใช้ parser จริง
+function jkBlock(t, from) {
+  var d = 0, q = "";
+  for (var i = from; i < t.length; i++) {
+    var c = t[i], tri = t.substr(i, 3);
+    if (q) { if (c === "\\") i++; else if (q.length === 3 ? tri === q : c === q) { if (q.length === 3) i += 2; q = ""; } continue; }
+    if (tri === "'''" || tri === '"""') { q = tri; i += 2; continue; }
+    if (c === "'" || c === '"') { q = c; continue; }
+    if (c === "{") d++; else if (c === "}") { d--; if (!d) return [t.slice(from + 1, i), i]; }
+  }
+  return [t.slice(from + 1), t.length];
+}
+function jkFind(t, kw) { var m = new RegExp("\\b" + kw + "\\s*\\{").exec(t); if (!m) return null; var o = m.index + m[0].length - 1, b = jkBlock(t, o); return { inner: b[0], start: m.index, end: b[1] }; }
+function jkStagesIn(t) { var out = [], re = /\bstage\s*\(\s*(['"])([^'"]+)\1\s*\)\s*\{/g, m; while ((m = re.exec(t))) { var b = jkBlock(t, m.index + m[0].length - 1); out.push({ name: m[2], body: b[0] }); re.lastIndex = b[1] + 1; } return out; }
+function jkSteps(t) {
+  var out = [], re = /\b(echo|sh|error|sleep|checkout|git|archiveArtifacts|junit)\b\s*\(?\s*(?:time:\s*)?(?:'''([\s\S]*?)'''|"""([\s\S]*?)"""|'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|(\d+)|(scm))?/g, m;
+  while ((m = re.exec(t))) { var v = m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4] !== undefined ? m[4] : m[5] !== undefined ? m[5] : m[6] !== undefined ? m[6] : m[7] || ""; if (m[1] === "sh" && !v) continue; out.push({ t: m[1], v: v }); }
+  return out;
+}
+function jkWhen(body) {
+  var w = jkFind(body, "when"); if (!w) return null; var out = [], m, re;
+  re = /\bbranch\s+['"]([^'"]+)['"]/g; while ((m = re.exec(w.inner))) out.push({ k: "branch", v: m[1] });
+  re = /\benvironment\s+name:\s*['"](\w+)['"]\s*,\s*value:\s*['"]([^'"]*)['"]/g; while ((m = re.exec(w.inner))) out.push({ k: "env", n: m[1], v: m[2] });
+  var ex = jkFind(w.inner, "expression"); if (ex) out.push({ k: "expr", v: ex.inner.replace(/^\s*return\s+/, "").trim() });
+  return { conds: out, start: w.start, end: w.end };
+}
+function jkParseStage(name, body) {
+  var w = jkWhen(body), b2 = w ? body.slice(0, w.start) + body.slice(w.end + 1) : body, par = jkFind(b2, "parallel");
+  if (par) return { name: name, when: w, parallel: jkStagesIn(par.inner).map(function (k) { return jkParseStage(k.name, k.body); }) };
+  var st = jkFind(b2, "steps"); return { name: name, when: w, steps: jkSteps(st ? st.inner : b2) };
+}
+function jkParsePipeline(txt) {
+  txt = String(txt || ""); var out = { env: {}, params: [], stages: [], post: {} }, e = jkFind(txt, "environment"), m;
+  if (e) { var re = /(\w+)\s*=\s*(?:'([^']*)'|"([^"]*)")/g; while ((m = re.exec(e.inner))) out.env[m[1]] = m[2] !== undefined ? m[2] : m[3]; }
+  var p = jkFind(txt, "parameters");
+  if (p) { var rp = /\b(string|choice|booleanParam|text|password)\s*\(([^)]*)\)/g; while ((m = rp.exec(p.inner))) { var a = m[2], nm = /name:\s*['"]([^'"]+)['"]/.exec(a), dv = /defaultValue:\s*(?:['"]([^'"]*)['"]|(true|false))/.exec(a), ch = /choices:\s*\[([^\]]*)\]/.exec(a); if (nm) out.params.push({ type: m[1] === "booleanParam" ? "Boolean" : m[1] === "choice" ? "Choice" : "String", name: nm[1], def: m[1] === "choice" && ch ? ch[1].replace(/['"\s]/g, "").split(",").join("\n") : dv ? (dv[1] !== undefined ? dv[1] : dv[2]) : "" }); } }
+  var sg = jkFind(txt, "stages"), pt = jkFind(txt, "post");
+  out.stages = jkStagesIn(sg ? sg.inner : txt).map(function (s) { return jkParseStage(s.name, s.body); });
+  if (pt) ["always", "success", "failure"].forEach(function (k) { var b = jkFind(pt.inner, k); if (b) out.post[k] = jkSteps(b.inner); });
+  return out;
+}
+function jkIsPharmacyPipeline(txt) { return /stage\s*\(\s*['"]Update manifest['"]/.test(String(txt || "")); }
+function jkInterp(b, s) { var c = b.ctx || { env: {}, params: {} }; return String(s).replace(/\$\{(?:params\.|env\.)?(\w+)\}|\$(\w+)/g, function (m0, a, bb) { var k = a || bb; return c.params[k] !== undefined ? c.params[k] : c.env[k] !== undefined ? c.env[k] : m0; }); }
+function jkWhenOk(b, w) {
+  if (!w || !w.conds.length) return true; var c = b.ctx;
+  return w.conds.every(function (x) { if (x.k === "branch") return x.v === c.env.BRANCH_NAME; if (x.k === "env") return c.env[x.n] === x.v; var e = x.v, mm = /^(?:params|env)\.(\w+)\s*==\s*['"]([^'"]*)['"]$/.exec(e), pm = /^(?:params|env)\.(\w+)$/.exec(e); if (e === "true") return true; if (e === "false") return false; if (mm) return String(c.params[mm[1]] !== undefined ? c.params[mm[1]] : c.env[mm[1]]) === mm[2]; if (pm) return c.params[pm[1]] === true || c.params[pm[1]] === "true"; return true; });
+}
+// ผลลัพธ์จำลองของคำสั่ง sh ที่พบบ่อย (ไม่ได้รันจริง) · คืน [บรรทัดผลลัพธ์, exit code]
+function jkShOut(cmd, b) {
+  var c = cmd.trim(), m;
+  if ((m = /^echo\s+(.*)$/.exec(c))) return [[m[1].replace(/^(['"])(.*)\1$/, "$2")], 0];
+  if (/^pwd$/.test(c)) return [["/var/jenkins_home/workspace/" + b.job], 0];
+  if (/^date/.test(c)) return [["Thu Oct 29 09:41:07 UTC 2026"], 0];
+  if (/^ls\b/.test(c)) { var j = jkJob(b.job), rp = j && j.repo ? S.gh.repos[jkRepoName(j)] : null, f = rp ? Object.keys(rp.files).filter(function (x) { return x.indexOf("/") < 0; }) : ["Jenkinsfile"]; return [f.length ? f : ["(empty)"], 0]; }
+  if (/^docker build/.test(c)) return [["#1 [internal] load build definition from Dockerfile", "#5 [3/4] RUN pip install -r requirements.txt", "#8 exporting to image", "Successfully built " + hash32(c).slice(0, 12)], 0];
+  if (/^docker (push|login)/.test(c)) return [["The push refers to repository", "latest: digest: sha256:" + hash32(c).slice(0, 16) + " size: 1573"], 0];
+  if (/^(pytest|python -m pytest)/.test(c)) return [["collected 24 items", "24 passed in 3.12s"], 0];
+  if (/^(npm|yarn|pnpm)( run)? test/.test(c)) return [["Test Suites: 3 passed, 3 total", "Tests: 18 passed, 18 total"], 0];
+  if (/^(npm|yarn|pnpm)( run)? build/.test(c)) return [["Creating an optimized production build ...", "Compiled successfully"], 0];
+  if (/^(npm|pip) install/.test(c)) return [["added 312 packages in 8s"], 0];
+  if (/^terraform (fmt|validate)/.test(c)) return [["Success! The configuration is valid."], 0];
+  if (/^terraform plan/.test(c)) return [["Plan: 0 to add, 0 to change, 0 to destroy."], 0];
+  if ((m = /^exit\s+(\d+)/.exec(c))) return [[], +m[1]];
+  if (/^false$/.test(c)) return [[], 1];
+  return [["(ตัวจำลอง: ไม่ได้รันคำสั่งจริง)"], 0];
+}
+function jkGenericStart(b, jb, txt, pre) {
+  var P = jkParsePipeline(txt), params = {}; P.params.forEach(function (p) { params[p.name] = p.type === "Boolean" ? p.def === "true" : String(p.def).split("\n")[0]; }); Object.keys(b.params || {}).forEach(function (k) { if ((params[k] !== undefined || P.params.some(function (x) { return x.name === k; })) && b.params[k] !== "" && b.params[k] !== undefined) params[k] = b.params[k]; });
+  var env = Object.assign({ BUILD_NUMBER: String(b.id), JOB_NAME: jb.name, BRANCH_NAME: String(jb.branch || "main").replace(/^(\*\/|origin\/)/, ""), WORKSPACE: "/var/jenkins_home/workspace/" + jb.name }, P.env);
+  b.ctx = { env: env, params: params }; b.generic = true; b.postSteps = P.post; jb.genParams = P.params; jb.paramsKnown = P.params.length > 0;
+  var list = []; P.stages.forEach(function (s) { if (s.parallel) { list.push({ name: s.name, st: "pending", steps: [{ t: "echo", v: "Parallel: " + s.parallel.map(function (k) { return k.name; }).join(" | ") }], when: s.when }); s.parallel.forEach(function (k) { list.push({ name: s.name + " › " + k.name, st: "pending", steps: k.steps, when: k.when, inPar: s.name }); }); } else list.push({ name: s.name, st: "pending", steps: s.steps, when: s.when }); });
+  if (Object.keys(P.post).length) list.push({ name: "Post Actions", st: "pending", post: true });
+  b.stages = (pre ? b.stages : []).concat(list); b.idx = pre ? b.stages.length - list.length : 0;
+  if (!list.length || (list.length === 1 && list[0].post)) { b.log.push("WorkflowScript: no stages found", "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return b; }
+  if (jkReal(b)) jkMarkNext(b); else jkInlineAdvance(b); return b;
+}
+function jkInlineStart(b, jb) { b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {"); return jkGenericStart(b, jb, jb.inline, false); }
+function jkRunSteps(b, steps) {
+  for (var k = 0; k < steps.length; k++) {
+    var t = steps[k], v = jkInterp(b, t.v);
+    if (t.t === "echo") b.log.push("[Pipeline] echo", v);
+    else if (t.t === "sleep") b.log.push("[Pipeline] sleep", "Sleeping for " + v + " sec");
+    else if (t.t === "error") { b.log.push("[Pipeline] error"); return v; }
+    else if (t.t === "checkout" || t.t === "git") b.log.push("[Pipeline] checkout", "Cloning the remote Git repository");
+    else if (t.t === "archiveArtifacts") b.log.push("[Pipeline] archiveArtifacts", "Archiving artifacts: " + v);
+    else if (t.t === "junit") b.log.push("[Pipeline] junit", "Recording test results: " + v);
+    else { b.log.push("[Pipeline] sh"); var cmds = v.split("\n").map(function (x) { return x.trim(); }).filter(Boolean); for (var i = 0; i < cmds.length; i++) { b.log.push("+ " + cmds[i]); var r = jkShOut(cmds[i], b); r[0].forEach(function (l) { b.log.push(l); }); if (r[1]) return "script returned exit code " + r[1]; } }
+  }
+  return "";
+}
+function jkInlineAdvance(b, once) {
+  while (b.idx < b.stages.length) {
+    var s = b.stages[b.idx], bad = "";
+    if (s.post) { b.idx++; continue; }
+    if (!jkWhenOk(b, s.when)) { s.st = "skipped"; b.log.push("[Pipeline] stage", "[Pipeline] { (" + s.name + ")", "Stage \"" + s.name + "\" skipped due to when conditional", "[Pipeline] }", "[Pipeline] // stage"); b.idx++; continue; }
+    s.st = "running"; b.log.push("[Pipeline] stage", "[Pipeline] { (" + s.name + ")"); bad = jkRunSteps(b, s.steps || []);
+    if (bad) { s.st = "failed"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.stages.forEach(function (x) { if (x.st === "pending" && !x.post) x.st = "not run"; }); jkInlineFinish(b, false, bad); return; }
+    s.st = "success"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.idx++;
+    if (once && jkReal(b)) { if (b.idx < b.stages.length && !b.stages[b.idx].post) { jkMarkNext(b); return; } if (b.idx < b.stages.length) { b.idx++; } break; }
+  }
+  if (b.idx >= b.stages.length || (b.stages[b.idx] && b.stages[b.idx].post)) jkInlineFinish(b, true, "");
+}
+function jkInlineFinish(b, ok, why) {
+  var ps = b.postSteps || {}, run = function (k) { if (ps[k]) { b.log.push("[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)"); jkRunSteps(b, ps[k]); b.log.push("[Pipeline] }", "[Pipeline] // stage"); } };
+  run("always"); run(ok ? "success" : "failure"); b.stages.forEach(function (x) { if (x.post) x.st = "success"; });
+  if (ok) { b.log.push("[Pipeline] }", "[Pipeline] // node", "[Pipeline] End of Pipeline", "Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS"; } else { b.log.push("[Pipeline] End of Pipeline", "ERROR: " + why, "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; }
 }
 
 //==UI==
@@ -8538,7 +8628,7 @@ function wbJenkins(res) {
     if (!builds.length) return h("p", { cls: "sub", text: "No builds yet." });
     return h("div", { style: "overflow-x:auto" }, [h("table", { cls: "tbl", style: "table-layout:fixed;width:100%" }, [h("tr", {}, [h("th", { style: "width:44px", text: "" })].concat(STG.map(function (n) { return h("th", { style: "white-space:normal;word-break:break-word;font-size:.68rem;line-height:1.2;vertical-align:bottom;text-align:center;padding:8px 2px", text: n }); })))].concat(builds.slice().reverse().map(function (b) { return h("tr", {}, [h("td", {}, [h("a", { href: "#", style: "font-weight:600", text: "#" + b.id, onclick: function (e) { e.preventDefault(); W.bid = b.id; W.btab = "status"; W.page = "build"; render(); } })])].concat(STG.map(function (n) { var s = b.stages.filter(function (x) { return x.name === n; })[0]; if (!s && n === "Declarative: Post Actions") s = b.result ? { st: "success" } : null; var c = !s || s.st === "skipped" ? ["#f1f1f1", "#999", "-"] : s.st === "success" ? ["#c9f0cf", "#145a24", "1s"] : s.st === "failed" ? ["#f8c9c9", "#8a1212", "failed"] : s.st === "waiting" ? ["#ffe9a8", "#6b4e00", "paused"] : s.st === "running" ? ["#cfe3ff", "#0a3d8f", "…"] : ["#f1f1f1", "#999", "·"]; return h("td", { style: "background:" + c[0] + ";color:" + c[1] + ";text-align:center;min-width:0;padding:10px 4px", text: c[2] }); }))); })))]);
   }
-  var crumbs = function () { var c = ["Dashboard"]; if (/^(job|params|build|configure)$/.test(pg) && J) c.push(J.name); if (pg === "build") c.push("#" + W.bid); if (pg === "params") c.push("Build with Parameters"); if (pg === "configure") c.push("Configuration"); if (pg === "newitem") c.push("All", "New Item"); if (pg === "creds" || pg === "gcreds") c.push("Manage Jenkins", "Credentials"); if (pg === "manage") c.push("Manage Jenkins"); if (/^(plugins|nodes)$/.test(pg)) c.push("Manage Jenkins", pg[0].toUpperCase() + pg.slice(1)); if (pg === "people") c.push("People"); if (/^(delete|rename)$/.test(pg) && J) c.push(J.name, pg === "delete" ? "Delete" : "Rename"); if (pg === "delbuild" && J) c.push(J.name, "#" + W.bid, "Delete"); if (pg === "history") c.push("Build History"); return c; };
+  var crumbs = function () { var c = ["Dashboard"]; if (/^(job|params|build|configure)$/.test(pg) && J) c.push(J.name); if (pg === "build") c.push("#" + W.bid); if (pg === "params") c.push("Build with Parameters"); if (pg === "configure") c.push("Configuration"); if (pg === "newitem") c.push("All", "New Item"); if (pg === "creds" || pg === "gcreds") c.push("Manage Jenkins", "Credentials"); if (pg === "manage") c.push("Manage Jenkins"); if (/^(plugins|nodes)$/.test(pg)) c.push("Manage Jenkins", pg[0].toUpperCase() + pg.slice(1)); if (pg === "people") c.push("People"); if (/^(delete|rename)$/.test(pg) && J) c.push(J.name, pg === "delete" ? "Delete" : "Rename"); if (pg === "delbuild" && J) c.push(J.name, "#" + W.bid, "Delete"); if (pg === "history") c.push("Build History"); if (pg === "snippet") c.push("Pipeline Syntax"); return c; };
   if (pg === "dash") return page(two(gSide("Dashboard"), [na, jobTable()]), crumbs(), true);
   if (pg === "history") return page(wide([title("Build History of Jenkins"), ALLB.length ? h("table", { cls: "tbl" }, [h("tr", {}, ["S", "Build", "Parameters"].map(function (x) { return h("th", { text: x }); }))].concat(ALLB.slice().reverse().map(function (b) { return h("tr", {}, [h("td", {}, [wbCircle(b.result, 20)]), h("td", {}, [h("a", { href: "#", text: b.job + " #" + b.id, onclick: function (e) { e.preventDefault(); jkSelect(b.job); W.bid = b.id; W.btab = "console"; W.page = "build"; render(); } })]), h("td", { text: b.params.VERSION ? b.params.TARGET_ENV + " / " + b.params.VERSION : "(ไม่มี parameters)" })]); }))) : h("p", { text: "No builds." })]), crumbs(), true);
   if (pg === "manage") return page(wide([h("div", { cls: "jx-ph" }, [h("h1", { text: "Manage Jenkins" }), h("span", { cls: "jx-sbox" }, [jkIco("search", 16), h("span", { text: "Search settings" }), h("kbd", { text: "/" })])]),     h("div", { cls: "jx-ban jx-warn" }, [h("div", { cls: "jx-bt" }, [h("p", { text: "Building on the built-in node can be a security issue. You should set up distributed builds. See the documentation." })]), h("div", { cls: "jx-bb" }, [h("button", { type: "button", cls: "jx-pb", text: "Set up agent", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } }), h("button", { type: "button", cls: "jx-pb", text: "Set up cloud", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } }), h("button", { type: "button", cls: "jx-pb", text: "Dismiss", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } })])]),     h("div", { cls: "jx-ban jx-warn" }, [h("div", { cls: "jx-bt" }, [h("p", { text: "Jenkins URL is empty but is required for the proper operation of many Jenkins features like email notifications, PR status update, and environment variables such as BUILD_URL." }), h("p", { text: "Please provide an accurate value in Jenkins configuration." })]), h("div", { cls: "jx-bb" }, [h("button", { type: "button", cls: "jx-pb", text: "Dismiss", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } })])]),     h("div", { cls: "jx-ban jx-warn" }, [h("div", { cls: "jx-bt" }, [h("p", { text: "Jenkins is currently unsecured and allows anyone on the network to launch processes on your behalf. It is recommended to set up security and to limit anonymous access even on private networks." })]), h("div", { cls: "jx-bb" }, [h("button", { type: "button", cls: "jx-pb", text: "Setup Security", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } }), h("button", { type: "button", cls: "jx-pb", text: "Dismiss", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } })])]),     h("div", { cls: "jx-ban jx-bad" }, [h("div", { cls: "jx-bt" }, [h("b", { cls: "jx-bh", text: "Java 17 end of life in Jenkins" }), h("p", { text: "You are running Jenkins on Java 17, support for which will end on or after Mar 31, 2026. Refer to the documentation for more details." })]), h("div", { cls: "jx-bb" }, [h("button", { type: "button", cls: "jx-pb", text: "More Info", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } }), h("button", { type: "button", cls: "jx-pb", text: "Ignore", onclick: function (e) { e.target.closest(".jx-ban").style.display = "none"; } })])]),     h("hr", { cls: "jx-hr2" }), h("h3", { cls: "jx-sec", text: "System Configuration" }),     h("div", { cls: "jx-tiles" }, [h("a", { href: "#", cls: "jx-tile", onclick: function (e) { e.preventDefault(); W.page = "system"; render(); }, title: "System" }, [h("span", { cls: "jx-ti" }, [jkIco("gear", 22)]), h("div", {}, [h("b", { text: "System" }), h("div", { cls: "jx-mut", text: "Configure global settings and paths." })])]), h("a", { href: "#", cls: "jx-tile", "data-nh": "1", onclick: function (e) { e.preventDefault(); wbNA("Tools")(e); }, title: "Tools" }, [h("span", { cls: "jx-ti" }, [jkIco("gear", 22)]), h("div", {}, [h("b", { text: "Tools" }), h("div", { cls: "jx-mut", text: "Configure tools, their locations and automatic installers." })])]), h("a", { href: "#", cls: "jx-tile", onclick: function (e) { e.preventDefault(); W.page = "plugins"; render(); }, title: "Plugins" }, [h("span", { cls: "jx-ti" }, [jkIco("steps", 22)]), h("div", {}, [h("b", { text: "Plugins" }), h("div", { cls: "jx-mut", text: "Add, remove, disable or enable plugins that can extend the functionality of Jenkins." })])]), h("a", { href: "#", cls: "jx-tile", onclick: function (e) { e.preventDefault(); W.page = "nodes"; render(); }, title: "Nodes" }, [h("span", { cls: "jx-ti" }, [jkIco("cloud", 22)]), h("div", {}, [h("b", { text: "Nodes" }), h("div", { cls: "jx-mut", text: "Add, remove, control and monitor the various nodes that Jenkins runs jobs on." })])]), h("a", { href: "#", cls: "jx-tile", "data-nh": "1", onclick: function (e) { e.preventDefault(); wbNA("Clouds")(e); }, title: "Clouds" }, [h("span", { cls: "jx-ti" }, [jkIco("gear", 22)]), h("div", {}, [h("b", { text: "Clouds" }), h("div", { cls: "jx-mut", text: "Add, remove, and configure cloud instances to provision agents on-demand." })])]), h("a", { href: "#", cls: "jx-tile", "data-nh": "1", onclick: function (e) { e.preventDefault(); wbNA("Appearance")(e); }, title: "Appearance" }, [h("span", { cls: "jx-ti" }, [jkIco("status", 22)]), h("div", {}, [h("b", { text: "Appearance" }), h("div", { cls: "jx-mut", text: "Configure the look and feel of Jenkins" })])])]),     h("h3", { cls: "jx-sec", text: "Security" }),     h("div", { cls: "jx-tiles" }, [h("a", { href: "#", cls: "jx-tile", "data-nh": "1", onclick: function (e) { e.preventDefault(); wbNA("Security")(e); }, title: "Security" }, [h("span", { cls: "jx-ti" }, [jkIco("gear", 22)]), h("div", {}, [h("b", { text: "Security" }), h("div", { cls: "jx-mut", text: "Secure Jenkins; define who is allowed to access/use the system." })])]), h("a", { href: "#", cls: "jx-tile", onclick: function (e) { e.preventDefault(); W.page = "people"; render(); }, title: "Users" }, [h("span", { cls: "jx-ti" }, [jkIco("people", 22)]), h("div", {}, [h("b", { text: "Users" }), h("div", { cls: "jx-mut", text: "Create/delete/modify users that can log in to this Jenkins." })])]), h("a", { href: "#", cls: "jx-tile", onclick: function (e) { e.preventDefault(); W.page = "creds"; render(); }, title: "Credentials" }, [h("span", { cls: "jx-ti" }, [jkIco("key", 22)]), h("div", {}, [h("b", { text: "Credentials" }), h("div", { cls: "jx-mut", text: "Configure credentials" })])]), h("a", { href: "#", cls: "jx-tile", "data-nh": "1", onclick: function (e) { e.preventDefault(); wbNA("Credential Providers")(e); }, title: "Credential Providers" }, [h("span", { cls: "jx-ti" }, [jkIco("key", 22)]), h("div", {}, [h("b", { text: "Credential Providers" }), h("div", { cls: "jx-mut", text: "Configure the credential providers and types" })])]), h("a", { href: "#", cls: "jx-tile", onclick: function (e) { e.preventDefault(); W.page = "creds"; render(); }, title: "Credentials" }, [h("span", { cls: "jx-ti" }, [jkIco("gear", 22)]), h("div", {}, [h("b", { text: "Credentials" }), h("div", { cls: "jx-mut", text: "Configure credentials" })])])])]), crumbs(), true);
@@ -8546,6 +8636,7 @@ function wbJenkins(res) {
   if (/^(plugins|nodes|people|delete|rename|delbuild|jchanges)$/.test(pg) && (J || /^(plugins|nodes|people)$/.test(pg))) return page(wide(jkExtra(pg, J, title)), crumbs(), true);
   if (/^(newview|viewcfg|system)$/.test(pg)) return page(wide(jkExtra2(pg, J, title)), crumbs(), true);
   if (/^(ucreate|uconfig)$/.test(pg)) return page(wide(jkExtra3(pg, title)), crumbs(), true);
+  if (pg === "snippet") return page(wide(jkSnippet(title)), crumbs(), true);
   if (pg === "creds") return page(wide([h("div", { cls: "jx-ph" }, [h("h1", { text: "Credentials" }), h("button", { type: "button", cls: "jx-btn jx-sq", title: "Help", onclick: wbNA("Help") }, [jkIco("help", 18)])]), S.jk.creds.length ? h("div", { cls: "jx-emp2" }, [h("b", { text: S.jk.creds.length + " credentials in the global store" }), h("button", { type: "button", cls: "jx-pb", onclick: function () { W.page = "gcreds"; W.addCred = true; render(); } }, [jkIco("plus", 16), " Add Credentials"])]) : h("div", { cls: "jx-empty" }, [jkIco("key", 40), h("p", { text: "There are no credentials" }), h("button", { type: "button", cls: "jx-pb", onclick: function () { W.page = "gcreds"; W.addCred = true; render(); } }, [jkIco("plus", 16), " Add Credentials"])]), h("hr", { cls: "jx-hr2" }), h("p", { text: "Stores scoped to Jenkins" }), h("div", { cls: "jx-store" }, [jkIco("people", 20), h("a", { href: "#", text: "System", onclick: function (e) { e.preventDefault(); W.page = "gcreds"; render(); } }), h("span", { cls: "jx-mut", text: "Domains:" }), h("a", { href: "#", cls: "jx-bdg", text: "Global", onclick: function (e) { e.preventDefault(); W.page = "gcreds"; render(); } })])]), crumbs(), true);
   if (pg === "gcreds") {
     var C = F; C.ck = C.ck || "userpass"; ["ci", "cu", "cp", "cs", "cd"].forEach(function (k) { if (C[k] == null) C[k] = ""; });
@@ -8564,7 +8655,8 @@ function wbJenkins(res) {
   }
   if (pg === "job" || pg === "params" || pg === "build") {
     if (!J) { W.page = "dash"; return wbJenkins(res); }
-    var jSide = wbSideJ([jkHasPlugin("blueocean") ? ["Open Blue Ocean", function () { jkBoOpen("job", J.name); }] : null, ["Status", wbGoPage("job")], ["Changes", function () { W.page = "jchanges"; render(); }], J.paramsKnown ? ["Build with Parameters", function () { W.page = "params"; render(); }] : ["Build Now", function () { jkBuildNow(); W.page = "job"; render(); }], ["Configure", function () { W.cfgOpen = ""; W.cfgSec = "General"; W.page = "configure"; render(); }], ["Delete Pipeline", function () { W.page = "delete"; render(); }], ["Full Stage View", wbGoPage("job")], ["Rename", function () { W.jkrn = undefined; W.page = "rename"; render(); }], ["Pipeline Syntax", wbNA("Pipeline Syntax")]], pg === "job" ? "Status" : "").concat([h("div", { cls: "jx-card" }, [h("div", { cls: "jx-ch" }, [h("span", {}, ["Builds ", jkIco("chevr", 14)]), jkIco("dots", 16)]), h("div", { cls: "jx-filter" }, [jkIco("search", 16), h("span", { text: "Filter" }), h("kbd", { text: "/" })]), builds.length ? h("div", { cls: "jx-bl" }, builds.slice().reverse().map(function (b) { return h("a", { href: "#", cls: "jx-bi", onclick: function (e) { e.preventDefault(); W.bid = b.id; W.page = "build"; W.lg = ""; render(); } }, [wbCircle(b.result, 18), h("b", { text: "#" + b.id }), h("span", { cls: "jx-mut", text: "just now" })]); })) : h("p", { cls: "jx-mut", text: "No builds" })])]);
+    var jSide = wbSideJ([jkHasPlugin("blueocean") ? ["Open Blue Ocean", function () { jkBoOpen("job", J.name); }] : null, ["Status", wbGoPage("job")], ["Changes", function () { W.page = "jchanges"; render(); }], J.paramsKnown ? ["Build with Parameters", function () { W.page = "params"; render(); }] : ["Build Now", function () { jkBuildNow(); W.page = "job"; render(); }], ["Configure", function () { W.cfgOpen = ""; W.cfgSec = "General"; W.page = "configure"; render(); }], ["Delete Pipeline", function () { W.page = "delete"; render(); }], ["Full Stage View", wbGoPage("job")], ["Rename", function () { W.jkrn = undefined; W.page = "rename"; render(); }], ["Pipeline Syntax", function () { W.page = "snippet"; render(); }]], pg === "job" ? "Status" : "").concat([h("div", { cls: "jx-card" }, [h("div", { cls: "jx-ch" }, [h("span", {}, ["Builds ", jkIco("chevr", 14)]), jkIco("dots", 16)]), h("div", { cls: "jx-filter" }, [jkIco("search", 16), h("span", { text: "Filter" }), h("kbd", { text: "/" })]), builds.length ? h("div", { cls: "jx-bl" }, builds.slice().reverse().map(function (b) { return h("a", { href: "#", cls: "jx-bi", onclick: function (e) { e.preventDefault(); W.bid = b.id; W.page = "build"; W.lg = ""; render(); } }, [wbCircle(b.result, 18), h("b", { text: "#" + b.id }), h("span", { cls: "jx-mut", text: "just now" })]); })) : h("p", { cls: "jx-mut", text: "No builds" })])]);
+    if (pg === "params" && J.genParams && J.genParams.length) return page(two(jSide, jkIParams(J, title)), crumbs(), true);
     if (pg === "params") {
       if (F.p && F.p.SERVICE !== J.svc) F.p = null; var P = F.p = F.p || { TARGET_ENV: "dev", SERVICE: J.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }, rp = S.gh.repos[jkRepoName(J)], tags = rp ? rp.tags.slice().sort().reverse() : []; if ((!P.VERSION || tags.indexOf(P.VERSION) < 0) && tags.length) P.VERSION = tags[0]; if (!tags.length) P.VERSION = "";
       return page(two(jSide, [title("Pipeline " + J.name), h("p", { text: "This build requires parameters:" }), wbSel("TARGET_ENV", "pe", [["dev", "dev"], ["prd", "prd"]], function () { return P.TARGET_ENV; }, function (v) { P.TARGET_ENV = v; }), wbSel("VERSION", "pv", tags.length ? tags.map(function (t) { return [t, t]; }) : [["", "(รายการว่าง: ยังไม่มี tag บน GitHub)"]], function () { return P.VERSION; }, function (v) { P.VERSION = v; }), wbSel("ACTION", "pa", [["build-and-deploy", "build-and-deploy"], ["deploy-only", "deploy-only"]], function () { return P.ACTION; }, function (v) { P.ACTION = v; }), h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: !!P.AUTO_SYNC, onchange: function (e) { P.AUTO_SYNC = e.target.checked; } }), h("span", { text: "AUTO_SYNC — ให้ Jenkins สั่ง ArgoCD sync ทันที (ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD)" })]), wbEx("CHANGE_NOTE", "pnote", ["TICKET-123", "first release"], "เลข ticket หรือเหตุผล"), jkExtraParamFields(J, P), jkRunOpts(), h("button", { type: "button", cls: "jx-build", "aria-label": "Build", onclick: function () { P.CHANGE_NOTE = F.pnote || ""; S.jk.nextMode = W.jkrm || ""; var b = jkWithParams(Object.assign({}, P)); W.bid = b.id; if (jkHasPlugin("blueocean") && (W.jkvw || "blue") === "blue") { jkBoOpen("run", J.name, b.id); return; } W.btab = "console"; W.page = "build"; render(); } }, [jkIco("play", 16), " Build"]), h("button", { type: "button", cls: "jx-cancel", text: "Cancel", onclick: wbGoPage("job") })]), crumbs(), true);
@@ -9504,13 +9596,31 @@ function jkRunOpts() {
 }
 
 // Configure › Pipeline › Definition: "Pipeline script from SCM" หรือ "Pipeline script" (เขียน stage/step เองในหน้านี้)
-var JK_SCRIPTS = ["pipeline {\n  agent any\n  stages {\n    stage('Build') {\n      steps {\n        echo 'Building...'\n        sh 'docker build -t app .'\n      }\n    }\n    stage('Test') {\n      steps { sh 'pytest' }\n    }\n    stage('Deploy') {\n      steps { echo 'Deploying to dev' }\n    }\n  }\n}\n",
-  "pipeline {\n  agent any\n  stages {\n    stage('Build') { steps { echo 'Building...' } }\n    stage('Test') { steps { sh 'exit 1' } }\n    stage('Deploy') { steps { echo 'never runs' } }\n  }\n}\n",
-  "pipeline {\n  agent any\n  stages {\n    stage('Checkout') { steps { echo 'git clone' } }\n    stage('Wait') { steps { sleep 4 } }\n    stage('Done') { steps { echo 'ok' } }\n  }\n}\n"];
+var JK_EX = [
+  ["ตัวอย่าง: Build → Test → Deploy", "pipeline {\n  agent any\n  stages {\n    stage('Build') {\n      steps {\n        echo 'Building...'\n        sh 'docker build -t app .'\n      }\n    }\n    stage('Test') {\n      steps { sh 'pytest' }\n    }\n    stage('Deploy') {\n      steps { echo 'Deploying to dev' }\n    }\n  }\n}\n"],
+  ["ตัวอย่าง: stage Test ล้ม (exit 1)", "pipeline {\n  agent any\n  stages {\n    stage('Build') { steps { echo 'Building...' } }\n    stage('Test') { steps { sh 'exit 1' } }\n    stage('Deploy') { steps { echo 'never runs' } }\n  }\n}\n"],
+  ["ตัวอย่าง: environment + parameters + when + post", "pipeline {\n  agent any\n  environment {\n    APP = 'cafe-api'\n  }\n  parameters {\n    string(name: 'VERSION', defaultValue: 'v1.0.0', description: 'tag')\n    choice(name: 'TARGET', choices: ['dev', 'prd'])\n    booleanParam(name: 'RUN_TESTS', defaultValue: true)\n  }\n  stages {\n    stage('Build') { steps { echo \"Build ${APP} ${params.VERSION}\" } }\n    stage('Test') {\n      when { expression { params.RUN_TESTS } }\n      steps { sh 'pytest' }\n    }\n    stage('Deploy prd') {\n      when { expression { params.TARGET == 'prd' } }\n      steps { echo 'deploy to prd' }\n    }\n  }\n  post {\n    always { echo 'cleanup' }\n    success { echo 'SUCCESS' }\n    failure { echo 'FAILED' }\n  }\n}\n"],
+  ["ตัวอย่าง: parallel + sleep", "pipeline {\n  agent any\n  stages {\n    stage('Checks') {\n      parallel {\n        stage('Lint') { steps { sh 'echo lint ok' } }\n        stage('Unit tests') { steps { sh 'pytest' } }\n      }\n    }\n    stage('Wait') { steps { sleep 4 } }\n    stage('Done') { steps { echo 'ok' } }\n  }\n}\n"]
+];
+var JK_SCRIPTS = JK_EX.map(function (x) { return x[1]; });
 function jkDefSel(F) { return wbSel("Definition", "jdef", [["scm", "Pipeline script from SCM"], ["script", "Pipeline script"]], function () { return F.jdef || "scm"; }, function (v) { F.jdef = v; if (v === "script" && !F.ji) F.ji = JK_SCRIPTS[0]; }); }
 function jkInlineCfg(F, J) {
   if (!F.ji) F.ji = JK_SCRIPTS[0];
-  return [h("h1", { cls: "jx-h1b", text: "Pipeline" }), h("div", { cls: "jx-sechd", text: "Definition" }), jkDefSel(F), jkIn("Script", F, "ji", JK_SCRIPTS.map(function (x, i) { return [x, ["ตัวอย่าง: Build → Test → Deploy", "ตัวอย่าง: stage Test ล้ม (exit 1)", "ตัวอย่าง: มี sleep 4 วินาที"][i]]; }), "", true), h("p", { cls: "sub", text: "เขียน Declarative Pipeline: stage('ชื่อ') { steps { echo '…'; sh '…'; sleep 3; error '…' } } — ตัวจำลองอ่าน stage และ step echo / sh / sleep / error แล้วรันตามลำดับ (sh ที่มี exit 1 หรือ false = ล้ม) · Pipeline Syntax (snippet generator) ยังไม่จำลอง" }), wbErr(W.lg), h("button", { type: "button", style: "background:#0b6bcb;color:#fff;border:0;border-radius:10px;padding:10px 34px;cursor:pointer", text: "Save", onclick: function () { var r = W.cfgOpen === "new" ? jkCreateJob({ name: F.jn, defn: "script", inline: F.ji, cred: "" }, true) : jkCreateJob({ name: J.name, defn: "script", inline: F.ji, cred: "" }); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.cfgOpen = ""; W.page = "job"; F.p = null; F.jn = ""; F.jdef = ""; F.ji = ""; } render(); } })];
+  return [h("h1", { cls: "jx-h1b", text: "Pipeline" }), h("div", { cls: "jx-sechd", text: "Definition" }), jkDefSel(F), jkIn("Script", F, "ji", JK_EX.map(function (x) { return [x[1], x[0]]; }), "", true), h("p", { cls: "sub", text: "เขียน Declarative Pipeline: stage('ชื่อ') { steps { echo '…'; sh '…'; sleep 3; error '…' } } — รองรับ environment / parameters / when / parallel / post และ step echo, sh, sleep, error, checkout, archiveArtifacts, junit · sh รันผลจำลอง (echo, pwd, ls, docker build, pytest, npm test …) ไม่ได้รันคำสั่งจริง · ไม่ใช่ Groovy เต็มรูปแบบ" }), h("button", { type: "button", cls: "btn", text: "Pipeline Syntax (snippet generator)", onclick: function () { W.page = "snippet"; render(); } }), wbErr(W.lg), h("button", { type: "button", style: "background:#0b6bcb;color:#fff;border:0;border-radius:10px;padding:10px 34px;cursor:pointer;margin-left:8px", text: "Save", onclick: function () { var r = W.cfgOpen === "new" ? jkCreateJob({ name: F.jn, defn: "script", inline: F.ji, cred: "" }, true) : jkCreateJob({ name: J.name, defn: "script", inline: F.ji, cred: "" }); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.cfgOpen = ""; W.page = "job"; F.p = null; F.jn = ""; F.jdef = ""; F.ji = ""; } render(); } })];
+}
+
+// หน้า Build with Parameters ของ pipeline แบบ generic: ใช้ parameters ที่ประกาศในสคริปต์ (parameters { string/choice/booleanParam })
+function jkIParams(J, title) {
+  var Pm = W.jkip = W.jkip && W.jkip.__job === J.name ? W.jkip : { __job: J.name }; (J.genParams || []).forEach(function (p) { if (Pm[p.name] === undefined) Pm[p.name] = p.type === "Boolean" ? p.def === "true" : String(p.def).split("\n")[0]; });
+  var fields = (J.genParams || []).map(function (p) { if (p.type === "Boolean") return h("label", { cls: "opt" }, [h("input", { type: "checkbox", checked: Pm[p.name] ? "checked" : null, onchange: function (e) { Pm[p.name] = e.target.checked; } }), h("span", { text: p.name })]); if (p.type === "Choice") return h("div", { cls: "f" }, [h("label", { cls: "l", text: p.name }), h("select", { "aria-label": p.name, onchange: function (e) { Pm[p.name] = e.target.value; } }, String(p.def).split("\n").filter(Boolean).map(function (c) { return h("option", { text: c, selected: Pm[p.name] === c ? "selected" : null }); }))]); return jkIn(p.name, Pm, p.name, [String(p.def), "v1.0.0", "main"], p.name); });
+  return [title("Pipeline " + J.name), h("p", { text: "This build requires parameters:" })].concat(fields).concat([jkRunOpts(), h("button", { type: "button", cls: "jx-build", "aria-label": "Build", onclick: function () { S.jk.nextMode = W.jkrm || ""; jkSelect(J.name); var P2 = Object.assign({}, Pm); delete P2.__job; var b = jkNew(P2); if (jkHasPlugin("blueocean") && (W.jkvw || "blue") === "blue") { jkBoOpen("run", J.name, b.id); return; } W.bid = b.id; W.btab = "console"; W.page = "build"; render(); } }, [jkIco("play", 16), " Build"]), h("button", { type: "button", cls: "jx-cancel", text: "Cancel", onclick: function () { W.page = "job"; render(); } })]);
+}
+// Pipeline Syntax: snippet generator
+var JK_SNIP = { echo: [["message", "Hello World"]], sh: [["script", "docker build -t app ."]], sleep: [["time", "5"]], error: [["message", "Build failed"]], git: [["url", "https://github.com/user/repo.git"], ["branch", "main"]], archiveArtifacts: [["artifacts", "**/*.jar"]], junit: [["testResults", "**/test-results.xml"]] };
+function jkSnippet(title) {
+  var Z = W.jksn = W.jksn || { step: "echo", v: {}, out: "" }, defs = JK_SNIP[Z.step];
+  var gen = function () { var v = function (k, d) { return (Z.v[Z.step + k] !== undefined ? Z.v[Z.step + k] : d); }, q = function (x) { return "'" + String(x).replace(/'/g, "\\'") + "'"; }, s = Z.step; Z.out = s === "sleep" ? "sleep " + v("time", "5") : s === "git" ? "git branch: " + q(v("branch", "main")) + ", url: " + q(v("url", defs[0][1])) : (s === "archiveArtifacts" ? "archiveArtifacts artifacts: " + q(v("artifacts", defs[0][1])) : s === "junit" ? "junit " + q(v("testResults", defs[0][1])) : s + " " + q(v(defs[0][0], defs[0][1]))); render(); };
+  return [title("Pipeline Syntax: Snippet Generator"), h("p", { cls: "sub", text: "เลือก step แล้วกรอกค่า จะได้โค้ดที่วางใน Jenkinsfile (ใน steps { … }) ได้เลย" }), h("div", { cls: "f" }, [h("label", { cls: "l", text: "Sample Step" }), h("select", { "aria-label": "Sample Step", onchange: function (e) { Z.step = e.target.value; Z.out = ""; render(); } }, Object.keys(JK_SNIP).map(function (k) { return h("option", { value: k, text: k, selected: Z.step === k ? "selected" : null }); }))])].concat(defs.map(function (d) { var o = { v: Z.v[Z.step + d[0]] !== undefined ? Z.v[Z.step + d[0]] : d[1] }; return jkIn(d[0], { get v() { return o.v; }, set v(x) { o.v = x; Z.v[Z.step + d[0]] = x; } }, "v", [d[1]], d[0]); })).concat([h("button", { type: "button", cls: "btn pri", text: "Generate Pipeline Script", onclick: gen }), Z.out ? h("pre", { cls: "bo-log", style: "margin-top:10px" }, [Z.out]) : null].filter(Boolean));
 }
 
 // ===== ภาพ Argo CD (Apache-2.0, https://github.com/argoproj/argo-cd) ใช้กับหน้า login/sidebar ของ ArgoCD จำลอง =====

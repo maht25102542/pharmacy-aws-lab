@@ -118,16 +118,17 @@ function jkNew(p, who) {
   { var rpx = ghRepoOf(m[1], m[2]), brn = String(jb.branch || "*/main").replace(/^(\*\/|origin\/|refs\/heads\/)/, ""), bf = brn === "main" ? rpx.files : (rpx.branches || {})[brn];
     if (!bf) return jkCheckoutFail(b, jb, ["Fetching upstream changes from " + jb.repo, "ERROR: Couldn't find any revision to build. Verify the repository and branch configuration for this job.", "(branch ‘" + brn + "’ ยังไม่มีบน GitHub — ต้องสร้าง/push branch นี้ก่อน หรือแก้ Branch Specifier)"]);
     if (!(jb.script in bf)) return jkCheckoutFail(b, jb, ["ERROR: Unable to find " + jb.script + " from git " + jb.repo, "hudson.AbortException: Unable to find " + jb.script + " from git " + jb.repo, "(ไม่มีไฟล์ " + jb.script + " ใน branch " + brn + " — เช็ค Script Path หรือ push Jenkinsfile ก่อน)"]); }
+  { var jtxt = bf[jb.script]; if (!jkIsPharmacyPipeline(jtxt) && /\bstage\s*\(/.test(jtxt)) { b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {"); b.stages = [{ name: "Declarative: Checkout SCM", st: "success" }]; return jkGenericStart(b, jb, jtxt, true); } }
   b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {");
   b.stages.unshift({ name: "Declarative: Checkout SCM", st: "success" });
   b.idx = 1; if (jkReal(b)) { jkMarkNext(b); } else jkAdvance(b); return b;
 }
 // หยุด build ที่กำลังรัน (Stop) — ใช้ได้ทั้งหน้า build ปกติและ Blue Ocean
 function jkAbort(b) { if (!b || b.state === "done") return; b.stages.forEach(function (x) { if (x.st === "pending" || x.st === "running") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] End of Pipeline", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; }
-function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ if (j.defn === "script") j.paramsKnown = false; /* Pipeline script: ไม่มี parameters ของ pharmacy */ return b; }
+function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ if (b.generic) j.paramsKnown = !!(j.genParams && j.genParams.length); /* pipeline แบบ generic: ใช้ parameters ที่ประกาศในสคริปต์ */ return b; }
 function jkWithParams(p) { S.jk.job.paramsKnown = true; return jkNew(p); }
 function jkAdvance(b, once) {
-  { var jb0 = jkJob(b.job); if (jb0 && jb0.defn === "script") return jkInlineAdvance(b, once); }
+  if (b.generic) return jkInlineAdvance(b, once);
   var jb = jkJob(b.job) || S.jk.job, env = jkEnv(), p = b.params, ji = jkInst(), image = (env.ECR_REGISTRY || "") + "/pharmacy/" + p.SERVICE + ":" + p.VERSION, app = "pharmacy-" + p.SERVICE + "-" + p.TARGET_ENV;
   function end(res) { b.log.push("[Pipeline] }", "[Pipeline] // withEnv", "[Pipeline] }", "[Pipeline] // node", "[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] sh", "+ rm -rf manifests", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline"); }
   function fail(s, msg) {
@@ -226,25 +227,3 @@ function ec2Web(inst, app, port, vhost, ip, reach, scheme, path) {
 
 // ---- checkout ล้ม (branch ไม่มี / ไม่เจอ Jenkinsfile) ----
 function jkCheckoutFail(b, jb, lines) { b.log.push.apply(b.log, lines.concat(["[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"])); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); b.state = "done"; b.result = "FAILURE"; return b; }
-// ---- job แบบ "Pipeline script" (เขียน stage/step ใน Jenkins เอง): ตัวจำลองอ่าน stage('X') และ step echo/sh/sleep/error แล้วรันตามลำดับ ----
-function jkParseStages(txt) {
-  var parts = String(txt || "").split(/\bstage\s*\(/).slice(1), out = [];
-  parts.forEach(function (p) { var nm = /^\s*['"]([^'"]+)['"]/.exec(p); if (!nm) return; var steps = [], re = /\b(echo|sh|error|sleep)\s*\(?\s*(?:'([^']*)'|"([^"]*)"|(\d+))/g, m; while ((m = re.exec(p))) steps.push({ t: m[1], v: m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4] }); out.push({ name: nm[1], steps: steps }); });
-  return out;
-}
-function jkInlineStart(b, jb) {
-  b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {");
-  b.stages = jkParseStages(jb.inline).map(function (s) { return { name: s.name, st: "pending", steps: s.steps }; }); b.idx = 0;
-  if (!b.stages.length) { b.log.push("WorkflowScript: no stages found", "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return b; }
-  if (jkReal(b)) jkMarkNext(b); else jkInlineAdvance(b); return b;
-}
-function jkInlineAdvance(b, once) {
-  while (b.idx < b.stages.length) {
-    var s = b.stages[b.idx], bad = null; s.st = "running"; b.log.push("[Pipeline] stage", "[Pipeline] { (" + s.name + ")");
-    for (var k = 0; k < (s.steps || []).length && !bad; k++) { var t = s.steps[k]; if (t.t === "echo") b.log.push("[Pipeline] echo", t.v); else if (t.t === "sleep") b.log.push("[Pipeline] sleep", "Sleeping for " + t.v + " sec"); else if (t.t === "error") { bad = t.v; b.log.push("[Pipeline] error"); } else { b.log.push("[Pipeline] sh", "+ " + t.v); if (/\bexit\s+[1-9]|\bfalse\b/.test(t.v)) bad = "script returned exit code 1"; else b.log.push("(ตัวจำลอง: ไม่ได้รันคำสั่งจริง)"); } }
-    if (bad) { s.st = "failed"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.log.push("[Pipeline] End of Pipeline", "ERROR: " + bad, "Finished: FAILURE"); b.state = "done"; b.result = "FAILURE"; return; }
-    s.st = "success"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.idx++;
-    if (once && jkReal(b)) { if (b.idx < b.stages.length) { jkMarkNext(b); return; } break; }
-  }
-  if (b.idx >= b.stages.length) { b.log.push("[Pipeline] }", "[Pipeline] // node", "[Pipeline] End of Pipeline", "Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS"; }
-}
