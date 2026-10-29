@@ -76,7 +76,8 @@ function jkAddCred(o) {
 }
 function jkCred(id) { return S.jk.creds.filter(function (c) { return c.id === id; })[0]; }
 // หนึ่ง repo = หนึ่ง job: pharmacy-backend / pharmacy-frontend (S.jk.job = job ที่เปิดอยู่ตอนนี้ ใช้เป็นตัวชี้ที่ UI และ jkNew อ่าน)
-var JK_REPO_RE = /github\.com\/([^\/]+)\/(pharmacy-(backend|frontend))(?:\.git)?$/;
+var JK_REPO_RE = /github\.com\/([^\/]+)\/([A-Za-z0-9._-]+?)(?:\.git)?$/; // repo ชื่ออะไรก็ได้ (pharmacy-*, cafe-*) · service = ท้ายชื่อ backend/frontend ถ้ามี
+function jkSvcOf(n) { var m = /(backend|frontend)$/.exec(n); return m ? m[1] : n; }
 function jkJobs() { if (!S.jk.jobs) S.jk.jobs = S.jk.job ? [S.jk.job] : []; if (S.jk.job && S.jk.jobs.indexOf(S.jk.job) < 0) S.jk.jobs.push(S.jk.job); S.jk.jobs.forEach(function (j) { if (!j.svc) { var m = JK_REPO_RE.exec(j.repo || ""); j.svc = m ? m[3] : "backend"; } if (j.seq == null) j.seq = 0; }); S.jk.builds.forEach(function (b) { if (!b.job && S.jk.jobs[0]) b.job = S.jk.jobs[0].name; }); return S.jk.jobs; }
 function jkJob(name) { return jkJobs().filter(function (j) { return j.name === name; })[0]; }
 function jkSelect(name) { var j = jkJob(name); if (j) S.jk.job = j; return j; }
@@ -84,9 +85,9 @@ function jkBuildsOf(job) { jkJobs(); return S.jk.builds.filter(function (b) { re
 function jkRepoName(job) { var m = JK_REPO_RE.exec(job.repo || ""); return m ? m[2] : ""; }
 function jkCreateJob(o, isNew) {
   var er = {}; if (!/^[A-Za-z0-9_-]+$/.test(o.name || "")) er.name = "ชื่อใช้ได้เฉพาะ A-Z a-z 0-9 _ -"; else if (isNew && jkJob(o.name)) er.name = "A job already exists with the name ‘" + o.name + "’";
-  if (!JK_REPO_RE.test(o.repo || "")) er.repo = "Repository URL ต้องเป็น https://github.com/<user>/pharmacy-backend.git หรือ pharmacy-frontend.git (หนึ่ง job ต่อหนึ่ง repo)"; if (!o.script) er.script = "ต้องระบุ Script Path"; if (!o.branch) er.branch = "ต้องระบุ Branch Specifier";
+  if (!JK_REPO_RE.test(o.repo || "")) er.repo = "Repository URL ต้องเป็นรูปแบบ https://github.com/<user>/<repo>.git (หนึ่ง job ต่อหนึ่ง repo)"; if (!o.script) er.script = "ต้องระบุ Script Path"; if (!o.branch) er.branch = "ต้องระบุ Branch Specifier";
   if (Object.keys(er).length) return { errors: er };
-  var old = jkJob(o.name), m = JK_REPO_RE.exec(o.repo), job = { name: o.name, repo: o.repo, svc: m[3], cred: o.cred || "", branch: o.branch, script: o.script, paramsKnown: old ? old.paramsKnown : false, seq: old ? old.seq : 0 };
+  var old = jkJob(o.name), m = JK_REPO_RE.exec(o.repo), job = { name: o.name, repo: o.repo, svc: jkSvcOf(m[2]), cred: o.cred || "", branch: o.branch, script: o.script, paramsKnown: old ? old.paramsKnown : false, seq: old ? old.seq : 0 };
   if (old) S.jk.jobs[S.jk.jobs.indexOf(old)] = job; else S.jk.jobs.push(job); S.jk.job = job; return { res: o.name };
 }
 function jkEnv() { var i = jkInst(), e = i && ansVm(i).f.env, o = {}; (e || "").split("\n").forEach(function (l) { var m = /^(\w+)=(.*)$/.exec(l); if (m) o[m[1]] = m[2]; }); return o; }
@@ -98,13 +99,14 @@ function jkNodesOk(envName) {
   return { nodes: nodes, role: nodes.length && nodes.every(function (n) { var r = S.roles.filter(function (x) { return x.profile === n.profile; })[0]; return r && r.policies.some(function (p) { return ANS_ECR_POL.indexOf(p) >= 0; }); }) };
 }
 // เวลาโดยประมาณของแต่ละ stage (วินาที) ใช้เมื่อเลือก "เวลาเหมือนจริง": ค่าจากความจำ ไม่ได้วัดจริง
-var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 4, "SonarQube scan": 75, "Test": 20, "Build image": 60, "Scan image": 25, "Push image": 15, "Check image exists": 3, "Update manifest": 6, "Sync ArgoCD": 40 };
-function jkReal() { return S.speed === "real"; }
+// ponytail: โหมด "เวลาเหมือนจริง" ย่อเวลา (จริง ~4 นาที → ~50 วินาที) เพื่อไม่ให้รอนาน · ค่าจริงของ Jenkins: SonarQube ~75s, Build image ~60s, Test ~20s
+var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 2, "SonarQube scan": 12, "Test": 6, "Build image": 10, "Scan image": 5, "Push image": 4, "Check image exists": 1, "Update manifest": 2, "Sync ArgoCD": 6 };
+function jkReal(b) { return b && b.mode ? b.mode === "real" : S.speed === "real"; } // b.mode: เลือกต่อ build ได้ ("real" | "instant") ไม่เลือก = ตามค่าความเร็วทั้งระบบ
 function jkMarkNext(b) { while (b.idx < b.stages.length && b.stages[b.idx].st === "skipped") { b.idx++; } if (b.idx < b.stages.length && b.stages[b.idx].st === "pending") b.stages[b.idx].st = "running"; }
 function jkNextDelay(b) { var s = b.stages[b.idx]; return s ? (JK_SEC[s.name] || 1) : 0; }
 function jkNew(p, who) {
   var jb = S.jk.job; jkJobs(); p.SERVICE = jb.svc; // service คงที่ต่อ job (repo นี้มีแค่ service เดียว)
-  var b = { id: ++jb.seq, job: jb.name, params: p, state: "running", result: "", stages: [], log: [], who: who || S.jk.login || "admin" }; S.jk.seq = (S.jk.seq || 0) + 1; S.jk.builds.push(b);
+  var b = { id: ++jb.seq, job: jb.name, params: p, state: "running", result: "", stages: [], log: [], who: who || S.jk.login || "admin", mode: S.jk.nextMode || "" }; S.jk.nextMode = ""; S.jk.seq = (S.jk.seq || 0) + 1; S.jk.builds.push(b);
   b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {", "[Pipeline] stage", "[Pipeline] { (Declarative: Checkout SCM)", "[Pipeline] checkout", "The recommended git tool is: NONE");
   var want = [["Validate", 1], ["Confirm production", p.TARGET_ENV === "prd"], ["Checkout version", p.ACTION === "build-and-deploy"], ["Test", p.ACTION === "build-and-deploy"], ["SonarQube scan", p.ACTION === "build-and-deploy"], ["Build image", p.ACTION === "build-and-deploy"], ["Scan image", p.ACTION === "build-and-deploy"], ["Push image", p.ACTION === "build-and-deploy"], ["Check image exists", p.ACTION === "deploy-only"], ["Update manifest", 1], ["Sync ArgoCD", !!p.AUTO_SYNC]];
   b.stages = want.map(function (w) { return { name: w[0], st: w[1] ? "pending" : "skipped" }; });
@@ -114,8 +116,10 @@ function jkNew(p, who) {
   if (!ghRepoOf(m[1], m[2])) { b.log.push(" > git fetch --tags --force --progress -- " + jb.repo + " +refs/heads/*:refs/remotes/origin/* # timeout=10", "ERROR: Error cloning remote repo 'origin'", "hudson.plugins.git.GitException: Command \"git fetch --tags --force --progress -- " + jb.repo + " +refs/heads/*:refs/remotes/origin/*\" returned status code 128:", "stderr: remote: Repository not found.", "fatal: repository '" + jb.repo + "/' not found  (ยังไม่ได้ git push repo-" + jb.svc + " ขึ้น GitHub หรือ URL/ชื่อ user ไม่ตรง)", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] End of Pipeline", "Finished: FAILURE"); b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.state = "done"; b.result = "FAILURE"; b.stages.unshift({ name: "Declarative: Checkout SCM", st: "failed" }); return b; }
   b.log.push("Checking out Revision " + hash32(jb.repo) + " (" + jb.branch + ")", "[Pipeline] }", "[Pipeline] // stage", "[Pipeline] withEnv", "[Pipeline] {");
   b.stages.unshift({ name: "Declarative: Checkout SCM", st: "success" });
-  b.idx = 1; if (jkReal()) { jkMarkNext(b); } else jkAdvance(b); return b;
+  b.idx = 1; if (jkReal(b)) { jkMarkNext(b); } else jkAdvance(b); return b;
 }
+// หยุด build ที่กำลังรัน (Stop) — ใช้ได้ทั้งหน้า build ปกติและ Blue Ocean
+function jkAbort(b) { if (!b || b.state === "done") return; b.stages.forEach(function (x) { if (x.st === "pending" || x.st === "running") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] End of Pipeline", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; }
 function jkBuildNow() { var j = S.jk.job; if (j.paramsKnown) return null; var b = jkNew({ TARGET_ENV: "dev", SERVICE: j.svc, VERSION: "", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); j.paramsKnown = !(b.stages[0] && b.stages[0].name === "Declarative: Checkout SCM" && b.stages[0].st === "failed"); /* clone ไม่ผ่าน = Jenkins ยังไม่เคยอ่าน Jenkinsfile จึงยังไม่รู้ parameters */ return b; }
 function jkWithParams(p) { S.jk.job.paramsKnown = true; return jkNew(p); }
 function jkAdvance(b, once) {
@@ -196,7 +200,7 @@ function jkInput(id, proceed) {
   var b = typeof id === "object" ? id : S.jk.builds.filter(function (x) { return x.id === id && (!S.jk.job || x.job === S.jk.job.name); })[0]; if (!b || b.state !== "waiting") return;
   var s = b.stages[b.idx];
   if (!proceed) { s.st = "failed"; b.stages.forEach(function (x) { if (x.st === "pending") x.st = "not run"; }); b.log.push("Aborted by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage", "Finished: ABORTED"); b.state = "done"; b.result = "ABORTED"; return; }
-  s.st = "success"; b.state = "running"; b.log.push("Approved by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage"); b.idx++; if (jkReal()) jkMarkNext(b); else jkAdvance(b);
+  s.st = "success"; b.state = "running"; b.log.push("Approved by " + (S.jk.login || "admin"), "[Pipeline] }", "[Pipeline] // stage"); b.idx++; if (jkReal(b)) jkMarkNext(b); else jkAdvance(b);
 }
 
 // เว็บที่รันด้วย docker compose + Caddy บนเครื่องเดียว: ตัดสินผลจาก user_data + DNS + SG
