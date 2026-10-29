@@ -602,7 +602,7 @@ body .gh .gx-find { height: 32px !important; } body .gh .gx-lh h1 { font-size: 2
 .gh:not(.gx-bare) { min-height: 560px; }
 /* GitHub จำลอง: Settings / Developer settings / tokens */
 .gx-set { display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: 24px; padding: 24px; background: #fff; min-height: 560px; } .gx-snav { display: flex; flex-direction: column; gap: 2px; } .gx-sw { display: flex; gap: 10px; align-items: center; padding: 0 8px 12px; } .gx-ava-l { width: 40px; height: 40px; font-size: 16px; cursor: default; }
-.gx-si.dim { opacity: .4; cursor: default; } .gx-sg { font-size: 12px; font-weight: 600; color: #59636e; padding: 14px 8px 4px; } .gx-si { display: block; padding: 6px 8px; border-radius: 6px; color: #1f2328; text-decoration: none; font-size: 14px; border-left: 2px solid transparent; } .gx-si:hover { background: #818b981a; } .gx-si.on { background: #818b9826; font-weight: 600; border-left-color: #fd8c73; } .gx-ind { padding-left: 24px; } .gx-gp { font-weight: 600; cursor: default; }
+.gx-exsel { display: block; width: auto; max-width: 100%; min-width: 220px; margin: 0 0 6px; color: #59636e; font-size: 13px; } .gx-diff { margin: 8px 0 0; font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; border: 1px solid #d1d9e0; border-radius: 6px; overflow: auto; } .gx-diff div { padding: 0 8px; } .gx-si.dim { opacity: .4; cursor: default; } .gx-sg { font-size: 12px; font-weight: 600; color: #59636e; padding: 14px 8px 4px; } .gx-si { display: block; padding: 6px 8px; border-radius: 6px; color: #1f2328; text-decoration: none; font-size: 14px; border-left: 2px solid transparent; } .gx-si:hover { background: #818b981a; } .gx-si.on { background: #818b9826; font-weight: 600; border-left-color: #fd8c73; } .gx-ind { padding-left: 24px; } .gx-gp { font-weight: 600; cursor: default; }
 .gx-scont { min-width: 0; max-width: 760px; } .gx-ph { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; margin-bottom: 16px; border-bottom: 1px solid #d1d9e0; } .gx-ph h2 { font-size: 24px; font-weight: 400; margin: 0; } .gx-scont p { margin: 0 0 12px; }
 .gx-fld { margin: 0 0 16px; display: flex; flex-direction: column; gap: 6px; } .gx-fld > label { font-weight: 600; font-size: 14px; } .gx-w { width: 100%; max-width: 440px; } .gx-ta { height: 80px !important; padding-top: 8px !important; } .gx-sel { width: auto; min-width: 180px; max-width: 320px; display: inline-flex; align-items: center; height: 32px !important; }
 body .gh select.gx-in { height: 32px !important; padding: 0 8px; } body .gh .gx-sm3 { min-width: 140px; } .gx-ferr { color: #d1242f; font-size: 12px; }
@@ -12702,6 +12702,8 @@ function wbGhBranchRules(user, name, rp, shell) {
 
 // ===== Pull requests: compare branch → main, Create, Merge/Close (branch มาจาก git checkout -b + git push origin <branch>) =====
 function ghDiff(rp, br) { var a = rp.files || {}, b = (rp.branches || {})[br] || {}, o = []; Object.keys(b).forEach(function (k) { if (!(k in a)) o.push({ f: k, s: "added", p: b[k].split("\n").length, m: 0 }); else if (a[k] !== b[k]) o.push({ f: k, s: "modified", p: Math.max(1, b[k].split("\n").length - a[k].split("\n").length + 1), m: 1 }); }); Object.keys(a).forEach(function (k) { if (!(k in b)) o.push({ f: k, s: "deleted", p: 0, m: a[k].split("\n").length }); }); return o; }
+// diff ระดับบรรทัด: ตัด prefix/suffix ที่เหมือนกัน เหลือส่วนกลางเป็น −/+ พร้อม context 2 บรรทัด
+function ghHunk(rp, f, src) { var a = ((rp.files || {})[f] || "").split("\n"), b = (src[f] || "").split("\n"); if (!(f in (rp.files || {}))) a = []; if (!(f in src)) b = []; var p = 0; while (p < a.length && p < b.length && a[p] === b[p]) p++; var s = 0; while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++; var o = []; a.slice(Math.max(0, p - 2), p).forEach(function (x) { o.push(["  ", x]); }); a.slice(p, a.length - s).forEach(function (x) { o.push(["- ", x]); }); b.slice(p, b.length - s).forEach(function (x) { o.push(["+ ", x]); }); b.slice(b.length - s, b.length - s + 2).forEach(function (x) { o.push(["  ", x]); }); return h("pre", { cls: "gx-diff" }, o.map(function (l) { return h("div", { style: l[0] === "+ " ? "background:#dafbe1" : l[0] === "- " ? "background:#ffebe9" : "", text: l[0] + l[1] }); })); }
 function wbGhPrs(user, name, rp, sub) {
   ghTabsState(rp); rp.prs = rp.prs || []; var base = "/" + user + "/" + name + "/pulls", wrap = function (kids, right) { return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: "Pull requests" }), right || null])].concat(kids)); }, F = W.ghp = W.ghp || { tab: "open" };
   var brs = Object.keys(rp.branches || {});
@@ -12717,10 +12719,11 @@ function wbGhPrs(user, name, rp, sub) {
   var num = parseInt(sub[0], 10), pr = rp.prs.filter(function (x) { return x.n === num; })[0];
   if (num && !pr) return wrap([h("p", { cls: "gx-mut", text: "404 — pull request #" + num + " not found" })]);
   if (pr) {
-    var df2 = pr.state === "merged" ? pr.diff : ghDiff(rp, pr.head), box = h("textarea", { cls: "gx-in gx-w", rows: "3", placeholder: "Leave a comment" }), chk = pr.state === "open" ? ((rp.set.branchRules || []).indexOf("main") >= 0 ? "Review required — branch protection rule on main" : "") : "";
+    var df2 = pr.state === "merged" ? pr.diff : ghDiff(rp, pr.head), box = h("textarea", { cls: "gx-in gx-w", rows: "3", placeholder: "Leave a comment" }), chk = pr.state === "open" ? ghMergeBlock(rp, pr) : "";
     var done = function (s) { pr.state = s; if (s === "merged") { pr.diff = df2; rp.files = JSON.parse(JSON.stringify(rp.branches[pr.head])); rp.n = (rp.n || 0) + 1; if (API.ghaPush) API.ghaPush(user + "/" + name, "main"); } save(); render(); };
     return wrap([h("h3", { text: pr.title + " #" + pr.n }), h("span", { cls: "gh-badge", text: pr.state === "open" ? "● Open" : pr.state === "merged" ? "⑂ Merged" : "✓ Closed" }), h("p", { cls: "gx-mut gx-sm", text: pr.by + " wants to merge 1 commit into main from " + pr.head + " · " + ghTimeAgo(pr.t) }),
-      pr.body ? h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-trow", text: pr.body })]) : null, h("h3", { text: "Files changed (" + df2.length + ")" }), h("div", { cls: "gx-tbox" }, df2.map(function (x) { return h("div", { cls: "gx-trow" }, [h("code", { text: x.f, style: "flex:1" }), h("span", { cls: "gx-mut gx-sm", text: x.s }), h("b", { style: "color:#1a7f37", text: "+" + x.p }), h("b", { style: "color:#cf222e", text: "−" + x.m })]); })),
+      pr.body ? h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-trow", text: pr.body })]) : null, h("h3", { text: "Files changed (" + df2.length + ")" }), h("div", { cls: "gx-tbox" }, df2.map(function (x) { return h("details", { cls: "gx-trow", style: "display:block" }, [h("summary", { style: "cursor:pointer;display:flex;gap:12px" }, [h("code", { text: x.f, style: "flex:1" }), h("span", { cls: "gx-mut gx-sm", text: x.s }), h("b", { style: "color:#1a7f37", text: "+" + x.p }), h("b", { style: "color:#cf222e", text: "−" + x.m })]), ghHunk(rp, x.f, pr.state === "merged" ? rp.files : rp.branches[pr.head] || {})]); })),
+      pr.state === "open" ? ghReviewBox(user, name, rp, pr) : null, (pr.reviews || []).length ? h("div", { cls: "gx-tbox" }, pr.reviews.map(function (r) { return h("div", { cls: "gx-trow" }, [h("b", { text: r.by }), h("span", { text: r.state === "approved" ? " approved these changes" : r.state === "changes" ? " requested changes" : " reviewed", style: "color:" + (r.state === "approved" ? "#1a7f37" : r.state === "changes" ? "#cf222e" : "#59636e") }), r.text ? h("span", { cls: "gx-mut", text: " — " + r.text }) : null]); })) : null,
       (function () { var cr = (typeof ghaRunsOf === "function" ? ghaRunsOf(user + "/" + name) : []).filter(function (r) { return r.trigger === "pull_request" && r.ref === pr.head; })[0]; return cr ? h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-trow" }, [h("b", { text: (cr.status === "success" ? "✓ All checks have passed" : "✗ Some checks were not successful"), style: "flex:1;color:" + (cr.status === "success" ? "#1a7f37" : "#cf222e") }), h("a", { href: "#", cls: "gh-a", text: "checks #" + cr.id + " — Details", onclick: function (e) { e.preventDefault(); ghGo("/" + user + "/" + name + "/actions/runs/" + cr.id); } })])]) : null; })(),
       pr.state === "open" ? h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-trow" }, [h("span", { text: chk ? "⚠ " + chk : "✓ This branch has no conflicts with the base branch", style: "flex:1" }), h("button", { type: "button", cls: "gx-green gx-sm2", text: "Merge pull request", onclick: function () { if (chk) { flash("bad", "Merging is blocked: " + chk); render(); return; } done("merged"); } }), h("button", { type: "button", cls: "gx-btn", text: "Close pull request", onclick: function () { done("closed"); } })])]) : null,
       h("a", { href: "#", cls: "gh-a", text: "← back to pull requests", onclick: function (e) { e.preventDefault(); ghGo(base); } })]);
@@ -12728,6 +12731,55 @@ function wbGhPrs(user, name, rp, sub) {
   var cnt = function (s) { return rp.prs.filter(function (x) { return x.state === s; }).length; }, shown = rp.prs.filter(function (x) { return F.tab === "open" ? x.state === "open" : x.state !== "open"; }).reverse();
   return wrap([h("div", { cls: "gx-tabs2" }, [h("a", { href: "#", cls: "gx-tab2" + (F.tab === "open" ? " on" : ""), text: "Open " + cnt("open"), onclick: function (e) { e.preventDefault(); F.tab = "open"; render(); } }), h("a", { href: "#", cls: "gx-tab2" + (F.tab !== "open" ? " on" : ""), text: "Closed " + (cnt("closed") + cnt("merged")), onclick: function (e) { e.preventDefault(); F.tab = "closed"; render(); } })]),
     h("div", { cls: "gx-tbox" }, shown.length ? shown.map(function (x) { return h("div", { cls: "gx-trow" }, [h("a", { href: "#", cls: "gh-a b", text: x.title, onclick: function (e) { e.preventDefault(); ghGo(base + "/" + x.n); } }), h("span", { style: "flex:1" }), h("span", { cls: "gx-mut gx-sm", text: "#" + x.n + " " + x.state + " · " + x.head + " → main" })]); }) : [h("div", { cls: "gx-blank" }, [h("h3", { text: "Welcome to pull requests!" }), h("p", { cls: "gx-mut", text: "Pull requests help you collaborate on code with other people." })])])], h("button", { type: "button", cls: "gx-green gx-sm2", text: "New pull request", onclick: function () { ghGo(base + "/new"); } }));
+}
+
+// ===== dropdown ตัวอย่างให้ทุกช่องกรอกของหน้า GitHub: เลือกตัวอย่างหรือพิมพ์เองได้ (ใส่ค่าแล้วยิง input event ให้ handler เดิมเก็บค่า) =====
+var GH_EX = [
+  [/^gh-ttl$/, ["Bug: login fails with wrong token", "Add /healthz endpoint", "Upgrade Django to 5.2"]],
+  [/^gh-bd$|^gh-cm$|^gh-prb$|Leave a comment/, ["Steps to reproduce: 1) login 2) open stock page", "LGTM 👍", "Please add a test for this change"]],
+  [/^gh-prt$/, ["Add NEW.md", "Fix image tag in deployment.yaml", "Update terraform plan"]],
+  [/^gh-pj-/, ["Write README", "Fix CI pipeline", "Deploy to dev"]],
+  [/^gh-br$|Branch name pattern/, ["main", "release/*", "v*"]],
+  [/^gh-envn$|^Name$/, ["production", "staging", "dev"]],
+  [/^gh-sn$/, ["AWS_ROLE_ARN", "ECR_REGISTRY", "SONAR_TOKEN"]],
+  [/^gh-sv$/, ["arn:aws:iam::123456789012:role/gha-deploy", "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com"]],
+  [/^gh-hurl$|^https:\/\/example\.com\/postreceive/, ["http://203.0.113.15:8080/github-webhook/", "https://example.com/postreceive"]],
+  [/^gh-tnote$|^gh-fname$/, ["jenkins-pharmacy", "argocd-read", "ci-lab"]],
+  [/^Bio$/, ["DevOps learner · AWS, Terraform, Jenkins", "Pharmacy app maintainer"]],
+  [/^invite|^username$|^username/i, ["maht25102542", "demo-user", "teammate"]],
+  [/^role name|^Add a member|\(เช่น triage\)/, ["triage", "maintain"]],
+  [/^Description$/, ["Used by Jenkins to push image tags to pharmacy-manifests"]],
+  [/^Username$|^username$/, ["maht25102542", "demo-user", "teammate"]],
+  [/^gh-nrn$/, ["pharmacy-backend", "pharmacy-frontend", "pharmacy-manifests"]],
+  [/^gh-nrd$/, ["Django REST backend", "Next.js frontend", "GitOps manifests"]],
+  [/^gh-rtag$|^Choose a tag/, ["v1.0.0", "v1.1.0", "v2.0.0"]],
+  [/^gh-rtt$|^Release title/, ["v1.0.0", "Release 1.1 — bug fixes"]],
+  [/^gh-rbd$|^Describe this release/, ["First release", "Bug fixes and image tag updates"]],
+  [/^Search all|^Search for people/, ["login", "bug", "maht25102542"]],
+  [/^Wait timer/, ["0", "5", "30"]],
+  [/^pattern|เช่น v\*/, ["v*", "release-*"]],
+  [/^ruleset name/, ["protect-main", "require-pr"]],
+  [/^title$/, ["deploy-key-ci", "argocd-read"]],
+  [/^app name/, ["argocd", "jenkins"]],
+  [/^email$/, ["me@example.com"]]
+];
+function ghExFor(el) { var hit = null; [el.id, el.getAttribute("aria-label"), el.getAttribute("placeholder")].forEach(function (k) { if (!hit && k) GH_EX.some(function (g) { if (g[0].test(k)) { hit = g[1]; return true; } }); }); return hit; }
+function ghDecorate() {
+  [].forEach.call(document.querySelectorAll("#main .gh input[type=text], #main .gh textarea"), function (el) {
+    if (el.dataset.exd || el.readOnly || el.disabled) return; var ex = ghExFor(el); if (!ex) return; el.dataset.exd = "1";
+    var s = h("select", { cls: "gx-in gx-exsel", "aria-label": "ตัวอย่าง: " + (el.getAttribute("aria-label") || el.id || el.placeholder || "ช่องกรอก"), onchange: function (e) { var v = e.target.value; e.target.selectedIndex = 0; if (v === "\u0000") { el.value = ""; el.dispatchEvent(new Event("input", { bubbles: true })); el.focus(); return; } if (!v) return; el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); } }, [h("option", { value: "", text: "— เลือกตัวอย่าง —" })].concat(ex.map(function (x) { return h("option", { value: x, text: x }); })).concat([h("option", { value: "\u0000", text: "ไม่ระบุ — พิมพ์เอง" })]));
+    el.parentNode.insertBefore(s, el);
+  });
+}
+var ghRender0 = render; render = function () { ghRender0(); ghDecorate(); };
+
+// branch protection rule ที่ main = ต้องมี approve ≥1 (จากคนที่ไม่ใช่เจ้าของ PR) และไม่มี changes requested ค้างอยู่
+function ghMergeBlock(rp, pr) { if ((rp.set.branchRules || []).indexOf("main") < 0) return ""; var last = {}; (pr.reviews || []).forEach(function (r) { last[r.by] = r.state; }); var st = Object.keys(last).map(function (k) { return last[k]; }); if (st.indexOf("changes") >= 0) return "Changes requested — resolve before merging"; if (st.indexOf("approved") < 0) return "At least 1 approving review is required by reviewers with write access (branch protection rule on main)"; return ""; }
+function ghReviewBox(user, name, rp, pr) {
+  var F = W.ghrv = W.ghrv || { as: "teammate" }, collab = (rp.set["/access"] || []).map(function (x) { return x.replace(/ \(.*$/, ""); }).filter(function (x) { return x !== pr.by; }), who = ["teammate", "reviewer-bot"].concat(collab).filter(function (x, i, a) { return a.indexOf(x) === i; });
+  var box = h("textarea", { id: "gh-prc", cls: "gx-in gx-w", rows: "3", placeholder: "Leave a comment" }), sub = function (st) { pr.reviews = (pr.reviews || []).concat([{ by: F.as, state: st, text: box.value.trim(), t: Date.now() }]); save(); render(); };
+  return h("div", { cls: "gx-tbox", style: "padding:12px" }, [h("b", { text: "Review changes" }), h("div", { cls: "gx-mut gx-sm", text: "ผู้ตรวจ (GitHub ไม่ให้ approve PR ของตัวเอง จึงเลือกว่าจะตรวจในนามใคร)" }), h("select", { cls: "gx-in", "aria-label": "Review as", onchange: function (e) { F.as = e.target.value; } }, who.map(function (x) { return h("option", { text: x, selected: x === F.as ? "selected" : null }); })), box,
+    h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-btn", text: "Comment", onclick: function () { sub("comment"); } }), h("button", { type: "button", cls: "gx-btn", text: "Request changes", onclick: function () { sub("changes"); } }), h("button", { type: "button", cls: "gx-green gx-sm2", text: "Approve", onclick: function () { sub("approved"); } })])]);
 }
 
 // ===== หน้า GitHub จำลอง (repo / ไฟล์ / tags / Actions) หน้าตาตามของจริง: header, แท็บพร้อมตัวเลข, commit ล่าสุด, README, About, ภาษา · อ่านอย่างเดียว =====
