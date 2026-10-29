@@ -1,11 +1,11 @@
 // ===== GitHub จำลอง: Settings ของ repo — General · Environments (required reviewers = ด่านอนุมัติ prd) · Secrets and variables · Webhooks · Actions · Branches =====
 // ต้อง login ถึงเปิดได้ จึงทำตามเอกสาร docs.github.com + Primer (ไม่ใช่การดึงหน้าจริงมาเทียบ)
 var GH_RS_NAV = [
-  [null, [["General", ""]]],
-  ["Access", [["Collaborators", "/access"], ["Moderation options", "/moderation"]]],
-  ["Code and automation", [["Branches", "/branches"], ["Tags", "/tag_protection"], ["Rules", "/rules"], ["Actions", "/actions"], ["Webhooks", "/hooks"], ["Environments", "/environments"], ["Codespaces", "/codespaces"], ["Pages", "/pages"]]],
-  ["Security", [["Advanced security", "/security_analysis"], ["Deploy keys", "/keys"], ["Secrets and variables", "/secrets/actions"]]],
-  ["Integrations", [["GitHub Apps", "/installations"], ["Email notifications", "/notifications"]]]
+  [null, [["⚙ General", ""]]],
+  ["Access", [["⚇ Collaborators and teams", "/access"], ["▤ Team and member roles", "/roles"]]],
+  ["Code and automation", [["⑂ Branches", "/branches"], ["🏷 Tags", "/tag_protection"], ["⇪ Rules ⌄", "/rules"], ["▷ Actions ⌄", "/actions"], ["⚯ Webhooks", "/hooks"], ["✦ Copilot", "/copilot"], ["▤ Environments", "/environments"], ["▭ Pages", "/pages"]]],
+  ["Security", [["⛨ Advanced security", "/security_analysis"], ["🔑 Deploy keys", "/keys"], ["✱ Secrets and variables ⌄", "/secrets/actions"]]],
+  ["Integrations", [["▦ GitHub Apps", "/installations"], ["✉ Email notifications", "/notifications"]]]
 ];
 function ghRepoState(rp) { rp.envs = rp.envs || { production: { reviewers: [rp.user], wait: 0, branches: "All branches" } }; rp.secrets = rp.secrets || []; rp.vars = rp.vars || []; rp.hooks = rp.hooks || []; return rp; }
 function wbGhRepoSettings(user, name, rp, sub) {
@@ -16,8 +16,8 @@ function wbGhRepoSettings(user, name, rp, sub) {
 
   // ----- Environments -----
   if (p === "/environments") {
-    var names = Object.keys(rp.envs), rows = names.map(function (n) { var e = rp.envs[n], prot = []; if (e.reviewers && e.reviewers.length) prot.push("Required reviewers"); if (e.wait) prot.push("Wait timer: " + e.wait + " min"); return h("div", { cls: "gx-trow" }, [h("div", { style: "flex:1" }, [h("a", { href: "#", cls: "gx-lnk2", text: n, onclick: function (ev) { ev.preventDefault(); envLink(n); } }), h("div", { cls: "gx-mut gx-sm", text: prot.length ? prot.join(" · ") : "No protection rules" })]), h("button", { type: "button", cls: "gx-dbtn gx-gear", title: "Configure " + n, text: "⚙", onclick: function () { envLink(n); } })]); });
-    return shell("Environments", h("button", { type: "button", cls: "gx-green gx-sm2", text: "New environment", onclick: function () { ghGo(base + "/environments/new"); } }), [h("p", { cls: "gx-mut", text: "Configure environments with protection rules and secrets. A job that references an environment must follow any protection rules for the environment before running or accessing the environment’s secrets." }), h("div", { cls: "gx-tbox" }, rows.length ? rows : [h("div", { cls: "gx-blank", text: "There are no environments for this repository" })])]);
+    var names = Object.keys(rp.envs), rows = names.map(function (n) { var e = rp.envs[n], nv = (e.vars || []).length; return h("div", { cls: "gx-erow" }, [h("a", { href: "#", cls: "gx-en", text: n, onclick: function (ev) { ev.preventDefault(); envLink(n); } }), h("span", { style: "flex:1" }), h("span", { cls: "gx-vars", text: nv + " variable" + (nv === 1 ? "" : "s") }), h("button", { type: "button", cls: "gx-trash", title: "Delete " + n, "aria-label": "Delete " + n, text: "🗑", onclick: function () { delete rp.envs[n]; flash("ok", "Environment deleted: " + n); render(); } })]); });
+    return shell("Environments", h("button", { type: "button", cls: "gx-btn gx-bigb", text: "New environment", onclick: function () { ghGo(base + "/environments/new"); } }), [h("p", { cls: "gx-mut gx-ep", text: "You can configure environments with protection rules, variables, and secrets." }), h("div", { cls: "gx-tbox" }, rows.length ? rows : [h("div", { cls: "gx-blank", text: "There are no environments for this repository" })])]);
   }
   if (p === "/environments/new") {
     var nv = U.envName || "";
