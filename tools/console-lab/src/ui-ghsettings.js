@@ -1,13 +1,13 @@
 // ===== GitHub จำลอง: Settings ของบัญชี + Developer settings › Personal access tokens (classic / fine-grained) =====
 // ข้อความ scope จากเอกสาร docs.github.com (Scopes for OAuth apps); เมนูซ้ายและฟอร์มตามหน้าจริงจากความจำ/เอกสาร (หน้านี้ต้อง login จึงดึงของจริงมาเทียบไม่ได้)
 var GH_SET_NAV = [
-  [null, [["Public profile", "/settings/profile"], ["Account", "/settings/admin"], ["Appearance", "/settings/appearance"], ["Accessibility", "/settings/accessibility"], ["Notifications", "/settings/notifications"]]],
-  ["Access", [["Billing and licensing", "/settings/billing"], ["Emails", "/settings/emails"], ["Password and authentication", "/settings/security"], ["Sessions", "/settings/sessions"], ["SSH and GPG keys", "/settings/keys"], ["Organizations", "/settings/organizations"], ["Enterprises", "/settings/enterprises"], ["Moderation", "/settings/moderation/blocked_users"]]],
-  ["Code, planning, and automation", [["Repositories", "/settings/repositories"], ["Codespaces", "/settings/codespaces"], ["Packages", "/settings/packages"], ["Copilot", "/settings/copilot"], ["Pages", "/settings/pages"], ["Saved replies", "/settings/replies"]]],
-  ["Security", [["Advanced security", "/settings/security_analysis"], ["Deploy keys", "/settings/keys"]]],
-  ["Integrations", [["Applications", "/settings/installations"], ["Scheduled reminders", "/settings/reminders"]]],
-  ["Archives", [["Security log", "/settings/security-log"], ["Sponsorship log", "/settings/sponsors-log"]]],
-  [null, [["Developer settings", "/settings/apps"]]]
+  [null, [["👤 Public profile", "/settings/profile"], ["⚙ Account", "/settings/admin"], ["✎ Appearance", "/settings/appearance"], ["☺ Accessibility", "/settings/accessibility"], ["🔔 Notifications", "/settings/notifications"]]],
+  ["Access", [["🔒 Password and authentication", "/settings/security"], ["🔑 SSH and GPG keys", "/settings/keys"], ["▥ Organizations", "/settings/organizations"], ["⛉ Moderation ⌄", "/settings/moderation/blocked_users"]]],
+  ["Code, planning, and automation", [["▢ Repositories", "/settings/repositories"], ["⬡ Packages", "/settings/packages"], ["▭ Codespaces", "/settings/codespaces"], ["✦ Copilot", "/settings/copilot"], ["▭ Pages", "/settings/pages"], ["↩ Saved replies", "/settings/replies"]]],
+  ["Security", [["⛨ Code security", "/settings/security_analysis"], ["🔑 Deploy keys", "/settings/keys"]]],
+  ["Integrations", [["▦ Applications", "/settings/installations"], ["◷ Scheduled reminders", "/settings/reminders"]]],
+  ["Archives", [["▤ Security log", "/settings/security-log"], ["▤ Sponsorship log", "/settings/sponsors-log"]]],
+  [null, [["‹› Developer settings", "/settings/apps"]]]
 ];
 var GH_SCOPES = [
   ["repo", "Full control of private repositories", [["repo:status", "Access commit status"], ["repo_deployment", "Access deployment status"], ["public_repo", "Access public repositories"], ["repo:invite", "Access repository invitations"], ["security_events", "Read and write security events"]]],
@@ -33,19 +33,20 @@ var GH_SCOPES = [
 ];
 var GH_FG_PERMS = [["Actions", "Workflows, workflow runs and artifacts."], ["Contents", "Repository contents, commits, branches, downloads, releases, and merges."], ["Environments", "Manage repository environments."], ["Metadata", "Search repositories, list collaborators, and access repository metadata."], ["Pull requests", "Pull requests and related comments, assignees, labels, milestones, and merges."], ["Secrets", "Manage Actions repository secrets."], ["Variables", "Manage Actions repository variables."], ["Webhooks", "Manage the post-receive hooks for a repository."], ["Workflows", "Update GitHub Action workflow files."]];
 function ghTokenEx() { return ghTokens().slice().reverse().map(function (t) { return [t.token, t.name + " (" + t.kind + ")"]; }); }
-function ghSetShell(active, title, kids) {
-  var u = ghSess().user, items = [h("div", { cls: "gx-sw" }, [h("span", { cls: "gx-ava gx-ava-l", text: u.slice(0, 1).toUpperCase() }), h("div", {}, [h("b", { text: u }), h("div", { cls: "gx-mut gx-sm", text: "Your personal account" })])])];
+function ghSetNav(active) {
+  var u = ghSess().user, items = [h("div", { cls: "gx-sw" }, [h("span", { cls: "gx-ava gx-ava-l", text: u.slice(0, 1).toUpperCase() }), h("div", {}, [h("b", { text: u }), h("div", { cls: "gx-mut gx-sm", text: "Personal account" })])])];
   GH_SET_NAV.forEach(function (g) {
     if (g[0]) items.push(h("div", { cls: "gx-sg", text: g[0] }));
-    g[1].forEach(function (it) { var on = it[0] === active; items.push(h("a", { href: "#", cls: "gx-si" + (on ? " on" : ""), onclick: function (e) { e.preventDefault(); ghGo(it[1]); } }, [it[0]])); });
+    g[1].forEach(function (it) { var on = it[0].replace(/^\S+\s/, "") === active; items.push(h("a", { href: "#", cls: "gx-si" + (on ? " on" : ""), onclick: function (e) { e.preventDefault(); ghGo(it[1]); } }, [it[0]])); });
   });
-  return h("div", { cls: "gh" }, [ghHeader([h("b", { text: "Settings" })]), h("div", { cls: "gx-set" }, [h("nav", { cls: "gx-snav" }, items), h("main", { cls: "gx-scont" }, kids)])]);
+  return h("nav", { cls: "gx-snav" }, items);
 }
+function ghSetShell(active, title, kids) { return h("div", { cls: "gh" }, [ghHeader(), h("div", { cls: "gx-set" }, [ghSetNav(active), h("main", { cls: "gx-scont" }, kids)])]); }
 function ghDevNav(active) {
   var a = function (t, path, ind) { return h("a", { href: "#", cls: "gx-si" + (t === active ? " on" : "") + (ind ? " gx-ind" : ""), onclick: function (e) { e.preventDefault(); ghGo(path); } }, [t]); };
   return [h("div", { cls: "gx-sw" }, [h("b", { text: "Settings / Developer Settings" })]), a("GitHub Apps", "/settings/apps"), a("OAuth Apps", "/settings/developers"), h("div", { cls: "gx-si gx-gp", text: "Personal access tokens" }), a("Fine-grained tokens", "/settings/personal-access-tokens", 1), a("Tokens (classic)", "/settings/tokens", 1)];
 }
-function ghDevShell(active, kids) { return h("div", { cls: "gh" }, [ghHeader([h("b", { text: "Settings" })]), h("div", { cls: "gx-set" }, [h("nav", { cls: "gx-snav" }, ghDevNav(active)), h("main", { cls: "gx-scont" }, kids)])]); }
+function ghDevShell(active, kids) { return h("div", { cls: "gh" }, [ghHeader(), h("div", { cls: "gx-set" }, [h("nav", { cls: "gx-snav" }, ghDevNav(active)), h("main", { cls: "gx-scont" }, kids)])]); }
 function ghPageHead(title, right) { return h("div", { cls: "gx-ph" }, [h("h2", { text: title }), right || null].filter(Boolean)); }
 function ghFlash(txt, kind) { return h("div", { cls: "gx-flash" + (kind ? " gx-" + kind : ""), text: txt }); }
 
@@ -121,8 +122,13 @@ function wbGhFgNew() {
 }
 function wbGhDevApps(which) { return ghDevShell(which === "oauth" ? "OAuth Apps" : "GitHub Apps", [ghPageHead(which === "oauth" ? "OAuth Apps" : "GitHub Apps", h("span", { cls: "gx-btn", text: which === "oauth" ? "New OAuth App" : "New GitHub App" })), h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-blank", text: which === "oauth" ? "No OAuth applications" : "No GitHub Apps" })])]); }
 function wbGhProfile() {
-  var u = ghSess().user, F = W.gpf = W.gpf || { name: "", mail: "", bio: "", url: "" }, f = function (l, k, ta) { return h("div", { cls: "gx-fld" }, [h("label", { text: l }), h(ta ? "textarea" : "input", Object.assign({ cls: "gx-in gx-w" + (ta ? " gx-ta" : ""), value: F[k], oninput: function (e) { F[k] = e.target.value; } }, ta ? {} : { type: "text" }))]); };
-  return ghSetShell("Public profile", "Public profile", [ghPageHead("Public profile"), f("Name", "name"), h("p", { cls: "gx-mut gx-sm", text: "Your name may appear around GitHub where you contribute or are mentioned. You can remove it at any time." }), f("Public email", "mail"), f("Bio", "bio", true), f("URL", "url"), h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", text: "Update profile", onclick: function () { flash("ok", "Profile updated successfully"); } })]), h("p", { cls: "gx-mut gx-sm", text: "Signed in as " + u })]);
+  var u = ghSess().user, F = W.gpf = W.gpf || { name: "", mail: "", bio: "", url: "", uname: null }; if (F.uname == null) F.uname = u;
+  var f = function (l, k, ta, hint) { return h("div", { cls: "gx-fld" }, [h("label", { text: l }), h(ta ? "textarea" : "input", Object.assign({ cls: "gx-in gx-w" + (ta ? " gx-ta" : ""), value: F[k], "aria-label": l, oninput: function (e) { F[k] = e.target.value; } }, ta ? {} : { type: "text" })), hint ? h("div", { cls: "gx-mut gx-sm", text: hint }) : null].filter(Boolean)); };
+  var main = [h("h2", { cls: "gx-h2c", text: "Public profile" }), h("p", { cls: "gx-mut", text: "This information may be visible to anyone who can view your profile." }), f("Name", "name", false, "Your name may appear around GitHub where you contribute or are mentioned. You can remove it at any time."),
+    h("div", { cls: "gx-fld" }, [h("label", { text: "Username" }), h("div", { style: "position:relative;max-width:440px" }, [h("input", { type: "text", cls: "gx-in gx-w", value: F.uname, "aria-label": "Username", oninput: function (e) { F.uname = e.target.value; } }), h("span", { cls: "gx-okc2", text: "✓" })]), h("div", { cls: "gx-okm" }, [h("span", { cls: "gx-okc", text: "✓" }), " Your username is available."])]),
+    f("Bio", "bio", true, "0/160"), h("div", { cls: "gx-fld" }, [h("label", { text: "Profile picture" }), h("div", { style: "display:flex;align-items:flex-end;gap:12px" }, [h("span", { cls: "gx-ava gx-ava-big", text: u.slice(0, 1).toUpperCase() }), h("span", { cls: "gx-btn", text: "Change avatar" })])]),
+    h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", text: "Update profile", onclick: function () { flash("ok", "Profile updated successfully"); } })])];
+  return h("div", { cls: "gh" }, [ghHeader(), h("div", { cls: "gx-set gx-set3" }, [ghSetNav("Public profile"), h("main", { cls: "gx-scont" }, main), h("aside", { cls: "gx-pcz" }, [h("b", { text: "Profile customization" }), h("p", { cls: "gx-mut gx-sm", text: "Customize your profile appearance and create a unique experience." }), h("span", { cls: "gx-btn", text: "Go to profile settings" })])])]);
 }
 function wbGhSettings(parts) {
   var p = parts.slice(1).join("/");
