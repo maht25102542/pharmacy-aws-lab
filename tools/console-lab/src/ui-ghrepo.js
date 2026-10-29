@@ -68,10 +68,10 @@ function wbGhRepoSettings(user, name, rp, sub) {
   if (p === "/branches") return wbGhBranchRules(user, name, rp, shell);
   // ----- General (default) -----
   if (p === "/") {
-    return shell("General", null, [h("div", { cls: "gx-fld" }, [h("label", { for: "gh-rname", text: "Repository name" }), h("div", { style: "display:flex;gap:8px" }, [h("input", { type: "text", id: "gh-rname", cls: "gx-in gx-w", value: name, readonly: "readonly" }), h("button", { type: "button", cls: "gx-btn", text: "Rename" })])]),
+    return shell("General", null, [h("div", { cls: "gx-fld" }, [h("label", { for: "gh-rname", text: "Repository name" }), h("div", { style: "display:flex;gap:8px" }, [h("input", { type: "text", id: "gh-rname", cls: "gx-in gx-w", value: name }), h("button", { type: "button", cls: "gx-btn", text: "Rename", onclick: function () { var n = (document.getElementById("gh-rname").value || "").trim(); if (!/^[A-Za-z0-9._-]+$/.test(n)) { flash("bad", "Repository name is invalid"); render(); return; } if (n === name) return; if (S.gh.repos[n]) { flash("bad", "Repository name already exists on this account"); render(); return; } S.gh.repos[n] = rp; delete S.gh.repos[name]; save(); ghGo("/" + user + "/" + n + "/settings"); } })])]),
       h("div", { cls: "gx-fld" }, [h("label", { text: "Default branch" }), h("p", { cls: "gx-mut gx-sm", text: "main" })]),
       h("div", { cls: "gx-fld" }, [h("label", { text: "Features" }), ["Wikis", "Issues", "Sponsorships", "Projects", "Preserve this repository", "Discussions"].map(function (f) { return h("label", { cls: "gx-rad" }, [h("input", { type: "checkbox", checked: f === "Issues" ? "checked" : null, disabled: "disabled" }), " " + f]); })]),
-      h("div", { cls: "gx-danger" }, [h("b", { text: "Danger Zone" }), h("p", { cls: "gx-mut gx-sm", text: "Change repository visibility · Transfer ownership · Archive this repository · Delete this repository (จำลองเฉพาะหน้าตา: ไม่มีปุ่มทำงานในหน้านี้)" })])]);
+      wbGhDanger(user, name, rp)]);
   }
   var sv = wbGhSetList(user, name, rp, p, shell) || wbGhSetToggle(user, name, rp, p, shell); if (sv) return sv;
   var nm = ""; GH_RS_NAV.forEach(function (g) { g[1].forEach(function (it) { if (it[1] && p.indexOf(it[1]) === 0) nm = it[0]; }); });

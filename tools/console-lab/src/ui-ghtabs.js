@@ -143,6 +143,13 @@ var GH_EX = [
   [/^gh-stt$|^What/, ["On call tonight", "Reviewing PRs", "Deploying to prd"]],
   [/^gh-upn$|^Project name/, ["Pharmacy release board", "Sprint 1"]],
   [/^Go to file$/, [".github/workflows/deploy.yml", "Jenkinsfile", "Dockerfile", "README.md"]],
+  [/^gh-fpath$|^path\/to\/file/, ["docs/NOTES.md", "scripts/deploy.sh", ".github/workflows/ci.yml"]],
+  [/^gh-fbody$|^Edit file$/, ["# Notes\nHello from the lab", "echo deploy"]],
+  [/^gh-cmsg$|^Commit message$/, ["Add notes", "Update deploy config", "Fix typo"]],
+  [/^gh-cbr$|^New branch name$|^feature\/my-change/, ["feature/my-change", "fix/typo", "docs/update"]],
+  [/^gh-delc$|^Confirm repository name/, ["maht25102542/pharmacy-backend"]],
+  [/^Search GitHub$/, ["pharmacy", "deploy", "Jenkinsfile"]],
+  [/^gh-rname$/, ["pharmacy-backend", "pharmacy-api", "pharmacy-web"]],
   [/^Wait timer/, ["0", "5", "30"]],
   [/^pattern|เช่น v\*/, ["v*", "release-*"]],
   [/^ruleset name/, ["protect-main", "require-pr"]],
@@ -153,7 +160,7 @@ var GH_EX = [
 function ghExFor(el) { var hit = null; [el.id, el.getAttribute("aria-label"), el.getAttribute("placeholder")].forEach(function (k) { if (!hit && k) GH_EX.some(function (g) { if (g[0].test(k)) { hit = g[1]; return true; } }); }); return hit; }
 function ghDecorate() {
   [].forEach.call(document.querySelectorAll("#main .gh input[type=text], #main .gh textarea"), function (el) {
-    if (el.dataset.exd || el.readOnly || el.disabled) return; var ex = ghExFor(el); if (!ex) return; el.dataset.exd = "1";
+    if (el.dataset.exd || el.readOnly || el.disabled || el.closest(".gx-hd")) return; var ex = ghExFor(el); if (!ex) return; el.dataset.exd = "1";
     var s = h("select", { cls: "gx-in gx-exsel", "aria-label": "ตัวอย่าง: " + (el.getAttribute("aria-label") || el.id || el.placeholder || "ช่องกรอก"), onchange: function (e) { var v = e.target.value; e.target.selectedIndex = 0; if (v === "\u0000") { el.value = ""; el.dispatchEvent(new Event("input", { bubbles: true })); el.focus(); return; } if (!v) return; el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); } }, [h("option", { value: "", text: "— เลือกตัวอย่าง —" })].concat(ex.map(function (x) { return h("option", { value: x, text: x }); })).concat([h("option", { value: "\u0000", text: "ไม่ระบุ — พิมพ์เอง" })]));
     el.parentNode.insertBefore(s, el);
   });
@@ -215,4 +222,48 @@ function ghReviewBox(user, name, rp, pr) {
   var box = h("textarea", { id: "gh-prc", cls: "gx-in gx-w", rows: "3", placeholder: "Leave a comment" }), sub = function (st) { pr.reviews = (pr.reviews || []).concat([{ by: F.as, state: st, text: box.value.trim(), t: Date.now() }]); save(); render(); };
   return h("div", { cls: "gx-tbox", style: "padding:12px" }, [h("b", { text: "Review changes" }), h("div", { cls: "gx-mut gx-sm", text: "ผู้ตรวจ (GitHub ไม่ให้ approve PR ของตัวเอง จึงเลือกว่าจะตรวจในนามใคร)" }), h("select", { cls: "gx-in", "aria-label": "Review as", onchange: function (e) { F.as = e.target.value; } }, who.map(function (x) { return h("option", { text: x, selected: x === F.as ? "selected" : null }); })), box,
     h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-btn", text: "Comment", onclick: function () { sub("comment"); } }), h("button", { type: "button", cls: "gx-btn", text: "Request changes", onclick: function () { sub("changes"); } }), h("button", { type: "button", cls: "gx-green gx-sm2", text: "Approve", onclick: function () { sub("approved"); } })])]);
+}
+
+// ===== พื้นฐานที่ต้องมี: สลับ branch · Add file / Edit / Delete file (commit ตรงหรือแยก branch) · ค้นหา · รายการ Issues/PRs รวม · แจ้งเตือน · Settings: visibility/ลบ repo =====
+function ghCommit(user, name, rp, br, path, content, msg, newBranch) {
+  var src = br === "main" ? rp.files : (rp.branches || {})[br] || rp.files, copy = JSON.parse(JSON.stringify(src)); if (content === null) delete copy[path]; else copy[path] = content;
+  var target = newBranch || br;
+  if (target === "main") { rp.files = copy; rp.n = (rp.n || 0) + 1; rp.log = (rp.log || []).concat([{ m: msg, t: Date.now() }]); ghFireHooks(name, "push"); if (typeof API !== "undefined" && API.ghaPush) API.ghaPush(user + "/" + name, "main"); }
+  else { rp.branches = rp.branches || {}; rp.branches[target] = copy; if ((rp.prs || []).some(function (x) { return x.head === target && x.state === "open"; }) && API.ghaPr) API.ghaPr(user + "/" + name, target); }
+  save(); return target;
+}
+function wbGhBranchMenu(rp, cur) {
+  var all = ["main"].concat(Object.keys(rp.branches || {}));
+  return h("div", { cls: "gx-menu", style: "left:0;top:36px;width:260px;padding:8px;text-align:left" }, [h("b", { text: "Switch branches" })].concat(all.map(function (b) { return h("a", { href: "#", cls: "gx-mi", text: (b === cur ? "✓ " : "   ") + b, onclick: function (e) { e.preventDefault(); W.ghBr = b === "main" ? "" : b; W.ghBrMenu = false; render(); } }); })));
+}
+function wbGhAddMenu(user, name, br) {
+  var base = "/" + user + "/" + name;
+  return h("div", { cls: "gx-menu", style: "left:0;top:36px;width:240px;padding:8px;text-align:left" }, [h("a", { href: "#", cls: "gx-mi", text: "＋ Create new file", onclick: function (e) { e.preventDefault(); W.ghAdd = false; ghGo(base + "/new/" + br); } }), h("a", { href: "#", cls: "gx-mi", text: "⇪ Upload files (จำลอง: ใช้ Create new file แทน)", onclick: function (e) { e.preventDefault(); W.ghAdd = false; ghGo(base + "/new/" + br); } })]);
+}
+function wbGhEditor(user, name, rp, mode, br, rest) {
+  var key = mode + "|" + br + "|" + rest, E = W.ghEd = W.ghEd && W.ghEd.key === key ? W.ghEd : { key: key, path: mode === "new" ? "" : rest, content: mode === "edit" ? String((((br === "main" ? rp.files : (rp.branches || {})[br]) || {})[rest]) || "") : "", msg: "", target: "direct", nb: "" };
+  var base = "/" + user + "/" + name, verb = mode === "new" ? "Create" : mode === "edit" ? "Update" : "Delete", file = mode === "new" ? E.path : rest;
+  if (mode !== "new" && !(rest in (((br === "main" ? rp.files : (rp.branches || {})[br]) || {})))) return h("p", { cls: "gx-mut", text: "404 — ไม่พบไฟล์ " + rest });
+  var radio = function (v, t) { return h("label", { cls: "gx-rad" }, [h("input", { type: "radio", name: "gh-ct", checked: E.target === v ? "checked" : null, onchange: function () { E.target = v; render(); } }), " " + t]); };
+  return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: mode === "new" ? "Create new file" : verb + " " + rest }), h("span", { cls: "gx-mut", text: "branch: " + br })]),
+    mode === "new" ? h("div", { cls: "gx-fld" }, [h("label", { for: "gh-fpath", text: "Name your file…" }), h("input", { type: "text", id: "gh-fpath", cls: "gx-in gx-w", placeholder: "path/to/file.txt", value: E.path, oninput: function (e) { E.path = e.target.value; } })]) : null,
+    mode !== "delete" ? h("div", { cls: "gx-fld" }, [h("label", { text: "Edit file" }), h("textarea", { id: "gh-fbody", cls: "gx-in gx-w", rows: "12", style: "font-family:monospace", oninput: function (e) { E.content = e.target.value; } }, [E.content])]) : h("p", { cls: "gx-mut", text: "ไฟล์นี้จะถูกลบ: " + rest }),
+    h("div", { cls: "gx-tbox", style: "padding:12px" }, [h("b", { text: "Commit changes" }), h("input", { type: "text", id: "gh-cmsg", cls: "gx-in gx-w", placeholder: verb + " " + (file || "file"), "aria-label": "Commit message", value: E.msg, oninput: function (e) { E.msg = e.target.value; } }), radio("direct", "Commit directly to the " + br + " branch"), radio("branch", "Create a new branch for this commit and start a pull request"), E.target === "branch" ? h("input", { type: "text", id: "gh-cbr", cls: "gx-in gx-w", placeholder: "feature/my-change", "aria-label": "New branch name", value: E.nb, oninput: function (e) { E.nb = e.target.value; } }) : null,
+      h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", text: E.target === "branch" ? "Propose changes" : "Commit changes", onclick: function () {
+        var p = (mode === "new" ? E.path : rest).trim().replace(/^\/+/, ""); if (!p) { flash("bad", "Name your file"); render(); return; } if (mode === "new" && p in ((br === "main" ? rp.files : (rp.branches || {})[br]) || {})) { flash("bad", "A file with that name already exists"); render(); return; }
+        var nb = E.target === "branch" ? E.nb.trim() : ""; if (E.target === "branch" && (!/^[\w./-]+$/.test(nb) || nb === "main" || (rp.branches || {})[nb])) { flash("bad", "Invalid or existing branch name"); render(); return; }
+        var t = ghCommit(user, name, rp, br, p, mode === "delete" ? null : E.content, E.msg.trim() || verb + " " + p, nb); W.ghEd = null; if (t !== "main" && nb) ghGo(base + "/pulls/compare/" + t); else ghGo(base); } }), h("button", { type: "button", cls: "gx-btn", text: "Cancel", onclick: function () { W.ghEd = null; ghGo(base); } })])])]);
+}
+function wbGhGlobal(kind) {
+  var me = ghSess().user, q = (W.ghQ || "").toLowerCase(), repos = Object.keys(S.gh.repos).filter(function (n) { return S.gh.repos[n].user === me; }), wrap = function (title, kids) { return h("div", { cls: "gx-quick" }, [h("div", { cls: "gx-ph" }, [h("h2", { text: title })])].concat(kids)); }, row = function (txt, sub, path) { return h("div", { cls: "gx-trow" }, [h("a", { href: "#", cls: "gh-a b", text: txt, onclick: function (e) { e.preventDefault(); ghGo(path); } }), h("span", { style: "flex:1" }), h("span", { cls: "gx-mut gx-sm", text: sub })]); };
+  if (kind === "notifications") return wrap("Notifications", [h("div", { cls: "gx-tbox" }, [h("div", { cls: "gx-blank" }, [h("h3", { text: "All caught up!" }), h("p", { cls: "gx-mut", text: "Take a break, merge a few pull requests, or start a discussion." })])])]);
+  if (kind === "issues" || kind === "pulls") { var items = []; repos.forEach(function (n) { var r = S.gh.repos[n]; (kind === "issues" ? r.issues || [] : r.prs || []).forEach(function (x) { items.push(row(x.title, n + " #" + x.n + " · " + x.state, "/" + me + "/" + n + "/" + (kind === "issues" ? "issues" : "pulls") + "/" + x.n)); }); }); return wrap(kind === "issues" ? "Issues" : "Pull requests", [h("div", { cls: "gx-tbox" }, items.length ? items : [h("div", { cls: "gx-blank", text: "No " + (kind === "issues" ? "issues" : "pull requests") + " yet." })])]); }
+  var hits = []; repos.forEach(function (n) { if (!q || n.toLowerCase().indexOf(q) >= 0) hits.push(row(me + "/" + n, "repository", "/" + me + "/" + n)); });
+  var fl = []; if (q) repos.forEach(function (n) { Object.keys(S.gh.repos[n].files || {}).forEach(function (f) { if (f.toLowerCase().indexOf(q) >= 0 || String(S.gh.repos[n].files[f]).toLowerCase().indexOf(q) >= 0) fl.push(row(f, n, "/" + me + "/" + n + "/blob/main/" + f)); }); });
+  return wrap('Results for "' + (W.ghQ || "") + '"', [h("h3", { text: "Repositories (" + hits.length + ")" }), h("div", { cls: "gx-tbox" }, hits.length ? hits : [h("div", { cls: "gx-blank", text: "No repositories matched." })]), h("h3", { text: "Code (" + fl.length + ")" }), h("div", { cls: "gx-tbox" }, fl.length ? fl.slice(0, 40) : [h("div", { cls: "gx-blank", text: q ? "No code matched." : "Type a search term." })])]);
+}
+function wbGhDanger(user, name, rp) {
+  var F = W.ghdz = W.ghdz || { c: "" };
+  return h("div", { cls: "gx-danger" }, [h("b", { text: "Danger Zone" }), h("div", { cls: "gx-trow" }, [h("div", { style: "flex:1" }, [h("b", { text: "Change repository visibility" }), h("div", { cls: "gx-mut gx-sm", text: "This repository is currently " + (rp.vis === "private" ? "private" : "public") + "." })]), h("button", { type: "button", cls: "gx-btn", text: "Change visibility", onclick: function () { rp.vis = rp.vis === "private" ? "public" : "private"; save(); render(); } })]),
+    h("div", { cls: "gx-trow" }, [h("div", { style: "flex:1" }, [h("b", { text: "Delete this repository" }), h("div", { cls: "gx-mut gx-sm", text: "Type " + user + "/" + name + " to confirm. Once deleted there is no going back." }), h("input", { type: "text", id: "gh-delc", cls: "gx-in gx-w", "aria-label": "Confirm repository name", value: F.c, oninput: function (e) { F.c = e.target.value; } })]), h("button", { type: "button", cls: "gx-btn", style: "color:#cf222e", text: "Delete this repository", onclick: function () { if (F.c.trim() !== user + "/" + name) { flash("bad", "Confirmation text does not match"); render(); return; } delete S.gh.repos[name]; F.c = ""; save(); ghGo("/"); } })])]);
 }
