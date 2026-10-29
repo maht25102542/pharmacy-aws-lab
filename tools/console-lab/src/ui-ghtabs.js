@@ -97,7 +97,7 @@ function wbGhPrs(user, name, rp, sub) {
       !brs.length ? h("p", { cls: "gx-mut", text: "ยังไม่มี branch อื่นบน GitHub — ใน Terminal: git checkout -b feature/x → แก้ไฟล์ → git add . → git commit -m ... → git push -u origin feature/x" }) : null,
       sel && !df.length ? h("p", { cls: "gx-mut", text: "There isn’t anything to compare. main is up to date with all commits from " + sel + "." }) : null,
       sel && df.length ? h("div", {}, [h("div", { cls: "gx-fld" }, [h("label", { for: "gh-prt", text: "Add a title" }), h("input", { type: "text", id: "gh-prt", cls: "gx-in gx-w", value: sel.replace(/[-_\/]/g, " ") })]), h("div", { cls: "gx-fld" }, [h("label", { text: "Add a description" }), h("textarea", { id: "gh-prb", cls: "gx-in gx-w", rows: "5" })]),
-        h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", disabled: used ? "disabled" : null, text: used ? "A pull request already exists" : "Create pull request", onclick: function () { var n = rp.prs.reduce(function (m, x) { return Math.max(m, x.n); }, 0) + 1; rp.prs.push({ n: n, title: document.getElementById("gh-prt").value || sel, body: document.getElementById("gh-prb").value, head: sel, base: bs, state: "open", by: ghMe(), t: Date.now(), comments: [] }); save(); if (bs === "main" && typeof API !== "undefined" && API.ghaPr) API.ghaPr(user + "/" + name, sel); ghGo(base + "/" + n); } })]),
+        h("div", { cls: "gx-act" }, [h("button", { type: "button", cls: "gx-green gx-sm2", disabled: used ? "disabled" : null, text: used ? "A pull request already exists" : "Create pull request", onclick: function () { var n = rp.prs.reduce(function (m, x) { return Math.max(m, x.n); }, 0) + 1; rp.prs.push({ n: n, title: document.getElementById("gh-prt").value || sel, body: document.getElementById("gh-prb").value, head: sel, base: bs, state: "open", by: ghMe(), t: Date.now(), comments: [] }); save(); if ((bs === "main" || bs === "develop") && typeof API !== "undefined" && API.ghaPr) API.ghaPr(user + "/" + name, sel); ghGo(base + "/" + n); } })]),
         h("h3", { text: df.length + " changed files" }), h("div", { cls: "gx-tbox" }, df.map(function (x) { return h("div", { cls: "gx-trow" }, [h("code", { text: x.f, style: "flex:1" }), h("span", { cls: "gx-mut gx-sm", text: x.s }), h("b", { style: "color:#1a7f37", text: "+" + x.p }), h("b", { style: "color:#cf222e", text: "−" + x.m })]); }))]) : null]);
   }
   var num = parseInt(sub[0], 10), pr = rp.prs.filter(function (x) { return x.n === num; })[0];
@@ -123,7 +123,7 @@ var GH_EX = [
   [/^gh-bd$|^gh-cm$|^gh-prb$|Leave a comment/, ["Steps to reproduce: 1) login 2) open stock page", "LGTM 👍", "Please add a test for this change"]],
   [/^gh-prt$/, ["Add NEW.md", "Fix image tag in deployment.yaml", "Update terraform plan"]],
   [/^gh-pj-/, ["Write README", "Fix CI pipeline", "Deploy to dev"]],
-  [/^gh-br$|Branch name pattern/, ["main", "release/*", "v*"]],
+  [/^gh-br$|Branch name pattern/, ["main", "develop", "release/*", "v*"]],
   [/^gh-envn$|^Name$/, ["production", "staging", "dev"]],
   [/^gh-sn$/, ["AWS_ROLE_ARN", "ECR_REGISTRY", "SONAR_TOKEN"]],
   [/^gh-sv$/, ["arn:aws:iam::123456789012:role/gha-deploy", "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com"]],
@@ -146,7 +146,7 @@ var GH_EX = [
   [/^gh-fpath$|^path\/to\/file/, ["docs/NOTES.md", "scripts/deploy.sh", ".github/workflows/ci.yml"]],
   [/^gh-fbody$|^Edit file$/, ["# Notes\nHello from the lab", "echo deploy"]],
   [/^gh-cmsg$|^Commit message$/, ["Add notes", "Update deploy config", "Fix typo"]],
-  [/^gh-cbr$|^New branch name$|^feature\/my-change/, ["feature/my-change", "fix/typo", "docs/update"]],
+  [/^gh-cbr$|^feature\/my-change/, ["feature/my-change", "feature/login", "develop", "fix/typo", "docs/update"]],
   [/^gh-delc$|^Confirm repository name/, ["maht25102542/pharmacy-backend"]],
   [/^Search GitHub$/, ["pharmacy", "deploy", "Jenkinsfile"]],
   [/^gh-rname$/, ["pharmacy-backend", "pharmacy-api", "pharmacy-web"]],
@@ -156,7 +156,7 @@ var GH_EX = [
   [/^gh-abd$|^Description$/, ["Pharmacy stock backend (Django REST)", "Cafe ordering API"]],
   [/^gh-abw$|^Website$/, ["https://example.com", "http://203.0.113.15:8080"]],
   [/^gh-abt$|^Topics/, ["aws, terraform, jenkins, argocd", "django, mariadb"]],
-  [/^gh-nbr$|^New branch name/, ["feature/new-menu", "hotfix/typo"]],
+  [/^gh-nbr$|^New branch name|^Find or create/, ["develop", "feature/login", "feature/new-menu", "hotfix/typo"]],
   [/^gh-tte$|^Title$/, ["Bug: login fails with wrong token", "Add /healthz endpoint"]],
   [/^gh-sue$|^gh-suu$|^Username$/, ["maht25102542", "demo-user", "cafe-owner"]],
   [/^Wait timer/, ["0", "5", "30"]],
