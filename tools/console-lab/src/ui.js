@@ -1410,7 +1410,7 @@ function wbTick() {
 }
 var W = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" };
 // ประวัติหน้าของเว็บใน Browser: บันทึกอัตโนมัติทุกครั้งที่ตำแหน่ง (URL + หน้าภายในเว็บ) เปลี่ยน · ปุ่ม ← → ใน address bar
-var WH = { st: [], i: -1 }, WHP = { st: [], i: -1 }, WH_KEYS = ["addr", "page", "bid", "lg", "sq", "ar", "sp", "btab"];
+var WH = { st: [], i: -1 }, WHP = { st: [], i: -1 }, WH_KEYS = ["addr", "page", "bid", "lg", "sq", "ar", "sp", "btab", "ghPT"];
 function whOn() { return typeof PV !== "undefined" && PV && PV.on; }
 function whH() { return whOn() ? WHP : WH; } // Preview มีประวัติแยกจาก Browser
 function whCur() { var o = {}; WH_KEYS.forEach(function (k) { o[k] = W[k] === undefined ? "" : W[k]; }); o.job = S.jk && S.jk.job ? S.jk.job.name : ""; o.ph = W.ph ? { view: W.ph.view, page: W.ph.page, mpage: W.ph.mpage, low: W.ph.low } : null; if (whOn()) o.pv = { tab: PV.tab, fe: { page: PV.fe.page, mp: PV.fe.mp, mvp: PV.fe.mvp, q: PV.fe.q, cat: PV.fe.cat, low: PV.fe.low }, db: { t: PV.db.t, p: PV.db.p, sort: PV.db.sort, dir: PV.db.dir } }; return o; }
