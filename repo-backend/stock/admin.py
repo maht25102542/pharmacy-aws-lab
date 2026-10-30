@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Batch, Category, Medicine, Sale, SaleItem, StockMovement
+from .models import Batch, Category, Medicine, PurchaseOrder, PurchaseOrderItem, Sale, SaleItem, StockMovement, Supplier
 
 admin.site.register(Category)
 
@@ -38,3 +38,18 @@ class SaleAdmin(admin.ModelAdmin):
     list_filter = ("status", "payment")
     search_fields = ("receipt_no", "customer_name")
     inlines = [SaleItemInline]
+
+
+admin.site.register(Supplier)
+
+
+class POItemInline(admin.TabularInline):
+    model = PurchaseOrderItem
+    extra = 0
+
+
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    list_display = ("po_no", "supplier", "status", "total", "created_at")
+    list_filter = ("status",)
+    inlines = [POItemInline]

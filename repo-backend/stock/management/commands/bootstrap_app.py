@@ -8,7 +8,8 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from stock.models import Batch, Category, Medicine, Sale
+from stock import purchasing
+from stock.models import Batch, Category, Medicine, PurchaseOrder, Sale, Supplier
 from stock.services import SaleError, create_sale
 
 SAMPLE = [
@@ -38,6 +39,7 @@ class Command(BaseCommand):
                     Medicine.objects.get_or_create(sku=sku, defaults={"name": name, "category": c, "unit": unit, "price": price, "stock": stock, "reorder_level": reorder})
             self.stdout.write("sample medicines loaded")
             self.sample_lots_and_sales()
+            self.sample_purchasing()
 
     def sample_lots_and_sales(self):
         """ล็อต (มีของใกล้หมดอายุ/หมดอายุแล้วให้เห็นในรายงาน) + ใบเสร็จย้อนหลัง 14 วัน · รันซ้ำไม่เพิ่มซ้ำ"""
@@ -60,3 +62,31 @@ class Command(BaseCommand):
                 when = timezone.now() - timedelta(days=back, hours=rnd.randint(0, 8))
                 Sale.objects.filter(pk=sale.pk).update(created_at=when)
         self.stdout.write("sample lots and sales loaded")
+
+    def sample_purchasing(self):
+        """ผู้จัดจำหน่าย 3 ราย + ใบสั่งซื้อทุกสถานะ (รับครบ/รับบางส่วน/สั่งแล้ว/ร่าง/ยกเลิก) · รันซ้ำไม่เพิ่มซ้ำ"""
+        if Supplier.objects.exists():
+            return
+        user = get_user_model().objects.filter(is_superuser=True).first()
+        sups = [Supplier.objects.create(name=n, contact_name=c, phone=ph, email=e, address=a) for n, c, ph, e, a in [
+            ("บริษัท ยาดี จำกัด", "คุณสมหญิง ใจดี", "02-111-2222", "sales@yadee.example", "99 ถ.พระราม 4 กรุงเทพฯ"),
+            ("เมดิคอล ซัพพลาย", "คุณวิชัย มั่นคง", "053-222-333", "order@medsupply.example", "12 ถ.นิมมานเหมินท์ เชียงใหม่"),
+            ("ไทยฟาร์มา ดิสทริบิวชั่น", "คุณนภา สุขสันต์", "043-777-888", "", "5 ถ.มิตรภาพ ขอนแก่น")]]
+        meds = list(Medicine.objects.order_by("id")[:8])
+        def po(sup, picks, status, days_ago):
+            o = purchasing.create_po(user, sup, [{"medicine": m.id, "qty": q, "unit_cost": (m.price * 7 / 10).quantize(m.price)} for m, q in picks], note="ตัวอย่าง")
+            when = timezone.now() - timedelta(days=days_ago)
+            PurchaseOrder.objects.filter(pk=o.pk).update(created_at=when)
+            if status != "draft":
+                purchasing.mark_ordered(o)
+            return o
+        a = po(sups[0], [(meds[0], 60), (meds[1], 40)], "received", 12)
+        purchasing.receive(user, a, [{"item": i.id, "qty": i.qty_ordered, "lot_no": f"PO{a.id}-{i.id}", "expiry_date": timezone.localdate() + timedelta(days=500)} for i in a.items.all()])
+        b = po(sups[1], [(meds[2], 80), (meds[3], 30)], "partial", 6)
+        i0 = b.items.first()
+        purchasing.receive(user, b, [{"item": i0.id, "qty": 50, "lot_no": f"PO{b.id}-A", "expiry_date": timezone.localdate() + timedelta(days=400)}])
+        po(sups[2], [(meds[4], 100)], "ordered", 2)
+        po(sups[0], [(meds[5], 25), (meds[6], 25)], "draft", 1)
+        c = po(sups[1], [(meds[7], 10)], "ordered", 9)
+        purchasing.cancel(c)
+        self.stdout.write("sample suppliers and purchase orders loaded")

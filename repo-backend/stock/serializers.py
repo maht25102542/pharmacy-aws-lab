@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Batch, Category, Medicine, Sale, SaleItem, StockMovement
+from .models import Batch, Category, Medicine, PurchaseOrder, PurchaseOrderItem, Sale, SaleItem, StockMovement, Supplier
 
 MAX_STOCK = 1_000_000
 
@@ -91,3 +91,54 @@ class SaleCreateSerializer(serializers.Serializer):
 
 class VoidSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    open_orders = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Supplier
+        fields = ["id", "name", "contact_name", "phone", "email", "address", "is_active", "open_orders", "created_at"]
+
+    def get_open_orders(self, obj):
+        return obj.orders.filter(status__in=["ordered", "partial"]).count()
+
+
+class POItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchaseOrderItem
+        fields = ["id", "medicine", "sku", "name", "qty_ordered", "qty_received", "unit_cost"]
+
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    items = POItemSerializer(many=True, read_only=True)
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.username", read_only=True, default=None)
+
+    class Meta:
+        model = PurchaseOrder
+        fields = ["id", "po_no", "supplier", "supplier_name", "status", "expected_date", "note", "total", "created_by_name", "created_at", "ordered_at", "received_at", "items"]
+
+
+class POLineSerializer(serializers.Serializer):
+    medicine = serializers.IntegerField(min_value=1)
+    qty = serializers.IntegerField(min_value=1, max_value=100000)
+    unit_cost = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0)
+
+
+class POCreateSerializer(serializers.Serializer):
+    supplier = serializers.IntegerField(min_value=1)
+    expected_date = serializers.DateField(required=False, allow_null=True, default=None)
+    note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    items = POLineSerializer(many=True, min_length=1, max_length=100)
+
+
+class ReceiveLineSerializer(serializers.Serializer):
+    item = serializers.IntegerField(min_value=1)
+    qty = serializers.IntegerField(min_value=1, max_value=MAX_STOCK)
+    lot_no = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
+    expiry_date = serializers.DateField(required=False, allow_null=True, default=None)
+
+
+class ReceiveSerializer(serializers.Serializer):
+    items = ReceiveLineSerializer(many=True, min_length=1, max_length=100)

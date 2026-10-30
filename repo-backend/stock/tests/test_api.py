@@ -127,7 +127,7 @@ def test_summary(api, para):
     Medicine.objects.create(sku="OFF", name="Inactive", stock=0, is_active=False)
     r = api.get("/api/summary").json()
     assert r.pop("served_by")
-    assert r == {"medicines": 2, "low_stock": 1, "out_of_stock": 1, "stock_value": "700.00", "sales_today": {"count": 0, "total": "0.00"}, "expiring_30": 0, "expired": 0}
+    assert r == {"medicines": 2, "low_stock": 1, "out_of_stock": 1, "stock_value": "700.00", "sales_today": {"count": 0, "total": "0.00"}, "expiring_30": 0, "expired": 0, "open_orders": 0}
 
 
 def test_categories_write_staff_only(api, staff_api):

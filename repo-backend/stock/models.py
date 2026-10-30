@@ -107,3 +107,52 @@ class SaleItem(models.Model):
     qty = models.PositiveIntegerField()
     line_total = models.DecimalField(max_digits=12, decimal_places=2)
     lots = models.JSONField(default=list)  # [{"batch": id, "qty": n}] ตัดจากล็อตไหนบ้าง ไว้คืนตอนยกเลิกบิล
+
+
+class Supplier(models.Model):
+    """ผู้จัดจำหน่าย/ซัพพลายเออร์ที่ร้านสั่งยาเข้ามา"""
+    name = models.CharField(max_length=150, unique=True)
+    contact_name = models.CharField(max_length=120, blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    email = models.CharField(max_length=254, blank=True)
+    address = models.CharField(max_length=300, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class PurchaseOrder(models.Model):
+    """ใบสั่งซื้อ: draft → ordered → partial/received (หรือ cancelled) · รับของแล้วเปิดล็อตและเพิ่มสต็อกให้"""
+    STATUSES = [("draft", "ร่าง"), ("ordered", "สั่งแล้ว"), ("partial", "รับบางส่วน"), ("received", "รับครบ"), ("cancelled", "ยกเลิก")]
+    po_no = models.CharField(max_length=20, unique=True)
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="orders")
+    status = models.CharField(max_length=10, choices=STATUSES, default="draft")
+    expected_date = models.DateField(null=True, blank=True)
+    note = models.CharField(max_length=200, blank=True)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="purchase_orders")
+    created_at = models.DateTimeField(auto_now_add=True)
+    ordered_at = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["status"])]
+
+    def __str__(self):
+        return self.po_no
+
+
+class PurchaseOrderItem(models.Model):
+    po = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="items")
+    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, related_name="po_items")
+    sku = models.CharField(max_length=32)
+    name = models.CharField(max_length=200)
+    qty_ordered = models.PositiveIntegerField()
+    qty_received = models.PositiveIntegerField(default=0)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)

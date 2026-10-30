@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from .accounts import user_payload
-from .models import Batch, Category, Medicine, Sale, StockMovement
+from .models import Batch, Category, Medicine, PurchaseOrder, Sale, StockMovement
 from .serializers import MAX_STOCK, AdjustSerializer, CategorySerializer, MedicineSerializer, MovementSerializer
 from .services import consume
 
@@ -110,6 +110,7 @@ def summary(_request):
         "sales_today": {"count": today_sales.count(), "total": f"{Decimal(str(today_sales.aggregate(t=Sum('total'))['t'] or 0)):.2f}"},
         "expiring_30": live.filter(expiry_date__gte=today, expiry_date__lte=today + timedelta(days=30)).count(),
         "expired": live.filter(expiry_date__lt=today).count(),
+        "open_orders": PurchaseOrder.objects.filter(status__in=["ordered", "partial"]).count(),
         "served_by": socket.gethostname(),  # ชื่อ pod ที่ตอบ: รีเฟรชหลายครั้งเห็นสลับระหว่าง replica
     })
 
