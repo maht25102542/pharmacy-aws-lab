@@ -45,7 +45,7 @@ class Command(BaseCommand):
             return
         today, rnd = timezone.localdate(), random.Random(2026)
         for m in Medicine.objects.all():
-            days = {"IBU400": 12, "LRT10": 25, "AZI250": -9}.get(m.sku, rnd.randint(150, 700))  # ibuprofen/loratadine ใกล้หมดอายุ · azithromycin หมดอายุแล้ว
+            days = {"IBU400": 12, "LRT10": 25, "OMP20": -9}.get(m.sku, rnd.randint(150, 700))  # ibuprofen/loratadine ใกล้หมดอายุ · omeprazole หมดอายุแล้ว
             if m.stock:
                 Batch.objects.create(medicine=m, lot_no=f"L{m.sku[:3]}{today.year}A", expiry_date=today + timedelta(days=days), qty_received=m.stock, qty_remaining=m.stock, cost=(m.price * 7 / 10).quantize(m.price))
         meds = list(Medicine.objects.filter(stock__gte=60))

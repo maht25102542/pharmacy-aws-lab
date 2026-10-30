@@ -6,13 +6,16 @@ import { canManageUsers, type Me } from "@/lib/users";
 
 const LINKS = [
   { href: "/", label: "ภาพรวม", icon: "home" },
+  { href: "/sales", label: "ขายหน้าร้าน", icon: "cart" },
   { href: "/medicines", label: "สต็อกยา", icon: "pill" },
+  { href: "/receipts", label: "ใบเสร็จ", icon: "receipt" },
+  { href: "/reports", label: "รายงาน", icon: "chart" },
   { href: "/movements", label: "ประวัติสต็อก", icon: "history" },
 ];
 
 export default function Sidebar({ me, version }: { me: Me; version: string }) {
   const path = usePathname();
-  const on = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const on = (href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"));
   return (
     <aside className="side">
       <div className="brandbox"><Logo /><div>Pharmacy<small>ระบบสต็อกร้านยา</small></div></div>

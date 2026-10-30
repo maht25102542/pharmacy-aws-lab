@@ -94,12 +94,13 @@ function useModal(onClose: () => void) {
 function AdjustDialog({ med, sign, onClose, onDone }: { med: Medicine; sign: 1 | -1; onClose: () => void; onDone: () => void }) {
   const m = useModal(onClose);
   const [err, setErr] = useState("");
+  const [reason, setReason] = useState<string>(sign > 0 ? "receive" : "dispense");
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const delta = parseQty(String(f.get("qty")), sign);
     if (delta === null) { setErr("จำนวนต้องเป็นเลขจำนวนเต็มมากกว่า 0"); return; }
-    try { await api(`/medicines/${med.id}/adjust`, { method: "POST", body: JSON.stringify({ delta, reason: f.get("reason"), note: f.get("note") }) }); onDone(); } catch (x) { setErr((x as Error).message); }
+    try { await api(`/medicines/${med.id}/adjust`, { method: "POST", body: JSON.stringify({ delta, reason, note: f.get("note"), ...(reason === "receive" ? { lot_no: f.get("lot_no"), expiry_date: f.get("expiry_date") || null, cost: f.get("cost") || 0 } : {}) }) }); onDone(); } catch (x) { setErr((x as Error).message); }
   }
   return (
     <dialog ref={m.ref} onCancel={m.onCancel} onClose={onClose}>
@@ -107,7 +108,8 @@ function AdjustDialog({ med, sign, onClose, onDone }: { med: Medicine; sign: 1 |
         <strong>{sign > 0 ? "รับเข้า" : "จ่ายออก"}: {med.name}</strong>
         <span className="muted">คงเหลือตอนนี้ {med.stock} {med.unit}</span>
         <label>จำนวน<input name="qty" inputMode="numeric" autoFocus required /></label>
-        <label>เหตุผล<select name="reason" defaultValue={sign > 0 ? "receive" : "dispense"}>{Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        <label>เหตุผล<select name="reason" value={reason} onChange={(e) => setReason(e.target.value)}>{Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        {reason === "receive" && <div className="grid2"><label>เลขล็อต<input name="lot_no" maxLength={40} placeholder="เช่น L2610A" /></label><label>วันหมดอายุ<input name="expiry_date" type="date" /></label><label>ต้นทุน/หน่วย (บาท)<input name="cost" inputMode="decimal" placeholder="0" /></label></div>}
         <label>หมายเหตุ<input name="note" maxLength={200} placeholder="เช่น เลขใบสั่งซื้อ" /></label>
         {err && <div className="err" role="alert">{err}</div>}
         <div className="toolbar"><button className="pri">บันทึก</button><button type="button" onClick={onClose}>ยกเลิก</button></div>

@@ -20,7 +20,11 @@
 | `src/app/login/page.tsx` | หน้า login (ซ้ายแบรนด์ ขวาฟอร์ม) |
 | `src/app/(app)/layout.tsx` + `components/Sidebar.tsx`, `Topbar.tsx` | โครงหน้าหลัก: sidebar, ชื่อ+บทบาทผู้ใช้, ออกจากระบบ (ดึง `/api/auth/me` ตอน render) |
 | `src/app/(app)/page.tsx` | ภาพรวม: ตัวเลขสรุป ยาที่ต้องสั่งเพิ่ม ความเคลื่อนไหวล่าสุด |
-| `src/app/(app)/medicines`, `components/MedicineTable.tsx` | สต็อกยา: ค้นหา รับเข้า/จ่ายออก เพิ่ม/ลบยา (ลบ/เพิ่มได้เฉพาะ admin+เภสัชกร) |
+| `src/app/(app)/medicines`, `components/MedicineTable.tsx` | สต็อกยา: ค้นหา รับเข้า (ใส่ล็อต/วันหมดอายุ/ต้นทุนได้) จ่ายออก เพิ่ม/ลบยา (ลบ/เพิ่มได้เฉพาะ admin+เภสัชกร) |
+| `src/app/(app)/sales`, `components/PosPanel.tsx`, `Receipt.tsx` | **ขายหน้าร้าน (POS)**: ค้นหายา → ตะกร้า → ส่วนลด/วิธีชำระ/เงินทอน → ออกใบเสร็จพิมพ์ได้ (ตัดสต็อกที่ backend) |
+| `src/app/(app)/receipts`, `components/ReceiptsPanel.tsx` | ประวัติใบเสร็จ ค้นหา/กรองวันที่/สถานะ · ยกเลิกบิล (เภสัชกร/admin) |
+| `src/app/(app)/reports`, `components/ReportsPanel.tsx` | ยอดขายรายวัน (กราฟ) ยาขายดี (เภสัชกร/admin) + ยาใกล้หมดอายุ/หมดอายุแล้ว (ทุกคน) |
+| `src/lib/sales.ts` (+ `.test.ts`) | ตะกร้า/คิดเงินเป็นสตางค์/ทอน/สถานะวันหมดอายุ ที่ทดสอบได้ |
 | `src/app/(app)/users`, `components/UsersPanel.tsx` | **จัดการผู้ใช้** (admin เท่านั้น): สร้าง แก้บทบาท เปิด/ปิดบัญชี ตั้งรหัสใหม่ ลบ |
 | `src/app/(app)/profile`, `components/ProfilePanel.tsx` | โปรไฟล์ตัวเอง + เปลี่ยนรหัสผ่าน (เปลี่ยนแล้วต้องล็อกอินใหม่) |
 | `src/app/static/[...path]/route.ts` | ส่งต่อเฉพาะไฟล์ Swagger UI (`/static/drf_spectacular_sidecar/…`) ไป backend |

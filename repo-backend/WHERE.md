@@ -18,4 +18,12 @@
 ## API ที่มี (ดูของจริงที่ `/api/docs` = Swagger UI)
 - `stock/accounts.py` — บทบาท `admin` (is_superuser) / `pharmacist` (is_staff) / `clerk` · `/api/users` จัดการผู้ใช้ (admin เท่านั้น กันลบ/ลดสิทธิ์ตัวเองและกันไม่เหลือ admin) · `/api/auth/me` (GET/PATCH) · `/api/auth/change-password`
 - Swagger: `drf-spectacular` + `drf-spectacular-sidecar` (ไฟล์ UI มากับแพ็กเกจ ไม่โหลดจาก CDN) · `/api/docs`, `/api/schema`, `/api/redoc` เปิดอ่านได้โดยไม่ต้องล็อกอิน
-- ไม่มี model/migration ใหม่ (บทบาทใช้ธงของ Django user เดิม) จึงไม่กระทบ Job `backend-migrate`
+- บทบาทใช้ธงของ Django user เดิม (ไม่มี model ใหม่ในส่วนผู้ใช้)
+
+## ขายหน้าร้าน / ล็อตยา / รายงาน (migration `0002`, รันโดย Job `backend-migrate` ก่อนปล่อยทุกครั้ง)
+- `stock/models.py`: `Batch` (ล็อต+วันหมดอายุ+ต้นทุน), `Sale` (ใบเสร็จ), `SaleItem` (สำเนาชื่อ/ราคา ณ ตอนขาย + `lots` ว่าตัดล็อตไหนบ้าง)
+- `stock/services.py`: `create_sale` (ตรวจสต็อก ล็อกแถว ตัดล็อตแบบ FEFO ออกเลข `RC-YYYYMMDD-NNNN` เขียน StockMovement ใน transaction เดียว · ราคาใช้ของใน DB เสมอ), `void_sale` (คืนสต็อกและล็อตเดิม)
+- `stock/sales.py`: `/api/sales` (POST ขาย · GET ค้นหา/กรองวันที่ · `POST /api/sales/{id}/void` เฉพาะ staff), `/api/reports/sales` (staff), `/api/reports/expiry`, `/api/batches`
+- `/api/medicines/{id}/adjust` รับ `lot_no`, `expiry_date`, `cost` ตอนรับเข้า → เปิดล็อตใหม่ · จ่ายออก/ทิ้ง ตัดล็อตหมดอายุก่อน
+- ห้ามขายยาที่อยู่ในล็อตหมดอายุแล้ว (`sellable()`), `/api/summary` มี `sales_today`, `expiring_30`, `expired`
+- `bootstrap_app --sample` สร้างล็อต (ibuprofen/loratadine ใกล้หมดอายุ, omeprazole หมดอายุแล้ว) + ใบเสร็จย้อนหลัง 14 วัน รันซ้ำไม่เพิ่มซ้ำ

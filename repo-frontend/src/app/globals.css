@@ -80,3 +80,14 @@ td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
 .loginform { display:grid; place-items:center; padding:32px; } .loginform .box { width:min(400px,100%); } .loginform h1 { font-size:1.7rem; } .loginform .form { margin-top:22px; }
 .loginform .apilink { margin-top:22px; font-size:.85rem; color:var(--muted); text-align:center; }
 @media (max-width:860px) { .loginwrap { grid-template-columns:1fr; } .loginhero { display:none; } .shell { grid-template-columns:1fr; } .side { position:static; height:auto; flex-direction:row; flex-wrap:wrap; padding:12px; } .brandbox { padding:0 10px 0 4px; } .navgroup, .sidefoot { display:none; } .content { padding:20px 16px; } .topbar { padding:10px 16px; } }
+
+/* ── ขายหน้าร้าน (POS) / ใบเสร็จ / กราฟรายงาน */
+.pos { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr); gap:18px; align-items:start; } @media (max-width:1000px) { .pos { grid-template-columns:1fr; } }
+.cart { position:sticky; top:76px; } .cartline { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--line); } .cartline .grow { flex:1; min-width:0; }
+input.qty { width:54px; text-align:center; padding:4px 6px; }
+.rc-sum { display:grid; grid-template-columns:1fr auto; gap:4px 16px; margin:12px 0; } .rc-sum dt { color:var(--muted); } .rc-sum dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; } .rc-sum.big { font-size:1.05rem; }
+.receipt { min-width:min(420px,84vw); } .receipt table th, .receipt table td { padding:6px 4px; } .rc-head { text-align:center; margin-bottom:10px; font-size:1.1rem; } .rc-meta { display:grid; gap:2px; font-size:.88rem; margin-bottom:10px; } .rc-foot { text-align:center; margin-top:10px; }
+.rc-void { background:var(--out-soft); color:var(--out); padding:8px 12px; border-radius:10px; margin-bottom:10px; font-weight:600; }
+.chart { display:flex; align-items:flex-end; gap:6px; height:170px; padding-top:6px; border-bottom:1px solid var(--line); } .chart .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; min-width:0; }
+.chart .barwrap { flex:1; width:100%; display:flex; align-items:flex-end; } .chart .barwrap i { display:block; width:100%; min-height:2px; border-radius:6px 6px 0 0; background:linear-gradient(180deg,var(--brand-2),var(--brand)); } .chart .col span { font-size:.68rem; color:var(--muted); }
+@media print { body * { visibility:hidden; } #receipt, #receipt * { visibility:visible; } #receipt { position:absolute; left:0; top:0; width:100%; } .noprint { display:none !important; } }

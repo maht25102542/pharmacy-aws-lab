@@ -3,7 +3,7 @@ import { Icon } from "@/components/Icons";
 import { serverGet } from "@/lib/server";
 import { formatPrice, type Medicine, type Page, stockStatus } from "@/lib/stock";
 
-type Summary = { medicines: number; low_stock: number; out_of_stock: number; stock_value: string; served_by: string };
+type Summary = { medicines: number; low_stock: number; out_of_stock: number; stock_value: string; served_by: string; sales_today: { count: number; total: string }; expiring_30: number; expired: number };
 type Movement = { id: number; medicine_name: string; delta: number; stock_after: number; reason: string; created_by_name: string | null; created_at: string };
 const REASONS: Record<string, string> = { receive: "รับเข้า", dispense: "จ่ายออก", adjust: "ปรับยอด", expired: "หมดอายุ/ทิ้ง" };
 
@@ -16,13 +16,15 @@ export default async function Home() {
   ]);
   return (
     <>
-      <div className="pagehead"><div><h1>ภาพรวมร้านยา</h1><p className="sub" style={{ margin: 0 }}>สถานะสต็อกวันนี้ และสิ่งที่ต้องจัดการ</p></div><span className="sp" /><Link href="/medicines" className="badge ok" style={{ textDecoration: "none" }}>ไปที่สต็อกยา →</Link></div>
+      <div className="pagehead"><div><h1>ภาพรวมร้านยา</h1><p className="sub" style={{ margin: 0 }}>สถานะสต็อกวันนี้ และสิ่งที่ต้องจัดการ</p></div><span className="sp" /><Link href="/sales" className="badge ok" style={{ textDecoration: "none" }}>ขายหน้าร้าน →</Link></div>
       {s ? (
         <div className="cards">
           <div className="card stat"><span className="ic"><Icon name="box" /></span><div><div className="n">{s.medicines}</div><div className="l">รายการยาที่ใช้งาน</div></div></div>
           <div className="card stat warn"><span className="ic"><Icon name="alert" /></span><div><div className="n">{s.low_stock}</div><div className="l">ใกล้หมด / ต้องสั่งเพิ่ม</div></div></div>
           <div className="card stat bad"><span className="ic"><Icon name="out" /></span><div><div className="n">{s.out_of_stock}</div><div className="l">หมดสต็อก</div></div></div>
           <div className="card stat val"><span className="ic"><Icon name="coin" /></span><div><div className="n">{formatPrice(s.stock_value)}</div><div className="l">มูลค่าสต็อกรวม</div></div></div>
+          <Link href="/receipts" className="card stat" style={{ textDecoration: "none", color: "inherit" }}><span className="ic"><Icon name="cart" /></span><div><div className="n">{formatPrice(s.sales_today.total)}</div><div className="l">ยอดขายวันนี้ · {s.sales_today.count} บิล</div></div></Link>
+          <Link href="/reports" className={`card stat ${s.expired > 0 ? "bad" : s.expiring_30 > 0 ? "warn" : ""}`} style={{ textDecoration: "none", color: "inherit" }}><span className="ic"><Icon name="clock" /></span><div><div className="n">{s.expiring_30}</div><div className="l">ล็อตใกล้หมดอายุ 30 วัน{s.expired > 0 ? ` · หมดอายุแล้ว ${s.expired}` : ""}</div></div></Link>
         </div>
       ) : (
         <div className="notice bad">โหลดตัวเลขสรุปไม่ได้ (backend ไม่ตอบ) กรุณาลองรีเฟรช</div>

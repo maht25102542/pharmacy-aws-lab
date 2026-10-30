@@ -12,6 +12,10 @@ const P: Record<string, string> = {
   out: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 8l8 8",
   logout: "M10 4H5v16h5M15 8l4 4-4 4M9 12h10",
   plus: "M12 5v14M5 12h14",
+  cart: "M3 4h2l2.4 11h10.2l2-8H6M9 20a1 1 0 1 0 0-.1M17 20a1 1 0 1 0 0-.1",
+  receipt: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6",
+  chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
 };
 export function Icon({ name }: { name: keyof typeof P | string }) {
   return (
