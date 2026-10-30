@@ -17,7 +17,7 @@ function sqTokenOk(cred) { return !!cred && S.sq.tokens.some(function (t) { retu
 // ---- ArgoCD
 function argoInst() { return S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Role") === "k8s_server" && rmHas(i, "Install ArgoCD"); })[0]; }
 function argoPwdOf(i) { var h = hash32(i.id + "argo"), o = ""; for (var k = 0; o.length < 16; k++) o += hash32(h + k); return o.slice(0, 16); }
-function argoLogin(u, pw) { var i = argoInst(); if (!i || u !== "admin" || pw !== argoPwdOf(i)) return false; S.argo.login = true; return true; }
+function argoLogin(u, pw) { var i = argoInst(); if (!i || u !== "admin" || pw !== (argoX().pw || argoPwdOf(i))) return false; S.argo.login = true; return true; }
 function argoParse(text) {
   var out = []; String(text).split(/^---\s*$/m).forEach(function (d) {
     if (!/kind:\s*Application\b/.test(d)) return; var g = function (re) { var m = re.exec(d); return m ? m[1].trim() : ""; };
@@ -39,7 +39,7 @@ function argoStatus(name) {
   var um = /github\.com\/([^\/]+)\/([^\/]+?)(\.git)?$/.exec(a.repoURL || ""), rp = um && ghRepoOf(um[1], um[2]), env = a.ns, svc = /backend/.test(name) ? "backend" : "frontend", k1 = argoInst();
   if (!rp) return { sync: "Unknown", health: "Missing", msg: "ComparisonError: rpc error: code = Unknown desc = authentication required: Repository not found  (" + a.repoURL + ")", app: a };
   if (a.destName && !(k1 && rmHas(k1, "Apply cluster secret"))) return { sync: "Unknown", health: "Missing", msg: "cluster '" + a.destName + "' has not been added to Argo CD (ansible ลงทะเบียนให้ตอนรัน k8s.yml)", app: a };
-  var repoImage = ghImageOf(rp, a.path); S.argo.at = S.argo.at || {}; S.argo.seen = S.argo.seen || {}; if (S.argo.seen[name] !== repoImage) { S.argo.seen[name] = repoImage; if (S.speed === "real" && a.auto) S.argo.at[name] = Date.now(); }
+  var repoImage = ghImageOf(rp, a.path); S.argo.at = S.argo.at || {}; S.argo.seen = S.argo.seen || {}; if (S.argo.seen[name] !== repoImage) { S.argo.seen[name] = repoImage; if (a.auto) argoHist(name, repoImage); if (S.speed === "real" && a.auto) S.argo.at[name] = Date.now(); }
   var live = a.auto ? repoImage : S.argo.live[name] || null, sync = live === null ? "OutOfSync" : live === repoImage ? "Synced" : "OutOfSync", health = "Healthy", msg = "";
   if (live === null) { health = "Missing"; msg = "ยังไม่ได้ sync (resource ยังไม่ถูกสร้างใน cluster)"; }
   else if (argoPlaceholder(live)) { health = "Degraded"; msg = "InvalidImageName: image " + (live || "(ว่าง)") + " (ยังไม่มี Jenkins deploy ครั้งแรก)"; }
@@ -52,7 +52,7 @@ function argoStatus(name) {
   if (health === "Healthy" && S.speed === "real" && S.argo.at[name] && Date.now() - S.argo.at[name] < 20000) { health = "Progressing"; msg = "Waiting for rollout to finish: 0 of 1 updated replicas are available (~20 วินาที)"; }
   return { sync: sync, health: health, msg: msg, repoImage: repoImage, live: live, app: a };
 }
-function argoSyncApp(name) { var st = argoStatus(name); if (st && S.speed === "real") { S.argo.at = S.argo.at || {}; S.argo.at[name] = Date.now(); } if (!st) return { err: "FATA[0000] rpc error: code = NotFound desc = applications.argoproj.io \"" + name + "\" not found" }; if (st.sync === "Unknown") return { err: "FATA[0000] rpc error: code = FailedPrecondition desc = " + st.msg }; S.argo.live[name] = st.repoImage; return { st: argoStatus(name) }; }
+function argoSyncApp(name) { var st = argoStatus(name); if (st && S.speed === "real") { S.argo.at = S.argo.at || {}; S.argo.at[name] = Date.now(); } if (!st) return { err: "FATA[0000] rpc error: code = NotFound desc = applications.argoproj.io \"" + name + "\" not found" }; if (st.sync === "Unknown") return { err: "FATA[0000] rpc error: code = FailedPrecondition desc = " + st.msg }; S.argo.live[name] = st.repoImage; argoHist(name, st.repoImage); return { st: argoStatus(name) }; }
 function argoSync(name, k1) {
   var r = argoSyncApp(name); if (r.err) return r;
   var l = ["Name:               " + name, "Project:            default", "Sync Status:        Synced to main", "Health Status:      " + r.st.health];
