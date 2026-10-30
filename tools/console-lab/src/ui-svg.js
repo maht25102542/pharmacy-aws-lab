@@ -20,6 +20,17 @@ var SVG_I = {
   medium: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M7.5 14.5L12 10l4.5 4.5" stroke="#fff" stroke-width="2.4" fill="none"/>',
   low: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M7.5 9.5L12 14l4.5-4.5" stroke="#fff" stroke-width="2.4" fill="none"/>',
   info: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><rect x="10.9" y="10.5" width="2.2" height="7" rx="1" fill="#fff" stroke="none"/><circle cx="12" cy="7.4" r="1.4" fill="#fff" stroke="none"/>',
+  infoc: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><rect x="10.9" y="10.5" width="2.2" height="7" rx="1" fill="#6d7f8b" stroke="none"/><circle cx="12" cy="7.4" r="1.4" fill="#6d7f8b" stroke="none"/>',
+  xcircle: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M8.2 8.2l7.6 7.6M15.8 8.2l-7.6 7.6" stroke="#6d7f8b" stroke-width="2.4" fill="none"/>',
+  plus: '<path d="M12 5v14M5 12h14" stroke-width="2.6"/>',
+  sync: '<path d="M20 11a8 8 0 00-14.5-4M4 4v4h4" stroke-width="2.4"/><path d="M4 13a8 8 0 0014.5 4M20 20v-4h-4" stroke-width="2.4"/>',
+  refresh: '<path d="M20 12a8 8 0 11-2.4-5.7" stroke-width="2.4"/><path d="M20 4v5h-5" stroke-width="2.4"/>',
+  hist: '<path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.7L3 8" stroke-width="2.2"/><path d="M3 3v5h5M12 7v5l3 2" stroke-width="2.2"/>',
+  diff: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" fill="currentColor" stroke="none"/><path d="M12 11v6M9 14h6" stroke="#6d7f8b" stroke-width="2"/>',
+  vtree: '<rect x="9" y="3" width="6" height="5" fill="currentColor"/><rect x="3" y="16" width="6" height="5" fill="currentColor"/><rect x="15" y="16" width="6" height="5" fill="currentColor"/><path d="M12 8v4M6 16v-4h12v4"/>',
+  vnet: '<rect x="3" y="4" width="6" height="5" fill="currentColor"/><rect x="15" y="4" width="6" height="5" fill="currentColor"/><rect x="9" y="15" width="6" height="5" fill="currentColor"/><path d="M9 6.5h6M12 15V9"/>',
+  vlist: '<rect x="3" y="4" width="18" height="16" rx="2" fill="currentColor" stroke="none"/><path d="M7 9h10M7 12h10M7 15h10" stroke="#dfe6ec" stroke-width="1.6"/>',
+  help: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M9.3 9.4a2.8 2.8 0 015.4.9c0 1.9-2.7 2.1-2.7 4" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="17.3" r="1.2" fill="#fff" stroke="none"/>',
   qgpass: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M7 12.5l3.2 3.2L17 8.8" stroke="#fff" stroke-width="2.4" fill="none"/>',
   qgfail: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M8 8l8 8M16 8l-8 8" stroke="#fff" stroke-width="2.4" fill="none"/>'
 };
@@ -32,3 +43,11 @@ function agHI(health, size) { var c = (AG_HI[health] || AG_HI.Unknown)[1]; retur
 function agSI(sync, size) { var c = (AG_SI[sync] || AG_SI.Unknown)[1]; return svgI(AG_SIK[sync] || "unknown", size || 16, c); }
 var SQ_SEVK = { Blocker: "blocker", High: "high", Medium: "medium", Low: "low", Info: "info" }, SQ_SEVCOL = { Blocker: "#c4261d", High: "#e0662b", Medium: "#e69000", Low: "#a08a1e", Info: "#6b7a8c" };
 function sqSevIc(sev, size) { return svgI(SQ_SEVK[sev] || "info", size || 14, SQ_SEVCOL[sev] || "#6b7a8c"); }
+
+// label ปุ่ม Argo: เปลี่ยน glyph นำหน้า (ⓘ ⟳ ⟲ ⊗ ↻ ＋ ✖) เป็นไอคอน SVG
+function agLbl(t) {
+  var M = { "ⓘ": "infoc", "⟳": "sync", "⟲": "hist", "⊗": "xcircle", "↻": "refresh", "＋": "plus", "✖": "xcircle" }, c = t.charAt(0), rest = t.slice(1).trim();
+  if (M[c]) return [svgI(M[c], 14, "#fff"), rest ? " " + rest : ""];
+  if (t === "DIFF") return [svgI("diff", 14, "#fff"), " DIFF"];
+  return [t];
+}
