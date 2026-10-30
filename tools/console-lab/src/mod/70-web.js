@@ -78,12 +78,13 @@ function jkCred(id) { return S.jk.creds.filter(function (c) { return c.id === id
 // หนึ่ง repo = หนึ่ง job: pharmacy-backend / pharmacy-frontend (S.jk.job = job ที่เปิดอยู่ตอนนี้ ใช้เป็นตัวชี้ที่ UI และ jkNew อ่าน)
 var JK_REPO_RE = /github\.com\/([^\/]+)\/([A-Za-z0-9._-]+?)(?:\.git)?$/; // repo ชื่ออะไรก็ได้ (pharmacy-*, cafe-*) · service = ท้ายชื่อ backend/frontend ถ้ามี
 function jkSvcOf(n) { var m = /(backend|frontend)$/.exec(n); return m ? m[1] : n; }
-function jkJobs() { if (!S.jk.jobs) S.jk.jobs = S.jk.job ? [S.jk.job] : []; if (S.jk.job && S.jk.jobs.indexOf(S.jk.job) < 0) S.jk.jobs.push(S.jk.job); S.jk.jobs.forEach(function (j) { if (!j.svc) { var m = JK_REPO_RE.exec(j.repo || ""); j.svc = m ? m[3] : "backend"; } if (j.seq == null) j.seq = 0; }); S.jk.builds.forEach(function (b) { if (!b.job && S.jk.jobs[0]) b.job = S.jk.jobs[0].name; }); return S.jk.jobs; }
+function jkJobs() { if (!S.jk.jobs) S.jk.jobs = S.jk.job ? [S.jk.job] : []; if (S.jk.job && S.jk.jobs.indexOf(S.jk.job) < 0) S.jk.jobs.push(S.jk.job); S.jk.jobs.forEach(function (j) { if (!j.svc) { var m = JK_REPO_RE.exec(j.repo || ""); j.svc = m ? jkSvcOf(m[2]) : "backend"; } if (j.seq == null) j.seq = 0; }); S.jk.builds.forEach(function (b) { if (!b.job && S.jk.jobs[0]) b.job = S.jk.jobs[0].name; }); return S.jk.jobs; }
 function jkJob(name) { return jkJobs().filter(function (j) { return j.name === name; })[0]; }
 function jkSelect(name) { var j = jkJob(name); if (j) S.jk.job = j; return j; }
 function jkBuildsOf(job) { jkJobs(); return S.jk.builds.filter(function (b) { return b.job === (job && job.name); }); }
 function jkRepoName(job) { var m = JK_REPO_RE.exec(job.repo || ""); return m ? m[2] : ""; }
 function jkCreateJob(o, isNew) {
+  if (o.type === "mb") return jkCreateMb(o, isNew);
   var er = {}; if (!/^[A-Za-z0-9_-]+$/.test(o.name || "")) er.name = "ชื่อใช้ได้เฉพาะ A-Z a-z 0-9 _ -"; else if (isNew && jkJob(o.name)) er.name = "A job already exists with the name ‘" + o.name + "’";
   if (o.defn === "script") { if (!/\bstage\s*\(/.test(o.inline || "")) er.inline = "Pipeline ต้องมีอย่างน้อย 1 stage เช่น stage('Build') { steps { echo 'hi' } }"; } else if (!JK_REPO_RE.test(o.repo || "")) er.repo = "Repository URL ต้องเป็นรูปแบบ https://github.com/<user>/<repo>.git (หนึ่ง job ต่อหนึ่ง repo)"; if (o.defn !== "script" && !o.script) er.script = "ต้องระบุ Script Path"; if (o.defn !== "script" && !o.branch) er.branch = "ต้องระบุ Branch Specifier";
   if (Object.keys(er).length) return { errors: er };
