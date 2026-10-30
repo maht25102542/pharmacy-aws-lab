@@ -3,7 +3,7 @@ function sqRate(n) { return n <= 0 ? "A" : n <= 2 ? "B" : n <= 5 ? "C" : n <= 10
 function sqCur() { var P = S.sq.projects; return P.filter(function (p) { return p.key === W.sqk; })[0] || P[0]; }
 function sqBadge(t, bg, fg) { return h("span", { style: "display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;background:" + bg + ";color:" + (fg || "#333") }, [t]); }
 var SQ_SEVC = { Blocker: ["#fbd9d9", "#a31212", "⛔"], High: ["#fde5d3", "#b04a00", "⏶"], Medium: ["#fdf0c4", "#8a6200", "◆"], Low: ["#f6edc8", "#7a6400", "⏷"], Info: ["#e5e9f0", "#4a5568", "ⓘ"] };
-function sqSev(s) { var c = SQ_SEVC[s] || SQ_SEVC.Info; return sqBadge(c[2] + " " + s, c[0], c[1]); }
+function sqSev(s) { var c = SQ_SEVC[s] || SQ_SEVC.Info; return h("span", { style: "display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:12px;background:" + c[0] + ";color:" + c[1] }, [sqSevIc(s, 13), s]); }
 function sqF(label, kids) { return h("div", { cls: "f", style: "margin:6px 0" }, [h("label", { cls: "l", text: label })].concat(kids)); }
 function sqSelect(label, opts, get, set) { return h("select", { "aria-label": label, onchange: function (e) { set(e.target.value); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: get() === o[0] ? "selected" : null }); })); }
 function sqRuleDesc(r) { return r[2] === "VULN" || r[2] === "HOTSPOT" ? "ช่องโหว่/จุดเสี่ยงด้านความปลอดภัย: ตรวจว่าโค้ดไม่เปิดช่องให้โจมตี ตามคำอธิบายของกฎ \"" + r[1] + "\"" : r[2] === "BUG" ? "โค้ดที่น่าจะทำงานผิดพลาดตอนรัน: \"" + r[1] + "\"" : "ปัญหาด้านการดูแลโค้ด (maintainability): \"" + r[1] + "\" แก้เพื่อให้อ่านและแก้ไขง่ายขึ้น"; }
