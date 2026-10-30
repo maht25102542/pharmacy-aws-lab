@@ -142,9 +142,9 @@ function agPages(shell) {
 
 function agMenu2(key, items) { return h("span", { style: "position:relative" }, [h("a", { href: "#", "aria-label": "Menu " + key, style: "color:#00a5c7;font-size:1.3rem;text-decoration:none;padding:4px 8px", text: "⋮", onclick: function (e) { e.preventDefault(); W.agmn = W.agmn === key ? "" : key; render(); } }), W.agmn === key ? h("div", { style: "position:absolute;right:0;top:26px;background:#fff;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9;min-width:160px;text-align:left" }, items.map(function (it) { return h("div", { style: "padding:10px 14px;cursor:pointer;white-space:nowrap", text: it[0], onclick: function () { W.agmn = ""; it[1](); } }); })) : null]); }
 
-// กด sync: โชว์สถานะ Syncing (ไอคอนหมุน) ~2 วินาที แล้วค่อย sync จริง (โหมด instant ทำทันที)
+// กด sync: โชว์สถานะ Syncing (ไอคอนหมุน) ~2 วินาที แล้วค่อย sync จริง + tree ทยอยโผล่ — เล่นเสมอ (เป็นภาพตอบสนองของ UI ไม่ผูกกับตัวเลือกความเร็ว); __agNoAnim ไว้ให้สคริปต์ทดสอบข้าม
 function agRunSync(names, done) {
-  var fin = function () { var bad = []; names.forEach(function (n) { var r = argoSyncApp(n); if (r.err) bad.push(n); }); W.agsy = W.agsy || {}; names.forEach(function (n) { delete W.agsy[n]; }); done(bad); if (S.speed !== "instant") names.forEach(function (n) { W.agrv = W.agrv || {}; W.agrv[n] = 0; var k = setInterval(function () { W.agrv[n] = (W.agrv[n] || 0) + 1; if (W.agrv[n] >= 6) { clearInterval(k); delete W.agrv[n]; } render(); }, 600); }); save(); render(); };
-  if (S.speed === "instant") { fin(); return; }
+  var fin = function () { var bad = []; names.forEach(function (n) { var r = argoSyncApp(n); if (r.err) bad.push(n); }); W.agsy = W.agsy || {}; names.forEach(function (n) { delete W.agsy[n]; }); done(bad); if (!window.__agNoAnim) names.forEach(function (n) { W.agrv = W.agrv || {}; W.agrv[n] = 0; var k = setInterval(function () { W.agrv[n] = (W.agrv[n] || 0) + 1; if (W.agrv[n] >= 6) { clearInterval(k); delete W.agrv[n]; } render(); }, 600); }); save(); render(); };
+  if (window.__agNoAnim) { fin(); return; }
   W.agsy = W.agsy || {}; names.forEach(function (n) { W.agsy[n] = 1; }); render(); setTimeout(fin, 2200);
 }
