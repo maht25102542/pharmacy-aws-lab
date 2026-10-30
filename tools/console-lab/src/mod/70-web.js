@@ -152,7 +152,9 @@ function jkAdvance(b, once) {
       if (!sq || !rmDocker(sq).length) return fail(s, ["ERROR: SonarQube server [" + (env.SONAR_HOST_URL || "") + "] can not be reached", "ERROR: Error during SonarScanner execution"]);
       if (!sgAllows(sq.sgIds, 9000, { sgIds: ji.sgIds })) return fail(s, ["ERROR: SonarQube server [" + env.SONAR_HOST_URL + "] can not be reached  (connect timed out: SG ของ sonarqube ไม่เปิด 9000 ให้ SG ของ jenkins)", "ERROR: Error during SonarScanner execution"]);
       if (!sqTokenOk(jkCred("sonar-token"))) return fail(s, ["ERROR: Error during SonarScanner execution", "ERROR: Not authorized. Please check the user token in the property 'sonar.token' or the credentials in the properties 'sonar.login' and 'sonar.password'."]);
-      sqRecord(p.VERSION, jb.svc); b.log.push("INFO: ANALYSIS SUCCESSFUL, you can find the results at: " + env.SONAR_HOST_URL + "/dashboard?id=pharmacy-" + jb.svc, "INFO: Quality gate status: OK", "[Pipeline] }", "[Pipeline] // withCredentials");
+      var sqp = sqRecord(p.VERSION, jb.svc, jkRepoName(jb), jb.branch), sqUrl = env.SONAR_HOST_URL + "/dashboard?id=" + sqp.key; b.log.push("INFO: ANALYSIS SUCCESSFUL, you can find the results at: " + sqUrl);
+      if (sqp.qg === "Failed") return fail(s, ["INFO: Quality gate status: ERROR", "ERROR: QUALITY GATE STATUS: FAILED - View details on " + sqUrl, "ERROR: Error during SonarScanner execution", "ERROR: Quality gate failure — แก้ issue ใหม่ หรือปรับเงื่อนไขที่ SonarQube › Quality gates แล้ว build ใหม่"]);
+      b.log.push("INFO: Quality gate status: OK", "[Pipeline] }", "[Pipeline] // withCredentials");
     }
     else if (n === "Test") {
       b.log.push("[Pipeline] sh");
