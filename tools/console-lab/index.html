@@ -8830,7 +8830,7 @@ PAGES.browser = function () {
   else if (r.site === "github") view = wbGithub(r);
   else if (r.site === "alb503") view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "503 Service Temporarily Unavailable" }), h("p", { cls: "sub", text: "ALB ตอบได้ แต่ไม่มี target ที่ healthy (ดู EC2 › Target Groups › Targets)" })])]);
   else view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: r.site === "sonarqube" ? "SonarQube" : r.site === "argocd" ? "Argo CD" : "pharmacy" }), h("p", { cls: "sub", text: "เข้าถึงได้ (เครือข่ายถูกต้อง) แต่ตัวจำลองยังไม่มีหน้าเว็บของบริการนี้" })])]);
-  if (r && !r.err && /^(jenkins|sonarqube|argocd|app|github)$/.test(r.site)) { var SW = { jenkins: ["Dashboard [Jenkins]", "🛠️"], sonarqube: ["SonarQube", "🔍"], argocd: ["Argo CD", "🐙"], app: ["pharmacy", "💊"], github: ["GitHub", "🐱"] }[r.site]; view = wbWin({ url: W.addr, title: SW[0], ico: SW[1], status: 200, statusText: "OK", insecure: !/^https:/i.test(W.addr), body: view }); }
+  if (r && !r.err && /^(jenkins|sonarqube|argocd|app|github)$/.test(r.site)) { var SW = { jenkins: ["Dashboard [Jenkins]", "@jk"], sonarqube: ["SonarQube", "@sq"], argocd: ["Argo CD", "@ag"], app: ["pharmacy", "💊"], github: ["GitHub", "@gh"] }[r.site]; view = wbWin({ url: W.addr, title: SW[0], ico: SW[1], status: 200, statusText: "OK", insecure: !/^https:/i.test(W.addr), body: view }); }
   var spd = h("label", { style: "display:block;margin:6px 0" }, ["ความเร็ว ", h("select", { "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); render(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (build หลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]);
   return h("div", {}, [crumbEl("Browser"), h("h1", { text: "Browser" }), spd, bar, view]);
 };
@@ -9572,7 +9572,7 @@ function jkBoBuilds(J) { var kids = jkMbKids(J).map(function (k) { return k.name
 function jkBoMsg(b) { return (b.params && b.params.CHANGE_NOTE) || (b.disp) || "Started by " + b.who; }
 function jkBoBranchOf(b) { var j = jkJob(b.job); return j && j.mbKey ? j.mbKey : (j && String(j.branch || "main").replace(/^\*\//, "")) || "main"; }
 function jkBlue() {
-  var hdr = h("header", { cls: "bo-hd" }, [h("b", { text: "⛬ Jenkins Blue Ocean", style: "font-size:16px" }), h("a", { href: "#", cls: "bo-nav on", text: "Pipelines", onclick: function (e) { e.preventDefault(); jkBoOpen("list"); } }), h("a", { href: "#", cls: "bo-nav", text: "Administration", onclick: function (e) { e.preventDefault(); W.page = "manage"; render(); } }), h("span", { style: "flex:1" }), h("a", { href: "#", cls: "bo-nav", text: "↩ Go to classic", onclick: function (e) { e.preventDefault(); W.page = "dash"; render(); } })]);
+  var hdr = h("header", { cls: "bo-hd" }, [h("b", { style: "font-size:16px;display:inline-flex;align-items:center;gap:8px" }, [svcLogo("jk", 26), "Jenkins Blue Ocean"]), h("a", { href: "#", cls: "bo-nav on", text: "Pipelines", onclick: function (e) { e.preventDefault(); jkBoOpen("list"); } }), h("a", { href: "#", cls: "bo-nav", text: "Administration", onclick: function (e) { e.preventDefault(); W.page = "manage"; render(); } }), h("span", { style: "flex:1" }), h("a", { href: "#", cls: "bo-nav", text: "↩ Go to classic", onclick: function (e) { e.preventDefault(); W.page = "dash"; render(); } })]);
   var wrap = function (kids) { return h("div", { cls: "bo" }, [hdr, h("div", { cls: "bo-main" }, kids), W.boRun ? jkBoModal() : null].filter(Boolean)); }, v = W.bov || "list", jobs = jkBoJobs(), J = jkJob(W.boj);
   var runBtn = function (j, kid) { return h("button", { type: "button", cls: "bo-btn", text: "▷ Run", onclick: function () { W.boRun = { job: j.name, kid: kid || "" }; render(); } }); };
   if (v === "list" || !J) { var q = (W.boq || "").toLowerCase(), vis = jobs.filter(function (j) { return !q || j.name.toLowerCase().indexOf(q) >= 0; });
@@ -9719,6 +9719,16 @@ function jkMbPage(pg, J, title) {
 function jkMbCfg(F, J) {
   var isNew = W.cfgOpen === "new"; ["jr", "jc", "js"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); if (!F.js) F.js = "Jenkinsfile"; var gh = (typeof ghUser === "function" ? ghUser() : "YOUR_GITHUB_USER");
   return [h("h1", { cls: "jx-h1b", text: "Branch Sources" }), h("div", { cls: "jx-sechd", text: "GitHub / Git" }), wbEx("Repository URL", "jr", ["https://github.com/" + gh + "/pharmacy-backend.git", "https://github.com/" + gh + "/pharmacy-frontend.git", "https://github.com/" + gh + "/cafe-backend.git", "https://github.com/" + gh + "/cafe-frontend.git"], "https://github.com/<user>/<repo>.git"), wbSel("Credentials", "jc", [["", "- none -"]].concat(S.jk.creds.map(function (c) { return [c.id, (c.user ? c.user + "/****** " : "") + (c.desc || c.id)]; })), function () { return F.jc; }, function (v) { F.jc = v; }), h("div", { cls: "jx-sechd", text: "Build Configuration" }), h("div", { cls: "f" }, [h("label", { cls: "l", text: "Mode" }), h("select", { "aria-label": "Mode" }, [h("option", { text: "by Jenkinsfile" })])]), wbEx("Script Path", "js", ["Jenkinsfile", "ci/Jenkinsfile"], "Jenkinsfile"), h("p", { cls: "sub", text: "Jenkins สแกน repo หา branch และ PR ที่มี Jenkinsfile แล้วสร้าง job ต่อ branch ให้เอง — branch ใหม่/PR ใหม่ถูก build อัตโนมัติ · webhook จาก GitHub ทำให้สแกนและ build ทันที" }), wbErr(W.lg), h("button", { type: "button", style: "background:#0b6bcb;color:#fff;border:0;border-radius:10px;padding:10px 34px;cursor:pointer", text: "Save", onclick: function () { var r = jkCreateJob({ name: isNew ? F.jn : J.name, repo: F.jr, cred: F.jc, script: F.js, type: "mb" }, isNew); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.cfgOpen = ""; W.page = "mb"; F.jn = ""; F.jr = ""; F.jc = ""; F.jtype = ""; } save(); render(); } })];
+}
+
+// โลโก้ของแต่ละเว็บ (ใช้ในแท็บหน้าต่าง Browser, แท็บ Preview, header Blue Ocean): jenkins = butler จริง · argo = octopus จริง · github = mark · sonar = ป้ายสีแบรนด์
+function svcLogo(k, size) {
+  size = size || 18;
+  if (k === "jk") return h("img", { src: JK_LOGO, alt: "Jenkins", width: size, height: size, style: "vertical-align:middle;object-fit:contain" });
+  if (k === "ag") return h("img", { src: AG_OCT, alt: "Argo CD", width: size, height: size, style: "vertical-align:middle;object-fit:contain;border-radius:50%" });
+  if (k === "gh") return h("span", { style: "display:inline-flex;vertical-align:middle;color:#1f2328" }, [ghSvg(GH_MARK, size)]);
+  if (k === "sq") return h("span", { title: "SonarQube", style: "display:inline-flex;align-items:center;justify-content:center;width:" + size + "px;height:" + size + "px;border-radius:50%;background:#4e9bcd;color:#fff;font:700 " + Math.round(size * .6) + "px sans-serif;vertical-align:middle", text: "S" });
+  return null;
 }
 
 // ===== ภาพ Argo CD (Apache-2.0, https://github.com/argoproj/argo-cd) ใช้กับหน้า login/sidebar ของ ArgoCD จำลอง =====
@@ -13682,7 +13692,7 @@ function wbWin(o) {
       h("span", { cls: "bw-u" }, [h("span", { cls: "d", text: m[1] }), h("span", { cls: "h", text: m[2] }), h("span", { cls: "d", text: m[3] })])]),
     o.status ? h("span", { cls: "bw-chip " + cls, text: o.status + (o.statusText ? " " + o.statusText : "") }) : h("span")]);
   var win = h("div", { cls: "bw" }, [
-    h("div", { cls: "bw-tabs" }, [h("span", { cls: "bw-dots" }, [h("i"), h("i"), h("i")]), h("div", { cls: "bw-tab" }, [h("span", { cls: "ico", text: o.ico || "🌐" }), h("span", { cls: "t", text: o.title || m[2] })])]),
+    h("div", { cls: "bw-tabs" }, [h("span", { cls: "bw-dots" }, [h("i"), h("i"), h("i")]), h("div", { cls: "bw-tab" }, [(/^@/.test(o.ico || "") ? h("span", { cls: "ico" }, [svcLogo(o.ico.slice(1), 16)]) : h("span", { cls: "ico", text: o.ico || "🌐" })), h("span", { cls: "t", text: o.title || m[2] })])]),
     bar, h("div", { cls: "bw-vp" }, [o.body])]);
   var out = h("div", { cls: "bwrap" }, [win]);
   if (o.extra) out.appendChild(o.extra);
@@ -13922,7 +13932,7 @@ function pvAcct(t) {
 }
 // ---------- หน้า hub ----------
 PAGES["lab-preview"] = function () {
-  var T = PV.tab, wrap = h("div", {}), tabs = h("div", { cls: "pvtabs" }, PV_TABS.map(function (t) { return h("button", { type: "button", cls: "pvtab" + (t[0] === T ? " on" : ""), text: t[1], onclick: function () { PV.tab = t[0]; PV.openFor = ""; render(); } }); }));
+  var T = PV.tab, wrap = h("div", {}), tabs = h("div", { cls: "pvtabs" }, PV_TABS.map(function (t) { return h("button", { type: "button", cls: "pvtab" + (t[0] === T ? " on" : ""), onclick: function () { PV.tab = t[0]; PV.openFor = ""; render(); } }, [svcLogo(t[0], 16), svcLogo(t[0]) ? " " : "", t[1]].filter(function (x) { return x !== null && x !== ""; })); }));
   wrap.appendChild(crumbEl("Lab › Preview เว็บ")); wrap.appendChild(h("h1", { text: "Preview เว็บ" }));
   wrap.appendChild(h("p", { cls: "hint", text: "ดูหน้าตาและลองกดเล่นได้ทันที ไม่ต้องสร้าง lab และไม่ผูกกับ use case ใดๆ · ข้อมูลแยกจาก lab ที่คุณทำอยู่ (กด Reset ข้อมูลตัวอย่างเพื่อเริ่มใหม่)" })); wrap.appendChild(tabs);
   if (PV.err) wrap.appendChild(h("div", { cls: "alert error", text: "สร้างข้อมูลตัวอย่างบางส่วนไม่สำเร็จ: " + PV.err }));

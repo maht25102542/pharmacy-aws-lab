@@ -19,7 +19,7 @@ function wbWin(o) {
       h("span", { cls: "bw-u" }, [h("span", { cls: "d", text: m[1] }), h("span", { cls: "h", text: m[2] }), h("span", { cls: "d", text: m[3] })])]),
     o.status ? h("span", { cls: "bw-chip " + cls, text: o.status + (o.statusText ? " " + o.statusText : "") }) : h("span")]);
   var win = h("div", { cls: "bw" }, [
-    h("div", { cls: "bw-tabs" }, [h("span", { cls: "bw-dots" }, [h("i"), h("i"), h("i")]), h("div", { cls: "bw-tab" }, [h("span", { cls: "ico", text: o.ico || "🌐" }), h("span", { cls: "t", text: o.title || m[2] })])]),
+    h("div", { cls: "bw-tabs" }, [h("span", { cls: "bw-dots" }, [h("i"), h("i"), h("i")]), h("div", { cls: "bw-tab" }, [(/^@/.test(o.ico || "") ? h("span", { cls: "ico" }, [svcLogo(o.ico.slice(1), 16)]) : h("span", { cls: "ico", text: o.ico || "🌐" })), h("span", { cls: "t", text: o.title || m[2] })])]),
     bar, h("div", { cls: "bw-vp" }, [o.body])]);
   var out = h("div", { cls: "bwrap" }, [win]);
   if (o.extra) out.appendChild(o.extra);

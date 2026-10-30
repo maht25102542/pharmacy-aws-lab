@@ -38,7 +38,7 @@ function pvAcct(t) {
 }
 // ---------- หน้า hub ----------
 PAGES["lab-preview"] = function () {
-  var T = PV.tab, wrap = h("div", {}), tabs = h("div", { cls: "pvtabs" }, PV_TABS.map(function (t) { return h("button", { type: "button", cls: "pvtab" + (t[0] === T ? " on" : ""), text: t[1], onclick: function () { PV.tab = t[0]; PV.openFor = ""; render(); } }); }));
+  var T = PV.tab, wrap = h("div", {}), tabs = h("div", { cls: "pvtabs" }, PV_TABS.map(function (t) { return h("button", { type: "button", cls: "pvtab" + (t[0] === T ? " on" : ""), onclick: function () { PV.tab = t[0]; PV.openFor = ""; render(); } }, [svcLogo(t[0], 16), svcLogo(t[0]) ? " " : "", t[1]].filter(function (x) { return x !== null && x !== ""; })); }));
   wrap.appendChild(crumbEl("Lab › Preview เว็บ")); wrap.appendChild(h("h1", { text: "Preview เว็บ" }));
   wrap.appendChild(h("p", { cls: "hint", text: "ดูหน้าตาและลองกดเล่นได้ทันที ไม่ต้องสร้าง lab และไม่ผูกกับ use case ใดๆ · ข้อมูลแยกจาก lab ที่คุณทำอยู่ (กด Reset ข้อมูลตัวอย่างเพื่อเริ่มใหม่)" })); wrap.appendChild(tabs);
   if (PV.err) wrap.appendChild(h("div", { cls: "alert error", text: "สร้างข้อมูลตัวอย่างบางส่วนไม่สำเร็จ: " + PV.err }));
