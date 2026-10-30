@@ -1,6 +1,6 @@
 // ===== Argo CD เพิ่ม: repos / clusters / projects / history / app create-edit-delete (ข้อมูลของ Settings ทั้งหมด) =====
 function argoX() {
-  var A = S.argo; if (!A.x) A.x = { repos: [], projects: [{ name: "default", desc: "", srcs: ["*"], dests: ["*"] }], gpg: [], certs: [], favs: {}, hist: {}, tok: [], theme: "light", pwChanged: false, cl: {} };
+  var A = S.argo; if (!A.x) A.x = { repos: [], projects: [{ name: "default", desc: "", srcs: ["*"], dests: ["*"] }], gpg: [], certs: argoDefCerts(), favs: {}, hist: {}, tok: [], theme: "light", pwChanged: false, cl: {} };
   return A.x;
 }
 function argoClusters() {
@@ -21,7 +21,7 @@ function argoCreateApp(f) {
   if (!(f.path || "").trim()) er.path = "Path is required"; if (!(f.ns || "").trim()) er.ns = "Namespace is required";
   if (Object.keys(er).length) return { errors: er };
   var cl = argoClusters().filter(function (c) { return c.orig === f.cluster; })[0] || argoClusters()[0];
-  S.argo.apps[f.name] = { name: f.name, repoURL: f.repo.trim(), path: f.path.trim(), destName: cl.orig === "in-cluster" ? "" : cl.orig, destServer: cl.server, ns: f.ns.trim(), auto: f.sync === "auto", project: f.project, rev: f.rev || "main", created: Date.now() };
+  S.argo.apps[f.name] = { name: f.name, repoURL: f.repo.trim(), path: f.path.trim(), destName: cl.orig === "in-cluster" ? "" : cl.orig, destServer: cl.server, ns: f.ns.trim(), auto: f.sync === "auto", project: f.project, opts: [f.o_skip && "Validate=false", f.o_ns && "CreateNamespace", f.o_pl && "PruneLast", f.o_oos && "ApplyOutOfSyncOnly", f.o_ri && "RespectIgnoreDifferences", f.o_ssa && "ServerSideApply", f.o_rep && "Replace", f.o_retry && "Retry"].filter(Boolean), rev: f.rev || "main", created: Date.now() };
   return { res: S.argo.apps[f.name] };
 }
 function argoDiff(name) { var st = argoStatus(name); if (!st || st.sync === "Unknown") return null; var live = st.live, want = st.repoImage; if (live === want) return []; return [live === null ? "(ไม่มี resource ใน cluster)" : "- image: " + live, "+ image: " + want]; }
@@ -30,4 +30,8 @@ function argoRollback(name, id) {
   if (a.auto) return { err: "rollback cannot be initiated when auto-sync is enabled" };
   var e = (argoX().hist[name] || []).filter(function (x) { return x.id === id; })[0]; if (!e) return { err: "history id " + id + " not found" };
   S.argo.live[name] = e.img; return { res: e };
+}
+function argoDefCerts() {
+  var K = [["[ssh.github.com]:443", "ecdsa-sha2-nistp256", "p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM"], ["[ssh.github.com]:443", "ssh-ed25519", "+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU"], ["[ssh.github.com]:443", "ssh-rsa", "uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s"], ["bitbucket.org", "ecdsa-sha2-nistp256", "FC73VB6C4OQLSCrjEayhMp9UMxS97caD/Yyi2bhW/J0"], ["bitbucket.org", "ssh-ed25519", "ybgmFkzwOSotHTHLJgHO0QN8L0xErw6vd0VhFA9m3SM"], ["bitbucket.org", "ssh-rsa", "46OSHA1Rmj8E8ERTC6xkNcmGOw9oFxYr0WF6zWW8l1E"], ["github.com", "ecdsa-sha2-nistp256", "p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM"], ["github.com", "ssh-ed25519", "+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU"], ["github.com", "ssh-rsa", "uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s"]];
+  return K.map(function (k) { return { host: k[0], type: "ssh " + k[1], info: "SHA256:" + k[2], at: Date.now(), builtin: true }; });
 }

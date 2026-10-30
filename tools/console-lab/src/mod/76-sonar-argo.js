@@ -21,7 +21,7 @@ function argoLogin(u, pw) { var i = argoInst(); if (!i || u !== "admin" || pw !=
 function argoParse(text) {
   var out = []; String(text).split(/^---\s*$/m).forEach(function (d) {
     if (!/kind:\s*Application\b/.test(d)) return; var g = function (re) { var m = re.exec(d); return m ? m[1].trim() : ""; };
-    out.push({ name: g(/metadata:[\s\S]*?\n\s+name:\s*(\S+)/), repoURL: g(/repoURL:\s*(\S+)/), path: g(/path:\s*(\S+)/), destName: g(/destination:[\s\S]*?\n\s+name:\s*(\S+)/), destServer: g(/destination:[\s\S]*?\n\s+server:\s*(\S+)/), ns: g(/destination:[\s\S]*?\n\s+namespace:\s*(\S+)/), auto: /automated:/.test(d) });
+    out.push({ project: g(/project:\s*(\S+)/) || "default", rev: g(/targetRevision:\s*(\S+)/) || "main", name: g(/metadata:[\s\S]*?\n\s+name:\s*(\S+)/), repoURL: g(/repoURL:\s*(\S+)/), path: g(/path:\s*(\S+)/), destName: g(/destination:[\s\S]*?\n\s+name:\s*(\S+)/), destServer: g(/destination:[\s\S]*?\n\s+server:\s*(\S+)/), ns: g(/destination:[\s\S]*?\n\s+namespace:\s*(\S+)/), auto: /automated:/.test(d) });
   }); return out;
 }
 // kubectl apply -f <url|path> บน pharmacy-k8s-1 : อ่านไฟล์จาก GitHub snapshot (raw.githubusercontent.com) หรือไฟล์บน VM (ไม่มี)
