@@ -708,8 +708,8 @@ body .gh input.gx-tagin { border: 0 !important; background: transparent !importa
 .gx-dh { font-size: 28px; font-weight: 600; margin: 0 0 14px; } .gx-dsub { font-size: 16px; display: block; margin-bottom: 10px; } .gx-crc { display: flex; gap: 16px; align-items: flex-start; border: 1px solid #d1d9e0; border-radius: 12px; padding: 18px 20px; margin-bottom: 26px; } .gx-crci { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: #eaeef2; font-size: 22px; flex: none; } .gx-crc p { margin: 4px 0 12px; max-width: 360px; } .gx-rh { display: flex; justify-content: space-between; margin-bottom: 10px; } .gx-rh b { font-size: 16px; } .gx-rlist { border: 1px solid #d1d9e0; border-radius: 6px; } .gx-rrow { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #d1d9e0; } .gx-rrow:last-child { border-bottom: 0; } .gx-rri { color: #59636e; } .gx-rrn { color: #0969da !important; font-weight: 600; text-decoration: none; } .gx-rrd { font-size: 12px; color: #0969da; margin-top: 2px; }
 .gx-rc { border: 1px solid #d1d9e0; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; } .gx-lc { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 12px; } .gx-er { display: flex; align-items: center; gap: 10px; margin: 14px 0; } .gx-eri { font-size: 22px; color: #59636e; }
 .gx-set3 { grid-template-columns: 256px minmax(0, 1fr) 280px; } .gx-pcz { border: 1px solid #d1d9e0; border-radius: 6px; padding: 16px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; } .gx-ava-big { width: 76px; height: 76px; font-size: 30px; cursor: default; } .gx-okc2 { position: absolute; right: 10px; top: 8px; color: #1a7f37; }
-.pf /* ธีมร้านยา: เขียวมิ้นต์-ทีลสะอาดตา พื้นขาวอมเขียว การ์ดมนมีเงานุ่ม · ไม่ใช้ฟอนต์/ไลบรารีภายนอก (ใช้ได้ใน VPC ที่ออกเน็ตไม่ได้) */
-:root { --bg:#f3f9f8; --card:#fff; --ink:#12302f; --muted:#5e7b79; --line:#dcebe9; --brand:#0f8f82; --brand-2:#14b8a6; --brand-soft:#e2f6f3; --brand-ink:#fff; --accent:#0ea5e9; --ok:#15803d; --ok-soft:#dcfce7; --low:#b45309; --low-soft:#fef3c7; --out:#b91c1c; --out-soft:#fee2e2; --radius:16px; --shadow:0 1px 2px rgba(15,60,56,.05), 0 10px 28px -18px rgba(15,100,90,.35); }
+ /* ธีมร้านยา: เขียวมิ้นต์-ทีลสะอาดตา พื้นขาวอมเขียว การ์ดมนมีเงานุ่ม · ไม่ใช้ฟอนต์/ไลบรารีภายนอก (ใช้ได้ใน VPC ที่ออกเน็ตไม่ได้) */
+.pf { --bg:#f3f9f8; --card:#fff; --ink:#12302f; --muted:#5e7b79; --line:#dcebe9; --brand:#0f8f82; --brand-2:#14b8a6; --brand-soft:#e2f6f3; --brand-ink:#fff; --accent:#0ea5e9; --ok:#15803d; --ok-soft:#dcfce7; --low:#b45309; --low-soft:#fef3c7; --out:#b91c1c; --out-soft:#fee2e2; --radius:16px; --shadow:0 1px 2px rgba(15,60,56,.05), 0 10px 28px -18px rgba(15,100,90,.35); }
 .pf * { box-sizing:border-box; }
 .pf { margin:0; font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Sarabun",sans-serif; background:var(--bg); color:var(--ink); }
 .pf a { color:var(--brand); text-decoration:none; }
@@ -1115,6 +1115,29 @@ body .pf .navlink { color: #d5f3ee !important; text-decoration: none !important;
 .uc-hero .mc { background: color-mix(in srgb, var(--sc) 10%, var(--surface)); border-color: color-mix(in srgb, var(--sc) 30%, var(--line)); }
 .cd-call .ic { background: color-mix(in srgb, var(--sc) 24%, var(--surface)) !important; }
 .cd-verdict { background: linear-gradient(135deg, color-mix(in srgb, var(--sc) 11%, var(--surface)), color-mix(in srgb, var(--sc) 4%, var(--surface)) 92%) !important; border-color: color-mix(in srgb, var(--sc) 24%, var(--line)) !important; }
+/* preview: หน้าขายหน้าร้าน/ใบเสร็จ/รายงาน ของเว็บร้านยา (scoped .pf) */
+.pf .pos { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr); gap:18px; align-items:start; } @media (max-width:1000px) { .pf .pos { grid-template-columns:1fr; } }
+.pf .cart { position:sticky; top:76px; }
+.pf .cartline { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--line); }
+.pf .cartline .grow { flex:1; min-width:0; }
+.pf input.qty { width:54px; text-align:center; padding:4px 6px; }
+.pf .rc-sum { display:grid; grid-template-columns:1fr auto; gap:4px 16px; margin:12px 0; }
+.pf .rc-sum dt { color:var(--muted); }
+.pf .rc-sum dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; }
+.pf .rc-sum.big { font-size:1.05rem; }
+.pf .receipt { min-width:min(420px,84vw); }
+.pf .receipt table th, .pf .receipt table td { padding:6px 4px; }
+.pf .rc-head { text-align:center; margin-bottom:10px; font-size:1.1rem; }
+.pf .rc-meta { display:grid; gap:2px; font-size:.88rem; margin-bottom:10px; }
+.pf .rc-foot { text-align:center; margin-top:10px; }
+.pf .rc-void { background:var(--out-soft); color:var(--out); padding:8px 12px; border-radius:10px; margin-bottom:10px; font-weight:600; }
+.pf .chart { display:flex; align-items:flex-end; gap:6px; height:170px; padding-top:6px; border-bottom:1px solid var(--line); }
+.pf .chart .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; min-width:0; }
+.pf .chart .barwrap { flex:1; width:100%; display:flex; align-items:flex-end; }
+.pf .chart .barwrap i { display:block; width:100%; min-height:2px; border-radius:6px 6px 0 0; background:linear-gradient(180deg,var(--brand-2),var(--brand)); }
+.pf .chart .col span { font-size:.68rem; color:var(--muted); }
+.pf .modal .receipt { min-width: min(420px, 84vw); }
+body .pf input.qty { width: 54px !important; flex: none; text-align: center; padding: 4px 6px !important; } .pf .cartline .sm { flex: none; }
 </style>
 
 <header class="top">

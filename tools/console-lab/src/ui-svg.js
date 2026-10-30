@@ -31,6 +31,10 @@ var SVG_I = {
   vnet: '<rect x="3" y="4" width="6" height="5" fill="currentColor"/><rect x="15" y="4" width="6" height="5" fill="currentColor"/><rect x="9" y="15" width="6" height="5" fill="currentColor"/><path d="M9 6.5h6M12 15V9"/>',
   vlist: '<rect x="3" y="4" width="18" height="16" rx="2" fill="currentColor" stroke="none"/><path d="M7 9h10M7 12h10M7 15h10" stroke="#dfe6ec" stroke-width="1.6"/>',
   help: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M9.3 9.4a2.8 2.8 0 015.4.9c0 1.9-2.7 2.1-2.7 4" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="17.3" r="1.2" fill="#fff" stroke="none"/>',
+  cart: '<path d="M3 4h2l2.4 11h10.2l2-8H6"/><circle cx="9" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/>',
+  receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   qgpass: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M7 12.5l3.2 3.2L17 8.8" stroke="#fff" stroke-width="2.4" fill="none"/>',
   qgfail: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M8 8l8 8M16 8l-8 8" stroke="#fff" stroke-width="2.4" fill="none"/>'
 };
