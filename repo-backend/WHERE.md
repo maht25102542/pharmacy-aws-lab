@@ -27,3 +27,9 @@
 - `/api/medicines/{id}/adjust` รับ `lot_no`, `expiry_date`, `cost` ตอนรับเข้า → เปิดล็อตใหม่ · จ่ายออก/ทิ้ง ตัดล็อตหมดอายุก่อน
 - ห้ามขายยาที่อยู่ในล็อตหมดอายุแล้ว (`sellable()`), `/api/summary` มี `sales_today`, `expiring_30`, `expired`
 - `bootstrap_app --sample` สร้างล็อต (ibuprofen/loratadine ใกล้หมดอายุ, omeprazole หมดอายุแล้ว) + ใบเสร็จย้อนหลัง 14 วัน รันซ้ำไม่เพิ่มซ้ำ
+
+## ผู้จัดจำหน่าย / ใบสั่งซื้อ (migration `0003`)
+- `stock/models.py`: `Supplier`, `PurchaseOrder` (draft → ordered → partial/received · cancelled), `PurchaseOrderItem`
+- `stock/purchasing.py`: `create_po`, `mark_ordered`, `cancel`, `receive` (รับของ = เปิดล็อต + เพิ่มสต็อก + StockMovement `receive` โน้ตเป็นเลข PO ใน transaction เดียว · รับเกินที่สั่งไม่ได้), `suggestions` (ยาถึงจุดสั่งซื้อ แนะนำถึง 3 เท่า หักของที่สั่งค้าง)
+- `stock/orders.py`: `/api/suppliers` (แก้ได้เฉพาะ staff · ลบไม่ได้ถ้ามี PO), `/api/purchase-orders` (+ `/order`, `/cancel`, `/receive` ทุกคนที่ล็อกอินรับของได้), `/api/reorder-suggestions`
+- `/api/summary` มี `open_orders` · `bootstrap_app --sample` สร้างซัพพลายเออร์ 3 ราย + PO ครบทุกสถานะ

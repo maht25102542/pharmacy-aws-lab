@@ -24,6 +24,9 @@
 | `src/app/(app)/sales`, `components/PosPanel.tsx`, `Receipt.tsx` | **ขายหน้าร้าน (POS)**: ค้นหายา → ตะกร้า → ส่วนลด/วิธีชำระ/เงินทอน → ออกใบเสร็จพิมพ์ได้ (ตัดสต็อกที่ backend) |
 | `src/app/(app)/receipts`, `components/ReceiptsPanel.tsx` | ประวัติใบเสร็จ ค้นหา/กรองวันที่/สถานะ · ยกเลิกบิล (เภสัชกร/admin) |
 | `src/app/(app)/reports`, `components/ReportsPanel.tsx` | ยอดขายรายวัน (กราฟ) ยาขายดี (เภสัชกร/admin) + ยาใกล้หมดอายุ/หมดอายุแล้ว (ทุกคน) |
+| `src/app/(app)/orders`, `components/OrdersPanel.tsx` | **สั่งซื้อยา**: สร้างร่าง (เติมจากยาที่ควรสั่งได้) → สั่งซื้อ → รับของ (ใส่ล็อต/วันหมดอายุ รับบางส่วนได้) → ยกเลิก/ลบร่าง |
+| `src/app/(app)/suppliers`, `components/SuppliersPanel.tsx` | ผู้จัดจำหน่าย: ค้นหา เพิ่ม/แก้ไข ปิด-เปิดใช้งาน ลบ (ลบไม่ได้ถ้ามีประวัติสั่งซื้อ) |
+| `src/lib/purchasing.ts` (+ `.test.ts`) | ยอดรวมร่าง/ตรวจร่าง/ปุ่มที่ทำได้ตามสถานะ ที่ทดสอบได้ |
 | `src/lib/sales.ts` (+ `.test.ts`) | ตะกร้า/คิดเงินเป็นสตางค์/ทอน/สถานะวันหมดอายุ ที่ทดสอบได้ |
 | `src/app/(app)/users`, `components/UsersPanel.tsx` | **จัดการผู้ใช้** (admin เท่านั้น): สร้าง แก้บทบาท เปิด/ปิดบัญชี ตั้งรหัสใหม่ ลบ |
 | `src/app/(app)/profile`, `components/ProfilePanel.tsx` | โปรไฟล์ตัวเอง + เปลี่ยนรหัสผ่าน (เปลี่ยนแล้วต้องล็อกอินใหม่) |

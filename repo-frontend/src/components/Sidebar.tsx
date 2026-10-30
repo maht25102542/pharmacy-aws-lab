@@ -9,6 +9,8 @@ const LINKS = [
   { href: "/sales", label: "ขายหน้าร้าน", icon: "cart" },
   { href: "/medicines", label: "สต็อกยา", icon: "pill" },
   { href: "/receipts", label: "ใบเสร็จ", icon: "receipt" },
+  { href: "/orders", label: "สั่งซื้อยา", icon: "clipboard" },
+  { href: "/suppliers", label: "ผู้จัดจำหน่าย", icon: "truck" },
   { href: "/reports", label: "รายงาน", icon: "chart" },
   { href: "/movements", label: "ประวัติสต็อก", icon: "history" },
 ];

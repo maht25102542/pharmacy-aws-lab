@@ -15,6 +15,8 @@ const P: Record<string, string> = {
   cart: "M3 4h2l2.4 11h10.2l2-8H6M9 20a1 1 0 1 0 0-.1M17 20a1 1 0 1 0 0-.1",
   receipt: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6",
   chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+  truck: "M2 6h12v10H2zM14 10h4l3 3v3h-7M6 19a1.5 1.5 0 1 0 0-.1M17 19a1.5 1.5 0 1 0 0-.1",
+  clipboard: "M9 4h6v3H9zM7 5H5v16h14V5h-2M9 12h6M9 16h4",
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
 };
 export function Icon({ name }: { name: keyof typeof P | string }) {
