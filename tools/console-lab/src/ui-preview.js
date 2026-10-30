@@ -143,6 +143,7 @@ var PV_BODY_EX = { "POST/api/auth/login": ['{\n  "username": "admin",\n  "passwo
   "POST/api/auth/change-password": ['{\n  "old_password": "Pharmacy-Admin-2026!",\n  "new_password": "Brand-New-Passw0rd-1"\n}', '{\n  "old_password": "wrong",\n  "new_password": "Brand-New-Passw0rd-1"\n}'],
   "POST/api/categories": ['{\n  "name": "Dental care"\n}', '{\n  "name": "Baby care"\n}'] };
 function pvSwagger() {
+  pvSalesEx();
   var S2 = PV.sw, tags = []; PV_OPS.forEach(function (o) { if (tags.indexOf(o[0]) < 0) tags.push(o[0]); });
   S2.tk = S2.tk === undefined ? (S2.tok ? "Token " + S2.tok : "") : S2.tk; var tokIn = pvEx("Value", S2, "tk", [{ v: 0 }].length ? ["Token <ใส่ token ที่ได้จาก /api/auth/login>"] : [], "Token xxxxxxxx…", "text", false, null, true);
   var authBox = S2.authOpen ? h("div", { cls: "swauth" }, [h("b", { text: "Available authorizations · tokenAuth (apiKey)" }), h("div", { cls: "hint", text: "Name: Authorization · In: header · Value: Token <token>" }), tokIn, h("div", { style: "display:flex;gap:8px;margin-top:8px" }, [h("button", { type: "button", cls: "btn pri sm", text: "Authorize", onclick: function () { S2.tok = String(S2.tk || "").replace(/^Token\s+/i, "").trim(); S2.auth = !!S2.tok; S2.authOpen = false; render(); } }), h("button", { type: "button", cls: "btn sm", text: "Logout", onclick: function () { S2.tok = ""; S2.tk = ""; S2.auth = false; S2.authOpen = false; render(); } }), h("button", { type: "button", cls: "btn sm", text: "Close", onclick: function () { S2.authOpen = false; render(); } })])]) : null;

@@ -37,7 +37,7 @@ function pvdCreateSale(D, me, b, opt) {
   if (!items || !items.length) return { err: { code: 400, body: { items: ["This list may not be empty."] } } };
   if (items.length > 50) return { err: { code: 400, body: { items: ["Ensure this field has no more than 50 elements."] } } };
   var merged = {}, order = [];
-  for (var i = 0; i < items.length; i++) { var q = +items[i].qty, id = +items[i].medicine; if (!isFinite(q) || q < 1 || Math.floor(q) !== q || q > 9999) return { err: { code: 400, body: { items: [{ qty: ["Ensure this value is greater than or equal to 1."] }] } } }; if (merged[id] === undefined) { merged[id] = 0; order.push(id); } merged[id] += q; }
+  for (var i = 0; i < items.length; i++) { var q = +items[i].qty, id = +items[i].medicine; if (!isFinite(q) || q < 1 || Math.floor(q) !== q) return { err: { code: 400, body: { items: [{ qty: ["Ensure this value is greater than or equal to 1."] }] } } }; if (q > 9999) return { err: { code: 400, body: { items: [{ qty: ["Ensure this value is less than or equal to 9999."] }] } } }; if (merged[id] === undefined) { merged[id] = 0; order.push(id); } merged[id] += q; }
   var payment = b.payment || "cash"; if (["cash", "transfer", "card"].indexOf(payment) < 0) return { err: { code: 400, body: { payment: ["\"" + payment + "\" is not a valid choice."] } } };
   var lines = [], sub = 0;
   for (var j = 0; j < order.length; j++) {
@@ -161,4 +161,29 @@ function pvFeReports(me, staff) {
     h("table", {}, [h("thead", {}, [h("tr", {}, ["ยา", "ล็อต", "วันหมดอายุ", "คงเหลือ", "สถานะ"].map(function (x, i) { return h("th", { cls: i === 3 ? "num" : "", text: x }); }))]), h("tbody", {}, ex.results.map(function (r) { var st = r.days_left < 0 ? "out" : r.days_left <= 30 ? "low" : "ok"; return h("tr", {}, [h("td", {}, [r.medicine_name + " ", h("span", { cls: "muted", text: "(" + r.medicine_sku + ")" })]), h("td", { text: r.lot_no }), h("td", { text: r.expiry_date }), h("td", { cls: "num", text: String(r.qty_remaining) }), h("td", {}, [h("span", { cls: "badge " + st, text: r.days_left < 0 ? "หมดอายุแล้ว " + (-r.days_left) + " วัน" : "อีก " + r.days_left + " วัน" })])]); }).concat(ex.results.length ? [] : [h("tr", {}, [h("td", { colSpan: 5, cls: "empty", text: "ไม่มีล็อตที่ใกล้หมดอายุ 🎉" })])]))]),
     ex.results.some(function (r) { return r.expired; }) ? h("div", { cls: "notice bad", style: "margin:16px", text: "มีล็อตหมดอายุแล้ว: ขายไม่ได้ · ไปที่ สต็อกยา → จ่ายออก → เหตุผล \"หมดอายุ/ทิ้ง\" เพื่อตัดออกจากสต็อก" }) : null].filter(Boolean));
   return h("div", {}, [pvHead("รายงาน", "ยอดขาย ยาขายดี และยาที่ใกล้หมดอายุ"), c1, c2]);
+}
+
+// ตัวอย่าง request body / พารามิเตอร์ใน Swagger (dropdown ใน Try it out): ขายสำเร็จ + กรณีผิดพลาดที่ backend ตอบ 400
+var PV_SALES_EX_DONE = false;
+function pvSalesEx() {
+  if (PV_SALES_EX_DONE) return; PV_SALES_EX_DONE = true;
+  var J = function (o) { return JSON.stringify(o, null, 2); }, add = function (k, arr) { PV_BODY_EX[k] = (PV_BODY_EX[k] || []).concat(arr.map(function (x) { return typeof x === "string" ? x : J(x); })); };
+  add("POST/api/sales", [
+    { items: [{ medicine: 1, qty: 2 }], payment: "cash", paid: "100" },
+    { items: [{ medicine: 1, qty: 3 }, { medicine: 3, qty: 1 }], payment: "transfer", customer_name: "คุณสมศรี" },
+    { items: [{ medicine: 2, qty: 1 }], payment: "card", discount: 5 },
+    { items: [{ medicine: 1, qty: 2 }], payment: "cash", paid: "200", discount: 10, customer_name: "คุณมานี", note: "ลูกค้าประจำ" },
+    { items: [{ medicine: 1, qty: 5000 }], payment: "cash" },
+    { items: [{ medicine: 1, qty: 1 }], payment: "cash", paid: "1" },
+    { items: [], payment: "cash" },
+    { items: [{ medicine: 1, qty: 1 }], payment: "bitcoin" }
+  ]);
+  add("POST/api/sales/{id}/void", [{ reason: "ลูกค้าเปลี่ยนใจ" }, { reason: "ขายผิดรายการ" }, { reason: "คีย์ซ้ำ" }, {}]);
+  add("POST/api/categories", [{ name: "Vitamins" }, { name: "First aid" }, { name: "" }]);
+  add("POST/api/medicines", [{ sku: "VIT500", name: "Vitamin C 500 mg", category: 1, unit: "box", price: "89.00", reorder_level: 15 }, { sku: "PCM500", name: "ซ้ำ SKU", price: "10" }, { sku: "BAD", name: "ราคาติดลบ", price: "-1" }, { sku: "", name: "" }]);
+  add("PATCH/api/auth/me", [{ first_name: "สมชาย", last_name: "ใจดี" }, { email: "admin@pharmacy.local" }]);
+  add("POST/api/auth/change-password", [{ old_password: "Pharmacy-Admin-2026!", new_password: "Another-Str0ng-Pass!" }, { old_password: "ผิด", new_password: "Another-Str0ng-Pass!" }, { old_password: "Pharmacy-Admin-2026!", new_password: "short" }]);
+  PV_PARAM_EX.date_to = ["2026-10-29", "2026-10-25", "2026-10-20"];
+  PV_PARAM_EX.date_from = ["2026-10-20", "2026-10-25", "2026-10-29"];
+  PV_PARAM_EX.id = ["1", "2", "3", "5", "8", "12", "40", "999"];
 }
