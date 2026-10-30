@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Category, Medicine, StockMovement
+from .models import Batch, Category, Medicine, Sale, SaleItem, StockMovement
 
 MAX_STOCK = 1_000_000
 
@@ -30,6 +30,9 @@ class AdjustSerializer(serializers.Serializer):
     delta = serializers.IntegerField(min_value=-MAX_STOCK, max_value=MAX_STOCK)
     reason = serializers.ChoiceField(choices=[r[0] for r in StockMovement.REASONS], default="adjust")
     note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    lot_no = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")  # ใช้ตอนรับเข้า: ระบุล็อต
+    expiry_date = serializers.DateField(required=False, allow_null=True, default=None)  # วันหมดอายุของล็อตที่รับเข้า
+    cost = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, min_value=0, default=0)
 
     def validate_delta(self, v):
         if v == 0:
@@ -45,3 +48,46 @@ class MovementSerializer(serializers.ModelSerializer):
     class Meta:
         model = StockMovement
         fields = ["id", "medicine", "medicine_sku", "medicine_name", "delta", "stock_after", "reason", "note", "created_by_name", "created_at"]
+
+
+class BatchSerializer(serializers.ModelSerializer):
+    medicine_name = serializers.CharField(source="medicine.name", read_only=True)
+    medicine_sku = serializers.CharField(source="medicine.sku", read_only=True)
+
+    class Meta:
+        model = Batch
+        fields = ["id", "medicine", "medicine_sku", "medicine_name", "lot_no", "expiry_date", "qty_received", "qty_remaining", "cost", "received_at"]
+
+
+class SaleItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SaleItem
+        fields = ["id", "medicine", "sku", "name", "unit_price", "qty", "line_total"]
+
+
+class SaleSerializer(serializers.ModelSerializer):
+    items = SaleItemSerializer(many=True, read_only=True)
+    created_by_name = serializers.CharField(source="created_by.username", read_only=True, default=None)
+    voided_by_name = serializers.CharField(source="voided_by.username", read_only=True, default=None)
+
+    class Meta:
+        model = Sale
+        fields = ["id", "receipt_no", "customer_name", "payment", "subtotal", "discount", "total", "paid", "change", "status", "note", "created_by_name", "created_at", "voided_by_name", "voided_at", "void_reason", "items"]
+
+
+class SaleLineSerializer(serializers.Serializer):
+    medicine = serializers.IntegerField(min_value=1)
+    qty = serializers.IntegerField(min_value=1, max_value=9999)
+
+
+class SaleCreateSerializer(serializers.Serializer):
+    items = SaleLineSerializer(many=True, min_length=1, max_length=50)
+    payment = serializers.ChoiceField(choices=[p[0] for p in Sale.PAYMENTS], default="cash")
+    paid = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True, min_value=0, default=None)
+    discount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, min_value=0, default=0)
+    customer_name = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+
+class VoidSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")

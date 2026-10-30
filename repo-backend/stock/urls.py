@@ -1,12 +1,13 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import accounts, views
+from . import accounts, sales, views
 
 router = DefaultRouter(trailing_slash=False)
 router.register("medicines", views.MedicineViewSet, basename="medicine")
 router.register("categories", views.CategoryViewSet, basename="category")
 router.register("movements", views.MovementViewSet, basename="movement")
+router.register("sales", sales.SaleViewSet, basename="sale")
 router.register("users", accounts.UserViewSet, basename="user")
 
 urlpatterns = [
@@ -15,5 +16,8 @@ urlpatterns = [
     path("auth/me", accounts.me),
     path("auth/change-password", accounts.change_password),
     path("summary", views.summary),
+    path("reports/sales", sales.sales_report),
+    path("reports/expiry", sales.expiry_report),
+    path("batches", sales.batches),
     path("", include(router.urls)),
 ]

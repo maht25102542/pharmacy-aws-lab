@@ -1,9 +1,11 @@
 import socket
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.db.models import F, Sum
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import permissions, status, viewsets
 from rest_framework.authtoken.models import Token
@@ -12,8 +14,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from .accounts import user_payload
-from .models import Category, Medicine, StockMovement
+from .models import Batch, Category, Medicine, Sale, StockMovement
 from .serializers import MAX_STOCK, AdjustSerializer, CategorySerializer, MedicineSerializer, MovementSerializer
+from .services import consume
 
 
 class ReadAnyWriteStaff(permissions.BasePermission):
@@ -70,6 +73,10 @@ class MedicineViewSet(viewsets.ModelViewSet):
                 return Response({"detail": "stock cannot go below 0", "stock": med.stock}, status=status.HTTP_400_BAD_REQUEST)
             if new > MAX_STOCK:
                 return Response({"detail": f"stock cannot exceed {MAX_STOCK}", "stock": med.stock}, status=status.HTTP_400_BAD_REQUEST)
+            if d["delta"] > 0 and d["reason"] == "receive":  # รับเข้า = เปิดล็อตใหม่ (ระบุเลขล็อต/วันหมดอายุ/ต้นทุนได้)
+                Batch.objects.create(medicine=med, lot_no=d["lot_no"] or f"L{timezone.localdate():%y%m%d}", expiry_date=d["expiry_date"], qty_received=d["delta"], qty_remaining=d["delta"], cost=d["cost"], created_by=request.user)
+            elif d["delta"] < 0:  # จ่ายออก/ทิ้ง = ตัดล็อตที่หมดอายุก่อน (ทิ้งยาหมดอายุตัดล็อตหมดอายุได้)
+                consume(med, -d["delta"], include_expired=d["reason"] == "expired")
             med.stock = new
             med.save(update_fields=["stock", "updated_at"])
             StockMovement.objects.create(medicine=med, delta=d["delta"], stock_after=new, reason=d["reason"], note=d["note"], created_by=request.user)
@@ -90,6 +97,9 @@ class MovementViewSet(viewsets.ReadOnlyModelViewSet):
 @extend_schema(tags=["summary"])
 @api_view(["GET"])
 def summary(_request):
+    today = timezone.localdate()
+    today_sales = Sale.objects.filter(status="completed", created_at__date=today)
+    live = Batch.objects.filter(qty_remaining__gt=0, expiry_date__isnull=False)
     meds = Medicine.objects.filter(is_active=True)
     value = meds.aggregate(v=Sum(F("stock") * F("price")))["v"] or 0
     return Response({
@@ -97,6 +107,9 @@ def summary(_request):
         "low_stock": meds.filter(stock__lte=F("reorder_level")).count(),
         "out_of_stock": meds.filter(stock=0).count(),
         "stock_value": f"{Decimal(str(value)):.2f}",
+        "sales_today": {"count": today_sales.count(), "total": f"{Decimal(str(today_sales.aggregate(t=Sum('total'))['t'] or 0)):.2f}"},
+        "expiring_30": live.filter(expiry_date__gte=today, expiry_date__lte=today + timedelta(days=30)).count(),
+        "expired": live.filter(expiry_date__lt=today).count(),
         "served_by": socket.gethostname(),  # ชื่อ pod ที่ตอบ: รีเฟรชหลายครั้งเห็นสลับระหว่าง replica
     })
 
