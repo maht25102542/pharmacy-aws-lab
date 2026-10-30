@@ -144,7 +144,7 @@ function agMenu2(key, items) { return h("span", { style: "position:relative" }, 
 
 // กด sync: โชว์สถานะ Syncing (ไอคอนหมุน) ~2 วินาที แล้วค่อย sync จริง (โหมด instant ทำทันที)
 function agRunSync(names, done) {
-  var fin = function () { var bad = []; names.forEach(function (n) { var r = argoSyncApp(n); if (r.err) bad.push(n); }); W.agsy = W.agsy || {}; names.forEach(function (n) { delete W.agsy[n]; }); done(bad); if (S.speed !== "instant") names.forEach(function (n) { W.agrv = W.agrv || {}; W.agrv[n] = 0; var k = setInterval(function () { W.agrv[n] = (W.agrv[n] || 0) + 1; if (W.agrv[n] >= 3) { clearInterval(k); delete W.agrv[n]; } render(); }, 600); }); save(); render(); };
+  var fin = function () { var bad = []; names.forEach(function (n) { var r = argoSyncApp(n); if (r.err) bad.push(n); }); W.agsy = W.agsy || {}; names.forEach(function (n) { delete W.agsy[n]; }); done(bad); if (S.speed !== "instant") names.forEach(function (n) { W.agrv = W.agrv || {}; W.agrv[n] = 0; var k = setInterval(function () { W.agrv[n] = (W.agrv[n] || 0) + 1; if (W.agrv[n] >= 6) { clearInterval(k); delete W.agrv[n]; } render(); }, 600); }); save(); render(); };
   if (S.speed === "instant") { fin(); return; }
   W.agsy = W.agsy || {}; names.forEach(function (n) { W.agsy[n] = 1; }); render(); setTimeout(fin, 2200);
 }
