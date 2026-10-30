@@ -48,7 +48,7 @@ function pvdMedOut(D, m) { var c = D.cats.filter(function (x) { return x.id === 
 function pvdMvOut(D, x) { var m = D.meds.filter(function (y) { return y.id === x.medicine; })[0], u = D.users.filter(function (y) { return y.id === x.created_by; })[0]; return { id: x.id, medicine: x.medicine, medicine_sku: m ? m.sku : "", medicine_name: m ? m.name : "", delta: x.delta, stock_after: x.stock_after, reason: x.reason, note: x.note, created_by_name: u ? u.username : null, created_at: x.created_at }; }
 function pvdPage(list, q) { var n = Math.max(1, Math.ceil(list.length / 10)), p = +q.page || 1; if (p < 1 || p > n) return { code: 404, body: { detail: "Invalid page." } }; return { code: 200, body: { count: list.length, next: p < n ? "?page=" + (p + 1) : null, previous: p > 1 ? "?page=" + (p - 1) : null, results: list.slice((p - 1) * 10, p * 10) } }; }
 // เลียนแบบ API ของ backend: คืน { code, body } · token = "Token xxx" ที่ได้จาก /api/auth/login
-function pvdApi(D, method, rawPath, body, token) {
+function pvdApi0(D, method, rawPath, body, token) {
   var qi = rawPath.indexOf("?"), path = qi < 0 ? rawPath : rawPath.slice(0, qi), Q = {}; if (qi >= 0) rawPath.slice(qi + 1).split("&").forEach(function (kv) { var p = kv.split("="); if (p[0]) Q[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || "").replace(/\+/g, " ")); });
   var b = body && typeof body === "object" ? body : {}, bad = function (o) { return { code: 400, body: o }; }, uid = token && D.tokens[token];
   if (path === "/api/health") return { code: 200, body: { status: "ok", version: "v1.0.0" } };
@@ -65,7 +65,7 @@ function pvdApi(D, method, rawPath, body, token) {
   if (path === "/api/auth/logout") { delete D.tokens[token]; return { code: 204, body: null }; }
   if (path === "/api/auth/me") { if (method === "PATCH") ["first_name", "last_name", "email"].forEach(function (k) { if (typeof b[k] === "string") me[k] = b[k]; }); return { code: 200, body: pvdMe(me) }; }
   if (path === "/api/auth/change-password" && method === "POST") { if (b.old_password !== pvdPw(me)) return bad({ old_password: ["incorrect password"] }); if (!b.new_password || b.new_password.length < 10) return bad({ new_password: ["This password is too short. It must contain at least 10 characters."] }); me.pw = b.new_password; delete D.tokens[token]; return { code: 204, body: null }; }
-  if (path === "/api/summary") { var act = D.meds.filter(function (m) { return m.is_active; }); return { code: 200, body: { medicines: act.length, low_stock: act.filter(function (m) { return m.stock <= m.reorder_level; }).length, out_of_stock: act.filter(function (m) { return m.stock === 0; }).length, stock_value: act.reduce(function (s, m) { return s + m.stock * Number(m.price); }, 0).toFixed(2), served_by: "backend-7d9c6b5f4-x2k9p", sales_today: pvdSummaryExtra(D).sales_today, expiring_30: pvdSummaryExtra(D).expiring_30, expired: pvdSummaryExtra(D).expired } }; }
+  if (path === "/api/summary") { var act = D.meds.filter(function (m) { return m.is_active; }); return { code: 200, body: { medicines: act.length, low_stock: act.filter(function (m) { return m.stock <= m.reorder_level; }).length, out_of_stock: act.filter(function (m) { return m.stock === 0; }).length, stock_value: act.reduce(function (s, m) { return s + m.stock * Number(m.price); }, 0).toFixed(2), served_by: "backend-7d9c6b5f4-x2k9p", sales_today: pvdSummaryExtra(D).sales_today, expiring_30: pvdSummaryExtra(D).expiring_30, expired: pvdSummaryExtra(D).expired, open_orders: pvdSummaryExtra(D).open_orders } }; }
   var sx = pvdSalesApi(D, method, path, Q, b, me, staff); if (sx) return sx;
   if (path === "/api/categories") { if (method === "GET") return { code: 200, body: D.cats }; if (!staff) return forbid; if (!b.name) return bad({ name: ["This field is required."] }); var c = { id: D.cats.length + 1, name: b.name }; D.cats.push(c); return { code: 201, body: c }; }
   if (path === "/api/movements") { var mv = D.moves.filter(function (x) { return !Q.medicine || String(x.medicine) === Q.medicine; }).slice().reverse().map(function (x) { return pvdMvOut(D, x); }); return pvdPage(mv, Q); }
@@ -86,4 +86,11 @@ function pvdApi(D, method, rawPath, body, token) {
     if (method === "PATCH") { var dem = (b.role && b.role !== "admin" && tu.role === "admin") || b.is_active === false; if (dem && tu.id === me.id) return bad({ detail: "cannot demote or deactivate yourself" }); if (dem && lastAdmin) return bad({ detail: "at least one active admin is required" }); ["first_name", "last_name", "email", "role", "is_active"].forEach(function (k) { if (b[k] !== undefined) tu[k] = b[k]; }); if (b.password) { if (b.password.length < 10) return bad({ password: ["This password is too short. It must contain at least 10 characters."] }); Object.keys(D.tokens).forEach(function (k) { if (D.tokens[k] === tu.id) delete D.tokens[k]; }); } if (b.is_active === false) Object.keys(D.tokens).forEach(function (k) { if (D.tokens[k] === tu.id) delete D.tokens[k]; }); return { code: 200, body: pvdUserOut(tu) }; }
   }
   return { code: 404, body: { detail: "Not found." } };
+}
+
+// ครอบ pvdApi: คำขอที่แก้ข้อมูล (ไม่ใช่ GET) บันทึกลง sessionStorage ให้รีเฟรชหน้าแล้วข้อมูลใน Preview ไม่หาย (ปุ่ม Reset ล้างทิ้ง)
+function pvdApi(D, method, rawPath, body, token) {
+  var r = pvdApi0(D, method, rawPath, body, token);
+  if (method !== "GET") { try { sessionStorage.setItem("pvD", JSON.stringify(D)); } catch (e) { /* เต็ม/ปิดใช้ storage: ข้ามได้ */ } }
+  return r;
 }
