@@ -417,7 +417,51 @@ UC.push({
   errGo: function (e) { buildExpress(e.load); UI.sel = {}; UI.form = null; UI.expSel = "pharmacy-express/pharmacy-api-prd"; UI.expTab = "overview"; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ดู service ที่ ECS › Express mode"); go("ecs-exp", {}, "ECS"); }
 });
 
-var UC_SVCS = { static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
+UC.push({
+  id: "jk", no: 9, title: "Jenkins CI: ปล่อยงานร้านยา + ด่านตรวจ 4 ด่าน", color: "#c0392b", dir: "repo-backend · repo-frontend", loadKind: "jk",
+  tag: "✅ ของจริงที่ทีมใช้ทุกวัน: push โค้ด → Jenkins ตรวจ (เทสต์ · Sonar · Trivy) → ผ่านแล้วค่อย build/push image · ล้มที่ด่านไหนก็หยุดที่นั่น",
+  intro: [
+    ["ตัวอย่างงาน", "#c0392b", "ทีมร้านยาแก้โค้ด backend/frontend แล้ว push — **ก่อน**ขึ้น dev/prd ต้องผ่านด่านอัตโนมัติ **เทสต์ → SonarQube → build image → Trivy** ถ้าด่านไหนแดง pipeline หยุด **ไม่มีอะไรหลุดไปถึง ECR**"],
+    ["ใช้ทำอะไร", "#2b6cb0", "ฝึก**อ่าน log แล้วหาว่าล้มเพราะอะไร** · stage ใน Jenkinsfile ตรงกับด่านที่ทีมจริงใช้ · ทุกโจทย์ทำในตัวจำลองได้เอง: แก้ไฟล์ → git push → Build with Parameters → ดู Console Output"],
+    ["ต่างจาก use case 1–8", "#c2185b", "use case อื่นสร้างของบน **AWS** ด้วย Terraform · อันนี้อยู่ฝั่ง **CI** (Jenkins บน EC2): AWS มาเกี่ยวตอน push image เข้า **ECR** และสิทธิ์ IAM role ของเครื่อง Jenkins"],
+    ["ใครใช้", "#1d8102", "แทบทุกทีมที่มี CI · Quality Gate และ image scan เป็นด่านบังคับของทีมที่ต้องผ่านตรวจ security"],
+    ["สิ่งที่ต้องรู้", "#a85a00", "① SonarQube ต้องมี **baseline** (build ผ่านก่อน 1 รอบ) ถึงบอกได้ว่าอะไรคือโค้ดใหม่ ② Trivy ล้มเมื่อเจอ HIGH/CRITICAL ที่ **มี fixed version** ③ ข้อความล้มของ stage ก่อนหน้าทำให้ stage หลังขึ้น not run"]
+  ],
+  envs: [["", "dev", "prd"], ["VERSION", "tag อะไรก็ได้ เช่น v1.0.0", "ต้องเป็น vN.N.N เท่านั้น"], ["ด่านตรวจ", "รันครบทุกครั้ง", "รันครบ + ต้องกด approve ก่อน deploy"], ["Sync ArgoCD", "ตาม AUTO_SYNC", "ตาม AUTO_SYNC + คนกดยืนยัน"]],
+  nodes: [
+    { id: "dev", x: 24, y: 150, w: 120, h: 64, t: "นักพัฒนา", s: "git push", c: "#2a4a7a" },
+    { id: "gh", ico: "github", x: 190, y: 130, w: 150, h: 100, t: "GitHub", s: "repo-backend/frontend", c: "#24292f" },
+    { id: "jk", x: 390, y: 130, w: 170, h: 100, t: "Jenkins", s: "Jenkinsfile 12 stage", c: "#c0392b" },
+    { id: "gate", x: 610, y: 40, w: 200, h: 64, t: "ด่านตรวจ", s: "Test · Sonar · Trivy", c: "#8456ce" },
+    { id: "ecr", ico: "ecr", x: 610, y: 240, w: 200, h: 64, t: "ECR", s: "image ที่ผ่านด่านแล้ว", c: "#d9480f" },
+    { id: "iam", ico: "iam", x: 390, y: 300, w: 170, h: 64, t: "IAM role (Jenkins)", s: "ecr:PutImage", c: "#c2185b" }
+  ],
+  links: [["dev", "gh"], ["gh", "jk"], ["jk", "gate"], ["jk", "ecr"], ["iam", "jk"]],
+  scenes: [
+    { t: "push โค้ด → Jenkins เริ่ม build", on: ["dev", "gh", "jk"], flow: [["dev", "git push"], ["gh", "checkout tag"], ["jk", "Build with Parameters"]], rows: [["เกิดอะไร", "#c0392b", "Jenkins ดึงโค้ดตาม tag ที่ระบุ แล้วเริ่ม **Validate → Test**"]] },
+    { t: "ด่านตรวจผ่านทีละด่าน", on: ["jk", "gate"], flow: [["jk", "run stage"], ["gate", "Test ✓ Sonar ✓ Trivy ✓"]], rows: [["เกิดอะไร", "#8456ce", "**Test** รัน pytest / eslint+tsc+vitest · **SonarQube scan** รอ Quality Gate · **Scan image** (Trivy) หาช่องโหว่ใน image"]] },
+    { t: "ผ่านแล้วค่อย push image", on: ["jk", "iam", "ecr"], flow: [["iam", "สวม role"], ["jk", "docker push"], ["ecr", "image ใหม่"]], rows: [["เกิดอะไร", "#d9480f", "เฉพาะ build ที่ผ่านทุกด่านถึงจะ **Push image** เข้า ECR แล้วไป Update manifest"]] },
+    { t: "เคส error: ด่านตรวจแดง", on: ["jk", "gate"], bad: ["gate"], flow: [["jk", "run stage"], ["gate", "✗ ล้ม"]], rows: [["อาการ", "#c62828", "stage แดง · stage หลังจากนั้น not run · Finished: FAILURE"], ["ไล่หา", "#a85a00", "Console Output หา `ERROR` + ไฟล์:บรรทัด · ดูตารางช่องโหว่ (Trivy) หรือ Issues (SonarQube)"]] }
+  ],
+  tf: [
+    { type: "stage", name: "Test", file: "repo-backend/Jenkinsfile", console: ["Jenkins › pharmacy-backend › Console Output", "pytest ใน container ชั่วคราว (frontend: lint → typecheck → vitest)"], err: "เทสต์พัง = เคส jk-test · debugger ค้าง = jk-lint" },
+    { type: "stage", name: "SonarQube scan", file: "repo-backend/Jenkinsfile", console: ["SonarQube › Projects › pharmacy-backend › Issues", "scanner ส่งผลไป server แล้วรอ Quality Gate"], err: "secret ฝังในโค้ด = jk-secret" },
+    { type: "stage", name: "Build image", file: "repo-backend/Dockerfile", console: ["Jenkins › Console Output", "docker build ตาม Dockerfile"], err: "" },
+    { type: "stage", name: "Scan image", file: "repo-backend/Jenkinsfile", console: ["Jenkins › Console Output", "Trivy: ตาราง Library · CVE · Severity · Fixed Version"], err: "แพ็กเกจเก่า = jk-cve · base image เก่า = jk-img" },
+    { type: "stage", name: "Push image", file: "repo-backend/Jenkinsfile", console: ["ECR › Repositories › pharmacy/backend", "image ใหม่ปรากฏเมื่อผ่านทุกด่าน"], err: "ไม่มี repo/role ไม่มีสิทธิ์ = name unknown / AccessDenied" }
+  ],
+  errors: [
+    { load: "jk-test", t: "เทสต์พัง", sym: "stage Test แดง · FAILURES พร้อมไฟล์:บรรทัด · Sonar/Build/Scan/Push ขึ้น not run", find: "Console Output › FAILURES", fix: "แก้โค้ดหรือเทสต์ให้ผ่านแล้ว push ใหม่" },
+    { load: "jk-secret", t: "password ฝังในโค้ด", sym: "SonarQube scan แดง · QUALITY GATE STATUS: FAILED", find: "SonarQube › Issues › Vulnerability S2068 (ไฟล์:บรรทัด)", fix: "ย้ายความลับไป credential/env แล้ว push ใหม่" },
+    { load: "jk-cve", t: "แพ็กเกจเก่ามี CVE", sym: "Scan image แดง · ตาราง Trivy มี CVE-2023-32681", find: "Console Output › ตาราง Trivy (Fixed Version)", fix: "อัปเกรดเป็น Fixed Version แล้ว push ใหม่" },
+    { load: "jk-img", t: "base image เก่า", sym: "Scan image แดง · Trivy พบช่องโหว่ใน node (base image)", find: "Console Output › ตาราง Trivy + Dockerfile บรรทัด FROM", fix: "เปลี่ยนเป็น node:22.12.0-alpine3.21 แล้ว push ใหม่" },
+    { load: "jk-lint", t: "เหลือ debugger ในโค้ด", sym: "stage Test แดงที่ eslint: no-debugger", find: "Console Output › บรรทัด eslint", fix: "ลบ debugger; แล้ว push ใหม่" }
+  ],
+  loadBtns: [["โหลดตัวอย่างครบทั้งชุด (build ปกติผ่านแล้ว)", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 9 แล้ว: เปิด Browser › Jenkins ดู build #1"); go("browser", {}, "Browser"); }]],
+  errGo: function (e) { var o = jkexLoad(e.load.replace(/^jk-/, "")); UI.sel = {}; TERM.lines = ["โหลดเคส “" + e.t + "” แล้ว: แก้ไฟล์ + push เรียบร้อย (ทำในเทอร์มินัลได้เองเหมือนกัน)", "", "ขั้นต่อไป: Browser › Jenkins › pharmacy-" + (o.ex ? o.ex.svc : "backend") + " › Build with Parameters › Build แล้วเปิด Console Output", "", "แก้กลับ:"].concat(o.ex ? o.ex.fix : []).concat(["git add .", "git commit -m fix", "git push"]); TERM.hist = []; TERM.hi = 0; TERM.ask = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว"); go("term", {}, "Laptop"); }
+});
+
+var UC_SVCS = { jk: ["github", "ecr", "iam"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
 var UC_SVC_LBL = { s3: "S3", cloudfront: "CloudFront", route53: "Route 53", acm: "ACM", ecr: "ECR", ecs: "ECS", elb: "ALB", rds: "RDS", vpc: "VPC", iam: "IAM", cloudwatch: "CloudWatch", apigw: "API Gateway", lambda: "Lambda", dynamodb: "DynamoDB", codepipeline: "CodePipeline", codebuild: "CodeBuild", github: "GitHub", ec2: "EC2", ebs: "EBS", apprunner: "App Runner", autoscaling: "Auto Scaling" };
 function ucSvcChips(u) { var ks = UC_SVCS[u.id]; if (!ks) return null; return h("div", { cls: "uc-svcs" }, ks.map(function (k) { var src = AWS_ICONS[k] || BRAND_ICONS[k]; return h("span", { title: UC_SVC_LBL[k] || k }, [src ? h("img", { src: src, width: "20", height: "20", alt: "" }) : null, UC_SVC_LBL[k] || k]); })); }
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
@@ -465,7 +509,7 @@ function ucErrTable(u) {
   return w;
 }
 // หมู่ตามแกน "แอปรันที่ไหน" + แกน CI/CD แยก (CI/CD 4,5 ปล่อยลง ECS ของ use case 2)
-var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"]];
+var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"], ["CI ฝั่ง Jenkins", ["jk"], "#c0392b"]];
 // player: ดับเบิลคลิก/แตะครึ่งขวา = ข้าม 5 วิ, ครึ่งซ้าย = ย้อน 5 วิ, คลิกเดียว = เล่น/หยุด + ปุ่มเปิด-ปิดเสียง
 var VI = {
   play: '<path d="M8 5v14l11-7z" fill="currentColor"/>', pause: '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>',
@@ -565,5 +609,5 @@ function ucTab() {
   return cb;
 }
 FOLD.ucvid = 1; FOLD.ucevid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
-PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (8 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
+PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (9 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
 NAVICO["lab-uc"] = "🧭";

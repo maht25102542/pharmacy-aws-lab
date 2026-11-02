@@ -73,3 +73,10 @@ var JKEX = [
   { id: "img", svc: "frontend", stage: "Scan image", c: "#0f9d8a", t: "base image เก่า → ล้มที่ Scan image", why: "repo ที่ไม่ได้แตะนานมักยังชี้ base image เวอร์ชันเก่าที่หมดอายุซัพพอร์ต", cmds: ["sed -i 's/node:22.12.0-alpine3.21/node:14-alpine/' Dockerfile"], see: "stage **Scan image** แดง · ตาราง Trivy บอก `node (base image)` · Fixed Version `22.12.0`", fix: ["sed -i 's/node:14-alpine/node:22.12.0-alpine3.21/' Dockerfile"] },
   { id: "lint", svc: "frontend", stage: "Test", c: "#c0392b", t: "เหลือ debugger ในโค้ด → ล้มที่ lint", why: "lint จับของที่ลืมลบก่อนขึ้น prd (frontend รัน lint → typecheck → vitest ตามลำดับ)", cmds: ["echo \"debugger;\" >> src/lib/client.ts"], see: "stage **Test** แดงตั้งแต่ `eslint` · `no-debugger` พร้อมไฟล์:บรรทัด · ยังไม่ถึง typecheck/vitest (ล้มเร็ว)", fix: ["sed -i 's/^debugger;$//' src/lib/client.ts"] }
 ];
+// โหลดสถานการณ์ use case 9: ตั้งค่าครบ + push 3 repo + build ปกติ 1 รอบ (baseline ของ Sonar) แล้วทำให้พังตามข้อ id (ไม่ระบุ = ปกติ) · คืน {r, ex}
+function jkexLoad(id) {
+  var r = buildReady("demo"), ex = JKEX.filter(function (x) { return x.id === id; })[0]; readyPushCmds().forEach(function (c) { shRun(c); });
+  ["backend", "frontend"].forEach(function (svc) { jkSelect("pharmacy-" + svc); jkNew({ TARGET_ENV: "dev", SERVICE: svc, VERSION: "v1.0.0", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); });
+  if (ex) { shRun("cd " + REPO + "/repo-" + ex.svc); ex.cmds.forEach(function (c) { shRun(c); }); shRun("git add ."); shRun("git commit -m \"ทดลอง: " + ex.id + "\""); shRun("git push"); jkSelect("pharmacy-" + ex.svc); }
+  return { r: r, ex: ex };
+}
