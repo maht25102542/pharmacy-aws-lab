@@ -318,10 +318,33 @@ function jkxRoll() {
   return h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;margin:0 0 6px;flex-wrap:wrap" }, P.ctl.concat([h("span", { cls: "hint", text: "replicas = " + n + " (" + JKX.env + ")" })])), row, cnt, msg]);
 }
 
+// ---- โจทย์ฝึก: ทำให้ pipeline ล้ม 5 แบบ แล้วแก้ให้ผ่าน (ข้อมูลจาก JKEX ใน 85-jktest.js; test.js รันทุกคำสั่งจริง)
+function jkxCmd(text) {
+  var b = h("button", { type: "button", cls: "btn", style: "padding:2px 10px;font-size:.75rem", text: "คัดลอก" });
+  b.onclick = function () { try { navigator.clipboard.writeText(text); b.textContent = "คัดลอกแล้ว ✓"; setTimeout(function () { b.textContent = "คัดลอก"; }, 1200); } catch (e) { b.textContent = "คัดลอกเองนะ"; } };
+  return h("div", { style: "display:flex;gap:8px;align-items:center;margin:4px 0" }, [h("code", { style: "flex:1;font-family:var(--mono);font-size:.82rem;background:var(--code-bg);border-radius:8px;padding:6px 10px;overflow:auto;white-space:pre" , text: text }), b]);
+}
+function jkxExercises() {
+  var root = "~/Desktop/work/pharmacy-aws-lab/", d = fold("jxex", "🎯 โจทย์ฝึก: ทำให้ pipeline ล้ม " + JKEX.length + " แบบ แล้วแก้ให้ผ่าน");
+  d.appendChild(infoCard([["ก่อนเริ่ม", "#2b6cb0", "ไปที่ **Lab › ตัวอย่างสำเร็จรูป › ปล่อยจริง Jenkins → ArgoCD** เพื่อเตรียมสภาพแวดล้อม แล้วรัน build ปกติให้ผ่าน **1 รอบ** ก่อน (เป็น baseline ให้ SonarQube เทียบว่าอะไรคือโค้ดใหม่)"], ["ทุกข้อทำ 4 ขั้น", "#0f9d8a", "**แก้ไฟล์** (แท็บ Laptop) → **git push** → **รัน build** (แท็บ Browser › Jenkins › Build with Parameters) → **อ่าน log** แล้วแก้กลับ push ใหม่ จนผ่าน"]]));
+  JKEX.forEach(function (ex, i) {
+    var x = h("details", { cls: "fold", style: "margin:8px 0;border-left:4px solid " + ex.c + ";padding-left:10px" }, [h("summary", { style: "font-weight:700", text: (i + 1) + ". " + ex.t })]), sv = "repo-" + ex.svc;
+    x.appendChild(h("p", { cls: "sub", style: "margin:6px 0" }, rich("**ทำไมสำคัญ:** " + ex.why)));
+    x.appendChild(h("p", { style: "margin:6px 0 2px", text: "1) เข้าโฟลเดอร์ repo (แท็บ Laptop)" })); x.appendChild(jkxCmd("cd " + root + sv));
+    x.appendChild(h("p", { style: "margin:6px 0 2px", text: "2) ทำให้พัง" })); ex.cmds.forEach(function (c) { x.appendChild(jkxCmd(c)); });
+    x.appendChild(h("p", { style: "margin:6px 0 2px", text: "3) ส่งขึ้น GitHub จำลอง" })); ["git add .", "git commit -m \"ทดลอง: " + ex.id + "\"", "git push"].forEach(function (c) { x.appendChild(jkxCmd(c)); });
+    x.appendChild(h("p", { style: "margin:6px 0 2px" }, rich("4) แท็บ **Browser** › Jenkins › pharmacy-" + ex.svc + " › Build with Parameters › Build แล้วเปิด Console Output")));
+    x.appendChild(h("p", { style: "margin:6px 0" }, rich("👀 **ที่ต้องเห็น:** " + ex.see)));
+    x.appendChild(h("p", { style: "margin:6px 0 2px", text: "5) แก้กลับ แล้ว push + build ใหม่ → ต้องผ่าน" })); ex.fix.forEach(function (c) { x.appendChild(jkxCmd(c)); }); ["git add .", "git commit -m \"แก้: " + ex.id + "\"", "git push"].forEach(function (c) { x.appendChild(jkxCmd(c)); });
+    d.appendChild(x);
+  });
+  return d;
+}
 function jenkinsTab() {
   var cb = h("div", { cls: "cb" }), kind = JKX.file, text = jkxText(), secs = jkxSplit(text, kind);
   function seg(label, key, opts) { return h("label", { style: "font-size:.82rem" }, [label + " ", h("select", { "aria-label": label, onchange: function (e) { JKX[key] = e.target.value; render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: JKX[key] === o[0] ? "selected" : null }); }))]); }
   cb.appendChild(infoCard([["ทำอะไร", "#2b6cb0", "อธิบายไฟล์ปล่อยจริง**ทีละช่วง**: ทำอะไร · เทียบกับวิธี ==แบบเล่นๆ== · ผลที่ได้"], ["ป้ายสีท้ายบรรทัด", "#a85a00", "บอกว่าค่านั้น**มาจากไหน**: คนกรอก · `.env` · credential · Jenkins ใส่ให้ (ชี้ป้ายเพื่ออ่านคำอธิบาย)"]]));
+  cb.appendChild(jkxExercises());
   cb.appendChild(h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px" }, [
     seg("ไฟล์", "file", [["jf", "Jenkinsfile"], ["df", "Dockerfile"], ["yaml", "deployment.yaml"], ["dc", "docker-compose.yml"]]),
     seg("มุมมอง", "view", [["sec", "แบ่งเป็นช่วง + คำอธิบาย"], ["full", "ไฟล์เต็มต่อเนื่อง"]]),
