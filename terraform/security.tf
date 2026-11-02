@@ -136,9 +136,9 @@ resource "aws_security_group" "k8s" {
   }
 
   ingress {
-    description     = "Frontend NodePort (prd 30080, dev 30081) from ALB only"
+    description     = "Frontend NodePort (prd 30080) from ALB only"
     from_port       = 30080
-    to_port         = 30081
+    to_port         = 30080
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
@@ -155,6 +155,28 @@ resource "aws_security_group" "k8s" {
     description     = "ArgoCD API from Jenkins (argocd app sync)"
     from_port       = 30443
     to_port         = 30443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.jenkins.id]
+  }
+}
+
+# VM dev: docker compose (ไม่มี k3s) frontend :3000 รับจาก ALB · Jenkins ssh เข้าไปสั่ง docker compose
+resource "aws_security_group" "dev" {
+  name   = "${var.project}-dev"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    description     = "Frontend (compose) from ALB only"
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  ingress {
+    description     = "SSH from Jenkins (deploy dev: docker compose pull && up)"
+    from_port       = 22
+    to_port         = 22
     protocol        = "tcp"
     security_groups = [aws_security_group.jenkins.id]
   }
@@ -178,5 +200,13 @@ resource "aws_security_group" "db" {
     to_port         = 3306
     protocol        = "tcp"
     security_groups = [aws_security_group.k8s.id]
+  }
+
+  ingress {
+    description     = "MySQL from the dev VM (docker compose)"
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.dev.id]
   }
 }

@@ -1,0 +1,55 @@
+# ของจริงอยู่ที่: VM pharmacy-dev ที่ /opt/pharmacy/docker-compose.yml (Ansible วางให้, ansible/dev.yml)
+# dev = docker compose เครื่องเดียว ไม่มี k3s/ArgoCD · prd = k3s + ArgoCD (เทียบสองแบบได้ใน README)
+# ใครสั่ง: Jenkins ssh เข้ามารัน /opt/pharmacy/deploy.sh <service> <tag> (ดู vm-dev/deploy.sh)
+#
+# ค่าจาก /opt/pharmacy/.env (Ansible เรนเดอร์จาก .env.j2): ECR_REGISTRY, BACKEND_TAG, FRONTEND_TAG, DB_*, DJANGO_*
+#
+# ลำดับเริ่ม: migrate (ครั้งเดียวแล้วจบ) → backend (รอ migrate สำเร็จ) → frontend (รอ backend healthy)
+
+services:
+  # งานครั้งเดียวก่อนปล่อยทุกครั้ง: สร้าง/อัปเดตตาราง แล้วสร้างแอดมิน + ยาตัวอย่าง (dev เท่านั้น: --sample)
+  # เทียบ prd: Job backend-migrate (ArgoCD PreSync hook) · แยกเป็น service เดี่ยวเพื่อไม่ให้หลาย replica ชนกันตอน migrate
+  migrate:
+    image: ${ECR_REGISTRY}/pharmacy/backend:${BACKEND_TAG}
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py bootstrap_app --sample"]
+    env_file: .env
+    restart: "no"
+
+  backend:
+    image: ${ECR_REGISTRY}/pharmacy/backend:${BACKEND_TAG}
+    # gunicorn คือ CMD ของ image อยู่แล้ว (ไม่ต้องใส่ command)
+    env_file: .env
+    environment:
+      APP_ENV: dev
+      LOG_LEVEL: DEBUG
+      DJANGO_ALLOWED_HOSTS: "*"          # เข้าถึงได้เฉพาะในเครือข่าย compose (ไม่เปิด port ออกนอก) จึงเปิด * ได้
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:                          # เทียบ prd: startup/readiness/liveness probe
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/ready', timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped               # เทียบ prd: liveness probe รีสตาร์ท container ให้
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  frontend:
+    image: ${ECR_REGISTRY}/pharmacy/frontend:${FRONTEND_TAG}
+    environment:
+      APP_ENV: dev
+      BACKEND_URL: http://backend:8000   # ชื่อ service ใน compose (อ่านตอนรัน จึงใช้ image ตัวเดียวกับ prd ได้)
+    ports:
+      - "3000:3000"                       # ALB (:8080) ส่งมาที่พอร์ตนี้ · image มี HEALTHCHECK /healthz ในตัว
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp, /app/.next/cache]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]

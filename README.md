@@ -32,7 +32,7 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
 | `pharmacy-jenkins` | 1 | รัน pipeline (public subnet) | Jenkins 1 เครื่อง |
 | `pharmacy-sonarqube` | 1 | ตรวจคุณภาพโค้ด (public subnet) | SonarQube |
 | `pharmacy-k8s-1`, `-2`, `-3` | 3 | k3s HA server ของ prd (1 ตัวต่อ AZ, private subnet) รัน FE/BE, ArgoCD อยู่ที่ k8s-1 | เครื่อง ArgoCD และ FE/BE |
-| `pharmacy-dev` | 1 | (private) k3s เครื่องเดียว รัน FE และ BE ของ dev (ArgoCD ที่ k8s-1 คุมให้) | เครื่อง dev |
+| `pharmacy-dev` | 1 | (private) docker compose เครื่องเดียว รัน FE และ BE ของ dev (Jenkins ssh มาสั่ง ไม่มี k3s/ArgoCD) | เครื่อง dev |
 | `pharmacy-db-1`, `-2`, `-3` | 3 | MariaDB Galera cluster (private, 1 ตัวต่อ AZ) | DB 3 เครื่อง |
 
 นอกจาก VM ยังมี ALB 1 ตัว (:80 prd, :8080 dev, :8443 ArgoCD), NAT gateway 1 ตัว (ให้เครื่อง private ออกเน็ต) และ ECR 2 repo
@@ -40,7 +40,7 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
 **เข้าเครื่อง private:** `ssh -J ubuntu@<bastion_ip> ubuntu@<private IP>` (SG ของทุกเครื่องรับ SSH จาก bastion เท่านั้น)
 
 **ต่างจาก INET ตรงไหน:** ที่นั่นแยก FE 3 เครื่อง และ BE 3 เครื่อง ที่นี่ใช้ 3 เครื่องร่วมกันเพื่อประหยัด
-โดย Kubernetes กระจาย FE และ BE อย่างละ 3 ตัวไปบนทั้ง 3 เครื่อง (prd) ส่วน dev แยกไปรันบน `pharmacy-dev` อีก cluster หนึ่ง
+โดย Kubernetes กระจาย FE และ BE อย่างละ 3 ตัวไปบนทั้ง 3 เครื่อง (prd) ส่วน dev รันด้วย docker compose บน `pharmacy-dev` เครื่องเดียว (เทียบวิธีปล่อยสองแบบได้: dev = Jenkins ส่งเอง, prd = ArgoCD ดึงเอง)
 ฐานข้อมูลใช้ Galera ชุดเดียวกัน แยกกันด้วย database `pharmacy_dev` / `pharmacy_prd`
 
 ## Flow ทั้งหมด
@@ -55,12 +55,13 @@ Terraform สร้างเครื่อง, Ansible ตั้งค่าเ
                     1. ดึงโค้ดตาม tag
                     2. ส่งให้ VM pharmacy-sonarqube ตรวจ
                     3. docker build, push ขึ้น ECR
-                    4. แก้บรรทัด image ใน GitHub: pharmacy-manifests
-                    5. (ถ้าติ๊ก AUTO_SYNC) สั่ง ArgoCD sync
+                    4a. dev: ssh ไป pharmacy-dev สั่ง docker compose pull/up
+                    4b. prd: แก้บรรทัด image ใน GitHub: pharmacy-manifests
+                    5.  prd: (ถ้าติ๊ก AUTO_SYNC) สั่ง ArgoCD sync
                                   │
                                   ▼
-                  ArgoCD (ใน VM pharmacy-k8s-1)
-                    อ่าน manifest แล้วปรับทั้ง 2 cluster (prd: k8s-*, dev: pharmacy-dev)
+                  ArgoCD (ใน VM pharmacy-k8s-1) เฉพาะ prd
+                    อ่าน manifest แล้วปรับ cluster prd (k8s-*)
                                   │
                                   ▼
 ผู้ใช้ ──▶ ALB :80 (3 AZ) ──▶ frontend x3 ──▶ backend x3 ──▶ VM pharmacy-db-1,2,3
@@ -138,7 +139,7 @@ kubectl apply -f https://raw.githubusercontent.com/YOUR_GITHUB_USER/pharmacy-man
 ```
 
 เปิด `argocd_url` (ALB :8443 ต่อ HTTPS ไป NodePort 30443; เบราว์เซอร์จะเตือนเรื่องใบรับรอง เพราะเป็นแบบออกเอง) เข้าด้วย `admin`
-จะเห็น 4 แอป (dev 2 แอปชี้ไป cluster `pharmacy-dev` ที่ Ansible ลงทะเบียนให้แล้ว) สถานะยังไม่ปกติ เพราะยังไม่มี image จนกว่าจะปล่อยครั้งแรก
+จะเห็น 2 แอป (prd: backend, frontend) สถานะยังไม่ปกติ เพราะยังไม่มี image จนกว่าจะปล่อยครั้งแรก
 
 **Jenkins** เปิด `jenkins_url` ดูรหัสผ่านเริ่มต้นด้วยคำสั่งนี้บน VM `pharmacy-jenkins`:
 
@@ -146,13 +147,14 @@ kubectl apply -f https://raw.githubusercontent.com/YOUR_GITHUB_USER/pharmacy-man
 sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
-ปลั๊กอินถูกติดตั้งมาใน image แล้ว จากนั้นไปที่ Manage Jenkins > Credentials เพิ่ม 3 รายการ:
+ปลั๊กอินถูกติดตั้งมาใน image แล้ว จากนั้นไปที่ Manage Jenkins > Credentials เพิ่ม 4 รายการ:
 
 | ID | ชนิด | ค่า |
 |---|---|---|
 | `github-token` | Username with password | ชื่อ GitHub และ Personal Access Token |
 | `sonar-token` | Secret text | token จาก SonarQube |
 | `argocd-admin` | Username with password | `admin` และรหัสผ่าน ArgoCD |
+| `dev-ssh` | SSH Username with private key | user `ubuntu` และกุญแจส่วนตัวคู่กับ `public_key_path` (ให้ Jenkins ssh ไปสั่ง docker compose บน `pharmacy-dev`) |
 
 สร้าง job **2 อัน** (ทำซ้ำทีละ repo): New Item > Pipeline > เลือก "Pipeline script from SCM" > Git >
 
@@ -180,10 +182,10 @@ sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 ### 5.5 push แล้ว Jenkins รันเอง (dev ใช้จริงแบบนี้)
 
-หลังปล่อยครั้งแรกแล้ว ปกติ dev ไม่มีใครกด Build: `git push origin develop` แล้ว Jenkins รันเอง (build → scan → ECR → แก้ manifest → ArgoCD sync dev) ส่วน prd ยังเป็นแบบกดเองด้วย tag `vN.N.N` ตามเดิม
+หลังปล่อยครั้งแรกแล้ว ปกติ dev ไม่มีใครกด Build: `git push origin develop` แล้ว Jenkins รันเอง (build → scan → ECR → ssh ไป `pharmacy-dev` สั่ง docker compose) ส่วน prd ยังเป็นแบบกดเองด้วย tag `vN.N.N` ตามเดิม
 
 ```
-git push origin develop → GitHub webhook → Jenkins (pharmacy-backend) → ECR tag dev-<sha7> → manifest dev → ArgoCD sync
+git push origin develop → GitHub webhook → Jenkins (pharmacy-backend) → ECR tag dev-<sha7> → ssh pharmacy-dev → docker compose pull/up
 ```
 
 ตั้งครั้งเดียวต่อ repo (ทำซ้ำทั้ง `pharmacy-backend` และ `pharmacy-frontend`):
@@ -232,5 +234,5 @@ terraform destroy
 | state ของ Terraform อยู่ในเครื่อง | เก็บบน S3 ให้ทีมใช้ร่วมกัน |
 | Jenkins รันเป็น root และถือ docker.sock | แยก agent สำหรับ build และจำกัดสิทธิ์ |
 | backend ต่อ Galera ผ่าน Service ที่สุ่มเครื่อง ไม่ตรวจสุขภาพ | มี HAProxy หรือ ProxySQL หน้า Galera |
-| dev ใช้ DB Galera ชุดเดียวกับ prd (แยกแค่ชื่อ database) และ SG เดียวกับ k8s | DB และเครือข่ายแยกชุด |
+| dev ใช้ DB Galera ชุดเดียวกับ prd (แยกแค่ชื่อ database) และ dev เป็น compose เครื่องเดียวไม่มี HA | DB และเครือข่ายแยกชุด |
 | k3s และสคริปต์ต่ออายุรหัส ECR | EKS (ดึงจาก ECR ได้เอง) |

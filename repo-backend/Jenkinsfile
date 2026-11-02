@@ -3,11 +3,14 @@
 // ใครรัน: Jenkins บน VM pharmacy-jenkins
 //
 // ตัวแปรที่มาจากไฟล์ /opt/jenkins/.env บนเครื่อง Jenkins:
-//   ECR_REGISTRY, SONAR_HOST_URL, ARGOCD_SERVER, MANIFESTS_REPO
+//   ECR_REGISTRY, SONAR_HOST_URL, ARGOCD_SERVER, MANIFESTS_REPO, DEV_HOST (IP ของ VM pharmacy-dev)
 // credentials ที่ต้องสร้างในหน้า Jenkins:
-//   github-token (Username with password), sonar-token (Secret text), argocd-admin (Username with password)
+//   github-token (Username with password), sonar-token (Secret text), argocd-admin (Username with password),
+//   dev-ssh (SSH Username with private key: user ubuntu + กุญแจที่ใส่ไว้ใน key pair ของเครื่อง dev)
 //
-// ลำดับ: ตรวจค่า → ดึงโค้ดตาม tag → ทดสอบ → SonarQube → build → สแกนช่องโหว่ → push ECR → แก้ manifest → sync ArgoCD
+// ลำดับ: ตรวจค่า → ดึงโค้ดตาม tag → ทดสอบ → SonarQube → build → สแกนช่องโหว่ → push ECR →
+//   dev: ssh ไป VM pharmacy-dev สั่ง docker compose (push-based, ไม่มี ArgoCD)
+//   prd: แก้ manifest ใน Git → sync ArgoCD (GitOps: ArgoCD ดึงไปเอง)
 // หลักคิด: ล้มเร็ว (ทดสอบ/สแกนก่อน push) · image มี tag เดียวตาม VERSION ไม่เขียนทับ · ไม่มีรหัสผ่านใน Git
 
 pipeline {
@@ -47,7 +50,7 @@ pipeline {
     stage('Resolve version') {
       steps {
         script {
-          // รันจาก push = ไม่มี tag ให้เลือก: ใช้ "dev-<sha 7 ตัว>" เป็น tag image (ย้อนกลับไปหา commit ได้) และ sync dev ให้เอง
+          // รันจาก push = ไม่มี tag ให้เลือก: ใช้ "dev-<sha 7 ตัว>" เป็น tag image (ย้อนกลับไปหา commit ได้) และ deploy dev ให้เอง
           // รันด้วยมือ = ใช้ VERSION ที่เลือกในหน้า Build with Parameters ตามเดิม
           env.IS_PUSH = currentBuild.getBuildCauses('com.cloudbees.jenkins.GitHubPushCause') ? 'true' : 'false'
           if (env.IS_PUSH == 'true') {
@@ -164,7 +167,21 @@ pipeline {
       }
     }
 
+    // dev: ไม่มี k8s/ArgoCD: ssh เข้า VM pharmacy-dev แล้วให้ deploy.sh แก้ tag ใน .env + docker compose pull/up (vm-dev/deploy.sh)
+    stage('Deploy dev (docker compose)') {
+      when { expression { params.TARGET_ENV == 'dev' } }
+      steps {
+        sshagent(credentials: ['dev-ssh']) {
+          sh '''
+            ssh -o StrictHostKeyChecking=no "ubuntu@$DEV_HOST" sudo /opt/pharmacy/deploy.sh "$SERVICE" "$VERSION"
+          '''
+        }
+      }
+    }
+
+    // prd: Jenkins แค่แก้ image: ใน Git แล้ว ArgoCD (บน k8s-1) เป็นฝ่ายดึงไป deploy
     stage('Update manifest') {
+      when { expression { params.TARGET_ENV == 'prd' } }
       steps {
         withCredentials([usernamePassword(credentialsId: 'github-token',
                          usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
@@ -194,7 +211,7 @@ pipeline {
     }
 
     stage('Sync ArgoCD') {
-      when { expression { params.AUTO_SYNC || env.IS_PUSH == 'true' } }
+      when { expression { params.TARGET_ENV == 'prd' && params.AUTO_SYNC } }
       steps {
         withCredentials([usernamePassword(credentialsId: 'argocd-admin',
                          usernameVariable: 'ARGO_USER', passwordVariable: 'ARGO_PASS')]) {
@@ -215,7 +232,9 @@ pipeline {
     }
     success {
       script {
-        if (params.AUTO_SYNC || env.IS_PUSH == 'true') {
+        if (params.TARGET_ENV == 'dev') {
+          echo "เสร็จแล้ว: dev รัน ${env.SERVICE} ${env.VERSION} (docker compose บน pharmacy-dev)"
+        } else if (params.AUTO_SYNC) {
           echo "เสร็จแล้ว: ${env.APP} รันเวอร์ชัน ${env.VERSION} และผ่านการตรวจสุขภาพ"
         } else {
           echo "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป ${env.APP}"

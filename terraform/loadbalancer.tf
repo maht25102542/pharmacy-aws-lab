@@ -1,6 +1,6 @@
 # Load balancer หน้าระบบ: รับคำขอจากผู้ใช้ แล้วส่งให้ frontend บนเครื่อง Kubernetes
 #   port 80   -> prd (NodePort 30080)
-#   port 8080 -> dev (NodePort 30081 บน VM pharmacy-dev)
+#   port 8080 -> dev (frontend :3000 ของ docker compose บน VM pharmacy-dev)
 #   port 8443 -> หน้า ArgoCD (NodePort 30443 เป็น HTTPS) เปิดเฉพาะ IP ของคุณ
 # ALB อยู่ใน public subnet ครบ 3 AZ ส่วนเครื่องเป้าหมายอยู่ private subnet
 
@@ -24,7 +24,7 @@ resource "aws_lb_target_group" "prd" {
 
 resource "aws_lb_target_group" "dev" {
   name     = "${var.project}-dev"
-  port     = 30081
+  port     = 3000
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
 

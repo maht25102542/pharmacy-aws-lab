@@ -109,14 +109,14 @@ resource "aws_instance" "k8s" {
   }
 }
 
-# ---------- VM: dev (k3s เครื่องเดียว รัน FE/BE ของ dev; ArgoCD ที่ k8s-1 คุมให้) ----------
+# ---------- VM: dev (docker compose เครื่องเดียว รัน FE/BE ของ dev; Jenkins ssh เข้าไปสั่ง compose ไม่มี k3s/ArgoCD) ----------
 resource "aws_instance" "dev" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_types["dev"]
   subnet_id              = aws_subnet.private[0].id
   key_name               = aws_key_pair.admin.key_name
-  vpc_security_group_ids = [aws_security_group.base.id, aws_security_group.k8s.id] # ใช้ SG เดียวกับ k8s: ArgoCD เข้า :6443 ได้, ต่อ DB ได้
-  iam_instance_profile   = aws_iam_instance_profile.k8s.name                       # ดึง ECR ได้
+  vpc_security_group_ids = [aws_security_group.base.id, aws_security_group.dev.id] # base: SSH จาก bastion · dev: ALB เข้า :3000, Jenkins SSH, ต่อ DB ได้
+  iam_instance_profile   = aws_iam_instance_profile.k8s.name                      # ดึง ECR ได้ (docker login ตอน deploy)
 
   root_block_device {
     volume_size = 30
@@ -125,7 +125,7 @@ resource "aws_instance" "dev" {
 
   tags = {
     Name = "${var.project}-dev"
-    Role = "k8s_dev"
+    Role = "dev"
     Tier = "private"
   }
 }

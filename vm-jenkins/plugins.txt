@@ -2,6 +2,7 @@ workflow-aggregator
 git
 git-parameter
 github
+ssh-agent
 credentials-binding
 pipeline-stage-view
 blueocean

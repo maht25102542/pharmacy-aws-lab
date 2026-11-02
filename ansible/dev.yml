@@ -1,0 +1,49 @@
+# เป้าหมาย: VM pharmacy-dev (อยู่ private subnet: Ansible เข้าผ่าน bastion ดู group_vars/internal.yml)
+# dev = docker compose เครื่องเดียว (ไม่มี k3s/ArgoCD) · prd = k3s + ArgoCD (ansible/k8s.yml)
+# เอาไฟล์จากโฟลเดอร์ vm-dev/ ไปวางที่ /opt/pharmacy แล้วเตรียมให้ Jenkins สั่ง deploy ได้
+- name: dev VM (docker compose)
+  hosts: role_dev
+  become: true
+  vars:
+    galera_ips: "{{ groups['role_db'] | map('extract', hostvars, 'private_ip_address') | list }}"
+  tasks:
+    - name: Install Docker and AWS CLI
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR ด้วย IAM role ของเครื่อง)
+      ansible.builtin.command: snap install aws-cli --classic
+      args:
+        creates: /snap/bin/aws
+
+    - name: Link aws to /usr/local/bin (deploy.sh เรียกชื่อสั้น)
+      ansible.builtin.file:
+        src: /snap/bin/aws
+        dest: /usr/local/bin/aws
+        state: link
+
+    - name: Create /opt/pharmacy
+      ansible.builtin.file:
+        path: /opt/pharmacy
+        state: directory
+        mode: "0755"
+
+    - name: Copy docker-compose.yml and deploy.sh
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../vm-dev/{{ item.name }}"
+        dest: "/opt/pharmacy/{{ item.name }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: docker-compose.yml, mode: "0644" }
+        - { name: deploy.sh, mode: "0755" }
+
+    - name: Render /opt/pharmacy/.env (รหัสผ่านและ IP ของ DB)
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../vm-dev/.env.j2"
+        dest: /opt/pharmacy/.env
+        mode: "0600"
+        force: false          # ไม่เขียนทับ: deploy.sh แก้ tag ในไฟล์นี้ ถ้ารัน Ansible ซ้ำแล้ว tag ที่ปล่อยไว้จะหาย

@@ -2,46 +2,8 @@
 # apply ครั้งเดียวจาก VM pharmacy-k8s-1:  kubectl apply -f apps.yaml
 # ก่อนใช้: แก้ YOUR_GITHUB_USER ให้เป็นชื่อบัญชี GitHub ของคุณ
 #
-# dev: sync อัตโนมัติเมื่อ Git เปลี่ยน
-# prd: ต้องมีคนสั่ง sync (กดใน ArgoCD หรือติ๊ก AUTO_SYNC ใน Jenkins)
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: pharmacy-backend-dev
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
-    targetRevision: main
-    path: dev/backend
-  destination:
-    name: pharmacy-dev   # cluster ของ VM pharmacy-dev (ansible/k8s.yml ลงทะเบียนให้)
-    namespace: dev
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: pharmacy-frontend-dev
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/YOUR_GITHUB_USER/pharmacy-manifests.git
-    targetRevision: main
-    path: dev/frontend
-  destination:
-    name: pharmacy-dev   # cluster ของ VM pharmacy-dev (ansible/k8s.yml ลงทะเบียนให้)
-    namespace: dev
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
+# มีเฉพาะ prd: ต้องมีคนสั่ง sync (กดใน ArgoCD หรือติ๊ก AUTO_SYNC ใน Jenkins)
+# dev ไม่ผ่าน ArgoCD แล้ว: รันด้วย docker compose บน VM pharmacy-dev (Jenkins ssh ไปสั่ง ดู vm-dev/)
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

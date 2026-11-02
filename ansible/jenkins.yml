@@ -6,6 +6,7 @@
   vars:
     k8s_server_ip: "{{ hostvars[groups['role_k8s_server'][0]].private_ip_address }}"
     sonarqube_ip: "{{ hostvars[groups['role_sonarqube'][0]].private_ip_address }}"
+    dev_ip: "{{ hostvars[groups['role_dev'][0]].private_ip_address }}"
   tasks:
     - name: Install Docker
       ansible.builtin.apt:
@@ -32,6 +33,7 @@
           SONAR_HOST_URL=http://{{ sonarqube_ip }}:9000
           ARGOCD_SERVER={{ k8s_server_ip }}:30443
           MANIFESTS_REPO={{ manifests_repo }}
+          DEV_HOST={{ dev_ip }}
 
     - name: Build and start Jenkins
       ansible.builtin.command:

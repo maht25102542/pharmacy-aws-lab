@@ -1,18 +1,18 @@
 # เป้าหมาย: VM pharmacy-k8s-1, 2, 3 = cluster prd (k3s server 3 เครื่อง HA: etcd ในตัว วางคนละ AZ)
-#           VM pharmacy-dev = cluster dev แยกต่างหาก (k3s เครื่องเดียว)
+#           (VM pharmacy-dev ไม่ใช้ k3s แล้ว: dev = docker compose ดู dev.yml)
 # ทุกเครื่องอยู่ private subnet: Ansible เข้าผ่าน bastion (ดู group_vars/internal.yml)
 # ติดตั้ง Kubernetes (k3s), ArgoCD (ลงครั้งเดียวผ่านเครื่องแรก) และของพื้นฐานใน cluster
-# ArgoCD ที่ cluster prd คุมทั้งสอง cluster (ลงทะเบียน dev ตอนท้ายไฟล์)
+# ArgoCD ลงที่ cluster prd และคุมเฉพาะ prd
 
-- name: First Kubernetes server (pharmacy-k8s-1) and the dev server (pharmacy-dev)
-  hosts: role_k8s_server[0]:role_k8s_dev
+- name: First Kubernetes server (pharmacy-k8s-1)
+  hosts: role_k8s_server[0]
   become: true
   tasks:
-    # cluster prd ต้องเริ่มด้วย --cluster-init เพื่อให้เครื่องอื่นมาเข้าร่วมเป็น server (etcd) ได้ · dev เครื่องเดียวไม่ต้อง
+    # ต้องเริ่มด้วย --cluster-init เพื่อให้เครื่องอื่นมาเข้าร่วมเป็น server (etcd) ได้
     - name: Install k3s server
       ansible.builtin.shell: >
         curl -sfL https://get.k3s.io | sh -s - server
-        {{ '--cluster-init' if 'role_k8s_server' in group_names else '' }}
+        --cluster-init
         --disable traefik
         --write-kubeconfig-mode 644
         --tls-san {{ ansible_host }}
@@ -51,12 +51,11 @@
       args:
         creates: /usr/local/bin/k3s
 
-- name: Cluster add-ons (pharmacy-k8s-1 = prd + ArgoCD, pharmacy-dev = dev)
-  hosts: role_k8s_server[0]:role_k8s_dev
+- name: Cluster add-ons (pharmacy-k8s-1 = prd + ArgoCD)
+  hosts: role_k8s_server[0]
   become: true
   vars:
-    is_dev: "{{ 'role_k8s_dev' in group_names }}"
-    namespaces: "{{ ['dev'] if is_dev else ['prd'] }}"
+    namespaces: ['prd']
     galera_ips: "{{ groups['role_db'] | map('extract', hostvars, 'private_ip_address') | list }}"
   tasks:
     - name: Wait until the node is ready
@@ -77,8 +76,7 @@
       ansible.builtin.command: k3s kubectl apply -f /opt/cluster-base.yaml
       changed_when: true
 
-    - when: not is_dev
-      block:
+    - block:
       - name: Create argocd namespace
         ansible.builtin.shell: >
           k3s kubectl create namespace argocd --dry-run=client -o yaml |
@@ -137,60 +135,3 @@
       ansible.builtin.systemd:
         name: ecr-refresh.service
         state: started
-
-# ให้ ArgoCD (k8s-1) คุม cluster dev: สร้าง ServiceAccount บน dev แล้วเอา token ไปลงทะเบียนเป็น cluster ชื่อ pharmacy-dev
-# ชื่อนี้ต้องตรงกับ destination.name ใน repo-manifests/argocd-apps/apps.yaml
-- name: Create ArgoCD service account on pharmacy-dev
-  hosts: role_k8s_dev
-  become: true
-  tasks:
-    - name: Apply service account, binding and token secret
-      ansible.builtin.command:
-        cmd: k3s kubectl apply -f -
-        stdin: |
-          apiVersion: v1
-          kind: ServiceAccount
-          metadata: {name: argocd-manager, namespace: kube-system}
-          ---
-          apiVersion: rbac.authorization.k8s.io/v1
-          kind: ClusterRoleBinding
-          metadata: {name: argocd-manager}
-          roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: cluster-admin}
-          subjects: [{kind: ServiceAccount, name: argocd-manager, namespace: kube-system}]
-          ---
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: argocd-manager-token
-            namespace: kube-system
-            annotations: {kubernetes.io/service-account.name: argocd-manager}
-          type: kubernetes.io/service-account-token
-      changed_when: true
-
-    - name: Read the token
-      ansible.builtin.command: k3s kubectl -n kube-system get secret argocd-manager-token -o jsonpath={.data.token}
-      register: dev_token
-      until: dev_token.stdout | length > 0
-      retries: 10
-      delay: 3
-      changed_when: false
-
-- name: Register pharmacy-dev in ArgoCD (รันบน pharmacy-k8s-1)
-  hosts: role_k8s_server[0]
-  become: true
-  tasks:
-    - name: Apply cluster secret
-      ansible.builtin.command:
-        cmd: k3s kubectl apply -f -
-        stdin: |
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: cluster-pharmacy-dev
-            namespace: argocd
-            labels: {argocd.argoproj.io/secret-type: cluster}
-          stringData:
-            name: pharmacy-dev
-            server: https://{{ hostvars[groups['role_k8s_dev'][0]].private_ip_address }}:6443
-            config: '{{ {"bearerToken": hostvars[groups["role_k8s_dev"][0]].dev_token.stdout | b64decode, "tlsClientConfig": {"insecure": true}} | to_json }}'
-      changed_when: true
