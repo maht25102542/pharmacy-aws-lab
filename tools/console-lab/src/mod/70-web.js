@@ -158,8 +158,11 @@ function jkAdvance(b, once) {
     }
     else if (n === "Test") {
       b.log.push("[Pipeline] sh");
-      if (jb.svc === "backend") b.log.push("+ docker run --rm --volumes-from jenkins -w $WORKSPACE python:3.12.7-slim-bookworm sh -c \"pip install -q -r requirements/dev.txt && python -m pytest\"", "...........................                                              [100%]", "27 passed in 0.4s");
-      else b.log.push("+ docker run --rm --volumes-from jenkins -w $WORKSPACE node:22.12.0-alpine3.21 sh -c \"npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test\"", "added 352 packages in 21s", "> eslint .", "> tsc --noEmit", " Test Files  4 passed (4)", "      Tests  24 passed (24)");
+      var cmd = jb.svc === "backend" ? "+ docker run --rm --volumes-from jenkins -w $WORKSPACE python:3.12.7-slim-bookworm sh -c \"pip install -q -r requirements/dev.txt && python -m pytest\"" : "+ docker run --rm --volumes-from jenkins -w $WORKSPACE node:22.12.0-alpine3.21 sh -c \"npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test\"", tr = jkTestRun(jb);
+      b.log.push(cmd);
+      if (tr) { b.log.push.apply(b.log, tr.out); if (!tr.ok) return fail(s, tr.err); }
+      else if (jb.svc === "backend") b.log.push("...........................                                              [100%]", "27 passed in 0.4s");
+      else b.log.push("added 352 packages in 21s", "> eslint .", "> tsc --noEmit", " Test Files  4 passed (4)", "      Tests  24 passed (24)");
     }
     else if (n === "Build image") {
       b.log.push("[Pipeline] sh", "+ docker build --pull --build-arg APP_VERSION=" + p.VERSION + " -t " + image + " .", jb.svc === "backend" ? "#5 [build 4/4] RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements/prod.txt   (ด่านที่ 1: คอมไพล์ mysqlclient)" : "#6 [build 4/4] RUN npm run build   (ด่านที่ 2: next build -> standalone)", "#9 [runtime] COPY --from=build ...   (ด่านสุดท้าย: เอาเฉพาะของที่ต้องรัน)", "Successfully tagged " + image);

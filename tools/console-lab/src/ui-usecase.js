@@ -4,7 +4,7 @@ var UC = [];
 var UC_SEL = { id: "static" };
 
 UC.push({
-  id: "static", no: 1, video: "videos/usecase1-k.mp4", errVideos: [["เคส: ปล่อยเว็บใหม่แล้วยังเห็นของเก่า (cache ต้อง invalidate)", "videos/usecase1-err.mp4"]], title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
+  id: "static", no: 1, video: "videos/usecase1-k.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
   tag: "นิยมที่สุด · ถูกสุด · ไม่มีเซิร์ฟเวอร์ให้ดูแล",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "บล็อก · หน้าแนะนำร้าน/บริษัท · เว็บ React/Vue (SPA) ที่ build เป็นไฟล์ HTML/JS แล้ว — **เพราะ** ไม่มีโค้ดฝั่ง server ให้รัน จ่ายแค่ที่เก็บไฟล์ + ทราฟฟิก"],
@@ -58,7 +58,7 @@ UC.push({
 });
 
 UC.push({
-  id: "ecs", no: 2, errVideos: [["เคส: task ไม่ขึ้น เพราะ execution role ขาดสิทธิ์ (ALB ตอบ 503)", "videos/usecase2-err-c.mp4"], ["เคส: image tag ไม่มีใน ECR (task ดึงไม่ได้ → 503)", "videos/usecase2-err2-c.mp4"]], videos: [["ตอน A · เครือข่าย VPC + NAT, Security Group 3 ชั้น, IAM role", "videos/usecase2a-m.mp4"], ["ตอน B · ECR + push image, RDS, Target group, ALB", "videos/usecase2b-m.mp4"], ["ตอน C · ECS cluster, Task definition, Service แล้วเปิดเว็บ", "videos/usecase2c-n.mp4"]], title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
+  id: "ecs", no: 2, videos: [["ตอน A · เครือข่าย VPC + NAT, Security Group 3 ชั้น, IAM role", "videos/usecase2a-m.mp4"], ["ตอน B · ECR + push image, RDS, Target group, ALB", "videos/usecase2b-m.mp4"], ["ตอน C · ECS cluster, Task definition, Service แล้วเปิดเว็บ", "videos/usecase2c-n.mp4"]], title: "API ใน container: ECS Fargate + ALB + ECR + RDS", color: "#d9480f", dir: "labs/02-ecs-fargate", loadKind: "ecs",
   tag: "ทีมเล็ก-กลางนิยม · ได้ container โดยไม่ต้องดูแล Kubernetes หรือเครื่อง",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "API หลังบ้านร้านขายยา (REST + Postgres) ที่ต้องรันตลอดและ scale ได้ — **เพราะ** มี server process + ฐานข้อมูล + ต้องคุมเครือข่าย/security group เอง"],
@@ -121,7 +121,7 @@ UC.push({
 });
 
 UC.push({
-  id: "sls", no: 3, video: "videos/usecase3-h.mp4", errVideos: [["เคส: ลืม lambda permission (API Gateway ตอบ 500)", "videos/usecase3-err-b.mp4"], ["เคส: TABLE_NAME ผิดชื่อ table (prd ตอบ 500)", "videos/usecase3-err2.mp4"]], title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  id: "sls", no: 3, video: "videos/usecase3-h.mp4", title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ฟอร์มรับสมัคร · webhook · API ค้นข้อมูลที่ถูกเรียกเป็นช่วงๆ — **เพราะ** ไม่มีคนเรียกก็ไม่เสียเงิน และไม่ต้องดูแลเซิร์ฟเวอร์"],
@@ -177,7 +177,7 @@ UC.push({
 });
 
 UC.push({
-  id: "cd", no: 4, video: "videos/usecase4-i.mp4", errVideos: [["เคส: pipeline ล้มที่ Build เพราะ CodeBuild ไม่เปิด Privileged", "videos/usecase4-err.mp4"], ["เคส: GitHub connection ยัง Pending (Source ล้ม)", "videos/usecase4-err2.mp4"]], title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
+  id: "cd", no: 4, video: "videos/usecase4-i.mp4", title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2e7d32", dir: "labs/04-cicd", loadKind: "cd",
   tag: "ปล่อยของอัตโนมัติ ไม่ต้อง docker build/push เอง · ต่อยอดจาก use case 2",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่อยาก push โค้ดแล้วปล่อย dev → อนุมัติ → prd อัตโนมัติด้วย AWS ล้วน — **เพราะ** ไม่ต้องดูแลเครื่อง Jenkins เอง"],
@@ -232,7 +232,7 @@ UC.push({
 });
 
 UC.push({
-  id: "gha", no: 5, video: "videos/usecase5-n.mp4", errVideos: [["เคส: run ล้มที่ Configure AWS credentials เพราะไม่มี id-token: write", "videos/usecase5-err-c.mp4"], ["เคส: ไม่มี OIDC provider ของ GitHub ใน IAM", "videos/usecase5-err2-c.mp4"]], title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
+  id: "gha", no: 5, video: "videos/usecase5-n.mp4", title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
   tag: "โค้ดอยู่ GitHub อยู่แล้ว ไม่ต้องมีเครื่อง CI · ไม่มี access key ถาวร · ต่อยอดจาก use case 2",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่เก็บโค้ดบน GitHub อยู่แล้วและปล่อยลง ECS — **เพราะ** workflow อยู่ใน repo เดียวกัน และไม่ต้องเก็บ access key ถาวร (OIDC)"],
@@ -282,7 +282,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-n.mp4", errVideos: [["เคส: SG ไม่เปิด port 80 (เปิดเว็บไม่ได้)", "videos/usecase6-err-c.mp4"], ["เคส: ยังไม่มี A record ของโดเมน (หาเว็บไม่เจอ)", "videos/usecase6-err2-c.mp4"]], title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-n.mp4", title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "MVP · เว็บร้านค้าท้องถิ่น (Next.js + DB) ทราฟฟิกน้อย — **เพราะ** ถูกสุด เครื่องเดียวจบ แลกกับต้อง patch/backup เอง"],
@@ -331,7 +331,7 @@ UC.push({
 });
 
 UC.push({
-  id: "apr", no: 7, video: "videos/usecase7-n.mp4", errVideos: [["เคส: port ไม่ตรงกับที่แอปฟัง (prd เปิดไม่ได้)", "videos/usecase7-err-c.mp4"], ["เคส: access role ไม่มี policy ECR (ดึง image ไม่ได้)", "videos/usecase7-err2-c.mp4"]], title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
+  id: "apr", no: 7, video: "videos/usecase7-n.mp4", title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
   tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ระบบเก่าที่รัน container เว็บ/API ขนาดเล็กบน App Runner อยู่แล้ว — **เพราะ** ย้ายยังไม่จำเป็น · โปรเจกต์ใหม่ไม่ควรเริ่มที่นี่"],
@@ -372,7 +372,7 @@ UC.push({
 });
 
 UC.push({
-  id: "exp", no: 8, video: "videos/usecase8-n.mp4", errVideos: [["เคส: health check path ผิด (prd ได้ 503)", "videos/usecase8-err-c.mp4"], ["เคส: execution role ไม่มี policy (task ดึง image ไม่ได้)", "videos/usecase8-err2-c.mp4"]], title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
+  id: "exp", no: 8, video: "videos/usecase8-n.mp4", title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
   tag: "✅ ตัวที่ AWS แนะนำสำหรับโปรเจกต์ใหม่แทน App Runner (ปิดรับลูกค้าใหม่ 30 เม.ย. 2026) · ไม่มีค่า Express เพิ่ม จ่ายแค่ของที่ถูกสร้าง",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "backend ร้านขายยา/API stateless ของทีมเล็กที่อยากได้ HTTPS + scale แบบ PaaS แต่ยังอยู่บน ECS — **เพราะ** ได้ ALB, ใบรับรอง, auto scaling และ URL ให้เอง"],
