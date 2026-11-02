@@ -82,6 +82,6 @@ const svc = async (t) => { await L.click(B("Services")); await L.click(B(t, { st
   await L.tick(6, "เว็บเปิดได้ HTTPS", "เว็บเปิดได้แล้ว Caddy ขอใบรับรองจาก Let's Encrypt ให้อัตโนมัติ");
   await L.costScene("single", "เรื่องค่าใช้จ่าย เครื่องเดียวถูกและเดาง่ายที่สุด เปิดทิ้งหนึ่งเดือนประมาณยี่สิบห้าดอลลาร์ แต่ต้องรู้ว่าถ้าแค่หยุดเครื่อง ค่า EBS กับ Elastic IP ยังคิดอยู่ และ t3 โหมด Unlimited อาจมีค่า CPU เกินโควต้า ตั้ง Budget ไว้และเมื่อเลิกใช้ให้ release Elastic IP กับลบเครื่องจริง");
   await L.cap("✓ สำเร็จ: DNS → Elastic IP → EC2 (Caddy ออกใบรับรอง + app) ได้หน้าเว็บ HTTPS", "สรุป เครื่องเดียวรันได้ทั้งระบบ แต่ถ้าเครื่องดับเว็บก็ดับ และต้องดูแลเครื่องเอง"); await L.hold(1);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase6.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase6-o.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });

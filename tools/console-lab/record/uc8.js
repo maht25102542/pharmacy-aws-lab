@@ -73,6 +73,6 @@ const tickLabel = async (t) => { await L.ev(`[].slice.call(document.querySelecto
   await L.tick(6, "เปิดได้ HTTPS 200", "เปิดได้แล้ว ตอบกลับสถานะสองร้อย");
   await L.costScene("exp", "เรื่องค่าใช้จ่าย Express Mode ไม่คิดเงินเพิ่ม จ่ายแค่ของที่ถูกสร้าง คือ Fargate load balancer ตัวเดียวที่แชร์กัน public IP และ log ประมาณเก้าสิบกว่าดอลลาร์ต่อเดือนถ้าเปิดทิ้งไว้ ถูกกว่า use case สองเพราะไม่มี NAT แต่ยังต้องลบเมื่อเลิกใช้และตั้ง Budget ไว้");
   await L.cap("✓ สำเร็จ: image + role 2 ตัว → ALB แชร์ + HTTPS + auto scaling + URL ครบ", "สรุป ให้แค่ image กับ role สองตัว ได้ครบทั้ง load balancer HTTPS auto scaling และ URL ข้อควรจำคือ infrastructure role เปลี่ยนไม่ได้หลังสร้าง และ Express Mode ยังใหม่ ข้อมูลการใช้จริงยังน้อย"); await L.hold(1);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase8.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase8-o.mp4"));
   await L.finish();
 })().catch(async (e) => { console.error("ERR", e.message); try { console.log("ALERT", await L.ev(`(document.querySelector(".alert.bad,.alert.error")||{innerText:"none"}).innerText`)); } catch (x) {} process.exit(1); });

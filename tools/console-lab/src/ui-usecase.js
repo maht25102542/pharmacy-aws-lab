@@ -4,7 +4,7 @@ var UC = [];
 var UC_SEL = { id: "static" };
 
 UC.push({
-  id: "static", no: 1, video: "videos/usecase1-k.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
+  id: "static", no: 1, video: "videos/usecase1-l.mp4", title: "เว็บ static: S3 + CloudFront + Route 53 + ACM", color: "#e8590c", dir: "labs/01-static-site", loadKind: "static",
   tag: "นิยมที่สุด · ถูกสุด · ไม่มีเซิร์ฟเวอร์ให้ดูแล",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "บล็อก · หน้าแนะนำร้าน/บริษัท · เว็บ React/Vue (SPA) ที่ build เป็นไฟล์ HTML/JS แล้ว — **เพราะ** ไม่มีโค้ดฝั่ง server ให้รัน จ่ายแค่ที่เก็บไฟล์ + ทราฟฟิก"],
@@ -121,7 +121,7 @@ UC.push({
 });
 
 UC.push({
-  id: "sls", no: 3, video: "videos/usecase3-h.mp4", title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
+  id: "sls", no: 3, video: "videos/usecase3-i.mp4", title: "Serverless API: API Gateway + Lambda + DynamoDB", color: "#7d4acf", dir: "labs/03-serverless", loadKind: "sls",
   tag: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลาง งานที่ traffic ขึ้นลงมาก",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ฟอร์มรับสมัคร · webhook · API ค้นข้อมูลที่ถูกเรียกเป็นช่วงๆ — **เพราะ** ไม่มีคนเรียกก็ไม่เสียเงิน และไม่ต้องดูแลเซิร์ฟเวอร์"],
@@ -282,7 +282,7 @@ UC.push({
 });
 
 UC.push({
-  id: "single", no: 6, video: "videos/usecase6-n.mp4", title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
+  id: "single", no: 6, video: "videos/usecase6-o.mp4", title: "เครื่องเดียว: EC2 + Docker Compose + Caddy", color: "#8c4fff", dir: "labs/06-single-vm", loadKind: "single",
   tag: "ง่ายสุด ถูกสุด · ทีมเล็ก/ฟรีแลนซ์/โปรเจกต์เริ่มต้นนิยมมาก · ต้องดูแลเครื่องเอง",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "MVP · เว็บร้านค้าท้องถิ่น (Next.js + DB) ทราฟฟิกน้อย — **เพราะ** ถูกสุด เครื่องเดียวจบ แลกกับต้อง patch/backup เอง"],
@@ -331,7 +331,7 @@ UC.push({
 });
 
 UC.push({
-  id: "apr", no: 7, video: "videos/usecase7-n.mp4", title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
+  id: "apr", no: 7, video: "videos/usecase7-o.mp4", title: "App Runner: ให้ image แล้วได้ URL HTTPS", color: "#c2185b", dir: "labs/07-app-runner", loadKind: "apr",
   tag: "⚠️ ปิดรับลูกค้าใหม่แล้ว (ลูกค้าเดิมใช้ต่อได้ ไม่มี feature ใหม่) · โปรเจกต์ใหม่ AWS แนะนำ ECS Express Mode",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ระบบเก่าที่รัน container เว็บ/API ขนาดเล็กบน App Runner อยู่แล้ว — **เพราะ** ย้ายยังไม่จำเป็น · โปรเจกต์ใหม่ไม่ควรเริ่มที่นี่"],
@@ -372,7 +372,7 @@ UC.push({
 });
 
 UC.push({
-  id: "exp", no: 8, video: "videos/usecase8-n.mp4", title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
+  id: "exp", no: 8, video: "videos/usecase8-o.mp4", title: "ECS Express Mode: ให้ image + role แล้วได้ ALB/HTTPS/URL", color: "#0b7a8f", dir: "labs/08-ecs-express", loadKind: "exp",
   tag: "✅ ตัวที่ AWS แนะนำสำหรับโปรเจกต์ใหม่แทน App Runner (ปิดรับลูกค้าใหม่ 30 เม.ย. 2026) · ไม่มีค่า Express เพิ่ม จ่ายแค่ของที่ถูกสร้าง",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "backend ร้านขายยา/API stateless ของทีมเล็กที่อยากได้ HTTPS + scale แบบ PaaS แต่ยังอยู่บน ECS — **เพราะ** ได้ ALB, ใบรับรอง, auto scaling และ URL ให้เอง"],
