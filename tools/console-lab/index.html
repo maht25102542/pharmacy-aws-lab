@@ -6709,7 +6709,8 @@ function jkAdvance(b, once) {
       b.log.push("[Pipeline] sh", "+ docker build --pull --build-arg APP_VERSION=" + p.VERSION + " -t " + image + " .", jb.svc === "backend" ? "#5 [build 4/4] RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements/prod.txt   (ด่านที่ 1: คอมไพล์ mysqlclient)" : "#6 [build 4/4] RUN npm run build   (ด่านที่ 2: next build -> standalone)", "#9 [runtime] COPY --from=build ...   (ด่านสุดท้าย: เอาเฉพาะของที่ต้องรัน)", "Successfully tagged " + image);
     }
     else if (n === "Scan image") {
-      b.log.push("[Pipeline] sh", "+ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed " + image, "Total: 0 (HIGH: 0, CRITICAL: 0)");
+      b.log.push("[Pipeline] sh", "+ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed " + image); var sc = jkScanRun(jb);
+      if (sc) { b.log.push.apply(b.log, sc.out); if (!sc.ok) return fail(s, sc.err); } else b.log.push("Total: 0 (HIGH: 0, CRITICAL: 0)");
     }
     else if (n === "Push image") {
       var repo = byName(S.repos, "pharmacy/" + p.SERVICE); b.log.push("[Pipeline] sh", "+ aws ecr get-login-password", "+ docker login --username AWS --password-stdin " + env.ECR_REGISTRY);
@@ -7372,6 +7373,22 @@ function jkTestFrontend(files) {
   if (failed.length) { failed.forEach(function (x) { out.push("", " FAIL  " + x[0], "AssertionError: expected " + /\((\w+)\)\.toBe/.exec(x[2])[1] + " to be " + /toBe\((\w+)\)/.exec(x[2])[1] + " // Object.is equality", " ❯ " + x[0] + ":" + x[1]); }); out.push("", " Test Files  " + failed.length + " failed | " + Math.max(0, nfiles - failed.length) + " passed (" + nfiles + ")", "      Tests  " + failed.length + " failed | " + Math.max(0, total - failed.length) + " passed (" + total + ")"); return { out: out, ok: false, err: ["script returned exit code 1", "vitest ล้ม " + failed.length + " ข้อ — แก้เทสต์/โค้ดให้ผ่านก่อน"] }; }
   out.push("", " Test Files  " + nfiles + " passed (" + nfiles + ")", "      Tests  " + total + " passed (" + total + ")");
   return { out: out, ok: true };
+}
+// ---- stage Scan image (Trivy จำลอง): อ่าน Dockerfile + requirements/package.json จริง · เจอ base image / แพ็กเกจเก่าที่มีช่องโหว่ HIGH/CRITICAL แล้วล้ม
+var JKS_IMG = [[/^FROM\s+python:3\.(?:[0-9]|10)(?:[.-]|\s|$)/i, "python (base image)", "CVE-2023-24329", "HIGH", "3.12.7"], [/^FROM\s+node:(?:1[0-8]|[0-9])(?:[.-]|\s|$)/i, "node (base image)", "CVE-2023-44487", "HIGH", "22.12.0"], [/^FROM\s+\S*:latest\b/i, "latest tag (base image)", "DS001", "HIGH", "pin a version"]];
+var JKS_PKG = [["django", /^django==(?:[0-3]\.|4\.[01]\.)/i, "CVE-2023-36053", "HIGH", "5.2"], ["requests", /^requests==2\.(?:[0-9]|1[0-9]|2[0-9]|30)\./i, "CVE-2023-32681", "HIGH", "2.32.3"], ["pyyaml", /^pyyaml==(?:[0-4]\.|5\.[0-3]\.)/i, "CVE-2020-14343", "CRITICAL", "6.0.2"], ["pillow", /^pillow==(?:[0-8]\.|9\.[0-4]\.)/i, "CVE-2023-4863", "CRITICAL", "11.0.0"]];
+var JKS_NPM = [["next", /^(?:[0-9]|1[0-3])\./, "CVE-2024-34351", "HIGH", "15.0.0"], ["lodash", /^[0-3]\.|^4\.(?:[0-9]|1[0-6])\./, "CVE-2021-23337", "HIGH", "4.17.21"], ["axios", /^0\./, "CVE-2023-45857", "HIGH", "1.7.0"], ["minimist", /^0\./, "CVE-2021-44906", "CRITICAL", "1.2.8"]];
+function jkScanRun(jb) {
+  var files = jkTestFiles(jb); if (!files) return null; var hit = [];
+  String(files.Dockerfile || "").split("\n").forEach(function (t, i) { JKS_IMG.forEach(function (r) { if (r[0].test(t.trim())) hit.push({ f: "Dockerfile", ln: i + 1, pkg: r[1], id: r[2], sev: r[3], fix: r[4], ver: t.trim().split(/\s+/)[1] }); }); });
+  if (jb.svc === "backend") Object.keys(files).filter(function (f) { return /^requirements\/.*\.txt$|^requirements\.txt$/.test(f); }).forEach(function (f) { String(files[f]).split("\n").forEach(function (t, i) { JKS_PKG.forEach(function (r) { if (r[1].test(t.trim())) hit.push({ f: f, ln: i + 1, pkg: r[0], id: r[2], sev: r[3], fix: r[4], ver: t.trim().split("==")[1] }); }); }); });
+  else { var pj; try { pj = JSON.parse(files["package.json"] || "{}"); } catch (e) { pj = {}; } var dp = Object.assign({}, pj.dependencies, pj.devDependencies), lines = String(files["package.json"] || "").split("\n"); JKS_NPM.forEach(function (r) { var v = dp[r[0]]; if (v && r[1].test(String(v).replace(/^[\^~]/, ""))) hit.push({ f: "package.json", ln: Math.max(1, lines.findIndex(function (l) { return l.indexOf('"' + r[0] + '"') >= 0; }) + 1), pkg: r[0], id: r[2], sev: r[3], fix: r[4], ver: String(v) }); }); }
+  var c = hit.filter(function (h) { return h.sev === "CRITICAL"; }).length, hi = hit.length - c, out = ["", "Total: " + hit.length + " (HIGH: " + hi + ", CRITICAL: " + c + ")"];
+  if (!hit.length) return { out: out, ok: true };
+  out.push("", "┌──────────────┬────────────────┬──────────┬───────────┬───────────────┐", "│ Library      │ Vulnerability  │ Severity │ Installed │ Fixed Version │", "├──────────────┼────────────────┼──────────┼───────────┼───────────────┤");
+  hit.forEach(function (h) { out.push("│ " + h.pkg.slice(0, 12).padEnd(12) + " │ " + h.id.padEnd(14) + " │ " + h.sev.padEnd(8) + " │ " + String(h.ver).slice(0, 9).padEnd(9) + " │ " + h.fix.slice(0, 13).padEnd(13) + " │   (" + h.f + ":" + h.ln + ")"); });
+  out.push("└──────────────┴────────────────┴──────────┴───────────┴───────────────┘");
+  return { out: out, ok: false, err: ["script returned exit code 1", "Trivy พบช่องโหว่ " + hit.length + " รายการ (" + hit[0].f + ":" + hit[0].ln + " " + hit[0].pkg + ") — อัปเกรดเป็น Fixed Version แล้ว push ใหม่"] };
 }
 
 //==UI==

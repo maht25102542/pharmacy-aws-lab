@@ -168,7 +168,8 @@ function jkAdvance(b, once) {
       b.log.push("[Pipeline] sh", "+ docker build --pull --build-arg APP_VERSION=" + p.VERSION + " -t " + image + " .", jb.svc === "backend" ? "#5 [build 4/4] RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements/prod.txt   (ด่านที่ 1: คอมไพล์ mysqlclient)" : "#6 [build 4/4] RUN npm run build   (ด่านที่ 2: next build -> standalone)", "#9 [runtime] COPY --from=build ...   (ด่านสุดท้าย: เอาเฉพาะของที่ต้องรัน)", "Successfully tagged " + image);
     }
     else if (n === "Scan image") {
-      b.log.push("[Pipeline] sh", "+ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed " + image, "Total: 0 (HIGH: 0, CRITICAL: 0)");
+      b.log.push("[Pipeline] sh", "+ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed " + image); var sc = jkScanRun(jb);
+      if (sc) { b.log.push.apply(b.log, sc.out); if (!sc.ok) return fail(s, sc.err); } else b.log.push("Total: 0 (HIGH: 0, CRITICAL: 0)");
     }
     else if (n === "Push image") {
       var repo = byName(S.repos, "pharmacy/" + p.SERVICE); b.log.push("[Pipeline] sh", "+ aws ecr get-login-password", "+ docker login --username AWS --password-stdin " + env.ECR_REGISTRY);
