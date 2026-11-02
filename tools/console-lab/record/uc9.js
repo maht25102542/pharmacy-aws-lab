@@ -49,6 +49,6 @@ const toBrowser = async () => { await L.click(B("Browser", { nth: 0 })); await L
   await L.tick(3, "build ผ่านทุกด่านอีกครั้ง", "build ผ่านทุกด่านอีกครั้ง");
   await L.costScene("jk", "เรื่องค่าใช้จ่าย Jenkins กับ SonarQube คือ EC2 สองเครื่องที่เปิดตลอด คิดเงินแม้ไม่มีใคร build ค่าเครื่องคือส่วนใหญ่ของบิล ส่วน build ที่ถี่ขึ้นแทบไม่เพิ่ม ควรตั้ง Budget และ stop เครื่องนอกเวลา หรือ destroy เมื่อเลิกใช้");
   await L.cap("✓ สำเร็จ: ด่านตรวจจับ password ได้ · แก้แล้ว build ผ่าน · image ถึง ECR เฉพาะโค้ดที่ผ่านด่าน", "สรุป ด่านตรวจอัตโนมัติจับ password ที่ฝังในโค้ดได้ก่อนถึง image พอแก้แล้ว build ก็ผ่านและส่ง image ไปที่ E C R ได้"); await L.hold(1.5);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase9-c.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase9-e.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });

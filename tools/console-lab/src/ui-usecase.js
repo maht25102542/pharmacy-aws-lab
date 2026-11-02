@@ -418,7 +418,7 @@ UC.push({
 });
 
 UC.push({
-  id: "jk", no: 9, video: "videos/usecase9-c.mp4", title: "Jenkins CI: ปล่อยงานร้านยา + ด่านตรวจ 4 ด่าน", color: "#c0392b", dir: "repo-backend · repo-frontend", loadKind: "jk",
+  id: "jk", no: 9, video: "videos/usecase9-e.mp4", title: "Jenkins CI: ปล่อยงานร้านยา + ด่านตรวจ 4 ด่าน", color: "#c0392b", dir: "repo-backend · repo-frontend", loadKind: "jk",
   tag: "✅ ของจริงที่ทีมใช้ทุกวัน: push โค้ด → Jenkins ตรวจ (เทสต์ · Sonar · Trivy) → ผ่านแล้วค่อย build/push image · ล้มที่ด่านไหนก็หยุดที่นั่น",
   intro: [
     ["ตัวอย่างงาน", "#c0392b", "ทีมร้านยาแก้โค้ด backend/frontend แล้ว push — **ก่อน**ขึ้น dev/prd ต้องผ่านด่านอัตโนมัติ **เทสต์ → SonarQube → build image → Trivy** ถ้าด่านไหนแดง pipeline หยุด **ไม่มีอะไรหลุดไปถึง ECR**"],
@@ -462,7 +462,7 @@ UC.push({
 });
 
 UC.push({
-  id: "jkpush", no: 10, title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
+  id: "jkpush", no: 10, video: "videos/usecase10-b.mp4", title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
   tag: "✅ วิธีที่ทีมจริงปล่อย dev ทุกวัน: push เข้า develop → webhook → Jenkins build/ตรวจ/ปล่อยเอง · dev ใช้ docker compose (ไม่ต้องมี ArgoCD) · prd ยังกดเองด้วย tag vN.N.N",
   intro: [
     ["ตัวอย่างงาน", "#2b6cb0", "นักพัฒนา merge โค้ดเข้า branch **develop** แล้วอยากเห็นผลบนเว็บ dev ภายในไม่กี่นาที **โดยไม่มีใครเปิด Jenkins ไปกด Build**"],

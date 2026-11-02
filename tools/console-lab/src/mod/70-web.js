@@ -236,7 +236,7 @@ function jkAdvance(b, once) {
     s.st = "success"; b.log.push("[Pipeline] }", "[Pipeline] // stage"); b.idx++;
     if (once && b.idx < b.stages.length) { jkMarkNext(b); if (b.idx < b.stages.length) return; }
   }
-  b.log.push("[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] script", "[Pipeline] {", "[Pipeline] echo", p.AUTO_SYNC ? "เสร็จแล้ว: " + app + " รันเวอร์ชัน " + p.VERSION + " และผ่านการตรวจสุขภาพ" : "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป " + app, "[Pipeline] }", "[Pipeline] // script"); end(); b.log.push("Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS";
+  b.log.push("[Pipeline] stage", "[Pipeline] { (Declarative: Post Actions)", "[Pipeline] script", "[Pipeline] {", "[Pipeline] echo", p.TARGET_ENV === "dev" ? "เสร็จแล้ว: dev รัน " + p.SERVICE + " " + p.VERSION + " (docker compose บน pharmacy-dev)" : p.AUTO_SYNC ? "เสร็จแล้ว: " + app + " รันเวอร์ชัน " + p.VERSION + " และผ่านการตรวจสุขภาพ" : "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป " + app, "[Pipeline] }", "[Pipeline] // script"); end(); b.log.push("Finished: SUCCESS"); b.state = "done"; b.result = "SUCCESS";
 }
 function jkInput(id, proceed) {
   var b = typeof id === "object" ? id : S.jk.builds.filter(function (x) { return x.id === id && (!S.jk.job || x.job === S.jk.job.name); })[0]; if (!b || b.state !== "waiting") return;
