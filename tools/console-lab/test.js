@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {API,ghEnvReview,hash32,ghInit,jkCred,ghTokens,ghTokenCanPush,hcl,buildExpress,checksExpress,expEval,expOf,expResources,buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkTestRun,jkScanRun,JKEX,sqRecord,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {devcStatus,devcState,API,ghEnvReview,hash32,ghInit,jkCred,ghTokens,ghTokenCanPush,hcl,buildExpress,checksExpress,expEval,expOf,expResources,buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkTestRun,jkScanRun,JKEX,sqRecord,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -319,7 +319,7 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert(L.jkCreateAdmin({ user: "admin", pass: "a", pass2: "b", full: "A", email: "a@b.c" }).errors.pass2, "รหัสไม่ตรง"); assert(L.jkCreateAdmin({ user: "admin", pass: "pw1", pass2: "pw1", full: "Admin", email: "a@b.c" }).res, "สร้าง admin"); L.jkSetUrl(); L.jkStart(); L.jkSignOut(); assert(!L.jkSignIn("admin", "x") && L.jkSignIn("admin", "pw1"), "sign in");
   // SonarQube
   assert(L.sqLogin("admin", "admin").mustChange && L.sqChangePw("admin", "short", "short").errors.nw && L.sqChangePw("admin", "LongEnoughPw123", "LongEnoughPw123").res, "sonar เปลี่ยนรหัส"); const tok = L.sqGenToken({ name: "jenkins" }).res;
-  L.jkAddCred({ id: "sonar-token", kind: "secret", secret: tok }); L.jkAddCred({ id: "github-token", kind: "userpass", user: "me", pass: "ghp_x" });
+  L.jkAddCred({ id: "sonar-token", kind: "secret", secret: tok }); L.jkAddCred({ id: "github-token", kind: "userpass", user: "me", pass: "ghp_x" }); L.jkAddCred({ id: "dev-ssh", kind: "userpass", user: "ubuntu", pass: "key" });
   const k1i = L.S.insts.find(i => i.name === "pharmacy-k8s-1"), kIp1 = k1i.privateIp, JJ = "ssh -J ubuntu@" + L.S.insts.find(i => i.name === "pharmacy-bastion").publicIp + " -i ~/.ssh/id_ed25519 ubuntu@"; L.jkAddCred({ id: "argocd-admin", kind: "userpass", user: "admin", pass: L.argoPwdOf(k1i) });
   // job: repo ยังไม่ push ใต้ user อื่น → fail
   const badJob = L.jkCreateJob({ name: "pharmacy-backend", repo: "https://github.com/YOUR_GITHUB_USER/pharmacy-backend.git", cred: "github-token", branch: "*/main", script: "Jenkinsfile" }); assert(badJob.res, "สร้าง job");
@@ -333,37 +333,36 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   const run = (o) => { L.jkSelect((o && o.SERVICE) === "frontend" ? "pharmacy-frontend" : "pharmacy-backend"); const b = L.jkNew(P(o)); assert.strictEqual(b.params.SERVICE, L.S.jk.job.svc, "service มาจาก job"); return b; };
   assert(/Couldn't find any revision/.test(logOf(run({ VERSION: "v9.9.9" }))), "tag ไม่มีบน GitHub");
   // ก่อน apply apps: Jenkins ส่วน sonar ใช้ได้ แล้ว manifest push ต้องผ่าน
-  sh2("cd ~/Desktop/work/pharmacy-aws-lab/ansible"); assert(/Repository not found/.test(logOf(run({}))), ".env ยังเก่า"); sh2("ansible-playbook jenkins.yml");
-  const ok1 = run({}); assert(ok1.result === "SUCCESS" && /pharmacy\/backend:v1\.0\.0/.test(L.S.gh.repos["pharmacy-manifests"].files["dev/backend/deployment.yaml"]) && L.S.sq.projects.length === 1, "build dev backend ผ่าน: " + logOf(ok1).slice(-600));
+  sh2("cd ~/Desktop/work/pharmacy-aws-lab/ansible"); const prdRun = (o) => { const r = run(Object.assign({ TARGET_ENV: "prd" }, o)); if (r.state === "waiting") L.jkInput(r, true); return r; };
+  assert(/Repository not found/.test(logOf(prdRun({}))), ".env ยังเก่า (prd แก้ manifest)"); sh2("ansible-playbook jenkins.yml");
+  const ok1 = run({}); assert(ok1.result === "SUCCESS" && L.devcStatus("backend").live === "v1.0.0" && L.S.sq.projects.length === 1, "build dev backend ผ่าน: " + logOf(ok1).slice(-600));
   // token ที่สร้างจากหน้า GitHub จำลอง: classic ไม่ติ๊ก repo → push manifest 403 · ติ๊ก repo → ผ่าน · token ที่ถูก Delete → Authentication failed
   { L.ghInit(); const tk = { kind: "classic", name: "t", scopes: [], token: "ghp_testNoRepoScope", exp: "never" }; L.ghTokens().push(tk); const cr = L.jkCred("github-token"), oh = cr.h; cr.h = L.hash32(tk.token);
-    assert(/Permission to .* denied/.test(logOf(run({}))) && !L.ghTokenCanPush(tk), "token ไม่มี scope repo → 403");
-    tk.scopes = ["repo"]; assert.strictEqual(run({}).result, "SUCCESS", "token มี scope repo → ผ่าน");
-    L.S.gh.tokens.splice(0, 1); L.S.gh.tokDel.push(tk); assert(/Authentication failed/.test(logOf(run({}))), "token ถูก Delete → Authentication failed"); cr.h = oh; }
+    assert(/Permission to .* denied/.test(logOf(prdRun({}))) && !L.ghTokenCanPush(tk), "token ไม่มี scope repo → 403");
+    tk.scopes = ["repo"]; assert.strictEqual(prdRun({}).result, "SUCCESS", "token มี scope repo → ผ่าน");
+    L.S.gh.tokens.splice(0, 1); L.S.gh.tokDel.push(tk); assert(/Authentication failed/.test(logOf(prdRun({}))), "token ถูก Delete → Authentication failed"); cr.h = oh; }
   const badTok = L.jkCred("sonar-token"), goodH = badTok.h; badTok.h = "x"; assert(/Not authorized/.test(logOf(run({}))), "token sonar ผิด"); badTok.h = goodH;
   assert(run({ TARGET_ENV: "prd", VERSION: "dev-1" }).result === "FAILURE", "prd ต้องเป็น vN.N.N");
   const prd = run({ TARGET_ENV: "prd" }); assert(prd.state === "waiting", "prd รอ confirm"); L.jkInput(prd, true); assert(prd.result === "SUCCESS", "prd ผ่านหลังยืนยัน"); const pa = run({ TARGET_ENV: "prd", SERVICE: "frontend" }); L.jkInput(pa.id, false); assert(pa.result === "ABORTED", "abort");
   // ArgoCD: ยังไม่ apply apps → sync ไม่ได้
-  assert(/not found/.test(logOf(run({ AUTO_SYNC: true }))), "ยังไม่มี app ใน ArgoCD");
+  assert(/not found/.test(logOf(prdRun({ AUTO_SYNC: true }))), "ยังไม่มี app ใน ArgoCD");
   sh2(JJ + kIp1, ["yes"]);
   assert(L.argoPwdOf(k1i) === sh2("k3s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"), "อ่านรหัส ArgoCD");
   assert(/404 Not Found/.test(sh2("k3s kubectl apply -f https://raw.githubusercontent.com/me/pharmacy-manifests/main/argocd-apps/apps.yaml")) === false, "apps.yaml ถูก push แล้ว (แต่ยังเป็น placeholder)");
-  let st0 = L.argoStatus("pharmacy-backend-dev"); assert(st0.sync === "Unknown" && /Repository not found/.test(st0.msg), "apps.yaml ยังเป็น YOUR_GITHUB_USER → ComparisonError");
+  let st0 = L.argoStatus("pharmacy-backend-prd"); assert(st0.sync === "Unknown" && /Repository not found/.test(st0.msg), "apps.yaml ยังเป็น YOUR_GITHUB_USER → ComparisonError");
   sh2("exit");
   // แก้ apps.yaml แล้ว push: remote มี commit ของ Jenkins → ต้อง pull ก่อน
   L.fsWrite(appsYml, L.fsRead(appsYml).replace(/YOUR_GITHUB_USER/g, "me")); sh2("cd ~/Desktop/work/pharmacy-aws-lab/repo-manifests"); sh2("git add ."); sh2("git commit -m fix-user");
-  assert(/rejected/.test(sh2("git push")), "remote เดินหน้าแล้ว ต้องถูกปฏิเสธ"); assert(/Fast-forward/.test(sh2("git pull")), "pull"); assert(/pharmacy\/backend:v1\.0\.0/.test(L.fsRead(L.REPO + "/repo-manifests/dev/backend/deployment.yaml")), "pull เอา commit ของ Jenkins มา"); sh2("git add ."); sh2("git commit -m fix-user"); assert(!/rejected/.test(sh2("git push")), "push หลัง pull ผ่าน");
-  sh2(JJ + kIp1, ["yes"]); const ap = sh2("k3s kubectl apply -f https://raw.githubusercontent.com/me/pharmacy-manifests/main/argocd-apps/apps.yaml"); assert((ap.match(/configured|created/g) || []).length === 4, "ได้ 4 apps: " + ap);
-  assert(L.argoStatus("pharmacy-backend-dev").health === "Healthy" && L.argoStatus("pharmacy-backend-dev").sync === "Synced", "dev auto-sync: " + JSON.stringify(L.argoStatus("pharmacy-backend-dev")));
-  assert(L.argoStatus("pharmacy-frontend-dev").health === "Degraded" && /InvalidImageName/.test(L.argoStatus("pharmacy-frontend-dev").msg), "frontend dev ยังเป็น placeholder");
+  assert(/rejected/.test(sh2("git push")), "remote เดินหน้าแล้ว ต้องถูกปฏิเสธ"); assert(/Fast-forward/.test(sh2("git pull")), "pull"); assert(/pharmacy\/backend:v1\.0\.0/.test(L.fsRead(L.REPO + "/repo-manifests/prd/backend/deployment.yaml")), "pull เอา commit ของ Jenkins มา"); sh2("git add ."); sh2("git commit -m fix-user"); assert(!/rejected/.test(sh2("git push")), "push หลัง pull ผ่าน");
+  sh2(JJ + kIp1, ["yes"]); const ap = sh2("k3s kubectl apply -f https://raw.githubusercontent.com/me/pharmacy-manifests/main/argocd-apps/apps.yaml"); assert((ap.match(/configured|created/g) || []).length === 2, "ได้ 2 apps (prd เท่านั้น): " + ap);
   assert(L.argoStatus("pharmacy-backend-prd").sync === "OutOfSync" && L.argoStatus("pharmacy-backend-prd").health === "Missing", "prd ไม่ auto: ยังไม่ sync");
-  assert(/pharmacy-backend-dev\s+Synced\s+Healthy/.test(sh2("k3s kubectl get applications -n argocd")), "kubectl get applications"); sh2("exit");
+  assert(/pharmacy-backend-prd\s+OutOfSync\s+Missing/.test(sh2("k3s kubectl get applications -n argocd")) && !/-dev/.test(sh2("k3s kubectl get applications -n argocd")), "kubectl get applications (เฉพาะ prd)"); sh2("exit");
   sh2("cd ~/Desktop/work/pharmacy-aws-lab/ansible");
-  assert(run({ SERVICE: "frontend" }).result === "SUCCESS" && L.argoStatus("pharmacy-frontend-dev").health === "Healthy", "deploy frontend dev (dev auto)");
+  assert(L.webOpen("http://" + L.S.albs[0].dns + ":8080").site === "alb503", "ALB dev 503 ก่อน deploy frontend"); assert(run({ SERVICE: "frontend" }).result === "SUCCESS" && L.devcStatus("frontend").health === "Healthy", "deploy frontend dev (ssh compose)");
   const albDns = L.S.albs[0].dns; assert(L.webOpen("http://" + albDns + ":8080").site === "app", "ALB dev healthy หลัง frontend ขึ้น"); assert(L.webOpen("http://" + albDns).site === "alb503", "ALB prd ยัง 503");
   const sp = run({ TARGET_ENV: "prd", AUTO_SYNC: true }); L.jkInput(sp, true); assert(sp.result === "SUCCESS" && L.argoStatus("pharmacy-backend-prd").health === "Healthy", "prd backend AUTO_SYNC: " + logOf(sp).slice(-400));
   const spf = run({ TARGET_ENV: "prd", SERVICE: "frontend", AUTO_SYNC: true }); L.jkInput(spf, true); assert(spf.result === "SUCCESS" && L.webOpen("http://" + albDns).site === "app", "prd frontend แล้ว ALB prd healthy");
-  L.S.roles.find(r => r.name === "pharmacy-k8s").policies = []; assert(L.argoStatus("pharmacy-backend-dev").health === "Degraded" && /ImagePullBackOff/.test(L.argoStatus("pharmacy-backend-dev").msg), "role k8s ไม่มี ECR → ImagePullBackOff"); }
+  L.S.roles.find(r => r.name === "pharmacy-k8s").policies = []; assert(L.argoStatus("pharmacy-backend-prd").health === "Degraded" && /ImagePullBackOff/.test(L.argoStatus("pharmacy-backend-prd").msg), "role k8s ไม่มี ECR → ImagePullBackOff (prd)"); assert(/AccessDeniedException/.test(logOf(run({}))), "role ของ dev ไม่มี ECR → docker login ล้ม"); }
 // ---- โหมดเวลาเหมือนจริงของ Jenkins: build เดินทีละ stage
 { L.S.speed = "real"; L.S.roles.find(r => r.name === "pharmacy-k8s").policies = ["AmazonEC2ContainerRegistryReadOnly"];
   L.jkSelect("pharmacy-backend"); const rb = L.jkNew({ TARGET_ENV: "dev", SERVICE: "backend", VERSION: "v1.0.0", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" });
@@ -475,7 +474,7 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert.strictEqual(L.webOpen("https://github.com/me/pharmacy-backend").site, "github"); assert(Object.prototype.hasOwnProperty.call(L.S.gh.repos["pharmacy-backend"].files, "manage.py"), "push แล้วมีไฟล์ใหม่ใน repo จำลอง"); }
 // ---- ตัวอย่าง "พร้อมปล่อย": โหลดแล้ว push 3 repo → build 2 job → เปิดเว็บ pharmacy ผ่าน ALB ได้
 { const r = L.buildReady("maht25102542"); const sh = c => L.shRun(c).lines.join("\n");
-  assert(r.user === "maht25102542" && L.S.jk.jobs.length === 2 && L.S.jk.jobs.every(j => j.paramsKnown) && L.S.jk.creds.length === 3 && L.S.sq.tokens.length === 1 && Object.keys(L.S.argo.apps).length === 4, "ตั้งค่าครบ");
+  assert(r.user === "maht25102542" && L.S.jk.jobs.length === 2 && L.S.jk.jobs.every(j => j.paramsKnown) && L.S.jk.creds.length === 4 && L.S.sq.tokens.length === 1 && Object.keys(L.S.argo.apps).length === 2, "ตั้งค่าครบ");
   assert(L.webOpen("http://" + r.jenkins + ":8080").site === "jenkins" && L.webOpen("http://" + r.sonar + ":9000").site === "sonarqube" && L.webOpen(r.argocd).site === "argocd", "เปิด 3 เว็บได้ทันที");
   assert(L.webOpen("http://" + r.alb + ":8080").site === "alb503", "ยังไม่ deploy → ALB 503");
   assert(/YOUR_GITHUB_USER/.test(L.fsRead(L.REPO + "/ansible/group_vars/all/main.yml")) === false && /maht25102542/.test(L.fsRead(L.REPO + "/repo-manifests/argocd-apps/apps.yaml")), "แทนชื่อ GitHub แล้ว");
@@ -483,7 +482,7 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   push("repo-manifests", "pharmacy-manifests"); push("repo-backend", "pharmacy-backend", 1); push("repo-frontend", "pharmacy-frontend", 1);
   const bb = (svc) => { L.jkSelect("pharmacy-" + svc); return L.jkNew({ TARGET_ENV: "dev", SERVICE: svc, VERSION: "v1.0.0", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" }); };
   const b1 = bb("backend"), b2 = bb("frontend"); assert(b1.result === "SUCCESS" && b2.result === "SUCCESS", "build ผ่าน: " + b1.log.slice(-4).join("|") + b2.log.slice(-4).join("|"));
-  assert(L.argoStatus("pharmacy-backend-dev").health === "Healthy" && L.argoStatus("pharmacy-frontend-dev").health === "Healthy", "dev deploy แล้ว (auto sync)");
+  assert(L.devcStatus("backend").health === "Healthy" && L.devcStatus("frontend").health === "Healthy", "dev deploy แล้ว (docker compose)");
   assert(L.webOpen("http://" + r.alb + ":8080").site === "app", "เปิดเว็บ pharmacy ผ่าน ALB dev ได้"); assert(L.phDbUp(), "DB (Galera) ใช้ได้จาก ansible"); }
 // ---- ปุ่มลัด "พร้อมปล่อย": push → build dev → เว็บ dev → ปล่อย prd (ไม่ต้องพิมพ์)
 { const r = L.buildReady("maht25102542"); assert.deepStrictEqual(L.readyState(), { pushed: false, dev: false, prd: false }, "เริ่มต้นยังไม่ได้ทำอะไร");

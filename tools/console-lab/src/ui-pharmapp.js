@@ -57,7 +57,7 @@ function pharmApp(cfg) {
 }
 // main lab: เว็บผ่าน ALB → Next.js (frontend) → Django (backend) บน k3s · dev = :8080, prd = :80
 function wbPharmacy(res) {
-  var env = /:8080/.test(W.addr) ? "dev" : "prd", be = argoStatus("pharmacy-backend-" + env), fe = argoStatus("pharmacy-frontend-" + env), tag = function (st) { return st && st.live ? st.live.split(":").pop() : "-"; }, replicas = env === "prd" ? 3 : 1;
+  var env = /:8080/.test(W.addr) ? "dev" : "prd", be = env === "dev" ? devcStatus("backend") : argoStatus("pharmacy-backend-prd"), fe = env === "dev" ? devcStatus("frontend") : argoStatus("pharmacy-frontend-prd"), tag = function (st) { return st && st.live ? st.live.split(":").pop() : "-"; }, replicas = env === "prd" ? 3 : 1;
   return h("div", { cls: "pa-wrap" }, [pharmApp({ env: env, login: true, up: phDbUp(), replicas: replicas, foot: [["Frontend", tag(fe)], ["Backend", tag(be)], ["env", env], ["replicas", String(replicas)]] }), h("p", { cls: "sub", style: "margin:10px 2px 0", text: "จำลองตาม repo-backend (Django REST) + repo-frontend (Next.js) · ข้อมูลแยกตาม env: dev ใช้ DB pharmacy_dev, prd ใช้ DB pharmacy_prd" + (replicas > 1 ? " · กดซ้ำจะเห็นชื่อ pod ที่ตอบสลับกัน (prd มี 3 replica)" : "") })]);
 }
 // use case อื่น (ECS / Express / App Runner / เครื่องเดียว): path "/" = หน้าเว็บ · /healthz และ /api/* ยังเป็น JSON

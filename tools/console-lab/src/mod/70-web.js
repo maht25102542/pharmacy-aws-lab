@@ -96,12 +96,12 @@ function jkHasCred(id) { return !!jkCred(id); }
 function jkCredErr(id) { return "ERROR: Could not find credentials entry with ID '" + id + "'"; }
 // ผลของ deploy บน k8s: image pull ต้องมีสิทธิ์ ECR ที่ role ของ node, frontend ต้องมี backend อยู่ก่อน
 function jkNodesOk(envName) {
-  var nodes = S.insts.filter(function (i) { return i.state === "running" && (envName === "dev" ? ansTag(i, "Role") === "k8s_dev" : /^k8s_(server|agent)$/.test(ansTag(i, "Role") || "")); });
+  var nodes = S.insts.filter(function (i) { return i.state === "running" && (envName === "dev" ? ansTag(i, "Role") === "dev" : /^k8s_(server|agent)$/.test(ansTag(i, "Role") || "")); });
   return { nodes: nodes, role: nodes.length && nodes.every(function (n) { var r = S.roles.filter(function (x) { return x.profile === n.profile; })[0]; return r && r.policies.some(function (p) { return ANS_ECR_POL.indexOf(p) >= 0; }); }) };
 }
 // เวลาโดยประมาณของแต่ละ stage (วินาที) ใช้เมื่อเลือก "เวลาเหมือนจริง": ค่าจากความจำ ไม่ได้วัดจริง
 // ponytail: โหมด "เวลาเหมือนจริง" ย่อเวลา (จริง ~4 นาที → ~50 วินาที) เพื่อไม่ให้รอนาน · ค่าจริงของ Jenkins: SonarQube ~75s, Build image ~60s, Test ~20s
-var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 2, "SonarQube scan": 12, "Test": 6, "Build image": 10, "Scan image": 5, "Push image": 4, "Check image exists": 1, "Update manifest": 2, "Sync ArgoCD": 6 };
+var JK_SEC = { "Validate": 1, "Confirm production": 0, "Checkout version": 2, "SonarQube scan": 12, "Test": 6, "Build image": 10, "Scan image": 5, "Push image": 4, "Check image exists": 1, "Deploy dev (docker compose)": 5, "Update manifest": 2, "Sync ArgoCD": 6 };
 function jkReal(b) { return b && b.mode ? b.mode === "real" : S.speed === "real"; } // b.mode: เลือกต่อ build ได้ ("real" | "instant") ไม่เลือก = ตามค่าความเร็วทั้งระบบ
 function jkMarkNext(b) { while (b.idx < b.stages.length && b.stages[b.idx].st === "skipped") { b.idx++; } if (b.idx < b.stages.length && b.stages[b.idx].st === "pending") b.stages[b.idx].st = "running"; }
 function jkNextDelay(b) { var s = b.stages[b.idx]; if (!s) return 0; if (s.steps) { var sl = s.steps.filter(function (x) { return x.t === "sleep"; }).reduce(function (a, x) { return a + Math.min(+x.v || 0, 6); }, 0); return Math.max(2, sl || 3); } return JK_SEC[s.name] || 1; }
@@ -110,7 +110,7 @@ function jkNew(p, who) {
   var b = { id: ++jb.seq, job: jb.name, params: p, state: "running", result: "", stages: [], log: [], who: who || S.jk.login || "admin", mode: S.jk.nextMode || "" }; S.jk.nextMode = ""; S.jk.seq = (S.jk.seq || 0) + 1; S.jk.builds.push(b);
   if (jb.defn === "script") return jkInlineStart(b, jb);
   b.log.push("Started by user " + b.who, "[Pipeline] Start of Pipeline", "[Pipeline] node", "Running on Jenkins in /var/jenkins_home/workspace/" + jb.name, "[Pipeline] {", "[Pipeline] stage", "[Pipeline] { (Declarative: Checkout SCM)", "[Pipeline] checkout", "The recommended git tool is: NONE");
-  var want = [["Validate", 1], ["Confirm production", p.TARGET_ENV === "prd"], ["Checkout version", p.ACTION === "build-and-deploy"], ["Test", p.ACTION === "build-and-deploy"], ["SonarQube scan", p.ACTION === "build-and-deploy"], ["Build image", p.ACTION === "build-and-deploy"], ["Scan image", p.ACTION === "build-and-deploy"], ["Push image", p.ACTION === "build-and-deploy"], ["Check image exists", p.ACTION === "deploy-only"], ["Update manifest", 1], ["Sync ArgoCD", !!p.AUTO_SYNC]];
+  var want = [["Validate", 1], ["Confirm production", p.TARGET_ENV === "prd"], ["Checkout version", p.ACTION === "build-and-deploy"], ["Test", p.ACTION === "build-and-deploy"], ["SonarQube scan", p.ACTION === "build-and-deploy"], ["Build image", p.ACTION === "build-and-deploy"], ["Scan image", p.ACTION === "build-and-deploy"], ["Push image", p.ACTION === "build-and-deploy"], ["Check image exists", p.ACTION === "deploy-only"], ["Deploy dev (docker compose)", p.TARGET_ENV === "dev"], ["Update manifest", p.TARGET_ENV === "prd"], ["Sync ArgoCD", p.TARGET_ENV === "prd" && !!p.AUTO_SYNC]];
   b.stages = want.map(function (w) { return { name: w[0], st: w[1] ? "pending" : "skipped" }; });
   // clone ของ job เอง: repo ต้องถูก push ขึ้น GitHub ใต้ user ที่ตรงกับ URL
   var m = JK_REPO_RE.exec(jb.repo), jc = jb.cred;
@@ -178,6 +178,35 @@ function jkAdvance(b, once) {
       if (!r.res.ok) return fail(s, [r.res.out.split("\n").pop()]);
     }
     else if (n === "Check image exists") { var rp = byName(S.repos, "pharmacy/" + p.SERVICE); b.log.push("[Pipeline] sh", "+ aws ecr describe-images --repository-name pharmacy/" + p.SERVICE + " --image-ids imageTag=" + p.VERSION); if (!rp || !rp.images.some(function (x) { return x.tag === p.VERSION; })) return fail(s, ["An error occurred (ImageNotFoundException) when calling the DescribeImages operation: The image with imageId {imageDigest:'null', imageTag:'" + p.VERSION + "'} does not exist within the repository with name 'pharmacy/" + p.SERVICE + "' in the registry with id '000000000000'"]); }
+    else if (n === "Deploy dev (docker compose)") {
+      // dev = docker compose (ไม่มี k3s/ArgoCD): Jenkins ssh เข้า VM pharmacy-dev แล้วรัน /opt/pharmacy/deploy.sh <service> <tag>
+      b.log.push("[Pipeline] sshagent", "[Pipeline] withCredentials"); if (!jkHasCred("dev-ssh")) return fail(s, [jkCredErr("dev-ssh")]);
+      b.log.push("[ssh-agent] Using credentials ubuntu (dev-ssh)", "[Pipeline] {", "[Pipeline] sh", "+ ssh -o StrictHostKeyChecking=no ubuntu@" + (env.DEV_HOST || "") + " sudo /opt/pharmacy/deploy.sh " + p.SERVICE + " " + p.VERSION);
+      var dvm = S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Role") === "dev"; })[0];
+      if (!env.DEV_HOST) return fail(s, ["ssh: Could not resolve hostname : Name or service not known", "(DEV_HOST ว่างใน /opt/jenkins/.env: รัน ansible-playbook jenkins.yml ใหม่หลังสร้าง VM pharmacy-dev แล้ว)"]);
+      if (!dvm) return fail(s, ["ssh: connect to host " + env.DEV_HOST + " port 22: No route to host  (ไม่มีเครื่อง pharmacy-dev ที่ running)"]);
+      if (!sgAllows(dvm.sgIds, 22, { sgIds: ji.sgIds })) return fail(s, ["ssh: connect to host " + env.DEV_HOST + " port 22: Connection timed out  (SG ของ dev ไม่เปิด 22 ให้ SG jenkins)"]);
+      if (!rmHas(dvm, "Copy deploy.sh (Jenkins ssh มาเรียกตอน deploy dev)")) return fail(s, ["bash: line 1: /opt/pharmacy/deploy.sh: No such file or directory  (ยังไม่ได้รัน ansible-playbook dev.yml)"]);
+      var drl = S.roles.filter(function (r) { return r.profile === dvm.profile; })[0];
+      b.log.push("+ aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin " + env.ECR_REGISTRY);
+      if (!drl || !drl.policies.some(function (x) { return ANS_ECR_POL.indexOf(x) >= 0; })) return fail(s, ["An error occurred (AccessDeniedException) when calling the GetAuthorizationToken operation: " + (drl ? "User is not authorized to perform: ecr:GetAuthorizationToken (role " + drl.name + " ไม่มี AmazonEC2ContainerRegistryReadOnly)" : "Unable to locate credentials (VM dev ไม่มี instance profile)")]);
+      var drp = byName(S.repos, "pharmacy/" + p.SERVICE), dtag = p.VERSION;
+      b.log.push("Login Succeeded", "+ sed -i s|^" + (p.SERVICE === "backend" ? "BACKEND_TAG" : "FRONTEND_TAG") + "=.*|" + (p.SERVICE === "backend" ? "BACKEND_TAG" : "FRONTEND_TAG") + "=" + dtag + "| .env", "+ docker compose pull " + p.SERVICE);
+      if (!drp || !drp.images.some(function (x) { return x.tag === dtag; })) return fail(s, ["Error response from daemon: manifest for " + env.ECR_REGISTRY + "/pharmacy/" + p.SERVICE + ":" + dtag + " not found: manifest unknown"]);
+      var dc = devcState();
+      b.log.push("+ docker compose up -d " + p.SERVICE);
+      if (p.SERVICE === "backend") {
+        var ddb = S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Role") === "db"; })[0];
+        b.log.push(" Container pharmacy-migrate-1  Creating", " Container pharmacy-migrate-1  Started");
+        if (!ddb || !phDbUp()) return fail(s, [" Container pharmacy-migrate-1  Error", "django.db.utils.OperationalError: (2002, \"Can't connect to server on '" + (ddb ? ddb.privateIp : "?") + "' (115)\")  (DB Galera ยังไม่พร้อม: รัน ansible-playbook db.yml)", "service \"migrate\" didn't complete successfully: exit 1"]);
+        if (!sgAllows(ddb.sgIds, 3306, { sgIds: dvm.sgIds })) return fail(s, [" Container pharmacy-migrate-1  Error", "django.db.utils.OperationalError: (2003, \"Can't connect to MySQL server on '" + ddb.privateIp + "' (timed out)\")  (SG ของ DB ไม่เปิด 3306 ให้ SG ของ dev)", "service \"migrate\" didn't complete successfully: exit 1"]);
+        b.log.push("Applying stock.0001_initial... OK", "bootstrap_app: admin + ยาตัวอย่าง 9 รายการ (--sample)", " Container pharmacy-migrate-1  Exited (0)", " Container pharmacy-backend-1  Started", " Container pharmacy-backend-1  Healthy");
+      } else {
+        if (!dc.backend) return fail(s, [" Container pharmacy-frontend-1  Error", "dependency failed to start: container pharmacy-backend-1 is not running  (deploy backend ก่อน: frontend ต้องเห็น backend:8000)"]);
+        b.log.push(" Container pharmacy-frontend-1  Started");
+      }
+      dc[p.SERVICE] = { tag: dtag }; b.log.push("[Pipeline] }", "[Pipeline] // sshagent");
+    }
     else if (n === "Update manifest") {
       b.log.push("[Pipeline] withCredentials"); if (!jkHasCred("github-token")) return fail(s, [jkCredErr("github-token")]); b.log.push("Masking supported pattern matches of $GIT_USER or $GIT_TOKEN", "[Pipeline] {", "[Pipeline] sh", "+ rm -rf manifests", "+ git clone https://****:****@" + env.MANIFESTS_REPO + " manifests", "Cloning into 'manifests'...");
       var mu = /github\.com\/([^\/]+)\/pharmacy-manifests/.exec(env.MANIFESTS_REPO || ""), mr = mu && ghRepoOf(mu[1], "pharmacy-manifests");

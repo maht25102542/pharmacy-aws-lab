@@ -1,6 +1,6 @@
 // ===== Ansible แบบจำลอง: dynamic inventory + ping + playbook (ไม่มี DOM) =====
 // ponytail: รัน playbook ที่ฝังตอน build (ANSIBLE_PLAN) ไม่ได้อ่านไฟล์ .yml ที่แก้บน laptop จำลอง; ผลของแต่ละ task เป็นกฎตามชื่อ task
-var ANS_NEEDS_NET = { "Install packages": "apt", "Install k3s server": "curl", "Install k3s server and join the cluster": "curl", "Install ArgoCD": "curl", "Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR)": "snap", "Install Docker": "apt", "Build and start Jenkins": "docker", "Start SonarQube": "docker" };
+var ANS_NEEDS_NET = { "Install packages": "apt", "Install k3s server": "curl", "Install k3s server and join the cluster": "curl", "Install ArgoCD": "curl", "Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR)": "snap", "Install AWS CLI (ใช้ขอรหัสผ่านชั่วคราวของ ECR ด้วย IAM role ของเครื่อง)": "snap", "Install Docker": "apt", "Build and start Jenkins": "docker", "Start SonarQube": "docker" };
 var ANS_RUN = {};
 var ANS_ECR_POL = ["AmazonEC2ContainerRegistryReadOnly", "AmazonEC2ContainerRegistryPowerUser", "AdministratorAccess"];
 
@@ -99,14 +99,13 @@ function ansStars(s) { return s + " " + new Array(Math.max(3, 79 - s.length)).jo
 // คืน {st, msg}; st: ok|changed|skipping|failed|unreachable
 function ansTask(inst, play, task, inv, vars, item) {
   var vm = ansVm(inst), key = play.file + ":" + play.idx + ":" + task.name + (item ? "#" + item : ""), once = !!vm.done[key], n = task.name;
-  var role = ansTag(inst, "Role"), isDev = role === "k8s_dev", g = inv.groups;
+  var role = ansTag(inst, "Role"), g = inv.groups;
   function fail(msg) { return { st: "failed", msg: msg }; }
   function undef(v) { return fail("The task includes an option with an undefined variable. The error was: " + v); }
   function first(grp) { return g[grp] && g[grp][0]; }
   // when: เงื่อนไขของ task
   if (task.when) {
     if (/not marker\.stat\.exists/.test(task.when) && vm.f.marker) return { st: "skipping" };
-    if (/not is_dev/.test(task.when) && isDev) return { st: "skipping" };
     if (/sysctl_file\.changed/.test(task.when) && !ANS_RUN[inst.id + play.file + ":" + play.idx + ":Kernel settings required by SonarQube (/etc/sysctl.d/99-sonarqube.conf)"]) return { st: "skipping" };
   }
   // ต้องออกอินเทอร์เน็ตเพื่อโหลดแพ็กเกจ (ถ้ายังไม่เคยทำสำเร็จ)
@@ -115,8 +114,8 @@ function ansTask(inst, play, task, inv, vars, item) {
     return fail(how === "apt" ? "Failed to update apt cache: W:Failed to fetch http://ap-southeast-1.ec2.archive.ubuntu.com/ubuntu/dists/noble/InRelease  Could not connect (Network is unreachable)" : how === "curl" ? "non-zero return code (rc=6): curl: (6) Could not resolve host: get.k3s.io" : how === "snap" ? "non-zero return code: error: cannot install \"aws-cli\": Post https://api.snapcraft.io/v2/snaps/refresh: dial tcp: lookup api.snapcraft.io: Temporary failure in name resolution" : "non-zero return code (rc=1): failed to pull image: dial tcp: lookup registry-1.docker.io: no such host");
   }
   // ตัวแปรจาก Terraform
-  if (/Write \/etc\/default\/ecr-refresh|Write \/opt\/jenkins\/\.env/.test(n) && !vars.ecr_registry) return undef("'ecr_registry' is undefined");
-  if (/Write \/opt\/jenkins\/\.env/.test(n)) { if (!first("role_k8s_server")) return undef("list object has no element 0"); if (!first("role_sonarqube")) return undef("list object has no element 0"); }
+  if (/Write \/etc\/default\/ecr-refresh|Write \/opt\/jenkins\/\.env|Render \/opt\/pharmacy\/\.env/.test(n) && !vars.ecr_registry) return undef("'ecr_registry' is undefined");
+  if (/Write \/opt\/jenkins\/\.env/.test(n)) { if (!first("role_k8s_server")) return undef("list object has no element 0"); if (!first("role_sonarqube")) return undef("list object has no element 0"); if (!first("role_dev")) return undef("list object has no element 0"); }
   if (n === "Render base objects (namespace, DB service, DB secret)" && !(g.role_db || []).length) return undef("'galera_ips' is empty: no hosts in group role_db");
   // ลำดับ/เครือข่ายภายใน
   if (n === "Install k3s server and join the cluster" && !once) {
@@ -135,12 +134,9 @@ function ansTask(inst, play, task, inv, vars, item) {
     if (!role2.policies.some(function (p) { return ANS_ECR_POL.indexOf(p) >= 0; })) return fail("Unable to start service ecr-refresh.service: Job failed. journalctl: An error occurred (AccessDeniedException) when calling the GetAuthorizationToken operation: User: arn:aws:sts::" + ACCOUNT + ":assumed-role/" + role2.name + "/" + inst.id + " is not authorized to perform: ecr:GetAuthorizationToken");
     if (!internetOut(inst)) return fail("Unable to start service ecr-refresh.service: Job failed. journalctl: Could not connect to the endpoint URL: \"https://api.ecr." + REGION + ".amazonaws.com/\"");
   }
-  if (/^Apply cluster secret$/.test(n)) {
-    var dv = first("role_k8s_dev"); if (!dv) return undef("list object has no element 0"); if (!ansVm(dv).f.dev_token) return undef("'dict object' has no attribute 'dev_token'");
-  }
+  if (/^Render \/opt\/pharmacy\/\.env/.test(n) && !(g.role_db || []).length) return undef("'galera_ips' is empty: no hosts in group role_db");
   // สำเร็จ: บันทึกผลลง state ของเครื่อง
   if (n === "Keep the token for the join play") vm.f.k3s_token = 1;
-  if (n === "Read the token" && isDev) vm.f.dev_token = 1;
   if (n === "Write marker file") vm.f.marker = 1;
   if (n === "Start a new cluster" || n === "Start MariaDB (joins the cluster and copies data)") vm.f.cluster = 1;
   vm.done[key] = once ? vm.done[key] : 1;

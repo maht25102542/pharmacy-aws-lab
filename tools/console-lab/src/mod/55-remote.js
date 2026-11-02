@@ -10,14 +10,15 @@ function rmFirst(role) { return S.insts.filter(function (x) { return x.state ===
 function rmArgo() { return S.insts.some(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_server" && rmHas(x, "Install ArgoCD"); }); }
 function rmEnv() {
   var v = ansVars(), sq = rmFirst("sonarqube"), k8 = rmFirst("k8s_server");
-  return "AWS_DEFAULT_REGION=" + (v.aws_region || "") + "\nECR_REGISTRY=" + (v.ecr_registry || "") + "\nSONAR_HOST_URL=http://" + (sq ? sq.privateIp : "") + ":9000\nARGOCD_SERVER=" + (k8 ? k8.privateIp : "") + ":30443\nMANIFESTS_REPO=github.com/" + (v.github_user || "YOUR_GITHUB_USER") + "/pharmacy-manifests.git\n";
+  return "AWS_DEFAULT_REGION=" + (v.aws_region || "") + "\nECR_REGISTRY=" + (v.ecr_registry || "") + "\nSONAR_HOST_URL=http://" + (sq ? sq.privateIp : "") + ":9000\nARGOCD_SERVER=" + (k8 ? k8.privateIp : "") + ":30443\nMANIFESTS_REPO=github.com/" + (v.github_user || "YOUR_GITHUB_USER") + "/pharmacy-manifests.git\nDEV_HOST=" + (rmFirst("dev") ? rmFirst("dev").privateIp : "") + "\n";
 }
 function rmServices(i) {
   var r = rmRole(i), s = {};
   if ((r === "jenkins" || r === "sonarqube") && rmHas(i, "Install Docker")) s.docker = "Docker Application Container Engine";
   if (r === "db" && rmHas(i, "Install packages")) s.mariadb = "MariaDB 10.11 database server";
-  if ((r === "k8s_server" || r === "k8s_dev") && (rmHas(i, "Install k3s server") || rmHas(i, "Install k3s server and join the cluster"))) s.k3s = "Lightweight Kubernetes";
-  if ((r === "k8s_server" || r === "k8s_dev") && rmHas(i, "Enable the timer")) s["ecr-refresh.timer"] = "Refresh ECR pull secret";
+  if (r === "dev" && rmHas(i, "Install Docker")) s.docker = "Docker Application Container Engine";
+  if (r === "k8s_server" && (rmHas(i, "Install k3s server") || rmHas(i, "Install k3s server and join the cluster"))) s.k3s = "Lightweight Kubernetes";
+  if (r === "k8s_server" && rmHas(i, "Enable the timer")) s["ecr-refresh.timer"] = "Refresh ECR pull secret";
   return s;
 }
 function rmRunning(i, name) { return name === "mariadb" ? !!ansVm(i).f.cluster : true; }
@@ -34,7 +35,7 @@ function rmCat(i, p, sudo) {
   if (p === "/opt/jenkins/.env" && r === "jenkins" && rmHas(i, "Write /opt/jenkins/.env (ค่าที่ pipeline อ่านเป็นตัวแปรสภาพแวดล้อม)")) return sudo ? (ansVm(i).f.env || rmEnv()).split("\n").slice(0, -1) : ["cat: /opt/jenkins/.env: Permission denied  (ไฟล์ mode 0600 เจ้าของ root ลอง sudo cat)"];
   if (p === "/opt/jenkins/docker-compose.yml" && r === "jenkins" && rmHas(i, "Copy Jenkins files to /opt/jenkins")) return LABFILES["vm-jenkins/docker-compose.yml"].split("\n");
   if (p === "/opt/sonarqube/docker-compose.yml" && r === "sonarqube" && rmHas(i, "Copy SonarQube files to /opt/sonarqube")) return LABFILES["vm-sonarqube/docker-compose.yml"].split("\n");
-  if (p === "/etc/default/ecr-refresh" && /^k8s_(server|dev)$/.test(r) && rmHas(i, "Write /etc/default/ecr-refresh")) return ["ECR_REGISTRY=" + (ansVars().ecr_registry || ""), "NAMESPACES=" + (r === "k8s_dev" ? "dev" : "prd"), "AWS_DEFAULT_REGION=" + (ansVars().aws_region || "")];
+  if (p === "/etc/default/ecr-refresh" && r === "k8s_server" && rmHas(i, "Write /etc/default/ecr-refresh")) return ["ECR_REGISTRY=" + (ansVars().ecr_registry || ""), "NAMESPACES=prd", "AWS_DEFAULT_REGION=" + (ansVars().aws_region || "")];
   return ["cat: " + p + ": No such file or directory"];
 }
 function rmLs(i, p, all) {

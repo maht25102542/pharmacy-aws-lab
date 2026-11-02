@@ -58,5 +58,13 @@ function argoSync(name, k1) {
   var l = ["Name:               " + name, "Project:            default", "Sync Status:        Synced to main", "Health Status:      " + r.st.health];
   return { log: l };
 }
+// dev = docker compose บน VM pharmacy-dev (ไม่มี ArgoCD): state เก็บ tag ที่ Jenkins ssh ไปสั่ง up ไว้
+function devcState() { S.devc = S.devc || { backend: null, frontend: null }; return S.devc; }
+function devcStatus(svc) {
+  var d = devcState()[svc], vm = S.insts.filter(function (i) { return i.state === "running" && ansTag(i, "Role") === "dev"; })[0];
+  if (!d || !vm) return { live: null, health: "Missing", msg: "docker compose ps: ไม่มี container " + svc + " (ยังไม่เคย deploy dev)" };
+  return { live: d.tag, health: "Healthy", msg: "" };
+}
+function devcHealthy() { return devcStatus("backend").health === "Healthy" && devcStatus("frontend").health === "Healthy"; }
 function argoHealthy(name) { var s = argoStatus(name); return !!s && s.health === "Healthy"; }
 function appLayer() { return (S.jk && S.jk.builds.length > 0) || (S.argo && Object.keys(S.argo.apps).length > 0); }

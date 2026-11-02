@@ -18,11 +18,11 @@ function buildReady(ghUser) {
   jkUnlock(jkPwdOf(jkInst())); jkCustomize(); jkCreateAdmin({ user: "admin", pass: "Pharmacy-Lab-2026!", pass2: "Pharmacy-Lab-2026!", full: "Pharmacy Admin", email: "admin@pharmacy.lab" }); jkSetUrl(); jkStart();
   // SonarQube: เปลี่ยนรหัส + token สำหรับ Jenkins
   sqLogin("admin", "admin"); sqChangePw("admin", "Pharmacy-Lab-2026!", "Pharmacy-Lab-2026!"); var tok = sqGenToken({ name: "jenkins" }).res; S.sq.login = false;
-  // credentials 3 ตัว + job 2 ตัว (ข้ามคำถาม "build แรกล้ม" ให้เลย: รู้ parameters แล้ว)
-  jkAddCred({ id: "sonar-token", kind: "secret", secret: tok, desc: "SonarQube token" }); jkAddCred({ id: "github-token", kind: "userpass", user: ghUser, pass: "ghp_demoToken1234567890", desc: "GitHub token" }); jkAddCred({ id: "argocd-admin", kind: "userpass", user: "admin", pass: argoPwdOf(argoInst()), desc: "ArgoCD admin" });
+  // credentials 4 ตัว + job 2 ตัว (ข้ามคำถาม "build แรกล้ม" ให้เลย: รู้ parameters แล้ว)
+  jkAddCred({ id: "sonar-token", kind: "secret", secret: tok, desc: "SonarQube token" }); jkAddCred({ id: "github-token", kind: "userpass", user: ghUser, pass: "ghp_demoToken1234567890", desc: "GitHub token" }); jkAddCred({ id: "argocd-admin", kind: "userpass", user: "admin", pass: argoPwdOf(argoInst()), desc: "ArgoCD admin" }); jkAddCred({ id: "dev-ssh", kind: "userpass", user: "ubuntu", pass: "ssh-private-key", desc: "ssh ไป pharmacy-dev (docker compose)" });
   ["backend", "frontend"].forEach(function (svc) { jkCreateJob({ name: "pharmacy-" + svc, repo: "https://github.com/" + ghUser + "/pharmacy-" + svc + ".git", cred: "github-token", branch: "*/main", script: "Jenkinsfile" }, true); S.jk.job.paramsKnown = true; });
   jkSelect("pharmacy-backend");
-  // ArgoCD: 4 แอปลงทะเบียนแล้ว (ชี้ repo pharmacy-manifests ของผู้เรียน จะขึ้น ComparisonError จนกว่าจะ git push repo นั้น)
+  // ArgoCD: 2 แอป (prd) ลงทะเบียนแล้ว (ชี้ repo pharmacy-manifests ของผู้เรียน จะขึ้น ComparisonError จนกว่าจะ git push repo นั้น)
   argoParse(fsRead(REPO + "/repo-manifests/argocd-apps/apps.yaml")).forEach(function (a) { S.argo.apps[a.name] = a; });
   S.laptop.cwd = REPO; S.laptop.remote = null;
   S.ready = { user: ghUser };

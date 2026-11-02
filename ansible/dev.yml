@@ -7,7 +7,7 @@
   vars:
     galera_ips: "{{ groups['role_db'] | map('extract', hostvars, 'private_ip_address') | list }}"
   tasks:
-    - name: Install Docker and AWS CLI
+    - name: Install Docker
       ansible.builtin.apt:
         name:
           - docker.io
@@ -32,14 +32,17 @@
         state: directory
         mode: "0755"
 
-    - name: Copy docker-compose.yml and deploy.sh
+    - name: Copy docker-compose.yml
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../vm-dev/{{ item.name }}"
-        dest: "/opt/pharmacy/{{ item.name }}"
-        mode: "{{ item.mode }}"
-      loop:
-        - { name: docker-compose.yml, mode: "0644" }
-        - { name: deploy.sh, mode: "0755" }
+        src: "{{ playbook_dir }}/../vm-dev/docker-compose.yml"
+        dest: /opt/pharmacy/docker-compose.yml
+        mode: "0644"
+
+    - name: Copy deploy.sh (Jenkins ssh มาเรียกตอน deploy dev)
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../vm-dev/deploy.sh"
+        dest: /opt/pharmacy/deploy.sh
+        mode: "0755"
 
     - name: Render /opt/pharmacy/.env (รหัสผ่านและ IP ของ DB)
       ansible.builtin.template:

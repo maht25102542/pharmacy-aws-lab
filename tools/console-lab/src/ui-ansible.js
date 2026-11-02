@@ -9,7 +9,7 @@ var AN_MACH = [
   ["pharmacy-k8s-1", ["role_k8s_server", "internal"], "#326ce5", "☸️", "k3s server ตัวแรก + ArgoCD"],
   ["pharmacy-k8s-2", ["role_k8s_server", "internal"], "#326ce5", "☸️", "k3s server (เข้าร่วม HA)"],
   ["pharmacy-k8s-3", ["role_k8s_server", "internal"], "#326ce5", "☸️", "k3s server (เข้าร่วม HA)"],
-  ["pharmacy-dev", ["role_k8s_dev", "internal"], "#00838f", "🧪", "k3s เครื่องเดียว (dev)"],
+  ["pharmacy-dev", ["role_dev", "internal"], "#00838f", "🧪", "docker compose เครื่องเดียว (dev)"],
   ["pharmacy-db-1", ["role_db", "internal"], "#a85a00", "🗄️", "MariaDB Galera (node 1)"],
   ["pharmacy-db-2", ["role_db", "internal"], "#a85a00", "🗄️", "MariaDB Galera (node 2)"],
   ["pharmacy-db-3", ["role_db", "internal"], "#a85a00", "🗄️", "MariaDB Galera (node 3)"]
@@ -44,7 +44,7 @@ JKX_SRC.an = [
   [/^\s*serial:/, "ทีละเครื่อง", "#c0392b", "ทำให้ครบทีละเครื่อง ไม่ทำพร้อมกัน (Galera ต้อง join ทีละ node)"]
 ];
 
-// แปลง hosts: เช่น "role_db", "role_db[0]", "role_db[1:]", "role_k8s_server:role_k8s_dev" เป็นรายชื่อเครื่อง
+// แปลง hosts: เช่น "role_db", "role_db[0]", "role_db[1:]", "role_k8s_server:role_dev" เป็นรายชื่อเครื่อง
 function anHosts(expr) {
   var out = [], parts = String(expr || "").replace(/\[(\d*):(\d*)\]/g, "[$1;$2]").split(":");
   parts.forEach(function (p) {

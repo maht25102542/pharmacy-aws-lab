@@ -422,7 +422,8 @@ function albHealth(alb) {
       else if (azs.indexOf(inst.az) < 0) { st = "unused"; code = "Target.NotInUse"; desc = "Target is in an Availability Zone that is not enabled for the load balancer"; }
       else if (!sgAllows(inst.sgIds, x.port, { sgIds: alb.sgIds })) { st = "unhealthy"; code = "Target.Timeout"; desc = "Request timed out"; }
       else if (x.port === 30443 && appLayer() && !rmArgo()) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed (ArgoCD ยังไม่ถูกติดตั้ง: รัน ansible-playbook k8s.yml)"; }
-      else if ((x.port === 30080 || x.port === 30081) && appLayer() && !argoHealthy("pharmacy-frontend-" + (x.port === 30080 ? "prd" : "dev"))) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed"; }
+      else if (x.port === 3000 && appLayer() && !devcHealthy()) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed (compose บน pharmacy-dev ยังไม่มี frontend + backend รัน)"; }
+      else if (x.port === 30080 && appLayer() && !argoHealthy("pharmacy-frontend-prd")) { st = "unhealthy"; code = "Target.FailedHealthChecks"; desc = "Health checks failed"; }
       rows.push({ l: l, t: t, inst: inst, port: x.port, state: st, ok: st === "healthy", code: code, why: code ? code + ": " + desc : "" });
     });
   });
