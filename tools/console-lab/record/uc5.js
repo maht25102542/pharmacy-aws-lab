@@ -23,11 +23,13 @@ const txt = async (a = 0, n = 900) => (await L.ev(`document.querySelector("main,
   await L.cap("③ Roles › Create role (Web identity / GitHub)", "ไปที่ Roles แล้วเลือก Create role แบบ Web identity"); await L.click(B("Roles")); await L.click(B("Create role (Web identity", { starts: true }));
   const ghu = await L.ev(`ghUser()`);
   await L.cap("④ GitHub organization = เจ้าของ repo · GitHub repository = pharmacy-backend (ห้ามเว้นว่าง ไม่งั้นทุก repo ใน org assume role ได้)", "ใส่ชื่อ GitHub organization หรือ user เจ้าของ repo และ ชื่อ repository เป็น pharmacy backend จุดสำคัญคือห้ามปล่อยช่อง repository ว่าง ไม่งั้นทุก repo ใน organization จะ assume role นี้ได้");
+  await soft("prov", async () => { await L.pickBtn("เลือก provider", "token.actions.githubusercontent.com"); });
   await soft("org", async () => { await L.fill("GitHub organization", ghu); });
   await soft("repo", async () => { await L.fill("GitHub repository", "pharmacy-backend"); });
   await L.cap("⑤ ชื่อ role github-actions-deploy · สิทธิ์ ECR (login + push) และ ECS (update service + PassRole) ติ๊กไว้", "ตั้งชื่อ role ว่า github actions deploy ส่วนสิทธิ์ที่ต้องใช้คือ ECR สำหรับ login และ push image กับ ECS สำหรับอัปเดต service และ PassRole ติ๊กไว้ทั้งสองอัน");
   await soft("rname", async () => { await L.fill("Role name", "github-actions-deploy"); }); await L.hold(2.5);
   await L.cap("⑥ Create role", "กด Create role"); await L.click(B("Create role", { nth: 0 })); await L.hold(1.2);
+  if (!(await L.ev(`!!roleByRef("github-actions-deploy")`))) { console.log("FAIL role not created", await txt(0, 600)); await L.finish(); process.exit(1); }
   await L.tick(1, "role พร้อมแล้ว", "สร้าง role เรียบร้อย");
   // 3 workflow
   await L.intro(2, "GitHub", "workflow สั่งให้ Actions ทำงาน", "ตอนนี้ไปที่ GitHub สร้าง workflow ที่สั่งให้ Actions ปล่อยแอป");
@@ -44,16 +46,18 @@ const txt = async (a = 0, n = 900) => (await L.ev(`document.querySelector("main,
   await soft("er", async () => { await L.choose("ECR repository", "pharmacy/api"); });
   await soft("en", async () => { await L.choose("environment ของ job prd", "production"); }); await L.hold(1.5);
   await L.click(B("Commit changes")); await L.hold(1.5);
+  if (!(await L.ev(`!!ghaWf(ghUser()+"/pharmacy-backend")`))) { console.log("FAIL workflow not committed"); await L.finish(); process.exit(1); }
   await L.tick(2, "workflow พร้อมแล้ว", "workflow ถูก commit เข้า repo แล้ว");
   // 4 dev
   await L.intro(3, "deploy dev", "push main ปล่อย dev อัตโนมัติ", "ลอง push เข้า main ดู ระบบจะปล่อย dev ให้เองอัตโนมัติ");
-  await L.cap("⑨ git push → main → job deploy-dev ทำงาน", "กด git push เข้า main"); await L.click(B("git push", { starts: true })); await L.hold(1.5);
+  await L.cap("⑨ git push → main → job deploy-dev ทำงาน", "กด git push เข้า main"); await L.click({ t: "ทางลัดของตัวจำลอง", tag: "summary", starts: true }); await L.hold(0.8); await L.click(B("git push → main", { starts: true })); await L.hold(1.5);
   await L.cap("เปิด run ดูทีละขั้น: assume role ด้วย OIDC → login ECR → build/push → deploy ECS", "เปิด run ดูทีละขั้น ขอสิทธิ์ผ่าน OIDC ล็อกอิน ECR สร้างและ push image แล้วปล่อยลง ECS"); await L.click({ t: "deploy #1", tag: "a" }); await L.hold(3);
-  console.log("RUN1", await txt(380, 1500));
+  console.log("RUN1", await txt(380, 700));
   await L.tick(3, "dev ปล่อยสำเร็จ", "dev ปล่อยสำเร็จ");
   // 5 prd
   await L.intro(4, "deploy prd", "tag v* + คนอนุมัติ", "ต่อไป prd ปล่อยโดยสร้าง tag และต้องรอคนอนุมัติ");
   await L.cap("⑩ สร้าง tag v1.1.0 → job deploy-prd รอ approval", "กลับไปหน้า Actions แล้วสร้าง tag เวอร์ชัน v1.1.0"); await L.click({ t: "Actions", tag: "a", starts: true }); await L.hold(1);
+  await L.click({ t: "ทางลัดของตัวจำลอง", tag: "summary", starts: true }); await L.hold(0.8);
   await L.click(B("create tag + push")); await L.hold(1.5);
   await L.cap("⑪ run #2 หยุดรอที่ environment production → Approve and deploy", "run ของ tag หยุดรอ เพราะ environment production ตั้งให้ต้องมีคนอนุมัติ ผู้ตรวจกด Approve and deploy"); await L.click({ t: "deploy #2", tag: "a" }); await L.hold(2.5);
   await L.click(B("Approve and deploy")); await L.hold(2.5);
@@ -61,6 +65,6 @@ const txt = async (a = 0, n = 900) => (await L.ev(`document.querySelector("main,
   await L.tick(4, "prd ปล่อยสำเร็จ", "อนุมัติแล้ว prd ปล่อยสำเร็จ");
   await L.costScene("gha", "เรื่องค่าใช้จ่าย ฝั่ง AWS แทบไม่มีค่าเพิ่ม เพราะ OIDC ฟรี ค่า build อยู่ที่ GitHub ซึ่ง repo สาธารณะฟรี ข้อดีใหญ่คือไม่มี access key ให้รั่ว ซึ่งเป็นสาเหตุของบิลหลักแสนจากการโดนขุดเหรียญ แต่ปลายทาง ECS ยังมีค่าเหมือน use case สอง จึงต้องตั้ง Budget และ destroy เมื่อเลิกใช้");
   await L.cap("✓ สำเร็จ: OIDC ไม่มี access key · dev อัตโนมัติ · prd ต้องมีคนอนุมัติ", "สรุป ไม่ต้องเก็บ access key ไว้ใน GitHub เลย dev ปล่อยอัตโนมัติเมื่อ push ส่วน prd ต้องผ่านคนอนุมัติ ข้อควรจำคือ role ต้องจำกัดเฉพาะ repo ของเรา"); await L.hold(1);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase5.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase5-o.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });

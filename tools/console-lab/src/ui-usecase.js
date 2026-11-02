@@ -232,7 +232,7 @@ UC.push({
 });
 
 UC.push({
-  id: "gha", no: 5, video: "videos/usecase5-n.mp4", title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
+  id: "gha", no: 5, video: "videos/usecase5-o.mp4", title: "GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", color: "#24292f", dir: "labs/05-github-actions", loadKind: "gha",
   tag: "โค้ดอยู่ GitHub อยู่แล้ว ไม่ต้องมีเครื่อง CI · ไม่มี access key ถาวร · ต่อยอดจาก use case 2",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่เก็บโค้ดบน GitHub อยู่แล้วและปล่อยลง ECS — **เพราะ** workflow อยู่ใน repo เดียวกัน และไม่ต้องเก็บ access key ถาวร (OIDC)"],
