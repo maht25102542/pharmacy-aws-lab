@@ -141,3 +141,4 @@ function costSum(items) { var hr = 0, mo = 0; items.forEach(function (x) { if (x
 var COST_LV = [["ถูกมาก", "#0e8a55", "#34d399"], ["ถูก", "#2f8f1c", "#7ddc3c"], ["ปกติ", "#a07300", "#ffd23f"], ["แพง", "#c2501c", "#f59a5a"], ["แพงเกินไป", "#c8321f", "#f4573f"]]; // [ชื่อ, สีตัวอักษร, สีเติม] ไล่เขียว→แดง
 function costVerdict(monthUsd, bench) { var i = 0; while (i < bench.length && monthUsd >= bench[i]) i++; return { i: i, label: COST_LV[i][0], color: COST_LV[i][1], fill: COST_LV[i][2] }; }
 function costLabVerdict(fourHrUsd) { var b = fourHrUsd * COST_THB; return b < 5 ? COST_LV[0] : b < 60 ? COST_LV[1] : b < 300 ? COST_LV[2] : b < 1000 ? COST_LV[3] : COST_LV[4]; }
+COSTD.uc.jkpush = COSTD.uc.jk; // use case 10 ใช้เครื่องชุดเดียวกับ use case 9 (Jenkins + SonarQube + ECR)

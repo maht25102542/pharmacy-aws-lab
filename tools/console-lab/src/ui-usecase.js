@@ -461,7 +461,44 @@ UC.push({
   errGo: function (e) { var o = jkexLoad(e.load.replace(/^jk-/, "")); UI.sel = {}; TERM.lines = ["โหลดเคส “" + e.t + "” แล้ว: แก้ไฟล์ + push เรียบร้อย (ทำในเทอร์มินัลได้เองเหมือนกัน)", "", "ขั้นต่อไป: Browser › Jenkins › pharmacy-" + (o.ex ? o.ex.svc : "backend") + " › Build with Parameters › Build แล้วเปิด Console Output", "", "แก้กลับ:"].concat(o.ex ? o.ex.fix : []).concat(["git add .", "git commit -m fix", "git push"]); TERM.hist = []; TERM.hi = 0; TERM.ask = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว"); go("term", {}, "Laptop"); }
 });
 
-var UC_SVCS = { jk: ["github", "ecr", "iam"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
+UC.push({
+  id: "jkpush", no: 10, title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
+  tag: "✅ วิธีที่ทีมจริงปล่อย dev ทุกวัน: push เข้า develop → webhook → Jenkins build/ตรวจ/ปล่อยเอง · dev ใช้ docker compose (ไม่ต้องมี ArgoCD) · prd ยังกดเองด้วย tag vN.N.N",
+  intro: [
+    ["ตัวอย่างงาน", "#2b6cb0", "นักพัฒนา merge โค้ดเข้า branch **develop** แล้วอยากเห็นผลบนเว็บ dev ภายในไม่กี่นาที **โดยไม่มีใครเปิด Jenkins ไปกด Build**"],
+    ["เกิดอะไรขึ้น", "#c0392b", "`git push origin develop` → **GitHub ยิง webhook** → Jenkins เริ่ม build เอง → Test · SonarQube · Trivy → push image ขึ้น ECR (tag `dev-<sha 7 ตัว>`) → Jenkins **ssh ไปสั่ง docker compose** บน VM pharmacy-dev"],
+    ["dev ต่างจาก prd ยังไง", "#8456ce", "**dev** = docker compose เครื่องเดียว Jenkins **ส่งเอง** (push-based) · **prd** = k3s + ArgoCD Jenkins แค่แก้ manifest แล้ว ArgoCD **ดึงเอง** (GitOps) และต้องมีคนอนุมัติ"],
+    ["ต้องตั้งอะไร", "#a85a00", "① Jenkinsfile มี `triggers { githubPush() }` ② job ดู branch `*/develop` + ติ๊ก GitHub hook trigger ③ GitHub › Settings › Webhooks ชี้ `http://<jenkins>:8080/github-webhook/` ④ SG ของ Jenkins เปิด 8080 ให้ IP ของ GitHub"],
+    ["ที่ต้องรู้", "#1d8102", "push เข้า branch อื่น (เช่น main) ไม่ build · tag image มาจาก commit จึงย้อนหาโค้ดได้ · webhook ที่ส่งไม่ถึงจะเห็นใน Recent Deliveries (timeout = SG ปิด)"]
+  ],
+  envs: [["", "dev (push develop)", "prd (กดเอง)"], ["ตัวสั่งงาน", "git push → webhook", "Build with Parameters + tag vN.N.N"], ["tag image", "dev-<sha 7 ตัว>", "vN.N.N เท่านั้น"], ["ปล่อยด้วยอะไร", "Jenkins ssh → docker compose", "แก้ manifest → ArgoCD (+ คนอนุมัติ)"]],
+  nodes: [
+    { id: "dev", x: 24, y: 150, w: 120, h: 64, t: "นักพัฒนา", s: "git push develop", c: "#2a4a7a" },
+    { id: "gh", ico: "github", x: 190, y: 130, w: 150, h: 100, t: "GitHub", s: "webhook (push)", c: "#24292f" },
+    { id: "jk", x: 390, y: 130, w: 170, h: 100, t: "Jenkins", s: "githubPush() trigger", c: "#c0392b" },
+    { id: "ecr", ico: "ecr", x: 610, y: 40, w: 200, h: 64, t: "ECR", s: "dev-a1b2c3d", c: "#d9480f" },
+    { id: "vm", x: 610, y: 240, w: 200, h: 64, t: "VM pharmacy-dev", s: "docker compose", c: "#326ce5" }
+  ],
+  links: [["dev", "gh"], ["gh", "jk"], ["jk", "ecr"], ["jk", "vm"], ["ecr", "vm"]],
+  scenes: [
+    { t: "push เข้า develop", on: ["dev", "gh"], flow: [["dev", "git push origin develop"], ["gh", "รับ commit"]], rows: [["เกิดอะไร", "#2a4a7a", "GitHub เก็บ commit ใหม่ใน branch develop แล้วเช็ก **Webhooks** ของ repo"]] },
+    { t: "webhook ปลุก Jenkins", on: ["gh", "jk"], flow: [["gh", "POST /github-webhook/"], ["jk", "Started by GitHub push"]], rows: [["เกิดอะไร", "#c0392b", "GitHub ยิงมาที่ Jenkins :8080 · Jenkins ดู branch ตรงกับ job ไหม + Jenkinsfile มี `githubPush()` ไหม แล้วเริ่ม build เอง (ไม่มีใครกด)"]] },
+    { t: "ตรวจ + build + push image", on: ["jk", "ecr"], flow: [["jk", "Test · Sonar · Trivy"], ["ecr", "dev-<sha7>"]], rows: [["เกิดอะไร", "#d9480f", "ด่านตรวจเหมือน use case 9 · ผ่านแล้ว push image ขึ้น ECR ด้วย tag จาก commit"]] },
+    { t: "ssh ไปสั่ง docker compose", on: ["jk", "ecr", "vm"], flow: [["jk", "ssh deploy.sh"], ["ecr", "docker pull"], ["vm", "migrate → backend → frontend"]], rows: [["เกิดอะไร", "#326ce5", "Jenkins ssh เข้า VM dev รัน `deploy.sh` → login ECR · แก้ tag ใน `.env` · `docker compose pull/up -d` · migrate รันก่อน backend"]] },
+    { t: "เคส error: webhook ไม่ถึง", on: ["gh", "jk"], bad: ["jk"], flow: [["gh", "POST"], ["jk", "✗ timeout"]], rows: [["อาการ", "#c62828", "push แล้วไม่มี build · Recent Deliveries ขึ้น timeout (code 0)"], ["ไล่หา", "#a85a00", "GitHub › Settings › Webhooks › Recent Deliveries · SG ของ Jenkins ต้องเปิด 8080 ให้ IP ของ GitHub (`github_hook_cidrs`)"]] }
+  ],
+  tf: [
+    { type: "trigger", name: "githubPush()", file: "repo-backend/Jenkinsfile", console: ["Jenkins › pharmacy-backend › Configure › Build Triggers", "GitHub hook trigger for GITScm polling"], err: "ไม่มี trigger = webhook มาแล้วแต่ไม่ build" },
+    { type: "webhook", name: "github-webhook", file: "README › 5.5", console: ["GitHub › repo › Settings › Webhooks", "Payload URL http://<jenkins>:8080/github-webhook/"], err: "URL ผิด/SG ปิด = delivery timeout" },
+    { type: "stage", name: "Deploy dev (docker compose)", file: "repo-backend/Jenkinsfile", console: ["Jenkins › Console Output", "ssh ubuntu@DEV_HOST sudo /opt/pharmacy/deploy.sh backend dev-a1b2c3d"], err: "ไม่มี credential dev-ssh / SG dev ไม่เปิด 22" },
+    { type: "compose", name: "docker-compose.yml", file: "vm-dev/docker-compose.yml", console: ["VM pharmacy-dev › /opt/pharmacy", "migrate → backend (healthcheck) → frontend :3000"], err: "frontend ก่อน backend = dependency failed to start" },
+    { type: "aws_security_group", name: "jenkins (webhook)", file: "terraform/security.tf", console: ["EC2 › Security Groups › pharmacy-jenkins › Inbound", "Custom TCP 8080 จาก IP ของ GitHub"], err: "ไม่เปิด = Connection timed out" }
+  ],
+  errors: [],
+  loadBtns: [["โหลดตัวอย่าง: ระบบพร้อม (dev ปล่อยด้วยมือแล้ว) ไปลอง push develop เอง", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 10 แล้ว: ตั้ง webhook (GitHub › Settings › Webhooks) แล้ว git push origin develop"); go("browser", {}, "Browser"); }]]
+});
+
+var UC_SVCS = { jk: ["github", "ecr", "iam"], jkpush: ["github", "ecr", "ec2"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
 var UC_SVC_LBL = { s3: "S3", cloudfront: "CloudFront", route53: "Route 53", acm: "ACM", ecr: "ECR", ecs: "ECS", elb: "ALB", rds: "RDS", vpc: "VPC", iam: "IAM", cloudwatch: "CloudWatch", apigw: "API Gateway", lambda: "Lambda", dynamodb: "DynamoDB", codepipeline: "CodePipeline", codebuild: "CodeBuild", github: "GitHub", ec2: "EC2", ebs: "EBS", apprunner: "App Runner", autoscaling: "Auto Scaling" };
 function ucSvcChips(u) { var ks = UC_SVCS[u.id]; if (!ks) return null; return h("div", { cls: "uc-svcs" }, ks.map(function (k) { var src = AWS_ICONS[k] || BRAND_ICONS[k]; return h("span", { title: UC_SVC_LBL[k] || k }, [src ? h("img", { src: src, width: "20", height: "20", alt: "" }) : null, UC_SVC_LBL[k] || k]); })); }
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
