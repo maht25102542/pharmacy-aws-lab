@@ -90,6 +90,16 @@ resource "aws_security_group" "jenkins" {
     protocol    = "tcp"
     cidr_blocks = [var.my_ip]
   }
+
+  # GitHub webhook: git push develop -> POST http://<jenkins>:8080/github-webhook/ -> Jenkins รัน pipeline dev เอง
+  # ไม่ใช่การเปิดหน้า Jenkins ให้คนทั่วไป (ต้องตั้ง webhook secret + ล็อกอิน Jenkins ไว้ด้วย) ถ้าไม่ต้องการเปิด port ใช้ pollSCM แทน (ดู README)
+  ingress {
+    description = "GitHub webhook"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = var.github_hook_cidrs
+  }
 }
 
 resource "aws_security_group" "sonarqube" {

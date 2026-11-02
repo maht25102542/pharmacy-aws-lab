@@ -161,7 +161,7 @@ sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 | `pharmacy-backend` | `https://github.com/YOUR_GITHUB_USER/pharmacy-backend.git` |
 | `pharmacy-frontend` | `https://github.com/YOUR_GITHUB_USER/pharmacy-frontend.git` |
 
-เลือก credential `github-token` และ branch `*/main` เหมือนกันทั้งคู่
+เลือก credential `github-token` และ branch `*/develop` เหมือนกันทั้งคู่ (ตั้งแต่ push แล้วรันเอง job ดู branch `develop` ของ repo)
 
 แต่ละ job กด Build ครั้งแรกหนึ่งครั้งเพื่อให้ Jenkins อ่านรายการช่องติ๊กจาก Jenkinsfile (รอบนี้จะล้มเหลว ซึ่งปกติ)
 รอบถัดไปปุ่มจะเปลี่ยนเป็น Build with Parameters และมีรายการ tag ให้เลือก
@@ -177,6 +177,28 @@ sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 4. ปล่อย prd ด้วย `ACTION=deploy-only` เพื่อใช้ image ตัวเดียวกับที่ทดสอบใน dev แล้ว
    ลองทั้งแบบติ๊กและไม่ติ๊ก `AUTO_SYNC`
 5. เปิด `site_prd` แล้วกดรีเฟรชหลายครั้ง ข้อความ "ตอบโดย backend pod" จะสลับไปมาระหว่าง backend 3 ตัว
+
+### 5.5 push แล้ว Jenkins รันเอง (dev ใช้จริงแบบนี้)
+
+หลังปล่อยครั้งแรกแล้ว ปกติ dev ไม่มีใครกด Build: `git push origin develop` แล้ว Jenkins รันเอง (build → scan → ECR → แก้ manifest → ArgoCD sync dev) ส่วน prd ยังเป็นแบบกดเองด้วย tag `vN.N.N` ตามเดิม
+
+```
+git push origin develop → GitHub webhook → Jenkins (pharmacy-backend) → ECR tag dev-<sha7> → manifest dev → ArgoCD sync
+```
+
+ตั้งครั้งเดียวต่อ repo (ทำซ้ำทั้ง `pharmacy-backend` และ `pharmacy-frontend`):
+
+1. Jenkins: เปิด job > Configure > ติ๊ก **GitHub hook trigger for GITScm polling** (Jenkinsfile มี `triggers { githubPush() }` แล้ว ครั้งแรกกด Build หนึ่งรอบให้ Jenkins อ่านไฟล์)
+2. GitHub: repo > Settings > Webhooks > Add webhook
+   - Payload URL: `jenkins_url` ต่อท้ายด้วย `/github-webhook/` (เช่น `http://1.2.3.4:8080/github-webhook/`)
+   - Content type: `application/json`
+   - Secret: ตั้งรหัสสุ่มหนึ่งค่า (ใส่ซ้ำที่ Jenkins > Manage Jenkins > System > GitHub)
+   - Events: Just the push event
+3. ทดสอบ: `git push origin develop` แล้วดู Jenkins มี build ใหม่ขึ้นเอง (Recent Deliveries ใน GitHub ต้องเป็น 200)
+
+อย่าลืม: Security Group ของ Jenkins เปิดพอร์ต 8080 ให้ IP ของ GitHub (`github_hook_cidrs` ใน `terraform/variables.tf`) ค่ามาจาก https://api.github.com/meta ช่อง `hooks` ซึ่งเปลี่ยนได้ ถ้า webhook ส่งไม่ถึงให้เช็กค่านี้ก่อน
+
+ไม่อยากเปิดพอร์ต: เปลี่ยน `triggers { githubPush() }` เป็น `triggers { pollSCM('H/2 * * * *') }` Jenkins จะไปถาม GitHub เองทุก 2 นาที (ช้ากว่า แต่ไม่ต้องมี webhook และไม่ต้องเปิดพอร์ต)
 
 ### 6. ลบทุกอย่างเมื่อเลิกใช้
 

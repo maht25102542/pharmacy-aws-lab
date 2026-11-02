@@ -1,6 +1,7 @@
 workflow-aggregator
 git
 git-parameter
+github
 credentials-binding
 pipeline-stage-view
 blueocean

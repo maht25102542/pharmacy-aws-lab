@@ -19,6 +19,10 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '30'))         // เก็บประวัติ build แค่ 30 ครั้งล่าสุด (ดิสก์ไม่เต็ม)
   }
 
+  // dev: git push เข้า branch develop → GitHub ยิง webhook → Jenkins รันเอง (ตั้ง webhook ตาม README ขั้นตอน GitHub webhook)
+  // prd: ไม่รันจาก push · กด Build with Parameters เลือก TARGET_ENV=prd + tag vN.N.N เอง
+  triggers { githubPush() }
+
   parameters {
     choice(name: 'TARGET_ENV', choices: ['dev', 'prd'],
            description: 'ปลายทาง (ค่าตั้งต้น: dev)')
@@ -35,20 +39,35 @@ pipeline {
 
   environment {
     SERVICE = 'backend'
-    IMAGE   = "${env.ECR_REGISTRY}/pharmacy/backend:${params.VERSION}"
     APP     = "pharmacy-backend-${params.TARGET_ENV}"
     DOCKER_BUILDKIT = '1'
   }
 
   stages {
+    stage('Resolve version') {
+      steps {
+        script {
+          // รันจาก push = ไม่มี tag ให้เลือก: ใช้ "dev-<sha 7 ตัว>" เป็น tag image (ย้อนกลับไปหา commit ได้) และ sync dev ให้เอง
+          // รันด้วยมือ = ใช้ VERSION ที่เลือกในหน้า Build with Parameters ตามเดิม
+          env.IS_PUSH = currentBuild.getBuildCauses('com.cloudbees.jenkins.GitHubPushCause') ? 'true' : 'false'
+          if (env.IS_PUSH == 'true') {
+            env.VERSION = "dev-${env.GIT_COMMIT.take(7)}"
+          } else {
+            env.VERSION = params.VERSION
+          }
+          env.IMAGE = "${env.ECR_REGISTRY}/pharmacy/backend:${env.VERSION}"
+        }
+      }
+    }
+
     stage('Validate') {
       steps {
         script {
-          if (!params.VERSION) {
+          if (!env.VERSION) {
             error('ยังไม่ได้เลือก VERSION (ถ้ารายการว่าง ให้ติด tag ใน Git ก่อน แล้ว build อีกครั้ง)')
           }
-          if (params.TARGET_ENV == 'prd' && !(params.VERSION ==~ /^v\d+\.\d+\.\d+$/)) {
-            error("prd รับเฉพาะ tag รูปแบบ v1.2.3 แต่ได้ '${params.VERSION}'")
+          if (params.TARGET_ENV == 'prd' && !(env.VERSION ==~ /^v\d+\.\d+\.\d+$/)) {
+            error("prd รับเฉพาะ tag รูปแบบ v1.2.3 แต่ได้ '${env.VERSION}'")
           }
         }
       }
@@ -57,15 +76,16 @@ pipeline {
     stage('Confirm production') {
       when { expression { params.TARGET_ENV == 'prd' } }
       steps {
-        input message: "ปล่อย ${env.SERVICE} ${params.VERSION} ขึ้น PRD ใช่ไหม?", ok: 'ยืนยัน'
+        input message: "ปล่อย ${env.SERVICE} ${env.VERSION} ขึ้น PRD ใช่ไหม?", ok: 'ยืนยัน'
       }
     }
 
     stage('Checkout version') {
-      when { expression { params.ACTION == 'build-and-deploy' } }
+      // รันจาก push: workspace อยู่ที่ commit ที่ push มาแล้ว ไม่ต้อง checkout tag
+      when { expression { params.ACTION == 'build-and-deploy' && env.IS_PUSH != 'true' } }
       steps {
         checkout scmGit(
-          branches: [[name: "refs/tags/${params.VERSION}"]],
+          branches: [[name: "refs/tags/${env.VERSION}"]],
           userRemoteConfigs: scm.userRemoteConfigs
         )
       }
@@ -174,7 +194,7 @@ pipeline {
     }
 
     stage('Sync ArgoCD') {
-      when { expression { params.AUTO_SYNC } }
+      when { expression { params.AUTO_SYNC || env.IS_PUSH == 'true' } }
       steps {
         withCredentials([usernamePassword(credentialsId: 'argocd-admin',
                          usernameVariable: 'ARGO_USER', passwordVariable: 'ARGO_PASS')]) {
@@ -195,8 +215,8 @@ pipeline {
     }
     success {
       script {
-        if (params.AUTO_SYNC) {
-          echo "เสร็จแล้ว: ${env.APP} รันเวอร์ชัน ${params.VERSION} และผ่านการตรวจสุขภาพ"
+        if (params.AUTO_SYNC || env.IS_PUSH == 'true') {
+          echo "เสร็จแล้ว: ${env.APP} รันเวอร์ชัน ${env.VERSION} และผ่านการตรวจสุขภาพ"
         } else {
           echo "แก้ manifest แล้ว: เข้า ArgoCD แล้วกด Sync ที่แอป ${env.APP}"
         }
