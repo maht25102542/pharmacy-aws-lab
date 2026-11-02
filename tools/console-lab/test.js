@@ -491,6 +491,21 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert.strictEqual(L.webOpen("http://" + r.alb).site, "alb503", "prd ยังไม่ปล่อย");
   const p = L.readyBuild("prd"); assert(p.every(x => x.result === "SUCCESS") && L.readyState().prd, "ปล่อย prd ผ่าน (ยืนยันให้)"); assert.strictEqual(L.webOpen("http://" + r.alb).site, "app", "เว็บ prd เปิดได้"); }
 
+// ---- push develop → GitHub webhook → Jenkins รัน dev เอง (tag dev-<sha7>) → compose บน pharmacy-dev
+{ const r = L.buildReady("maht25102542"); L.readyPushCmds().forEach(c => L.shRun(c)); assert(L.readyBuild("dev").every(x => x.result === "SUCCESS"), "dev ปล่อยด้วยมือครั้งแรก");
+  const job = L.jkJob("pharmacy-backend"); job.branch = "*/develop"; const rp = L.S.gh.repos["pharmacy-backend"], n0 = L.jkBuildsOf(job).length;
+  const sh = c => L.shRun(c).lines.join("\n"); const edit = (t) => { L.fsWrite(L.REPO + "/repo-backend/README.md", t); sh("git add ."); sh("git commit -m change"); };
+  sh("cd " + L.REPO + "/repo-backend"); sh("git switch -c develop"); edit("# change 1\n");
+  sh("git push -u origin develop"); assert.strictEqual(L.jkBuildsOf(job).length, n0, "ยังไม่มี webhook → ไม่ build");
+  rp.hooks = [{ url: "http://" + r.jenkins + ":8080/github-webhook/", events: "push", active: true }];
+  const sgj = L.S.sgs.find(g => g.name === "pharmacy-jenkins"), keep = sgj.inbound.slice(); sgj.inbound = sgj.inbound.filter(x => x.srcKind !== "cidr" || !/\/32$|\/\d+$/.test(x.src) || x.src === L.S.myIp + "/32");
+  edit("# change 2\n"); sh("git push"); assert.strictEqual(L.jkBuildsOf(job).length, n0, "SG ไม่เปิด 8080 ให้ GitHub → ไม่ build"); assert(/timed out/i.test(rp.hooks[0].deliveries.slice(-1)[0].msg) && rp.hooks[0].deliveries.slice(-1)[0].code === 0, "delivery แสดง timeout");
+  sgj.inbound = keep.concat([{ id: "sgr-gh", type: "Custom TCP", proto: "tcp", from: 8080, to: 8080, srcKind: "cidr", src: "192.30.252.0/22" }]);
+  edit("# change 3\n"); sh("git push"); const nb = L.jkBuildsOf(job); assert.strictEqual(nb.length, n0 + 1, "push develop → Jenkins build เอง"); const b = nb[nb.length - 1];
+  assert(/^Started by GitHub push by/.test(b.log[0]) && /^dev-[0-9a-f]{7}$/.test(b.params.VERSION) && b.params.TARGET_ENV === "dev" && b.result === "SUCCESS", "build จาก push: " + b.log.slice(0, 2).join("|") + b.log.slice(-6).join("|"));
+  assert(!b.stages.some(x => x.name === "Checkout version" && x.st !== "skipped") && L.devcStatus("backend").live === b.params.VERSION, "ข้าม checkout tag + compose รัน tag dev-<sha7>");
+  assert.strictEqual(rp.hooks[0].deliveries.slice(-1)[0].code, 200, "delivery 200"); sh("git switch main"); edit("# main\n"); sh("git push"); assert.strictEqual(L.jkBuildsOf(job).length, n0 + 1, "push main ไม่ build (job ดู develop)"); }
+
 // ---- ระบบแบบ managed: EKS + RDS + SSM (terraform-managed/)
 {
   L.buildManaged("managed");
