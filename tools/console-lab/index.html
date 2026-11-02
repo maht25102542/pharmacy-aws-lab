@@ -6500,6 +6500,17 @@ var COSTD = {
       watch: ["Budget $30/เดือน", "CloudWatch alarm CPUCreditBalance / CPU", "Billing alert สำหรับ EIP idle"],
       stop: "`terraform destroy` · ถ้าแค่ stop: อย่าลืม EIP + EBS ยังคิดเงิน · release EIP ที่ไม่ใช้"
     },
+    jk: {
+      ex: [cE("ทีมเล็ก: build 50 ครั้ง/เดือน", "image ใน ECR 3 GB (Jenkins + SonarQube เปิดตลอดอยู่ในรายการคงที่)", 3 * 0.1, "ไม่หัก free tier"),
+        cE("push ถี่: build 500 ครั้ง/เดือน", "image ใน ECR 20 GB · ออกอินเทอร์เน็ต 150 GB", 20 * 0.1 + (150 - 100) * CU.dtGb, "หัก 100 GB แรกฟรี")],
+      bench: [40, 90, 180, 350], benchRef: "Jenkins + SonarQube บน EC2 t3.medium สองเครื่อง ทั่วไปราว $90–140/เดือน", benchWhy: "ค่าอยู่ที่เครื่อง 2 เครื่องที่เปิดตลอด ไม่ใช่จำนวน build · ถูกกว่า CodeBuild เมื่อ build ถี่ แต่ต้องดูแลเครื่องเอง",
+      title: "Jenkins CI + SonarQube (EC2 สองเครื่อง)", big: "ค่าคงที่ตามชั่วโมงที่เครื่องเปิด: Jenkins และ SonarQube เป็น EC2 t3.medium อย่างละตัว คิดเงินแม้ไม่มีใคร build",
+      items: [cH("EC2 t3.medium: pharmacy-jenkins", CR.t3medium, 1, "stop เครื่อง = หยุดค่า compute"), cH("EC2 t3.medium: pharmacy-sonarqube", CR.t3medium, 1, "SonarQube ใช้ RAM มาก ไม่ควรลดต่ำกว่า medium"), cM("EBS gp3 30 GB ×2", 2 * 30 * CR.ebsGb, "$0.096/GB-เดือน · คิดแม้ stop เครื่อง"), cH("public IPv4 ×2", CR.ipv4, 2, "คิดแม้ stop เครื่อง"), cU("ECR storage", "$0.10/GB-เดือน ของ image ที่ผ่านด่านแล้วถูก push", false), cU("Data transfer ออกอินเทอร์เน็ต", "100 GB/เดือนแรกฟรี (รวมทุกบริการ) · เกิน $0.12/GB (สิงคโปร์)")],
+      drivers: ["ชั่วโมงที่ Jenkins + SonarQube เปิดอยู่ (2 เครื่อง)", "image สะสมใน ECR", "ดึง dependency/base image ออกอินเทอร์เน็ตตอน build"],
+      cut: ["stop สองเครื่องนอกเวลางาน (EBS + IPv4 ยังคิด)", "ECR lifecycle policy เก็บ image ล่าสุดไม่กี่ตัว", "ย้าย Sonar ไป SonarCloud ถ้าไม่อยากดูแลเครื่อง", "ถ้า build น้อย: CodeBuild คิดตามนาที อาจถูกกว่า"],
+      watch: ["Budget + Anomaly Detection", "Cost Explorer: Service = EC2-Instances ดูชั่วโมงสองเครื่อง", "CloudWatch alarm CPUCreditBalance ของ Jenkins"],
+      stop: "`terraform destroy` · ถ้าแค่ stop: EBS + public IPv4 ยังคิดเงิน · ลบ image ค้างใน ECR"
+    },
     exp: {
       ex: [cE("ทราฟฟิกน้อย: ALB เฉลี่ย 1 LCU · log 2 GB · ออกอินเทอร์เน็ต 50 GB", "dev + prd แชร์ ALB ตัวเดียว", 730 * CU.lcu + 2 * CU.cwGb, "data transfer 100 GB แรกฟรี"),
         cE("ทราฟฟิกกลาง: ALB เฉลี่ย 5 LCU · log 20 GB · ออกอินเทอร์เน็ต 300 GB", "task scale ออกเกิน min บางช่วง (ไม่รวมในตัวอย่างนี้)", 5 * 730 * CU.lcu + 20 * CU.cwGb + (300 - 100) * CU.dtGb, "หัก 100 GB แรกฟรี")],
@@ -11982,7 +11993,7 @@ UC.push({
 });
 
 UC.push({
-  id: "jk", no: 9, video: "videos/usecase9-a.mp4", title: "Jenkins CI: ปล่อยงานร้านยา + ด่านตรวจ 4 ด่าน", color: "#c0392b", dir: "repo-backend · repo-frontend", loadKind: "jk",
+  id: "jk", no: 9, video: "videos/usecase9-c.mp4", title: "Jenkins CI: ปล่อยงานร้านยา + ด่านตรวจ 4 ด่าน", color: "#c0392b", dir: "repo-backend · repo-frontend", loadKind: "jk",
   tag: "✅ ของจริงที่ทีมใช้ทุกวัน: push โค้ด → Jenkins ตรวจ (เทสต์ · Sonar · Trivy) → ผ่านแล้วค่อย build/push image · ล้มที่ด่านไหนก็หยุดที่นั่น",
   intro: [
     ["ตัวอย่างงาน", "#c0392b", "ทีมร้านยาแก้โค้ด backend/frontend แล้ว push — **ก่อน**ขึ้น dev/prd ต้องผ่านด่านอัตโนมัติ **เทสต์ → SonarQube → build image → Trivy** ถ้าด่านไหนแดง pipeline หยุด **ไม่มีอะไรหลุดไปถึง ECR**"],

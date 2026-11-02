@@ -13,7 +13,7 @@ const toBrowser = async () => { await L.click(B("Browser", { nth: 0 })); await L
   // เตรียมสภาพแวดล้อม = ของ lab หลัก (Terraform/Ansible/ตั้งค่า Jenkins+Sonar) + build ปกติ 1 รอบ (baseline ของ SonarQube) — บอกในคำบรรยาย
   const ip = JSON.parse(await L.ev(`var r=jkexLoad(""); JSON.stringify({j:r.r.jenkins})`)).j;
   await L.cap("ก่อนเริ่ม: Jenkins/SonarQube ตั้งค่าครบแล้ว และ build ปกติผ่านไป 1 รอบ", "ก่อนเริ่ม สมมติว่า Jenkins กับ SonarQube ตั้งค่าครบแล้วจากแลปหลัก และ build ปกติผ่านไปหนึ่งรอบ เป็นฐานให้ SonarQube เทียบว่าอะไรคือโค้ดใหม่"); await L.hold(1);
-  await L.intro(0, "Jenkins", "build ปกติผ่านทุกด่าน", "เริ่มจากดู build ที่ผ่านแล้ว");
+  await L.intro(0, "Jenkins", "รันบน EC2 pharmacy-jenkins ใน AWS", "Jenkins ตัวนี้รันอยู่บนเครื่อง EC2 ชื่อ pharmacy jenkins ใน AWS เริ่มจากดู build ที่ผ่านแล้ว");
   await toBrowser(); await L.ev(`wbGo("http://${ip}:8080/"); render(); 1`); await L.sleep(500);
   await L.cap("① แท็บ Browser › Jenkins › pharmacy-backend: build #1 ผ่าน", "เปิดแท็บ Browser เข้า Jenkins แล้วเลือก job pharmacy backend จะเห็น build หมายเลขหนึ่งผ่านแล้ว");
   await step("job", async () => { await L.click({ t: "pharmacy-backend", tag: "a" }); }); await L.hold(2);
@@ -47,7 +47,8 @@ const toBrowser = async () => { await L.click(B("Browser", { nth: 0 })); await L
   await step("build2", async () => { await L.click(B("Build", { nth: 0 })); }); await L.hold(1.2);
   await L.ev(`W.page="build"; W.bid=jkBuildsOf(S.jk.job).slice(-1)[0].id; W.btab="console"; render(); var pr=[].slice.call(document.querySelectorAll("pre")).sort(function(a,b){return b.scrollHeight-a.scrollHeight})[0]; if(pr) pr.scrollTop=pr.scrollHeight; 1`); await L.hold(3);
   await L.tick(3, "build ผ่านทุกด่านอีกครั้ง", "build ผ่านทุกด่านอีกครั้ง");
-  await L.cap("✓ สำเร็จ: ด่านตรวจจับ password ได้ · แก้แล้ว build ผ่าน · image ถึง ECR เฉพาะโค้ดที่ผ่านด่าน", "สรุป ด่านตรวจอัตโนมัติจับ password ที่ฝังในโค้ดได้ก่อนถึง image พอแก้แล้ว build ก็ผ่านและส่ง image ไปที่ E C R ได้");
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase9-a.mp4"));
+  await L.costScene("jk", "เรื่องค่าใช้จ่าย Jenkins กับ SonarQube คือ EC2 สองเครื่องที่เปิดตลอด คิดเงินแม้ไม่มีใคร build ค่าเครื่องคือส่วนใหญ่ของบิล ส่วน build ที่ถี่ขึ้นแทบไม่เพิ่ม ควรตั้ง Budget และ stop เครื่องนอกเวลา หรือ destroy เมื่อเลิกใช้");
+  await L.cap("✓ สำเร็จ: ด่านตรวจจับ password ได้ · แก้แล้ว build ผ่าน · image ถึง ECR เฉพาะโค้ดที่ผ่านด่าน", "สรุป ด่านตรวจอัตโนมัติจับ password ที่ฝังในโค้ดได้ก่อนถึง image พอแก้แล้ว build ก็ผ่านและส่ง image ไปที่ E C R ได้"); await L.hold(1.5);
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase9-c.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });
