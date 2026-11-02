@@ -80,6 +80,6 @@ const txt = async (n = 500) => (await L.ev(`document.body.innerText`)).replace(/
   await L.tick(7, "prd ตอบเวอร์ชันใหม่", "แอปบน prd ตอบกลับมาด้วยเวอร์ชันที่เพิ่งปล่อย");
   await L.costScene("cd", "เรื่องค่าใช้จ่าย pipeline เองถูกมาก ประมาณหนึ่งดอลลาร์ต่อเดือน กับค่า CodeBuild ตามจำนวนนาทีที่ build ครั้งละไม่กี่เซนต์ ส่วนที่แพงคือปลายทางที่ปล่อยไป คือ ECS ของ use case สอง ควรตั้ง lifecycle ให้ ECR ลบ image เก่า และดู Cost Explorer ว่ามี build วนซ้ำผิดปกติไหม");
   await L.cap("✓ สำเร็จ: push โค้ด → build → dev → อนุมัติ → prd อัตโนมัติทั้งสาย", "สรุป ตั้งสายพานครั้งเดียว ต่อไปแค่ push โค้ดก็ build และปล่อยลง dev ให้เอง รอคนอนุมัติแล้วขึ้น prd ต่อ ข้อควรจำคือ role ต้องมีสิทธิ์ iam PassRole และ CodeBuild ต้องเปิด Privileged mode"); await L.hold(1);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase4.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase4-j.mp4"));
   await L.finish();
 })().catch(async (e) => { console.error("ERR", e.message); try { console.log("ALERT", await L.ev(`(document.querySelector(".alert.error")||{innerText:"none"}).innerText`)); console.log("DBG", await L.ev(`(function(){var p=S.pipes[0]; var out=[]; for(var i=0;i<p.stages.length;i++){ try{ var v=cdStageView(p,i); out.push(i+":"+v.status+":"+v.actions.map(function(a){return a.status}).join("/")+" CDCOL="+!!CD_COL[v.status]); }catch(e){ out.push(i+" ERR "+e.message) } } return JSON.stringify(out)+" keys="+Object.keys(CD_COL).join(",")})()`)); } catch (x) { console.log("DBGERR", x.message); } process.exit(1); });
