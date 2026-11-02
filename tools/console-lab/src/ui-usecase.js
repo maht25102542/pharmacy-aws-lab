@@ -427,11 +427,11 @@ UC.push({
     ["ใครใช้", "#1d8102", "แทบทุกทีมที่มี CI · Quality Gate และ image scan เป็นด่านบังคับของทีมที่ต้องผ่านตรวจ security"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① SonarQube ต้องมี **baseline** (build ผ่านก่อน 1 รอบ) ถึงบอกได้ว่าอะไรคือโค้ดใหม่ ② Trivy ล้มเมื่อเจอ HIGH/CRITICAL ที่ **มี fixed version** ③ ข้อความล้มของ stage ก่อนหน้าทำให้ stage หลังขึ้น not run"]
   ],
-  envs: [["", "dev", "prd"], ["VERSION", "tag อะไรก็ได้ เช่น v1.0.0", "ต้องเป็น vN.N.N เท่านั้น"], ["ด่านตรวจ", "รันครบทุกครั้ง", "รันครบ + ต้องกด approve ก่อน deploy"], ["Sync ArgoCD", "ตาม AUTO_SYNC", "ตาม AUTO_SYNC + คนกดยืนยัน"]],
+  envs: [["", "dev", "prd"], ["VERSION", "tag อะไรก็ได้ เช่น v1.0.0", "ต้องเป็น vN.N.N เท่านั้น"], ["ด่านตรวจ", "รันครบทุกครั้ง", "รันครบ + ต้องกด approve ก่อน deploy"], ["ปล่อยด้วยอะไร", "Jenkins ssh → docker compose บน pharmacy-dev (ไม่มี ArgoCD)", "แก้ manifest → ArgoCD sync (ตาม AUTO_SYNC) + คนกดยืนยัน"]],
   nodes: [
     { id: "dev", x: 24, y: 150, w: 120, h: 64, t: "นักพัฒนา", s: "git push", c: "#2a4a7a" },
     { id: "gh", ico: "github", x: 190, y: 130, w: 150, h: 100, t: "GitHub", s: "repo-backend/frontend", c: "#24292f" },
-    { id: "jk", x: 390, y: 130, w: 170, h: 100, t: "Jenkins", s: "Jenkinsfile 12 stage", c: "#c0392b" },
+    { id: "jk", x: 390, y: 130, w: 170, h: 100, t: "Jenkins", s: "Jenkinsfile 13 stage", c: "#c0392b" },
     { id: "gate", x: 610, y: 40, w: 200, h: 64, t: "ด่านตรวจ", s: "Test · Sonar · Trivy", c: "#8456ce" },
     { id: "ecr", ico: "ecr", x: 610, y: 240, w: 200, h: 64, t: "ECR", s: "image ที่ผ่านด่านแล้ว", c: "#d9480f" },
     { id: "iam", ico: "iam", x: 390, y: 300, w: 170, h: 64, t: "IAM role (Jenkins)", s: "ecr:PutImage", c: "#c2185b" }
@@ -440,7 +440,7 @@ UC.push({
   scenes: [
     { t: "push โค้ด → Jenkins เริ่ม build", on: ["dev", "gh", "jk"], flow: [["dev", "git push"], ["gh", "checkout tag"], ["jk", "Build with Parameters"]], rows: [["เกิดอะไร", "#c0392b", "Jenkins ดึงโค้ดตาม tag ที่ระบุ แล้วเริ่ม **Validate → Test**"]] },
     { t: "ด่านตรวจผ่านทีละด่าน", on: ["jk", "gate"], flow: [["jk", "run stage"], ["gate", "Test ✓ Sonar ✓ Trivy ✓"]], rows: [["เกิดอะไร", "#8456ce", "**Test** รัน pytest / eslint+tsc+vitest · **SonarQube scan** รอ Quality Gate · **Scan image** (Trivy) หาช่องโหว่ใน image"]] },
-    { t: "ผ่านแล้วค่อย push image", on: ["jk", "iam", "ecr"], flow: [["iam", "สวม role"], ["jk", "docker push"], ["ecr", "image ใหม่"]], rows: [["เกิดอะไร", "#d9480f", "เฉพาะ build ที่ผ่านทุกด่านถึงจะ **Push image** เข้า ECR แล้วไป Update manifest"]] },
+    { t: "ผ่านแล้วค่อย push image", on: ["jk", "iam", "ecr"], flow: [["iam", "สวม role"], ["jk", "docker push"], ["ecr", "image ใหม่"]], rows: [["เกิดอะไร", "#d9480f", "เฉพาะ build ที่ผ่านทุกด่านถึงจะ **Push image** เข้า ECR แล้วไป deploy: dev = ssh สั่ง docker compose · prd = แก้ manifest + ArgoCD"]] },
     { t: "เคส error: ด่านตรวจแดง", on: ["jk", "gate"], bad: ["gate"], flow: [["jk", "run stage"], ["gate", "✗ ล้ม"]], rows: [["อาการ", "#c62828", "stage แดง · stage หลังจากนั้น not run · Finished: FAILURE"], ["ไล่หา", "#a85a00", "Console Output หา `ERROR` + ไฟล์:บรรทัด · ดูตารางช่องโหว่ (Trivy) หรือ Issues (SonarQube)"]] }
   ],
   tf: [

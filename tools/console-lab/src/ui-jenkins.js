@@ -22,7 +22,7 @@ var JKX_SRC = {
     [/^USER /, "ต้องตรง deployment.yaml", "#0972d3", "runAsUser ใน deployment.yaml ต้องเป็นเลขเดียวกัน"]
   ],
   yaml: [
-    [/^\s+image:/, "Jenkins เขียนทับ", "#d33833", "stage Update manifest ใช้ sed แก้บรรทัดนี้ทุกครั้งที่ปล่อย"],
+    [/^\s+image:/, "Jenkins เขียนทับ", "#d33833", "stage Update manifest ใช้ sed แก้บรรทัดนี้ทุกครั้งที่ปล่อย prd (dev ไม่ใช้ manifest: รันด้วย docker compose)"],
     [/name: (db-credentials|app-secrets)/, "Secret จาก Ansible", "#c0392b", "สร้างตอนติดตั้ง cluster (Ansible › cluster-base.yaml.j2) ไม่อยู่ใน Git"],
     [/value: http:\/\/backend/, "Service backend", "#1d6fb8", "ชื่อ Service ของ backend ใน namespace เดียวกัน (ส่วน Service ของ deployment.yaml ฝั่ง backend)"],
     [/argocd\.argoproj\.io\/hook/, "ArgoCD hook", "#ef7b4d", "ArgoCD รัน Job นี้ก่อน sync (PreSync) ทุกครั้งที่ปล่อย"],
@@ -57,8 +57,11 @@ var JKX_SEC = {
     [/stage\('Scan image'\)/, "Scan image: สแกนช่องโหว่ก่อน push", "Trivy: เจอ HIGH/CRITICAL ที่มีตัวแก้แล้ว = ล้มเหลว", "ล้มเร็ว: ตรวจก่อน push จึงไม่มี image ที่มีช่องโหว่ไปอยู่ใน ECR"],
     [/stage\('Push image'\)/, "Push image: ส่งขึ้น ECR", "ขอรหัสผ่านชั่วคราวผ่าน IAM role ของเครื่อง แล้ว push", "แบบเล่นๆ: ฝัง AWS access key ไว้ใน Jenkins ถ้ารั่วคือรั่วถาวร"],
     [/stage\('Check image exists'\)/, "Check image exists: deploy-only", "ใช้ตอน promote dev→prd หรือย้อนเวอร์ชัน: เช็กว่า image มีใน ECR แล้ว ไม่ build ใหม่", "ของที่ขึ้น prd คือ image ตัวเดียวกับที่ทดสอบใน dev เป๊ะ"],
+    [/stage\('Resolve version'\)/, "Resolve version: push หรือกดมือ?", "รันจาก git push (webhook) = ไม่มี tag ให้เลือก จึงใช้ dev-<sha 7 ตัว> เป็น tag image · กดมือ = ใช้ VERSION ที่เลือก", "tag จาก commit ย้อนไปหาโค้ดได้เสมอ · prd ยังบังคับ vN.N.N ผ่านการกดมือ"],
+    [/triggers \{ githubPush\(\) \}/, "triggers: push แล้วรันเอง", "GitHub ยิง webhook มาที่ Jenkins ทุกครั้งที่ push branch ที่ job ดูอยู่ (develop) · ต้องเปิด 8080 ให้ IP ของ GitHub", "ไม่อยากเปิดพอร์ต: เปลี่ยนเป็น pollSCM('H/2 * * * *') ช้ากว่าแต่ไม่ต้องมี webhook"],
+    [/stage\('Deploy dev \(docker compose\)'\)/, "Deploy dev: ssh ไปสั่ง docker compose", "Jenkins ssh เข้า VM pharmacy-dev (credential dev-ssh) รัน deploy.sh: login ECR → แก้ tag ใน .env → docker compose pull / up -d", "push-based: Jenkins ส่งเองถึงเครื่อง ไม่มี manifests/ArgoCD (prd เป็นแบบ ArgoCD ดึงเอง) · แลกกับ dev ไม่มี rolling update"],
     [/stage\('Update manifest'\)/, "Update manifest: บอก Git ว่าจะรันเวอร์ชันไหน", "แก้บรรทัด image: ใน repo manifests แล้ว push · ถ้าชนกันให้ pull --rebase แล้วลองใหม่ (สูงสุด 3 ครั้ง)", "นี่คือ GitOps: การปล่อย = commit หนึ่งอัน ย้อนเวอร์ชัน = revert commit"],
-    [/stage\('Sync ArgoCD'\)/, "Sync ArgoCD: สั่งให้ cluster ตามทัน", "เฉพาะติ๊ก AUTO_SYNC: สั่ง sync แล้วรอจน health ผ่าน", "ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD (prd ควรเป็นแบบนี้)"],
+    [/stage\('Sync ArgoCD'\)/, "Sync ArgoCD: สั่งให้ cluster ตามทัน", "เฉพาะ prd ที่ติ๊ก AUTO_SYNC: สั่ง sync แล้วรอจน health ผ่าน", "ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD (prd ควรเป็นแบบนี้)"],
     [/^  post \{/, "post: เก็บกวาด + รายงาน", "always ลบโฟลเดอร์ manifests (มี token ใน URL) และ image ในเครื่อง · success/failure บอกผล", "แบบเล่นๆ: token ค้างอยู่ใน workspace, ดิสก์เต็มด้วย image เก่า"]
   ],
   "df-backend": [

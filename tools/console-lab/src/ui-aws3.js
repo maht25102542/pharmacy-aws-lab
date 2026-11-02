@@ -234,7 +234,7 @@ var SCEN_ERR = ["noassoc", "wrongip", "ans-sg", "ans-nonat", "ans-noegress", "ma
 var SCEN_CATS = [
   { t: "① Terraform พื้นฐาน + VM (lab หลัก)", c: "#0972d3", d: "VPC 3 AZ, EC2, ALB, ECR", re: /^(full|noassoc|wrongip|ecr)$/ },
   { t: "② ตั้งค่าเครื่องด้วย Ansible", c: "#8456ce", d: "inventory ผ่าน bastion, site.yml", re: /^ans/ },
-  { t: "③ ปล่อยจริง Jenkins → ArgoCD", c: "#c0392b", d: "git push → build → ArgoCD → เปิดเว็บ", re: /^ready$/ },
+  { t: "③ ปล่อยจริง Jenkins → dev/prd", c: "#c0392b", d: "git push → build → dev (compose) / prd (ArgoCD) → เปิดเว็บ", re: /^ready$/ },
   { t: "④ Managed: EKS + RDS + SSM", c: "#0f9d8a", d: "แบบที่ทีมจริงใช้: ไม่มี bastion/Galera/k3s ให้ดูแล", re: /^managed/ },
   { t: "⑤ Use case 1 · เว็บ static: S3 + CloudFront + Route 53 + ACM (dev + prd)", c: "#e8590c", d: "นิยมที่สุด · ถูก · ไม่มีเซิร์ฟเวอร์ให้ดูแล", re: /^static/ },
   { t: "⑥ Use case 2 · ECS Fargate + ALB + ECR + RDS (dev + prd)", c: "#d9480f", d: "คอนเทนเนอร์ไม่ต้องดูแล k8s · แบบที่ทีมเล็กนิยม", re: /^ecs/ },

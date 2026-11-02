@@ -8926,7 +8926,7 @@ function wbJenkins(res) {
   if (su === "ready") return wiz("Jenkins is ready!", [h("p", { style: "font-size:1.05rem", text: "Your Jenkins setup is complete." })], blue("Start using Jenkins", function () { jkStart(); W.page = "dash"; render(); }));
   if (!S.jk.login) { ["lu", "lp"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); return h("div", { cls: "jx jx-login" }, [h("div", { cls: "jx-lpanel" }, [h("img", { src: JK_LOGO, alt: "Jenkins", width: 190 })]), h("div", { cls: "jx-lform" }, [h("h1", { text: "Sign in to Jenkins" }), wbEx("Username", "lu", S.jk.users.map(function (u) { return u.name; }), "", "text", "w-lu"), wbEx("Password", "lp", S.jk.users.map(function (u) { return [u.pass, "รหัสของ " + u.name]; }), "", "password", "w-lp"), h("label", { cls: "jx-keep" }, [h("input", { type: "checkbox" }), " Keep me signed in"]), wbErr(W.lg), h("div", { cls: "jx-lbtn" }, [blue("Sign in", function () { W.lg = jkSignIn(F.lu, F.lp) ? "" : "Invalid username or password"; render(); })])])]); }
   // --- ใช้งานจริง
-  jkJobs(); var pg = W.page || "dash", J = S.jk.job, ALLB = S.jk.builds, builds = J ? jkBuildsOf(J) : [], STG = ["Declarative: Checkout SCM", "Validate", "Confirm production", "Checkout version", "Test", "SonarQube scan", "Build image", "Scan image", "Push image", "Check image exists", "Update manifest", "Sync ArgoCD", "Declarative: Post Actions"];
+  jkJobs(); var pg = W.page || "dash", J = S.jk.job, ALLB = S.jk.builds, builds = J ? jkBuildsOf(J) : [], STG = ["Declarative: Checkout SCM", "Validate", "Confirm production", "Checkout version", "Test", "SonarQube scan", "Build image", "Scan image", "Push image", "Check image exists", "Deploy dev (docker compose)", "Update manifest", "Sync ArgoCD", "Declarative: Post Actions"];
   var gSide = function (act) { var card = function (t, badge, kids) { return h("div", { cls: "jx-card" }, [h("div", { cls: "jx-ch" }, [h("span", { text: t }), badge ? h("span", { cls: "jx-mut", text: badge }) : null, jkIco("chev", 16)].filter(Boolean)), h("div", { cls: "jx-cb" }, kids)]); }; return wbSideJ([["New Item", wbGoPage("newitem")], ["People", function () { W.page = "people"; W.lg = ""; render(); }], jkHasPlugin("blueocean") ? ["Open Blue Ocean", function () { jkBoOpen("list"); }] : null, ["Build History", wbGoPage("history")], ["Manage Jenkins", wbGoPage("manage")], ["My Views", wbNA("My Views")]], act).concat(act === "Dashboard" ? [card("Build Queue", "", [h("p", { text: "No builds in the queue." })]), card("Build Executor Status", "0/2", [h("p", { text: "1 Idle" }), h("p", { text: "2 Idle" })])] : []); };
   var title = function (t, extra) { return h("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:14px" }, [h("h1", { style: "margin:0;font-size:24px", text: t }), h("span", { style: "margin-left:auto;display:flex;gap:8px" }, extra || [])]); };
   var na = W.lg && /ยังไม่ได้จำลอง/.test(W.lg) ? h("div", { cls: "alert info", text: W.lg }) : null;
@@ -9406,7 +9406,7 @@ var JKX_SRC = {
     [/^USER /, "ต้องตรง deployment.yaml", "#0972d3", "runAsUser ใน deployment.yaml ต้องเป็นเลขเดียวกัน"]
   ],
   yaml: [
-    [/^\s+image:/, "Jenkins เขียนทับ", "#d33833", "stage Update manifest ใช้ sed แก้บรรทัดนี้ทุกครั้งที่ปล่อย"],
+    [/^\s+image:/, "Jenkins เขียนทับ", "#d33833", "stage Update manifest ใช้ sed แก้บรรทัดนี้ทุกครั้งที่ปล่อย prd (dev ไม่ใช้ manifest: รันด้วย docker compose)"],
     [/name: (db-credentials|app-secrets)/, "Secret จาก Ansible", "#c0392b", "สร้างตอนติดตั้ง cluster (Ansible › cluster-base.yaml.j2) ไม่อยู่ใน Git"],
     [/value: http:\/\/backend/, "Service backend", "#1d6fb8", "ชื่อ Service ของ backend ใน namespace เดียวกัน (ส่วน Service ของ deployment.yaml ฝั่ง backend)"],
     [/argocd\.argoproj\.io\/hook/, "ArgoCD hook", "#ef7b4d", "ArgoCD รัน Job นี้ก่อน sync (PreSync) ทุกครั้งที่ปล่อย"],
@@ -9441,8 +9441,11 @@ var JKX_SEC = {
     [/stage\('Scan image'\)/, "Scan image: สแกนช่องโหว่ก่อน push", "Trivy: เจอ HIGH/CRITICAL ที่มีตัวแก้แล้ว = ล้มเหลว", "ล้มเร็ว: ตรวจก่อน push จึงไม่มี image ที่มีช่องโหว่ไปอยู่ใน ECR"],
     [/stage\('Push image'\)/, "Push image: ส่งขึ้น ECR", "ขอรหัสผ่านชั่วคราวผ่าน IAM role ของเครื่อง แล้ว push", "แบบเล่นๆ: ฝัง AWS access key ไว้ใน Jenkins ถ้ารั่วคือรั่วถาวร"],
     [/stage\('Check image exists'\)/, "Check image exists: deploy-only", "ใช้ตอน promote dev→prd หรือย้อนเวอร์ชัน: เช็กว่า image มีใน ECR แล้ว ไม่ build ใหม่", "ของที่ขึ้น prd คือ image ตัวเดียวกับที่ทดสอบใน dev เป๊ะ"],
+    [/stage\('Resolve version'\)/, "Resolve version: push หรือกดมือ?", "รันจาก git push (webhook) = ไม่มี tag ให้เลือก จึงใช้ dev-<sha 7 ตัว> เป็น tag image · กดมือ = ใช้ VERSION ที่เลือก", "tag จาก commit ย้อนไปหาโค้ดได้เสมอ · prd ยังบังคับ vN.N.N ผ่านการกดมือ"],
+    [/triggers \{ githubPush\(\) \}/, "triggers: push แล้วรันเอง", "GitHub ยิง webhook มาที่ Jenkins ทุกครั้งที่ push branch ที่ job ดูอยู่ (develop) · ต้องเปิด 8080 ให้ IP ของ GitHub", "ไม่อยากเปิดพอร์ต: เปลี่ยนเป็น pollSCM('H/2 * * * *') ช้ากว่าแต่ไม่ต้องมี webhook"],
+    [/stage\('Deploy dev \(docker compose\)'\)/, "Deploy dev: ssh ไปสั่ง docker compose", "Jenkins ssh เข้า VM pharmacy-dev (credential dev-ssh) รัน deploy.sh: login ECR → แก้ tag ใน .env → docker compose pull / up -d", "push-based: Jenkins ส่งเองถึงเครื่อง ไม่มี manifests/ArgoCD (prd เป็นแบบ ArgoCD ดึงเอง) · แลกกับ dev ไม่มี rolling update"],
     [/stage\('Update manifest'\)/, "Update manifest: บอก Git ว่าจะรันเวอร์ชันไหน", "แก้บรรทัด image: ใน repo manifests แล้ว push · ถ้าชนกันให้ pull --rebase แล้วลองใหม่ (สูงสุด 3 ครั้ง)", "นี่คือ GitOps: การปล่อย = commit หนึ่งอัน ย้อนเวอร์ชัน = revert commit"],
-    [/stage\('Sync ArgoCD'\)/, "Sync ArgoCD: สั่งให้ cluster ตามทัน", "เฉพาะติ๊ก AUTO_SYNC: สั่ง sync แล้วรอจน health ผ่าน", "ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD (prd ควรเป็นแบบนี้)"],
+    [/stage\('Sync ArgoCD'\)/, "Sync ArgoCD: สั่งให้ cluster ตามทัน", "เฉพาะ prd ที่ติ๊ก AUTO_SYNC: สั่ง sync แล้วรอจน health ผ่าน", "ไม่ติ๊ก = เข้าไปกด Sync เองใน ArgoCD (prd ควรเป็นแบบนี้)"],
     [/^  post \{/, "post: เก็บกวาด + รายงาน", "always ลบโฟลเดอร์ manifests (มี token ใน URL) และ image ในเครื่อง · success/failure บอกผล", "แบบเล่นๆ: token ค้างอยู่ใน workspace, ดิสก์เต็มด้วย image เก่า"]
   ],
   "df-backend": [
@@ -11569,7 +11572,7 @@ var SCEN_ERR = ["noassoc", "wrongip", "ans-sg", "ans-nonat", "ans-noegress", "ma
 var SCEN_CATS = [
   { t: "① Terraform พื้นฐาน + VM (lab หลัก)", c: "#0972d3", d: "VPC 3 AZ, EC2, ALB, ECR", re: /^(full|noassoc|wrongip|ecr)$/ },
   { t: "② ตั้งค่าเครื่องด้วย Ansible", c: "#8456ce", d: "inventory ผ่าน bastion, site.yml", re: /^ans/ },
-  { t: "③ ปล่อยจริง Jenkins → ArgoCD", c: "#c0392b", d: "git push → build → ArgoCD → เปิดเว็บ", re: /^ready$/ },
+  { t: "③ ปล่อยจริง Jenkins → dev/prd", c: "#c0392b", d: "git push → build → dev (compose) / prd (ArgoCD) → เปิดเว็บ", re: /^ready$/ },
   { t: "④ Managed: EKS + RDS + SSM", c: "#0f9d8a", d: "แบบที่ทีมจริงใช้: ไม่มี bastion/Galera/k3s ให้ดูแล", re: /^managed/ },
   { t: "⑤ Use case 1 · เว็บ static: S3 + CloudFront + Route 53 + ACM (dev + prd)", c: "#e8590c", d: "นิยมที่สุด · ถูก · ไม่มีเซิร์ฟเวอร์ให้ดูแล", re: /^static/ },
   { t: "⑥ Use case 2 · ECS Fargate + ALB + ECR + RDS (dev + prd)", c: "#d9480f", d: "คอนเทนเนอร์ไม่ต้องดูแล k8s · แบบที่ทีมเล็กนิยม", re: /^ecs/ },
@@ -12051,11 +12054,11 @@ UC.push({
     ["ใครใช้", "#1d8102", "แทบทุกทีมที่มี CI · Quality Gate และ image scan เป็นด่านบังคับของทีมที่ต้องผ่านตรวจ security"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① SonarQube ต้องมี **baseline** (build ผ่านก่อน 1 รอบ) ถึงบอกได้ว่าอะไรคือโค้ดใหม่ ② Trivy ล้มเมื่อเจอ HIGH/CRITICAL ที่ **มี fixed version** ③ ข้อความล้มของ stage ก่อนหน้าทำให้ stage หลังขึ้น not run"]
   ],
-  envs: [["", "dev", "prd"], ["VERSION", "tag อะไรก็ได้ เช่น v1.0.0", "ต้องเป็น vN.N.N เท่านั้น"], ["ด่านตรวจ", "รันครบทุกครั้ง", "รันครบ + ต้องกด approve ก่อน deploy"], ["Sync ArgoCD", "ตาม AUTO_SYNC", "ตาม AUTO_SYNC + คนกดยืนยัน"]],
+  envs: [["", "dev", "prd"], ["VERSION", "tag อะไรก็ได้ เช่น v1.0.0", "ต้องเป็น vN.N.N เท่านั้น"], ["ด่านตรวจ", "รันครบทุกครั้ง", "รันครบ + ต้องกด approve ก่อน deploy"], ["ปล่อยด้วยอะไร", "Jenkins ssh → docker compose บน pharmacy-dev (ไม่มี ArgoCD)", "แก้ manifest → ArgoCD sync (ตาม AUTO_SYNC) + คนกดยืนยัน"]],
   nodes: [
     { id: "dev", x: 24, y: 150, w: 120, h: 64, t: "นักพัฒนา", s: "git push", c: "#2a4a7a" },
     { id: "gh", ico: "github", x: 190, y: 130, w: 150, h: 100, t: "GitHub", s: "repo-backend/frontend", c: "#24292f" },
-    { id: "jk", x: 390, y: 130, w: 170, h: 100, t: "Jenkins", s: "Jenkinsfile 12 stage", c: "#c0392b" },
+    { id: "jk", x: 390, y: 130, w: 170, h: 100, t: "Jenkins", s: "Jenkinsfile 13 stage", c: "#c0392b" },
     { id: "gate", x: 610, y: 40, w: 200, h: 64, t: "ด่านตรวจ", s: "Test · Sonar · Trivy", c: "#8456ce" },
     { id: "ecr", ico: "ecr", x: 610, y: 240, w: 200, h: 64, t: "ECR", s: "image ที่ผ่านด่านแล้ว", c: "#d9480f" },
     { id: "iam", ico: "iam", x: 390, y: 300, w: 170, h: 64, t: "IAM role (Jenkins)", s: "ecr:PutImage", c: "#c2185b" }
@@ -12064,7 +12067,7 @@ UC.push({
   scenes: [
     { t: "push โค้ด → Jenkins เริ่ม build", on: ["dev", "gh", "jk"], flow: [["dev", "git push"], ["gh", "checkout tag"], ["jk", "Build with Parameters"]], rows: [["เกิดอะไร", "#c0392b", "Jenkins ดึงโค้ดตาม tag ที่ระบุ แล้วเริ่ม **Validate → Test**"]] },
     { t: "ด่านตรวจผ่านทีละด่าน", on: ["jk", "gate"], flow: [["jk", "run stage"], ["gate", "Test ✓ Sonar ✓ Trivy ✓"]], rows: [["เกิดอะไร", "#8456ce", "**Test** รัน pytest / eslint+tsc+vitest · **SonarQube scan** รอ Quality Gate · **Scan image** (Trivy) หาช่องโหว่ใน image"]] },
-    { t: "ผ่านแล้วค่อย push image", on: ["jk", "iam", "ecr"], flow: [["iam", "สวม role"], ["jk", "docker push"], ["ecr", "image ใหม่"]], rows: [["เกิดอะไร", "#d9480f", "เฉพาะ build ที่ผ่านทุกด่านถึงจะ **Push image** เข้า ECR แล้วไป Update manifest"]] },
+    { t: "ผ่านแล้วค่อย push image", on: ["jk", "iam", "ecr"], flow: [["iam", "สวม role"], ["jk", "docker push"], ["ecr", "image ใหม่"]], rows: [["เกิดอะไร", "#d9480f", "เฉพาะ build ที่ผ่านทุกด่านถึงจะ **Push image** เข้า ECR แล้วไป deploy: dev = ssh สั่ง docker compose · prd = แก้ manifest + ArgoCD"]] },
     { t: "เคส error: ด่านตรวจแดง", on: ["jk", "gate"], bad: ["gate"], flow: [["jk", "run stage"], ["gate", "✗ ล้ม"]], rows: [["อาการ", "#c62828", "stage แดง · stage หลังจากนั้น not run · Finished: FAILURE"], ["ไล่หา", "#a85a00", "Console Output หา `ERROR` + ไฟล์:บรรทัด · ดูตารางช่องโหว่ (Trivy) หรือ Issues (SonarQube)"]] }
   ],
   tf: [
