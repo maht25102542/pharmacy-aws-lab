@@ -138,9 +138,9 @@ tfLogin();
 assert(L.tfPlanCmd(TFD, {}).lines.join("\n").includes("terraform init"), "plan ก่อน init ต้อง error");
 L.tfInitCmd(TFD);
 const plan1 = L.tfPlanCmd(TFD, {});
-assert(plan1.lines.join("\n").includes("Plan: 59 to add, 0 to change, 0 to destroy."), "plan ของ repo จริงต้องได้ 59 to add");
+assert(plan1.lines.join("\n").includes("Plan: 60 to add, 0 to change, 0 to destroy."), "plan ของ repo จริงต้องได้ 60 to add");
 const applied = L.tfApplyCmd(plan1).join("\n");
-assert(applied.includes("Apply complete! Resources: 59 added"), "apply ต้องสำเร็จ");
+assert(applied.includes("Apply complete! Resources: 60 added"), "apply ต้องสำเร็จ");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "หลัง terraform apply lab ต้องผ่านตัวตรวจทั้ง 26 ข้อ");
 assert(L.fsRead(L.REPO + "/ansible/group_vars/all/terraform.yml").includes('aws_region: "ap-southeast-1"'), "local_file ต้องเขียน terraform.yml");
 assert(L.tfPlanCmd(TFD, {}).lines.join("\n").includes("No changes."), "plan รอบสองต้องไม่มีอะไรเปลี่ยน");
@@ -149,7 +149,7 @@ const dbSg = L.S.sgs.find(g => g.name === "pharmacy-db"); L.API.setInbound(dbSg.
 const drift = L.tfPlanCmd(TFD, {}).lines.join("\n");
 assert(drift.includes("Objects have changed outside of Terraform") && drift.includes("aws_security_group.db"), "plan ต้องเห็น drift ของ SG");
 L.tfApplyCmd(L.tfPlanCmd(TFD, {})); assert(L.sgAllowsDb ? true : true);
-assert(L.S.sgs.find(g => g.name === "pharmacy-db").inbound.length === 2, "apply ต้องคืนกฎ SG");
+assert(L.S.sgs.find(g => g.name === "pharmacy-db").inbound.length === 3, "apply ต้องคืนกฎ SG");
 // แก้โค้ดแล้ว plan: ลด k8s เหลือ 2 เครื่อง
 const vf = L.fsRead(TFD + "/variables.tf"); L.fsWrite(TFD + "/variables.tf", vf.replace("default     = 3\n}\n\nvariable \"db_count\"", "default     = 2\n}\n\nvariable \"db_count\""));
 const less = L.tfPlanCmd(TFD, {}).lines.join("\n");
@@ -162,7 +162,7 @@ L.fsWrite(TFD + "/network.tf", net);
 // ---- Ansible บนเครื่องที่ terraform สร้าง
 L.S.laptop.cwd = L.REPO + "/ansible";
 const g = L.ansGraph().join("\n");
-assert(/@role_db:[\s\S]*pharmacy-db-1/.test(g) && /@role_k8s_dev:\s*\n\s*\|  \|--pharmacy-dev/.test(g) && /@role_jenkins/.test(g), "inventory graph: " + g);
+assert(/@role_db:[\s\S]*pharmacy-db-1/.test(g) && /@role_dev:\s*\n\s*\|  \|--pharmacy-dev/.test(g) && /@role_jenkins/.test(g), "inventory graph: " + g);
 assert(L.ansPing("all").join("\n").split("pong").length - 1 === 10, "ping ทุกเครื่อง 10 (bastion ตรง + 9 เครื่องภายในผ่าน bastion)");
 const run1 = L.ansPlaybook("site.yml"); const r1 = run1.lines.join("\n");
 assert.strictEqual(run1.rc, 0, "site.yml ต้องผ่าน: " + r1.slice(-1500));
@@ -181,7 +181,7 @@ sgj.inbound = sgKeep;
 const credKeep = L.S.laptop.creds; L.S.laptop.creds = null; assert(/Insufficient credentials/.test(L.ansGraph().join("\n")), "ไม่มี creds"); L.S.laptop.creds = credKeep;
 // destroy
 const dplan = L.tfPlanCmd(TFD, {}, true), dout = L.tfApplyCmd(dplan).join("\n");
-assert(dout.includes("Destroy complete! Resources: 59 destroyed."), "destroy ต้องลบหมด: " + dout.slice(-300));
+assert(dout.includes("Destroy complete! Resources: 60 destroyed."), "destroy ต้องลบหมด: " + dout.slice(-300));
 assert.strictEqual(L.S.vpcs.length, 1, "เหลือแค่ default VPC"); assert(L.S.insts.every(i => i.state === "terminated"), "เครื่องต้องถูก terminate");
 // สิทธิ์: user ที่ไม่ใช่ admin ใช้ terraform ไม่ได้
 tfLogin("AmazonEC2ContainerRegistryReadOnly"); L.tfInitCmd(TFD);
@@ -206,12 +206,12 @@ sh("cd ~/Desktop/work/pharmacy-aws-lab/terraform");
 assert(/terraform init/.test(sh("terraform plan")), "ต้อง init ก่อน"); sh("terraform init");
 assert(/var\.my_ip/.test(sh("terraform apply", ["198.51.100.7/32", "no"])), "ต้องถาม my_ip");
 const ap = sh("terraform apply", ["198.51.100.7/32", "yes"]);
-assert(/Apply complete! Resources: 59 added/.test(ap), ap.slice(-400));
+assert(/Apply complete! Resources: 60 added/.test(ap), ap.slice(-400));
 assert(/pharmacy-db-1/.test(sh("terraform state list") + sh("terraform output")), "output");
 sh("cd ../ansible"); assert(/SUCCESS/.test(sh("ansible pharmacy-jenkins -m ping")), "ping");
 assert(/failed=0/.test(sh("ansible-playbook site.yml")), "site.yml");
 sh("cd ../terraform");
-assert(/Destroy complete! Resources: 59 destroyed/.test(sh("terraform destroy -auto-approve")), "destroy");
+assert(/Destroy complete! Resources: 60 destroyed/.test(sh("terraform destroy -auto-approve")), "destroy");
 // ---- VPC and more: NAT / private subnets
 L.fresh();
 for (let q = 0; q < 4; q++) L.API.createVpc({ name: "q" + q, cidr: "10." + (20 + q) + ".0.0/16" });
@@ -526,10 +526,10 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   function shm(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
   shm("aws configure", [k2.res.id, k2.secret, "ap-southeast-1", "json"]);
   shm("cd ~/Desktop/work/pharmacy-aws-lab/terraform"); shm("terraform init");
-  assert(/Apply complete! Resources: 59 added/.test(shm("terraform apply", ["198.51.100.7/32", "yes"])), "แบบ VM ยัง apply ได้ 59");
+  assert(/Apply complete! Resources: 60 added/.test(shm("terraform apply", ["198.51.100.7/32", "yes"])), "แบบ VM ยัง apply ได้ 59");
   shm("cd ../terraform-managed"); shm("terraform init");
   assert(/ชื่อนี้แล้ว|already exists/i.test(shm("terraform apply", ["198.51.100.7/32", "yes"])), "apply สองชุดใน account เดียวกัน: ชื่อ resource ต้องชนกัน");
-  shm("cd ../terraform"); assert(/Destroy complete! Resources: 59 destroyed/.test(shm("terraform destroy -auto-approve")), "destroy แบบ VM");
+  shm("cd ../terraform"); assert(/Destroy complete! Resources: 60 destroyed/.test(shm("terraform destroy -auto-approve")), "destroy แบบ VM");
   shm("cd ../terraform-managed"); shm("terraform destroy -auto-approve");
   const apm = shm("terraform apply", ["198.51.100.7/32", "yes"]); assert(/Apply complete! Resources: 57 added/.test(apm), apm.slice(-500));
   assert(/db_endpoint = /.test(shm("terraform output")) && /aws_eks_cluster.main/.test(shm("terraform state list")), "output/state ของ managed แยกจากแบบ VM");

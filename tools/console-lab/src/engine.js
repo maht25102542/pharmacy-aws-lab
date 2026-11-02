@@ -690,7 +690,7 @@ function checks() {
   add(spread(["k8s-1", "k8s-2", "k8s-3"]) && spread(["db-1", "db-2", "db-3"]), "k8s 3 เครื่อง และ DB 3 เครื่อง อยู่คนละ AZ (AZ ไหนล่มก็ยังเหลือเสียงข้างมาก)", "เลือกซอย private-1, 2, 3 ตามลำดับ");
   var tp = byName(S.tgs, "pharmacy-prd"), td = byName(S.tgs, "pharmacy-dev"), ta = byName(S.tgs, "pharmacy-argocd");
   add(tp && tp.port === 30080 && tp.targets.length >= 1, "target group pharmacy-prd port 30080 มีเครื่องลงทะเบียน", "Target Groups → Create → Register targets");
-  add(td && td.port === 30081, "target group pharmacy-dev port 30081", "");
+  add(td && td.port === 3000, "target group pharmacy-dev port 3000 (frontend ของ docker compose)", "");
   add(ta && ta.port === 30443, "target group pharmacy-argocd port 30443 (HTTPS)", "Target Groups → Create (Protocol HTTPS)");
   var alb = byName(S.albs, "pharmacy-alb");
   add(alb && pu.every(function (x) { return x && alb.subnetIds.indexOf(x.id) >= 0; }), "ALB อยู่ใน public subnet ครบ 3 AZ", "Create load balancer → Network mapping เลือก 3 AZ");
@@ -838,7 +838,7 @@ function buildLab(kind) {
   var rp = ok(API.createRtb({ name: "pharmacy-private", vpcId: v.id }));
   ok(API.setRoutes(rp.id, [{ dest: "0.0.0.0/0", target: nat.id }])); ok(API.setAssoc(rp.id, prv.map(function (s) { return s.id; })));
   ok(API.importKey({ name: "pharmacy-admin", pub: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEMO demo@lab" }));
-  var sgn = {}; ["bastion", "base", "alb", "jenkins", "sonarqube", "k8s", "db"].forEach(function (n) { sgn[n] = ok(API.createSg({ name: "pharmacy-" + n, desc: "pharmacy " + n, vpcId: v.id, rows: [] })); });
+  var sgn = {}; ["bastion", "base", "alb", "jenkins", "sonarqube", "k8s", "dev", "db"].forEach(function (n) { sgn[n] = ok(API.createSg({ name: "pharmacy-" + n, desc: "pharmacy " + n, vpcId: v.id, rows: [] })); });
   var me = kind === "wrongip" ? { type: "SSH", srcKind: "Custom", src: "203.0.113.99/32" } : { type: "SSH", srcKind: "My IP" };
   function R(type, port, kindS, src) { return { type: type, port: port, srcKind: kindS, src: src }; }
   ok(API.setInbound(sgn.bastion.id, [me]));
@@ -846,8 +846,9 @@ function buildLab(kind) {
   ok(API.setInbound(sgn.alb.id, [R("HTTP", "", "Anywhere-IPv4"), R("Custom TCP", "8080", "My IP"), R("Custom TCP", "8443", "My IP")]));
   ok(API.setInbound(sgn.jenkins.id, [R("Custom TCP", "8080", "My IP")]));
   ok(API.setInbound(sgn.sonarqube.id, [R("Custom TCP", "9000", "My IP"), R("Custom TCP", "9000", "Security group", sgn.jenkins.id)]));
-  ok(API.setInbound(sgn.k8s.id, [R("All traffic", "", "Security group", sgn.k8s.id), R("Custom TCP", "30080-30081", "Security group", sgn.alb.id), R("Custom TCP", "30443", "Security group", sgn.alb.id), R("Custom TCP", "30443", "Security group", sgn.jenkins.id)]));
-  ok(API.setInbound(sgn.db.id, [R("All traffic", "", "Security group", sgn.db.id), R("MYSQL/Aurora", "", "Security group", sgn.k8s.id)]));
+  ok(API.setInbound(sgn.k8s.id, [R("All traffic", "", "Security group", sgn.k8s.id), R("Custom TCP", "30080", "Security group", sgn.alb.id), R("Custom TCP", "30443", "Security group", sgn.alb.id), R("Custom TCP", "30443", "Security group", sgn.jenkins.id)]));
+  ok(API.setInbound(sgn.dev.id, [R("Custom TCP", "3000", "Security group", sgn.alb.id), R("SSH", "", "Security group", sgn.jenkins.id)]));
+  ok(API.setInbound(sgn.db.id, [R("All traffic", "", "Security group", sgn.db.id), R("MYSQL/Aurora", "", "Security group", sgn.k8s.id), R("MYSQL/Aurora", "", "Security group", sgn.dev.id)]));
   ok(API.createRole({ name: "pharmacy-jenkins", entity: "AWS service", usecase: "EC2", policies: ["AmazonEC2ContainerRegistryPowerUser"] }));
   ok(API.createRole({ name: "pharmacy-k8s", entity: "AWS service", usecase: "EC2", policies: ["AmazonEC2ContainerRegistryReadOnly"] }));
   ok(API.createRepo({ name: "pharmacy/frontend" })); ok(API.createRepo({ name: "pharmacy/backend" }));
@@ -855,10 +856,10 @@ function buildLab(kind) {
   L("bastion", "bastion", "public", [sgn.bastion], pub[0], "", "t3.micro", 8);
   L("jenkins", "jenkins", "public", [sgn.base, sgn.jenkins], pub[0], "pharmacy-jenkins"); L("sonarqube", "sonarqube", "public", [sgn.base, sgn.sonarqube], pub[0]);
   var k1 = L("k8s-1", "k8s_server", "private", [sgn.base, sgn.k8s], prv[0], "pharmacy-k8s"), k2 = L("k8s-2", "k8s_server", "private", [sgn.base, sgn.k8s], prv[1], "pharmacy-k8s"), k3 = L("k8s-3", "k8s_server", "private", [sgn.base, sgn.k8s], prv[2], "pharmacy-k8s");
-  var dv = L("dev", "k8s_dev", "private", [sgn.base, sgn.k8s], prv[0], "pharmacy-k8s");
+  var dv = L("dev", "dev", "private", [sgn.base, sgn.dev], prv[0], "pharmacy-k8s");
   L("db-1", "db", "private", [sgn.base, sgn.db], prv[0], "", "t3.small", 20); L("db-2", "db", "private", [sgn.base, sgn.db], prv[1], "", "t3.small", 20); L("db-3", "db", "private", [sgn.base, sgn.db], prv[2], "", "t3.small", 20);
   var tp = ok(API.createTg({ name: "pharmacy-prd", port: 30080, vpcId: v.id, hcPath: "/healthz", targets: [k1, k2, k3].map(function (x) { return { instId: x.id, port: 30080 }; }) }));
-  var td = ok(API.createTg({ name: "pharmacy-dev", port: 30081, vpcId: v.id, hcPath: "/healthz", targets: [{ instId: dv.id, port: 30081 }] }));
+  var td = ok(API.createTg({ name: "pharmacy-dev", port: 3000, vpcId: v.id, hcPath: "/healthz", targets: [{ instId: dv.id, port: 3000 }] }));
   var ta = ok(API.createTg({ name: "pharmacy-argocd", port: 30443, proto: "HTTPS", vpcId: v.id, hcPath: "/healthz", targets: [k1, k2, k3].map(function (x) { return { instId: x.id, port: 30443 }; }) }));
   if (kind === "ecr") S.repos.forEach(function (rp2) { ok(API.ecrAction({ repoId: rp2.id, principal: { type: "inst", id: S.insts.filter(function (i) { return i.name === "pharmacy-jenkins"; })[0].id }, op: "push", tag: "v1.0.0" })); });
   ok(API.createAlb({ name: "pharmacy-alb", scheme: "Internet-facing", vpcId: v.id, subnetIds: pub.map(function (s) { return s.id; }), sgIds: [sgn.alb.id], listeners: [{ port: 80, tgId: tp.id }, { port: 8080, tgId: td.id }, { port: 8443, tgId: ta.id }] }));
