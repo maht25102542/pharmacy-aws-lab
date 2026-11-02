@@ -75,4 +75,4 @@ PAGES["lab-ap"] = function () {
     h("p", { cls: "hint", text: "3 หมู่ตามว่าแอปรันที่ไหน + CI/CD เป็นอีกแกน (ปล่อยลง ECS) · ทุกใบมี lab ให้ลองใน simulator" })].concat(body, [
     h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ ECS Fargate (หรือ ECS Express Mode ถ้าอยากง่ายแบบ PaaS) → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })]))])]);
 };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-uc"); L.splice(i < 0 ? L.length : i, 0, ["lab-ap", "เลือกแบบไหน (ทุกแบบ)"]); NAVICO["lab-ap"] = "🧩"; })();
+NAVICO["lab-ap"] = "🗺️"; NAVICO["lab-preview"] = "👀";

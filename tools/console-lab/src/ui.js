@@ -34,7 +34,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เครื่องมือของตัวจำลอง", [["lab-check", "ตรวจกับ Terraform"], ["lab-hcl", "Terraform"], ["lab-ansible", "Ansible"], ["lab-flow", "ลำดับการปล่อย (Jenkins → ArgoCD)"], ["lab-jenkins", "Jenkins (ไฟล์ปล่อยจริง)"], ["lab-rules", "กฎที่จำลอง"], ["lab-managed", "เทียบ VM กับ Managed"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]]]]
+  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 8 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab หลัก: ปล่อยงานร้านยา", [["lab-hcl", "Terraform"], ["lab-ansible", "Ansible"], ["lab-jenkins", "Jenkins pipeline"], ["lab-flow", "ลำดับปล่อย Jenkins → ArgoCD"], ["lab-managed", "เทียบ VM กับ Managed"]]], ["ตรวจ & ดูผล", [["lab-check", "ตรวจกับ Terraform"], ["lab-rules", "กฎที่จำลอง"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]]]],
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
@@ -1757,7 +1757,7 @@ function labBody(tab) {
   return cb;
 }
 
-[["lab-check", "check", "ตรวจกับ Terraform"], ["lab-hcl", "hcl", "Terraform"], ["lab-flow", "flow", "ลำดับการปล่อย (Jenkins → ArgoCD)"], ["lab-rules", "rules", "กฎที่จำลอง"], ["lab-scen", "scen", "ตัวอย่างสำเร็จรูป"]].forEach(function (t) {
+[["lab-check", "check", "ตรวจกับ Terraform"], ["lab-hcl", "hcl", "Terraform"], ["lab-flow", "flow", "ลำดับปล่อย Jenkins → ArgoCD"], ["lab-rules", "rules", "กฎที่จำลอง"], ["lab-scen", "scen", "ตัวอย่างสำเร็จรูป"]].forEach(function (t) {
   PAGES[t[0]] = function () { return h("div", {}, [crumbEl("Lab › " + t[2]), h("h1", { text: t[2] }), h("div", { cls: "card" }, [labBody(t[1])])]); };
 });
 

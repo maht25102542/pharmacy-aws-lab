@@ -7437,7 +7437,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เครื่องมือของตัวจำลอง", [["lab-check", "ตรวจกับ Terraform"], ["lab-hcl", "Terraform"], ["lab-ansible", "Ansible"], ["lab-flow", "ลำดับการปล่อย (Jenkins → ArgoCD)"], ["lab-jenkins", "Jenkins (ไฟล์ปล่อยจริง)"], ["lab-rules", "กฎที่จำลอง"], ["lab-managed", "เทียบ VM กับ Managed"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]]]]
+  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 8 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab หลัก: ปล่อยงานร้านยา", [["lab-hcl", "Terraform"], ["lab-ansible", "Ansible"], ["lab-jenkins", "Jenkins pipeline"], ["lab-flow", "ลำดับปล่อย Jenkins → ArgoCD"], ["lab-managed", "เทียบ VM กับ Managed"]]], ["ตรวจ & ดูผล", [["lab-check", "ตรวจกับ Terraform"], ["lab-rules", "กฎที่จำลอง"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]]]],
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
@@ -9160,7 +9160,7 @@ function labBody(tab) {
   return cb;
 }
 
-[["lab-check", "check", "ตรวจกับ Terraform"], ["lab-hcl", "hcl", "Terraform"], ["lab-flow", "flow", "ลำดับการปล่อย (Jenkins → ArgoCD)"], ["lab-rules", "rules", "กฎที่จำลอง"], ["lab-scen", "scen", "ตัวอย่างสำเร็จรูป"]].forEach(function (t) {
+[["lab-check", "check", "ตรวจกับ Terraform"], ["lab-hcl", "hcl", "Terraform"], ["lab-flow", "flow", "ลำดับปล่อย Jenkins → ArgoCD"], ["lab-rules", "rules", "กฎที่จำลอง"], ["lab-scen", "scen", "ตัวอย่างสำเร็จรูป"]].forEach(function (t) {
   PAGES[t[0]] = function () { return h("div", {}, [crumbEl("Lab › " + t[2]), h("h1", { text: t[2] }), h("div", { cls: "card" }, [labBody(t[1])])]); };
 });
 
@@ -12115,7 +12115,7 @@ function ucTab() {
 }
 FOLD.ucvid = 1; FOLD.ucevid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
 PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (8 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (8 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();
+NAVICO["lab-uc"] = "🧭";
 
 // ===== หน้า console ของ ECS (Fargate) และ CloudWatch Logs (use case 2) =====
 // หน้าตา/ชื่อแท็บเรียงตามความจำของ console ปี 2025 · ขั้นตอนสร้างบางหน้าย่อเป็นหน้าเดียว (ของจริงเป็น wizard หลายส่วน)
@@ -13143,7 +13143,7 @@ PAGES["lab-ap"] = function () {
     h("p", { cls: "hint", text: "3 หมู่ตามว่าแอปรันที่ไหน + CI/CD เป็นอีกแกน (ปล่อยลง ECS) · ทุกใบมี lab ให้ลองใน simulator" })].concat(body, [
     h("div", { cls: "alert", text: "เริ่มจาก static/serverless ถ้าได้ → ไม่ได้ก็ ECS Fargate (หรือ ECS Express Mode ถ้าอยากง่ายแบบ PaaS) → ต้อง k8s จริง ๆ ค่อย EKS · เครื่องเดียวเหมาะ MVP/ภายใน · k3s+Jenkins ไว้เรียนรู้" })]))])]);
 };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-uc"); L.splice(i < 0 ? L.length : i, 0, ["lab-ap", "เลือกแบบไหน (ทุกแบบ)"]); NAVICO["lab-ap"] = "🧩"; })();
+NAVICO["lab-ap"] = "🗺️"; NAVICO["lab-preview"] = "👀";
 
 // ===== หน้า console ของ ECS Express Mode (use case 8) =====
 // ลำดับฟอร์ม/ชื่อฟิลด์/ชื่อแท็บตามเอกสาร AWS (express-service-first-run, express-service-view-service) ไม่ได้เห็นหน้าจริง: สี/ไอคอน/ตำแหน่งปุ่มอาจต่างจากของจริง
@@ -14467,7 +14467,7 @@ PAGES["lab-cost"] = function () {
     h("div", { cls: "cd-rule" }, [h("div", { cls: "r1" }, [h("b", { text: "คิดตามชั่วโมงที่เปิดอยู่" }), h("span", { text: "NAT · ALB · EC2 · RDS · EKS" }), h("em", { text: "แพงถ้าลืมลบ" })]), h("div", { cls: "r2" }, [h("b", { text: "คิดตามการใช้" }), h("span", { text: "Lambda · S3 · CloudFront" }), h("em", { text: "แทบไม่เสียถ้าไม่มีคนใช้" })])]), costCaveat(),
     h("h2", { text: "จัดการ bill: ทำอะไร ที่ไหน" }), costGen()].concat(det));
 };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-ap"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-cost", "ค่าใช้จ่าย & Bill"]); NAVICO["lab-cost"] = "💰"; })();
+NAVICO["lab-cost"] = "💰";
 
 // ===== ข้อมูลตัวอย่างร้านยาก้อนใหญ่ + API จำลองตาม repo-backend (Django REST) ใช้ในหน้า Preview (แยกจาก state ของ lab) =====
 // รหัสผ่านตัวอย่าง: admin = Pharmacy-Admin-2026! · คนอื่น = Pharmacy-Staff-2026!

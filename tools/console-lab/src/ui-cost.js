@@ -80,4 +80,4 @@ PAGES["lab-cost"] = function () {
     h("div", { cls: "cd-rule" }, [h("div", { cls: "r1" }, [h("b", { text: "คิดตามชั่วโมงที่เปิดอยู่" }), h("span", { text: "NAT · ALB · EC2 · RDS · EKS" }), h("em", { text: "แพงถ้าลืมลบ" })]), h("div", { cls: "r2" }, [h("b", { text: "คิดตามการใช้" }), h("span", { text: "Lambda · S3 · CloudFront" }), h("em", { text: "แทบไม่เสียถ้าไม่มีคนใช้" })])]), costCaveat(),
     h("h2", { text: "จัดการ bill: ทำอะไร ที่ไหน" }), costGen()].concat(det));
 };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-ap"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-cost", "ค่าใช้จ่าย & Bill"]); NAVICO["lab-cost"] = "💰"; })();
+NAVICO["lab-cost"] = "💰";

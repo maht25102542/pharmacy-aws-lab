@@ -566,4 +566,4 @@ function ucTab() {
 }
 FOLD.ucvid = 1; FOLD.ucevid = 1; FOLD.ucenv = 1; FOLD.ucanim = 1; FOLD.uctf = 1; FOLD.ucerr = 1;
 PAGES["lab-uc"] = function () { return h("div", {}, [crumbEl("Lab › Use case จริง"), h("h1", { text: "Use case จริง (8 แบบ)" }), h("div", { cls: "card" }, [ucTab()])]); };
-(function () { var L = NAV.Lab[0][1]; var i = L.map(function (x) { return x[0]; }).indexOf("lab-managed"); L.splice(i < 0 ? L.length : i + 1, 0, ["lab-uc", "Use case จริง (8 แบบ)"]); NAVICO["lab-uc"] = "🧭"; })();
+NAVICO["lab-uc"] = "🧭";
