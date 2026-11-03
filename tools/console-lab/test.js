@@ -524,8 +524,17 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   S4("exit"); L.readyBuild("prd"); S4("ssh -J ubuntu@" + r.bastion + " -i ~/.ssh/id_ed25519 ubuntu@" + k1.privateIp, ["yes"]);
   const pods = S4("k3s kubectl get pods -n prd"); assert((pods.match(/Running/g) || []).length === 6 && /backend-/.test(pods) && /frontend-/.test(pods), "prd 3+3 pod: " + pods);
   assert(/successfully rolled out/.test(S4("k3s kubectl rollout status deployment/backend -n prd")) && /argocd-server/.test(S4("k3s kubectl get pods -n argocd")), "rollout status + argocd pods"); }
+// ---- webhook secret: ตั้งตรงกัน = ผ่าน · GitHub มี secret แต่ Jenkins ไม่มี/ไม่ตรง = 403 · ไม่ตั้งเลย = ผ่านพร้อมเตือน
+{ const r = L.buildReady("demo"); L.readyPushCmds().forEach(c => L.shRun(c)); L.readyBuild("dev"); const job = L.jkJob("pharmacy-backend"); job.branch = "*/develop"; const rp = L.S.gh.repos["pharmacy-backend"];
+  const sh = c => L.shRun(c).lines.join("\n"), push = (t) => { L.fsWrite(L.REPO + "/repo-backend/README.md", t); sh("git add ."); sh("git commit -m c"); sh("git push"); }, last = () => rp.hooks[0].deliveries.slice(-1)[0], n = () => L.jkBuildsOf(job).length;
+  sh("cd " + L.REPO + "/repo-backend"); sh("git switch -c develop"); rp.hooks = [{ url: "http://" + r.jenkins + ":8080/github-webhook/", events: "push", active: true, secret: L.hash32("s1") }]; const n0 = n();
+  push("# 1\n"); assert(last().code === 403 && /ยังไม่ได้ตั้ง Shared secret/.test(last().msg) && n() === n0, "มี secret ที่ GitHub แต่ Jenkins ไม่มี → 403");
+  L.jkAddCred({ id: "github-webhook-secret", kind: "secret", secret: "other" }); push("# 2\n"); assert(last().code === 403 && /ไม่ตรง/.test(last().msg) && n() === n0, "secret ไม่ตรง → 403");
+  L.S.jk.creds = L.S.jk.creds.filter(c => c.id !== "github-webhook-secret"); L.jkAddCred({ id: "github-webhook-secret", kind: "secret", secret: "s1" }); push("# 3\n"); assert(last().code === 200 && /ตรวจ signature ผ่าน/.test(last().msg) && n() === n0 + 1, "secret ตรงกัน → build");
+  rp.hooks[0].secret = ""; push("# 4\n"); assert(last().code === 403 && /ไม่มี signature/.test(last().msg), "Jenkins ตั้ง secret แต่ GitHub ไม่ใส่ → 403");
+  L.S.jk.creds = L.S.jk.creds.filter(c => c.id !== "github-webhook-secret"); push("# 5\n"); assert(last().code === 200 && /ไม่มี secret/.test(last().msg) && n() === n0 + 2, "ไม่ตั้ง secret ทั้งสองฝั่ง → ผ่านแต่เตือน"); }
 // ---- use case 10: 3 เคส webhook ไม่ทำให้ build (ต้องไม่มี build ใหม่ และ delivery บอกสาเหตุ)
-for (const [k, rx, code] of [["sg", /timed out/i, 0], ["trigger", /ไม่มี triggers/, 200], ["branch", /ไม่ build: job ดู branch main/, 200]]) {
+for (const [k, rx, code] of [["sg", /timed out/i, 0], ["trigger", /ไม่มี triggers/, 200], ["branch", /ไม่ build: job ดู branch main/, 200], ["secret", /ยังไม่ได้ตั้ง Shared secret/, 403]]) {
   L.jkpushLoad(k); const job = L.jkJob("pharmacy-backend"), d = L.S.gh.repos["pharmacy-backend"].hooks[0].deliveries.slice(-1)[0];
   assert(L.jkBuildsOf(job).length === 1 && rx.test(d.msg) && d.code === code, "jkpush-" + k + ": " + JSON.stringify(d) + " builds=" + L.jkBuildsOf(job).length);
 }

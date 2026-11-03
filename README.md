@@ -147,13 +147,14 @@ kubectl apply -f https://raw.githubusercontent.com/YOUR_GITHUB_USER/pharmacy-man
 sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
-ปลั๊กอินถูกติดตั้งมาใน image แล้ว จากนั้นไปที่ Manage Jenkins > Credentials เพิ่ม 4 รายการ:
+ปลั๊กอินถูกติดตั้งมาใน image แล้ว จากนั้นไปที่ Manage Jenkins > Credentials เพิ่ม 5 รายการ:
 
 | ID | ชนิด | ค่า |
 |---|---|---|
 | `github-token` | Username with password | ชื่อ GitHub และ Personal Access Token |
 | `sonar-token` | Secret text | token จาก SonarQube |
 | `argocd-admin` | Username with password | `admin` และรหัสผ่าน ArgoCD |
+| `github-webhook-secret` | Secret text | รหัสสุ่มค่าเดียวกับช่อง Secret ของ webhook ที่ GitHub (ใช้ตรวจ signature ของ webhook) |
 | `dev-ssh` | SSH Username with private key | user `ubuntu` และกุญแจส่วนตัวคู่กับ `public_key_path` (ให้ Jenkins ssh ไปสั่ง docker compose บน `pharmacy-dev`) |
 
 สร้าง job **2 อัน** (ทำซ้ำทีละ repo): New Item > Pipeline > เลือก "Pipeline script from SCM" > Git >
@@ -194,7 +195,7 @@ git push origin develop → GitHub webhook → Jenkins (pharmacy-backend) → EC
 2. GitHub: repo > Settings > Webhooks > Add webhook
    - Payload URL: `jenkins_url` ต่อท้ายด้วย `/github-webhook/` (เช่น `http://1.2.3.4:8080/github-webhook/`)
    - Content type: `application/json`
-   - Secret: ตั้งรหัสสุ่มหนึ่งค่า (ใส่ซ้ำที่ Jenkins > Manage Jenkins > System > GitHub)
+   - Secret: ตั้งรหัสสุ่มหนึ่งค่า แล้วสร้าง credential `github-webhook-secret` (Secret text) ใน Jenkins ด้วยค่าเดียวกัน จากนั้น Manage Jenkins > System > GitHub > Advanced > **Shared secret** เลือก credential นั้น (ไม่ตั้ง = ใครที่รู้ URL ก็ยิงสั่ง build ได้ เพราะพอร์ต 8080 เปิดให้ IP ของ GitHub)
    - Events: Just the push event
 3. ทดสอบ: `git push origin develop` แล้วดู Jenkins มี build ใหม่ขึ้นเอง (Recent Deliveries ใน GitHub ต้องเป็น 200)
 

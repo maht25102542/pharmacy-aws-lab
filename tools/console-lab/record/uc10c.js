@@ -38,14 +38,23 @@ const openUrl = async (url, direct) => { if (direct) { await L.ev(`wbGo(${JSON.s
   await step("pip", async () => { await L.click({ t: "Pipeline", tag: "a,button", starts: true }); }); await L.sleep(300);
   await step("br", async () => { await L.fill("Branch Specifier", "*/develop"); }); await L.hold(1.5);
   await step("sv", async () => { await L.click(B("Save", { nth: 0 })); }); await L.hold(1.2);
+  await L.cap("⑤ กันคนอื่นยิง webhook ปลอม: Manage Jenkins › Credentials › Add Credentials › Secret text · ID = github-webhook-secret (ค่าเดียวกับ Secret ที่จะใส่ที่ GitHub)", "กันไม่ให้คนอื่นยิง webhook ปลอมมาสั่ง build ด้วยการสร้าง credential แบบ secret text ชื่อ github webhook secret ค่าเดียวกับ secret ที่จะใส่ที่ github แล้วเลือกเป็น shared secret ที่หน้า system ของ jenkins ตัวจำลองข้ามหน้านั้น");
+  await L.ev(`W.page=""; W.btab=""; W.cfgSec=""; render(); 1`); await L.sleep(300);
+  await step("mj", async () => { await L.click({ t: "Manage Jenkins", tag: "a,button", starts: true }); }); await L.sleep(300);
+  await step("cr", async () => { await L.click({ t: "Credentials", tag: "a,button,div", starts: true }); }); await L.sleep(300);
+  await step("addc", async () => { await L.click(B("Add Credentials", { nth: 0 })); }); await L.sleep(300);
+  await step("kind", async () => { await L.pickBtn("Username with password", "Secret text"); });
+  await step("cs", async () => { await L.fill("Secret", "lab-webhook-secret"); }); await step("ci", async () => { await L.fill("ID", "github-webhook-secret"); }); await L.hold(1.5);
+  await step("create", async () => { await L.click(B("Create", { nth: 0 })); }); await L.hold(1.5);
+  if (!(await L.ev(`!!jkCred("github-webhook-secret")`))) { console.log("FAIL secret cred not created"); await L.finish(); process.exit(1); }
   await L.tick(1, "Jenkins รับ webhook แล้ว", "jenkins พร้อมรับ webhook ที่ branch develop");
   // 3 webhook ที่ GitHub
   await L.intro(2, "GitHub", "ตั้ง webhook (URL · content type · secret · event)", "ต่อมา ตั้ง webhook ที่ github");
-  await L.cap("⑤ repo › Settings › Webhooks › Add webhook (ต้องล็อกอินก่อน)", "เปิดหน้า settings ของ repo ที่ webhooks ต้องล็อกอินก่อน");
+  await L.cap("⑥ repo › Settings › Webhooks › Add webhook (ต้องล็อกอินก่อน)", "เปิดหน้า settings ของ repo ที่ webhooks ต้องล็อกอินก่อน");
   await openUrl(GH + "/settings/hooks/new");
   await step("lg1", async () => { await L.type("#login_field", R.u); }); await step("lg2", async () => { await L.type("#password", "lab-password"); }); await step("lg3", async () => { await L.click(B("Sign in", { nth: 0 })); }); await L.hold(1.2);
   if (!(await L.ev(`!!document.getElementById("gh-hurl")`))) await openUrl(GH + "/settings/hooks/new");
-  await L.cap("⑥ Payload URL = http://<Jenkins>:8080/github-webhook/ · Content type application/json · Secret · Just the push event", "ใส่ payload url เป็นที่อยู่ jenkins ตามด้วย github dash webhook ชนิดข้อมูลเป็น json ตั้ง secret และเลือกเฉพาะ push event");
+  await L.cap("⑦ Payload URL = http://<Jenkins>:8080/github-webhook/ · Content type application/json · Secret (ค่าเดียวกับใน Jenkins) · Just the push event", "ใส่ payload url เป็นที่อยู่ jenkins ตามด้วย github dash webhook ชนิดข้อมูลเป็น json ตั้ง secret และเลือกเฉพาะ push event");
   await step("hurl", async () => { await L.type("#gh-hurl", `${JURL}/github-webhook/`); }); await L.hold(1.2);
   await step("hsec", async () => { await L.type('input[aria-label="Secret"]', "lab-webhook-secret"); }); await L.hold(1.5);
   await step("hadd", async () => { await L.click(B("Add webhook", { nth: 0 })); }); await L.hold(2);
@@ -53,7 +62,7 @@ const openUrl = async (url, direct) => { if (direct) { await L.ev(`wbGo(${JSON.s
   // 4 push
   await L.intro(3, "Terminal", "สร้าง develop แล้ว push", "ลอง push เข้า branch develop");
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
-  await L.cap("⑦ git switch -c develop · แก้ README · add · commit · git push -u origin develop", "สร้าง branch develop แก้ไฟล์ readme แล้ว add commit และ push");
+  await L.cap("⑧ git switch -c develop · แก้ README · add · commit · git push -u origin develop", "สร้าง branch develop แก้ไฟล์ readme แล้ว add commit และ push");
   await step("cd", async () => { await term(`cd ${R.rp}/repo-backend`); }); await step("sw", async () => { await term("git switch -c develop"); });
   await step("ed", async () => { await term(`echo '# ทดสอบ webhook' >> README.md`); }); await step("ad", async () => { await term("git add ."); }); await step("cm", async () => { await term('git commit -m "ทดสอบ webhook"'); });
   await step("ps", async () => { await term("git push -u origin develop"); }); await L.hold(2);
@@ -61,14 +70,14 @@ const openUrl = async (url, direct) => { if (direct) { await L.ev(`wbGo(${JSON.s
   // 5 Recent delivery + build
   await L.intro(4, "ผลลัพธ์", "GitHub: delivery 200 · Jenkins: build เกิดเอง", "ลองดูผลทั้งสองฝั่ง");
   await toBrowser(); await L.ev(`wbGo("${GH}/settings/hooks"); render(); 1`); await L.hold(1);
-  await L.cap("⑧ GitHub › Settings › Webhooks: Recent delivery 200 · Jenkins เริ่ม build (tag dev-<sha7>)", "ที่หน้า webhooks ของ github จะเห็น delivery ล่าสุดเป็น สองร้อย และข้อความว่า jenkins เริ่ม build แล้ว"); await L.hold(5);
+  await L.cap("⑨ GitHub › Settings › Webhooks: Recent delivery 200 · Jenkins เริ่ม build (tag dev-<sha7>)", "ที่หน้า webhooks ของ github จะเห็น delivery ล่าสุดเป็น สองร้อย และข้อความว่า jenkins เริ่ม build แล้ว"); await L.hold(5);
   await L.ev(`wbGo("${JURL}/"); render(); 1`); await L.sleep(400);
-  await L.cap("⑨ Jenkins › pharmacy-backend: build ใหม่เกิดเอง · Started by GitHub push", "ที่ jenkins จะเห็น build ใหม่เกิดขึ้นเอง ขึ้นว่า started by github push");
+  await L.cap("⑩ Jenkins › pharmacy-backend: build ใหม่เกิดเอง · Started by GitHub push", "ที่ jenkins จะเห็น build ใหม่เกิดขึ้นเอง ขึ้นว่า started by github push");
   await step("job2", async () => { await L.click({ t: "pharmacy-backend", tag: "a" }); }); await L.hold(1.5);
   await L.ev(`W.page="build"; W.bid=jkBuildsOf(S.jk.job).slice(-1)[0].id; W.btab="console"; render(); var pr=[].slice.call(document.querySelectorAll("pre")).sort(function(a,b){return b.scrollHeight-a.scrollHeight})[0]; if(pr) pr.scrollTop=0; 1`); await L.hold(5);
   await L.tick(4, "push แล้ว Jenkins รันเอง", "push แล้ว jenkins รันเองได้แล้ว");
   await L.costScene("jkpush", "เรื่องค่าใช้จ่าย webhook ไม่มีค่าใช้จ่ายเพิ่ม ค่าใช้จ่ายอยู่ที่เครื่อง jenkins sonarqube และเครื่อง dev ที่เปิดตลอด ควรตั้ง Budget และ destroy เมื่อเลิกใช้");
   await L.cap("✓ ตอน C เสร็จ: SG · trigger · webhook · push develop → Jenkins รันเอง (ดูภาพรวมในวิดีโอสุดท้าย)", "สรุป ตั้ง security group trigger และ webhook ครบ push แล้ว jenkins รันเอง"); await L.hold(1.5);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase10c-a.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase10c-b.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });

@@ -81,12 +81,13 @@ function jkexLoad(id) {
   return { r: r, ex: ex };
 }
 
-// ---- use case 10: เคส webhook ไม่ทำให้ Jenkins build (kind: sg | trigger | branch) · โหลดแล้ว push develop ไปแล้ว ผู้เรียนไล่หาสาเหตุเอง
+// ---- use case 10: เคส webhook ไม่ทำให้ Jenkins build (kind: sg | trigger | branch | secret) · โหลดแล้ว push develop ไปแล้ว ผู้เรียนไล่หาสาเหตุเอง
 function jkpushLoad(kind) {
   var r = buildReady("demo"); readyPushCmds().forEach(function (c) { shRun(c); }); readyBuild("dev"); ghInit(); S.gh.session = { user: "demo" };
   var job = jkJob("pharmacy-backend"), rp = S.gh.repos["pharmacy-backend"], sgj = byName(S.sgs, "pharmacy-jenkins");
   if (kind !== "branch") job.branch = "*/develop";
   rp.hooks = [{ url: "http://" + r.jenkins + ":8080/github-webhook/", events: "push", active: true }];
+  if (kind === "secret") rp.hooks[0].secret = hash32("demo-webhook-secret"); // GitHub ตั้ง Secret แต่ Jenkins ยังไม่ตั้ง Shared secret
   if (kind === "sg") sgj.inbound = sgj.inbound.filter(function (x) { return !(x.srcKind === "cidr" && /^192\.30\.252\./.test(x.src)); });
   shRun("cd " + REPO + "/repo-backend"); shRun("git switch -c develop");
   if (kind === "trigger") fsWrite(REPO + "/repo-backend/Jenkinsfile", fsRead(REPO + "/repo-backend/Jenkinsfile").replace(/\n  triggers \{ githubPush\(\) \}\n/, "\n"));
