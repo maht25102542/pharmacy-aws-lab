@@ -494,7 +494,12 @@ UC.push({
     { type: "compose", name: "docker-compose.yml", file: "vm-dev/docker-compose.yml", console: ["VM pharmacy-dev › /opt/pharmacy", "migrate → backend (healthcheck) → frontend :3000"], err: "frontend ก่อน backend = dependency failed to start" },
     { type: "aws_security_group", name: "jenkins (webhook)", file: "terraform/security.tf", console: ["EC2 › Security Groups › pharmacy-jenkins › Inbound", "Custom TCP 8080 จาก IP ของ GitHub"], err: "ไม่เปิด = Connection timed out" }
   ],
-  errors: [],
+  errors: [
+    { load: "jkpush-sg", t: "push แล้วไม่มี build: SG ปิด 8080", sym: "Jenkins ไม่มี build ใหม่ · GitHub › Webhooks › Recent Deliveries ขึ้น ✗ Connection timed out", find: "GitHub › repo › Settings › Webhooks › Recent Deliveries (ข้อความ timeout) แล้วดู EC2 › Security Groups › pharmacy-jenkins › Inbound", fix: "เพิ่ม rule 8080 ให้ IP ของ GitHub (github_hook_cidrs ใน terraform/variables.tf) แล้ว terraform apply" },
+    { load: "jkpush-trigger", t: "push แล้วไม่มี build: Jenkinsfile ไม่มี githubPush()", sym: "Delivery เป็น 200 OK แต่ Jenkins ไม่เริ่ม build", find: "Recent Deliveries › Response: OK — ไม่ build: Jenkinsfile ไม่มี triggers { githubPush() }", fix: "ใส่ triggers { githubPush() } ใน Jenkinsfile ของ branch develop แล้ว push ใหม่" },
+    { load: "jkpush-branch", t: "push แล้วไม่มี build: job ยังดู branch main", sym: "Delivery เป็น 200 OK แต่ไม่ build · push main ถึงจะ build", find: "Recent Deliveries › Response: ไม่ build: job ดู branch main · Jenkins › Configure › Pipeline › Branch Specifier", fix: "เปลี่ยน Branch Specifier เป็น */develop แล้ว Save" }
+  ],
+  errGo: function (e) { jkpushLoad(e.load.replace(/^jkpush-/, "")); UI.sel = {}; flash("ok", "โหลดเคส “" + e.t + "” แล้ว: push develop ไปแล้ว ไปดู GitHub › Settings › Webhooks"); go("browser", {}, "Browser"); W.addr = "https://github.com/demo/pharmacy-backend/settings/hooks"; wbGo(W.addr); },
   loadBtns: [["โหลดตัวอย่าง: ระบบพร้อม (dev ปล่อยด้วยมือแล้ว) ไปลอง push develop เอง", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 10 แล้ว: ตั้ง webhook (GitHub › Settings › Webhooks) แล้ว git push origin develop"); go("browser", {}, "Browser"); }]]
 });
 

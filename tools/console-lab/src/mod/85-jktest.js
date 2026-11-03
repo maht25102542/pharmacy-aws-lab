@@ -80,3 +80,17 @@ function jkexLoad(id) {
   if (ex) { shRun("cd " + REPO + "/repo-" + ex.svc); ex.cmds.forEach(function (c) { shRun(c); }); shRun("git add ."); shRun("git commit -m \"ทดลอง: " + ex.id + "\""); shRun("git push"); jkSelect("pharmacy-" + ex.svc); }
   return { r: r, ex: ex };
 }
+
+// ---- use case 10: เคส webhook ไม่ทำให้ Jenkins build (kind: sg | trigger | branch) · โหลดแล้ว push develop ไปแล้ว ผู้เรียนไล่หาสาเหตุเอง
+function jkpushLoad(kind) {
+  var r = buildReady("demo"); readyPushCmds().forEach(function (c) { shRun(c); }); readyBuild("dev"); ghInit(); S.gh.session = { user: "demo" };
+  var job = jkJob("pharmacy-backend"), rp = S.gh.repos["pharmacy-backend"], sgj = byName(S.sgs, "pharmacy-jenkins");
+  if (kind !== "branch") job.branch = "*/develop";
+  rp.hooks = [{ url: "http://" + r.jenkins + ":8080/github-webhook/", events: "push", active: true }];
+  if (kind === "sg") sgj.inbound = sgj.inbound.filter(function (x) { return !(x.srcKind === "cidr" && /^192\.30\.252\./.test(x.src)); });
+  shRun("cd " + REPO + "/repo-backend"); shRun("git switch -c develop");
+  if (kind === "trigger") fsWrite(REPO + "/repo-backend/Jenkinsfile", fsRead(REPO + "/repo-backend/Jenkinsfile").replace(/\n  triggers \{ githubPush\(\) \}\n/, "\n"));
+  fsWrite(REPO + "/repo-backend/README.md", (fsRead(REPO + "/repo-backend/README.md") || "") + "\n# ทดลอง: hook-" + kind + "\n");
+  shRun("git add ."); shRun("git commit -m \"ทดลอง: hook-" + kind + "\""); shRun("git push -u origin develop");
+  return { r: r, kind: kind };
+}
