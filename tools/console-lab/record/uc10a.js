@@ -59,10 +59,10 @@ const viewFile = async (rel, anchor, secs, pages, endAnchor) => { // เปิ�
   await L.cap("ชี้ไฟล์: terraform/instances.tf › resource aws_instance.dev (ไฮไลต์) ← Launch instance ที่เพิ่งกด: tags ↔ tags {} · SG 2 ตัว ↔ vpc_security_group_ids · IAM profile ↔ iam_instance_profile · private subnet ↔ subnet_id", "ไฟล์ instances dot t f ส่วนที่ไฮไลต์ คือสิ่งที่เพิ่งกดสร้าง tag ตรงกับ tags security group ตรงกับ vpc security group ids และ IAM profile ตรงกับ iam instance profile"); await viewFile("terraform/instances.tf", 'resource "aws_instance" "dev"', 13, 1, "\n}\n");
   // 2 Ansible
   await L.intro(2, "Ansible", "ลง docker + วางไฟล์บนเครื่อง dev", "ต่อมา ใช้ Ansible ลง docker และวางไฟล์บนเครื่อง dev");
-  await L.cap("③ ansible/dev.yml: task Install Docker (ลง docker + compose plugin บนเครื่องที่ tag Role=dev)", "ไฟล์ dev dot y m l task แรก ลง docker และ compose plugin บนเครื่องที่มี tag role เป็น dev"); await viewFile("ansible/dev.yml", "- name: Install Docker", 9, 1, "update_cache: true");
-  await L.cap("④ task Copy docker-compose.yml + Copy deploy.sh (วางไฟล์ลง /opt/pharmacy)", "task ถัดมาวางไฟล์ compose และ deploy dot s h ลงโฟลเดอร์ opt pharmacy"); await viewFile("ansible/dev.yml", "- name: Copy docker-compose.yml", 9, 1, 'mode: "0755"');
-  await L.cap("⑤ task Render .env (template vm-dev/.env.j2 → /opt/pharmacy/.env รหัสผ่าน 0600)", "และ task สุดท้ายเรนเดอร์ไฟล์ dot env จาก template ใส่รหัสผ่านและไอพีของฐานข้อมูล"); await viewFile("ansible/dev.yml", "- name: Render /opt/pharmacy/.env", 9, 1, "force: false");
-  await L.cap("⑥ Terminal › cd ansible · ansible-playbook dev.yml", "แล้วรันคำสั่ง ansible playbook dev dot y m l");
+  await L.cap("⑦ ansible/dev.yml: task Install Docker (ลง docker + compose plugin บนเครื่องที่ tag Role=dev)", "ไฟล์ dev dot y m l task แรก ลง docker และ compose plugin บนเครื่องที่มี tag role เป็น dev"); await viewFile("ansible/dev.yml", "- name: Install Docker", 9, 1, "update_cache: true");
+  await L.cap("⑧ task Copy docker-compose.yml + Copy deploy.sh (วางไฟล์ลง /opt/pharmacy)", "task ถัดมาวางไฟล์ compose และ deploy dot s h ลงโฟลเดอร์ opt pharmacy"); await viewFile("ansible/dev.yml", "- name: Copy docker-compose.yml", 9, 1, 'mode: "0755"');
+  await L.cap("⑨ task Render .env (template vm-dev/.env.j2 → /opt/pharmacy/.env รหัสผ่าน 0600)", "และ task สุดท้ายเรนเดอร์ไฟล์ dot env จาก template ใส่รหัสผ่านและไอพีของฐานข้อมูล"); await viewFile("ansible/dev.yml", "- name: Render /opt/pharmacy/.env", 9, 1, "force: false");
+  await L.cap("⑩ Terminal › cd ansible · ansible-playbook dev.yml", "แล้วรันคำสั่ง ansible playbook dev dot y m l");
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
   await step("cdA", async () => { await term(`cd ${R.rp}/ansible`); });
   await L.cap("Ansible หาเครื่องจาก tag: กลุ่ม role_dev = pharmacy-dev (ที่เพิ่งสร้าง)", "ansible หาเครื่องจาก tag ที่ตั้งไว้ กลุ่ม role dev คือเครื่อง pharmacy dev ที่เพิ่งสร้าง");
@@ -71,20 +71,20 @@ const viewFile = async (rel, anchor, secs, pages, endAnchor) => { // เปิ�
   await L.tick(2, "Ansible เตรียมเครื่อง dev เสร็จ", "ansible รันผ่าน เครื่อง dev พร้อมแล้ว");
   // 3 compose
   await L.intro(3, "docker-compose.yml", "migrate → backend → frontend", "ไฟล์ docker compose ที่ ansible วางไว้บนเครื่อง dev");
-  await L.cap("⑤ vm-dev/docker-compose.yml (อยู่ที่ /opt/pharmacy บนเครื่อง dev)", "ไฟล์ docker compose dot y m l อยู่ที่ opt pharmacy บนเครื่อง dev"); await viewFile("vm-dev/docker-compose.yml", "", 11, 3);
+  await L.cap("⑪ vm-dev/docker-compose.yml (อยู่ที่ /opt/pharmacy บนเครื่อง dev)", "ไฟล์ docker compose dot y m l อยู่ที่ opt pharmacy บนเครื่อง dev"); await viewFile("vm-dev/docker-compose.yml", "", 11, 3);
   // 4 deploy.sh / .env
   await L.intro(3, "deploy.sh · .env", "ตัวที่ Jenkins ssh มาเรียก", "สองไฟล์สุดท้าย deploy dot s h กับ dot env");
-  await L.cap("⑥ vm-dev/deploy.sh (Jenkins ssh มาเรียก: login ECR → แก้ tag → compose pull/up)", "ไฟล์ deploy dot s h ที่ jenkins จะ ssh มาเรียก"); await viewFile("vm-dev/deploy.sh", "", 12, 1);
-  await L.cap("⑦ vm-dev/.env.j2 (Ansible เรนเดอร์เป็น /opt/pharmacy/.env รหัสผ่านอยู่ที่นี่ที่เดียว)", "และไฟล์ dot env เจ สอง ที่ ansible เรนเดอร์เป็น dot env บนเครื่อง"); await viewFile("vm-dev/.env.j2", "", 11, 1);
+  await L.cap("⑫ vm-dev/deploy.sh (Jenkins ssh มาเรียก: login ECR → แก้ tag → compose pull/up)", "ไฟล์ deploy dot s h ที่ jenkins จะ ssh มาเรียก"); await viewFile("vm-dev/deploy.sh", "", 12, 1);
+  await L.cap("⑬ vm-dev/.env.j2 (Ansible เรนเดอร์เป็น /opt/pharmacy/.env รหัสผ่านอยู่ที่นี่ที่เดียว)", "และไฟล์ dot env เจ สอง ที่ ansible เรนเดอร์เป็น dot env บนเครื่อง"); await viewFile("vm-dev/.env.j2", "", 11, 1);
   await L.tick(3, "deploy.sh และ .env", "ครบทั้งสองไฟล์");
   // 5 ดูบนเครื่อง dev
   await L.intro(4, "เครื่อง dev", "ssh เข้าไปดูของจริง", "สุดท้าย ssh เข้าเครื่อง dev ไปดูของที่ ansible วางไว้");
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
-  await L.cap("⑧ ssh ผ่าน bastion เข้า pharmacy-dev · ls -a /opt/pharmacy · sudo cat .env", "ssh ผ่าน bastion เข้าเครื่อง dev ดูไฟล์ในโฟลเดอร์ opt pharmacy และไฟล์ dot env");
+  await L.cap("⑭ ssh ผ่าน bastion เข้า pharmacy-dev · ls -a /opt/pharmacy · sudo cat .env", "ssh ผ่าน bastion เข้าเครื่อง dev ดูไฟล์ในโฟลเดอร์ opt pharmacy และไฟล์ dot env");
   await step("ssh", async () => { await term(`ssh -J ubuntu@${R.b} -i ~/.ssh/id_ed25519 ubuntu@${R.d}`); }); await step("yes", async () => { await term("yes"); });
   await step("ls", async () => { await term("ls -a /opt/pharmacy"); });
   await step("env", async () => { await term("sudo cat /opt/pharmacy/.env"); }); await L.hold(5);
-  await L.cap("⑨ cd /opt/pharmacy · sudo docker compose ps: ยังว่าง เพราะ Jenkins ยังไม่เคยมาสั่ง deploy (ดูตอน B/C)", "เข้าโฟลเดอร์ แล้วดู docker compose ps ตอนนี้ยังว่าง เพราะ jenkins ยังไม่เคยมาสั่ง deploy");
+  await L.cap("⑮ cd /opt/pharmacy · sudo docker compose ps: ยังว่าง เพราะ Jenkins ยังไม่เคยมาสั่ง deploy (ดูตอน B/C)", "เข้าโฟลเดอร์ แล้วดู docker compose ps ตอนนี้ยังว่าง เพราะ jenkins ยังไม่เคยมาสั่ง deploy");
   await step("cd2", async () => { await term("cd /opt/pharmacy"); }); await step("ps", async () => { await term("sudo docker compose ps"); }); await L.hold(4);
   await L.tick(4, "เครื่อง dev พร้อมรับ deploy", "เครื่อง dev พร้อมรับการ deploy จาก jenkins แล้ว");
   await L.costScene("jkpush", "เรื่องค่าใช้จ่าย เครื่อง dev เป็น E C 2 หนึ่งเครื่องที่เปิดตลอดและคิดเงินแม้ไม่มีคนใช้ ควรตั้ง Budget และ destroy เมื่อเลิกใช้");

@@ -30,7 +30,7 @@ const viewFile = async (rel, anchor, secs, pages, endAnchor) => { // เปิ�
   await step("ssh", async () => { await term(`ssh -J ubuntu@${R.b} -i ~/.ssh/id_ed25519 ubuntu@${R.jp}`); }); await step("yes", async () => { await term("yes"); });
   await step("env", async () => { await term("sudo cat /opt/jenkins/.env"); }); await L.hold(6);
   await step("ex", async () => { await term("exit"); });
-  await L.cap("③ Jenkins › Manage Jenkins › Plugins › Installed: ค้น github และ ssh agent (ติดตั้งมาแล้วจาก plugins.txt)", "ที่หน้า jenkins ไปที่ manage jenkins แล้วเลือก plugins ค้นหา github และ ssh agent จะเห็นว่าติดตั้งมาแล้วจากไฟล์ plugins dot t x t");
+  await L.cap("④ Jenkins › Manage Jenkins › Plugins › Installed: ค้น github และ ssh agent (ติดตั้งมาแล้วจาก plugins.txt)", "ที่หน้า jenkins ไปที่ manage jenkins แล้วเลือก plugins ค้นหา github และ ssh agent จะเห็นว่าติดตั้งมาแล้วจากไฟล์ plugins dot t x t");
   await toBrowser(); await L.ev(`wbGo("http://${R.j}:8080/"); render(); 1`); await L.sleep(500); await L.ev(`W.page=""; W.btab=""; render(); 1`); await L.sleep(300);
   await step("mj0", async () => { await L.click({ t: "Manage Jenkins", tag: "a,button", starts: true }); }); await L.sleep(300);
   await step("pl", async () => { await L.click({ t: "Plugins", tag: "a,button,div", starts: true }); }); await L.sleep(400);
@@ -39,44 +39,44 @@ const viewFile = async (rel, anchor, secs, pages, endAnchor) => { // เปิ�
   await L.tick(0, "ปลั๊กอินและ .env พร้อม", "ปลั๊กอินและ dot env พร้อมแล้ว");
   // 2 Jenkinsfile
   await L.intro(1, "Jenkinsfile", "stage ที่ปล่อย dev", "ต่อมา เปิด Jenkinsfile ดู stage ที่ปล่อย dev");
-  await L.cap("④ repo-backend/Jenkinsfile › Resolve version (push หรือกดมือ)", "Jenkinsfile ส่วน resolve version"); await viewFile("repo-backend/Jenkinsfile", "stage('Resolve version')", 11, 1, "    stage('Validate')");
-  await L.cap("⑤ repo-backend/Jenkinsfile › Deploy dev (docker compose): sshagent credentials dev-ssh · ssh ไป DEV_HOST รัน deploy.sh", "และ stage deploy dev ที่ใช้ credential ชื่อ dev ssh ssh ไปรัน deploy dot s h"); await viewFile("repo-backend/Jenkinsfile", "stage('Deploy dev (docker compose)')", 12, 1, "    // prd:");
+  await L.cap("⑤ repo-backend/Jenkinsfile › Resolve version (push หรือกดมือ)", "Jenkinsfile ส่วน resolve version"); await viewFile("repo-backend/Jenkinsfile", "stage('Resolve version')", 11, 1, "    stage('Validate')");
+  await L.cap("⑥ repo-backend/Jenkinsfile › Deploy dev (docker compose): sshagent credentials dev-ssh · ssh ไป DEV_HOST รัน deploy.sh", "และ stage deploy dev ที่ใช้ credential ชื่อ dev ssh ssh ไปรัน deploy dot s h"); await viewFile("repo-backend/Jenkinsfile", "stage('Deploy dev (docker compose)')", 12, 1, "    // prd:");
   await L.tick(1, "Jenkinsfile: Deploy dev ใช้ dev-ssh", "stage deploy dev ต้องใช้ credential ชื่อ dev ssh");
   // 3 build ล้ม
   await L.intro(2, "สร้าง job", "New Item → Pipeline script from SCM", "ต่อมา สร้าง job ใน jenkins ให้ดึง jenkinsfile จาก github");
   await toBrowser();
   await L.ev(`wbGo("http://${R.j}:8080/"); render(); 1`); await L.sleep(500); await L.ev(`W.page=""; W.btab=""; render(); 1`); await L.sleep(300);
-  await L.cap("⑥ Dashboard › New Item › ชื่อ pharmacy-backend › Pipeline › OK", "ที่ dashboard กด new item ตั้งชื่อ pharmacy backend เลือกชนิด pipeline แล้วกด ok");
+  await L.cap("⑦ Dashboard › New Item › ชื่อ pharmacy-backend › Pipeline › OK", "ที่ dashboard กด new item ตั้งชื่อ pharmacy backend เลือกชนิด pipeline แล้วกด ok");
   await step("ni", async () => { await L.click({ t: "New Item", tag: "a,button", starts: true }); }); await L.sleep(400);
   await step("n1", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); }); await step("n2", async () => { await L.sleep(300); await L.type("main input[placeholder]", "pharmacy-backend"); }); await L.hold(1.2);
   await step("okb", async () => { await L.click(B("OK", { nth: 0 })); }); await L.hold(1.5);
-  await L.cap("⑦ Configure › Pipeline › Definition: Pipeline script from SCM · SCM Git · Repository URL · Credentials github-token (demo/****** GitHub token) · Branch */main · Script Path Jenkinsfile → Save", "ในหน้า configure เลือก definition เป็น pipeline script from SCM ใส่ url ของ repo เลือก credential github token ตั้ง branch เป็น main และ script path เป็น jenkinsfile แล้วกด save");
+  await L.cap("⑧ Configure › Pipeline › Definition: Pipeline script from SCM · SCM Git · Repository URL · Credentials github-token (demo/****** GitHub token) · Branch */main · Script Path Jenkinsfile → Save", "ในหน้า configure เลือก definition เป็น pipeline script from SCM ใส่ url ของ repo เลือก credential github token ตั้ง branch เป็น main และ script path เป็น jenkinsfile แล้วกด save");
   await step("rurl", async () => { await L.fill("Repository URL", `https://github.com/${R.u}/pharmacy-backend.git`); }); await step("rcred", async () => { await L.pick(B("- none -", { starts: true }), "demo/****** GitHub token"); }); await L.hold(1.5);
   await step("sv0", async () => { await L.click(B("Save", { nth: 0 })); }); await L.hold(1.5);
   if (!(await L.ev(`!!jkJob("pharmacy-backend")`))) { console.log("FAIL job not created"); await L.finish(); process.exit(1); }
   await L.tick(2, "สร้าง job pharmacy-backend แล้ว", "สร้าง job เรียบร้อย");
   await L.intro(3, "build ล้ม", "ยังไม่มี credential dev-ssh", "ลองปล่อยดู จะเห็นว่าขาดอะไร");
   await toBrowser(); await L.ev(`wbGo("http://${R.j}:8080/"); render(); 1`); await L.sleep(500);
-  await L.cap("⑥ Jenkins › pharmacy-backend › Build with Parameters › Build (TARGET_ENV=dev)", "เปิด job pharmacy backend กด Build with Parameters แล้วกด Build");
+  await L.cap("⑨ Jenkins › pharmacy-backend › Build with Parameters › Build (TARGET_ENV=dev)", "เปิด job pharmacy backend กด Build with Parameters แล้วกด Build");
   await step("job", async () => { await L.click({ t: "pharmacy-backend", tag: "a" }); }); await L.sleep(300);
-  await L.cap("⑧ job ใหม่มีแค่ Build Now: กดแล้ว build แรกล้ม (Jenkins ยังไม่รู้ว่า Jenkinsfile มี parameters) แล้วปุ่มจะเปลี่ยนเป็น Build with Parameters", "job ใหม่ยังมีแค่ปุ่ม build now กดแล้ว build แรกจะล้มเป็นเรื่องปกติ เพราะ jenkins ยังไม่รู้ว่า jenkinsfile มีพารามิเตอร์ หลังจากนั้นปุ่มจะเปลี่ยนเป็น build with parameters");
+  await L.cap("⑩ job ใหม่มีแค่ Build Now: กดแล้ว build แรกล้ม (Jenkins ยังไม่รู้ว่า Jenkinsfile มี parameters) แล้วปุ่มจะเปลี่ยนเป็น Build with Parameters", "job ใหม่ยังมีแค่ปุ่ม build now กดแล้ว build แรกจะล้มเป็นเรื่องปกติ เพราะ jenkins ยังไม่รู้ว่า jenkinsfile มีพารามิเตอร์ หลังจากนั้นปุ่มจะเปลี่ยนเป็น build with parameters");
   await step("bn", async () => { await L.click({ t: "Build Now", tag: "a,button", starts: true }); }); await L.hold(3);
   await L.ev(`W.page=""; W.btab=""; render(); 1`); await L.sleep(300);
   await step("job1b", async () => { await L.click({ t: "pharmacy-backend", tag: "a" }); }); await L.sleep(300);
   await step("bwp", async () => { await L.click({ t: "Build with Parameters", tag: "a,button", starts: true }); }); await L.hold(1.2);
   await step("bld", async () => { await L.click(B("Build", { nth: 0 })); }); await L.hold(1.5);
   await L.ev(`W.page="build"; W.bid=jkBuildsOf(S.jk.job).slice(-1)[0].id; W.btab="console"; render(); var pr=[].slice.call(document.querySelectorAll("pre")).sort(function(a,b){return b.scrollHeight-a.scrollHeight})[0]; if(pr){var i=pr.innerText.indexOf("Could not find credentials"); if(i>0) pr.scrollTop=pr.scrollHeight*i/pr.innerText.length-60;} 1`);
-  await L.cap("⑦ Console Output: ERROR: Could not find credentials entry with ID 'dev-ssh' ที่ stage Deploy dev", "console output บอกว่าหา credential ชื่อ dev ssh ไม่เจอ ที่ stage deploy dev"); await L.hold(6);
+  await L.cap("⑪ Console Output: ERROR: Could not find credentials entry with ID 'dev-ssh' ที่ stage Deploy dev", "console output บอกว่าหา credential ชื่อ dev ssh ไม่เจอ ที่ stage deploy dev"); await L.hold(6);
   await L.tick(3, "build ล้ม: ไม่มี credential dev-ssh", "build ล้มเพราะยังไม่มี credential dev ssh");
   // 4 เพิ่ม credential
   await L.intro(4, "Credentials", "เพิ่ม dev-ssh (SSH private key)", "ต่อมา เพิ่ม credential dev ssh");
   await L.ev(`W.page=""; W.btab=""; render(); 1`); await L.sleep(300);
-  await L.cap("⑧ Manage Jenkins › Credentials › Add Credentials › Kind: SSH Username with private key", "ไปที่ Manage Jenkins แล้วเลือก Credentials กด Add Credentials เลือกชนิด SSH Username with private key");
+  await L.cap("⑫ Manage Jenkins › Credentials › Add Credentials › Kind: SSH Username with private key", "ไปที่ Manage Jenkins แล้วเลือก Credentials กด Add Credentials เลือกชนิด SSH Username with private key");
   await step("mj", async () => { await L.click({ t: "Manage Jenkins", tag: "a,button", starts: true }); }); await L.sleep(300);
   await step("cr", async () => { await L.click({ t: "Credentials", tag: "a,button,div", starts: true }); }); await L.sleep(300);
   await step("addc", async () => { await L.click(B("Add Credentials", { nth: 0 })); }); await L.sleep(300);
   await step("kind", async () => { await L.pickBtn("Username with password", "SSH Username with private key"); });
-  await L.cap("⑨ Username = ubuntu · Private Key = กุญแจคู่กับ public_key_path · ID = dev-ssh → Create", "ใส่ username เป็น ubuntu ใส่กุญแจส่วนตัวที่คู่กับ public key path และตั้ง ID เป็น dev ssh แล้วกด Create");
+  await L.cap("⑬ Username = ubuntu · Private Key = กุญแจคู่กับ public_key_path · ID = dev-ssh → Create", "ใส่ username เป็น ubuntu ใส่กุญแจส่วนตัวที่คู่กับ public key path และตั้ง ID เป็น dev ssh แล้วกด Create");
   await step("cu", async () => { await L.fill("Username", "ubuntu"); }); await step("ck", async () => { await L.fill("Private Key", "-----BEGIN OPENSSH PRIVATE KEY-----"); }); await step("ci", async () => { await L.fill("ID", "dev-ssh"); }); await L.hold(1.5);
   await step("create", async () => { await L.click(B("Create", { nth: 0 })); }); await L.hold(1.5);
   if (!(await L.ev(`!!jkCred("dev-ssh")`))) { console.log("FAIL cred not created"); await L.finish(); process.exit(1); }
@@ -84,13 +84,13 @@ const viewFile = async (rel, anchor, secs, pages, endAnchor) => { // เปิ�
   // 5 build ผ่าน
   await L.intro(5, "build ใหม่", "ผ่าน แล้วดูบนเครื่อง dev", "ลองปล่อยอีกรอบ");
   await L.ev(`W.page=""; W.btab=""; render(); 1`); await L.sleep(300);
-  await L.cap("⑩ Build with Parameters › Build อีกรอบ → Deploy dev ผ่าน", "กด Build with Parameters แล้ว Build อีกรอบ รอบนี้ stage deploy dev ผ่าน");
+  await L.cap("⑭ Build with Parameters › Build อีกรอบ → Deploy dev ผ่าน", "กด Build with Parameters แล้ว Build อีกรอบ รอบนี้ stage deploy dev ผ่าน");
   await step("job2", async () => { await L.click({ t: "pharmacy-backend", tag: "a" }); }); await L.sleep(300);
   await step("bwp2", async () => { await L.click({ t: "Build with Parameters", tag: "a,button", starts: true }); }); await L.hold(1);
   await step("bld2", async () => { await L.click(B("Build", { nth: 0 })); }); await L.hold(1.2);
   await L.ev(`W.page="build"; W.bid=jkBuildsOf(S.jk.job).slice(-1)[0].id; W.btab="console"; render(); var pr=[].slice.call(document.querySelectorAll("pre")).sort(function(a,b){return b.scrollHeight-a.scrollHeight})[0]; if(pr){var i=pr.innerText.indexOf("deploy.sh"); if(i>0) pr.scrollTop=pr.scrollHeight*i/pr.innerText.length-60;} 1`); await L.hold(5);
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
-  await L.cap("⑪ ssh เข้า pharmacy-dev · docker compose ps -a: migrate จบ (Exited 0) · backend รัน (healthy)", "ssh เข้าเครื่อง dev ดู docker compose ps จะเห็น migrate รันจบ และ backend รันอยู่");
+  await L.cap("⑮ ssh เข้า pharmacy-dev · docker compose ps -a: migrate จบ (Exited 0) · backend รัน (healthy)", "ssh เข้าเครื่อง dev ดู docker compose ps จะเห็น migrate รันจบ และ backend รันอยู่");
   await step("ssh2", async () => { await term(`ssh -J ubuntu@${R.b} -i ~/.ssh/id_ed25519 ubuntu@${R.d}`); }); await step("yes2", async () => { await term("yes"); });
   await step("cd", async () => { await term("cd /opt/pharmacy"); }); await step("ps", async () => { await term("sudo docker compose ps -a"); }); await L.hold(5);
   await L.tick(5, "Jenkins ปล่อย dev ได้", "jenkins ปล่อย dev ได้แล้ว");

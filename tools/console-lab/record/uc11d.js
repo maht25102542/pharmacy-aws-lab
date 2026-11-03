@@ -23,7 +23,7 @@ const argoLogin = async (pw) => {
 };
 (async () => {
   await L.start("file://" + require("path").resolve(__dirname, "../index.html"));
-  await L.plan([["EC2 k3s ×3 (console)", "EC2"], ["ansible k8s.yml", "🎛️"], ["ล็อกอิน ArgoCD", "🐙"], ["apps.yaml", "📁"], ["deployment.yaml", "📁"], ["kubectl apply", "⌨️"]]);
+  await L.plan([["EC2 k3s ×3 (console)", "EC2"], ["ansible k8s.yml", "🎛️"], ["ล็อกอิน ArgoCD", "🐙"], ["กดใน ArgoCD: repo + NEW APP", "🐙"], ["apps.yaml", "📁"], ["deployment.yaml", "📁"], ["kubectl apply", "⌨️"]]);
   await L.cap("Use case 11 ตอน D · เตรียม prd: k3s 3 เครื่อง + ArgoCD", "use case สิบเอ็ด ตอน ดี เตรียม prd ที่ใช้ k3s สามเครื่องกับ argo c d จะรัน ansible เปิดไฟล์ที่ต้องตั้ง และสร้างแอปใน argo c d"); await L.hold(1);
   const R = JSON.parse(await L.ev(`buildAnsibleLab("ans"); S.insts=S.insts.filter(function(i){return i.name!=="pharmacy-k8s-1"}); var u=ghUser(); ["repo-backend","repo-frontend"].forEach(function(d){ shRun("cd "+REPO+"/"+d); ["git init -b main","git add .","git commit -m initial","git remote add origin https://github.com/"+u+"/pharmacy-"+d.slice(5)+".git","git push -u origin main","git tag v1.0.0","git push origin v1.0.0"].forEach(function(c){shRun(c)}); }); JSON.stringify({b:S.insts.filter(function(i){return i.name==="pharmacy-bastion"})[0].publicIp,a:"http://"+S.albs[0].dns+":8443",u:u,rp:REPO})`));
   let J = "";
@@ -57,48 +57,67 @@ const argoLogin = async (pw) => {
   await L.tick(0, "EC2 k3s ×3 (k8s-1 สร้างบน console)", "เครื่อง k three s พร้อมแล้ว");
   // 1 ansible
   await L.intro(1, "Ansible", "k3s HA 3 เครื่อง + ArgoCD", "ขั้นแรก ใช้ ansible ลง k3s สามเครื่องแบบ เอชเอ และลง argo c d");
-  await L.cap("① ansible/k8s.yml (k8s-1 --cluster-init · k8s-2,3 join ทีละเครื่อง · ลง ArgoCD บน k8s-1)", "ไฟล์ k eight s dot y m l"); await viewFile("ansible/k8s.yml", "", 12, 2);
+  await L.cap("⑤ ansible/k8s.yml (k8s-1 --cluster-init · k8s-2,3 join ทีละเครื่อง · ลง ArgoCD บน k8s-1)", "ไฟล์ k eight s dot y m l"); await viewFile("ansible/k8s.yml", "", 12, 2);
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
-  await L.cap("② cd ansible · ansible-playbook k8s.yml", "แล้วรัน ansible playbook k eight s dot y m l");
+  await L.cap("⑥ cd ansible · ansible-playbook k8s.yml", "แล้วรัน ansible playbook k eight s dot y m l");
   await step("cdA", async () => { await term(`cd ${R.rp}/ansible`); }); R.k = await L.ev(`ansInventory().groups.role_k8s_server[0].privateIp`); J = `ssh -J ubuntu@${R.b} -i ~/.ssh/id_ed25519 ubuntu@${R.k}`; await step("pb", async () => { await term("ansible-playbook k8s.yml"); }); await L.hold(8);
-  await L.cap("③ ssh เข้า k8s-1 · k3s kubectl get nodes (3 เครื่อง Ready) · get pods -n argocd", "ssh เข้าเครื่อง k8s หนึ่ง ดู nodes สามเครื่อง และ pod ของ argo c d");
+  await L.cap("⑦ ssh เข้า k8s-1 · k3s kubectl get nodes (3 เครื่อง Ready) · get pods -n argocd", "ssh เข้าเครื่อง k8s หนึ่ง ดู nodes สามเครื่อง และ pod ของ argo c d");
   await step("ssh", async () => { await term(J); }); await step("yes", async () => { await term("yes"); });
   await step("nodes", async () => { await term("k3s kubectl get nodes"); }); await L.hold(3);
   await step("argopods", async () => { await term("k3s kubectl get pods -n argocd"); }); await L.hold(4);
   await L.tick(1, "k3s 3 เครื่อง + ArgoCD พร้อม", "k three s สามเครื่องและ argo c d พร้อมแล้ว");
   // 2 login
   await L.intro(2, "ArgoCD", "รหัสผ่านเริ่มต้น + เข้า UI ผ่าน ALB :8443", "ต่อมา ดึงรหัสผ่านเริ่มต้นของ argo c d แล้วเข้า หน้า UI");
-  await L.cap("④ kubectl -n argocd get secret argocd-initial-admin-secret … | base64 -d", "ดึงรหัสผ่านเริ่มต้นจาก secret แล้วถอดรหัส base sixty four");
+  await L.cap("⑧ kubectl -n argocd get secret argocd-initial-admin-secret … | base64 -d", "ดึงรหัสผ่านเริ่มต้นจาก secret แล้วถอดรหัส base sixty four");
   await step("pw", async () => { await term("k3s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"); }); await L.hold(4);
   const PW = await L.ev(`argoPwdOf(argoInst())`);
   await step("ex", async () => { await term("exit"); });
   await toBrowser(); await L.ev(`wbGo("${R.a}"); render(); 1`); await L.sleep(500);
-  await L.cap("⑤ แท็บ Browser › http://<ALB>:8443 › admin + รหัสที่ได้ → SIGN IN", "เปิด ALB พอร์ตแปดสี่สี่สาม ล็อกอินด้วย admin และรหัสที่ได้");
+  await L.cap("⑨ แท็บ Browser › http://<ALB>:8443 › admin + รหัสที่ได้ → SIGN IN", "เปิด ALB พอร์ตแปดสี่สี่สาม ล็อกอินด้วย admin และรหัสที่ได้");
   await argoLogin(PW);
   await L.tick(2, "เข้า ArgoCD ได้", "เข้า argo c d ได้แล้ว");
-  // 3 apps.yaml
-  await L.intro(3, "apps.yaml", "ประกาศแอป prd ให้ ArgoCD", "ต่อมา ประกาศแอปที่ argo c d จะดูแล");
-  await L.cap("⑥ repo-manifests/argocd-apps/apps.yaml: repoURL · path · destination · ไม่มี automated (prd ต้องมีคนกด Sync)", "ไฟล์ apps dot y m l บอกว่าดึงจาก repo ไหน โฟลเดอร์ไหน ไป cluster ไหน และ prd ไม่มี automated ต้องมีคนกด sync"); await viewFile("repo-manifests/argocd-apps/apps.yaml", "", 12);
-  await L.tick(3, "apps.yaml (prd 2 แอป)", "ไฟล์ประกาศแอป");
-  // 4 deployment
-  await L.intro(4, "deployment.yaml", "สิ่งที่ ArgoCD เอาไปใช้", "และไฟล์ที่ argo c d เอาไปสร้างของใน cluster");
-  await L.cap("⑦ repo-manifests/prd/backend/deployment.yaml: replicas 3 · probe 3 ตัว · บรรทัด image: คือที่ Jenkins แก้ · Job backend-migrate (PreSync)", "ไฟล์ deployment dot y m l ของ backend มี replicas สามตัว probe สามแบบ บรรทัด image ที่ jenkins แก้ และ job migrate ที่รันก่อน sync"); await viewFile("repo-manifests/prd/backend/deployment.yaml", "", 11, 3);
-  await L.tick(4, "deployment.yaml (prd)", "ไฟล์ deployment");
-  // 5 push manifests + apply
-  await L.intro(5, "kubectl apply", "push manifests แล้วสร้าง 2 แอป", "สุดท้าย push repo manifests ขึ้น github แล้วสร้างแอปใน argo c d");
+  // 3 push manifests แล้วกดใน ArgoCD: เชื่อม repo + NEW APP
+  await L.intro(3, "ArgoCD UI", "เชื่อม repo + สร้างแอปด้วยฟอร์ม", "ต่อมา push repo manifests ขึ้น github แล้วกดสร้างแอปในหน้า argo c d");
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
-  await L.cap("⑧ repo-manifests: แก้ YOUR_GITHUB_USER → ชื่อ GitHub · git init/add/commit/push", "ในโฟลเดอร์ repo manifests แก้ชื่อ github ในไฟล์ apps แล้ว push ขึ้น github");
+  await L.cap("⑩ repo-manifests: แก้ YOUR_GITHUB_USER ใน apps.yaml → ชื่อ GitHub · git init/add/commit/push", "ในโฟลเดอร์ repo manifests แก้ชื่อ github ในไฟล์ apps แล้ว push ขึ้น github");
   await step("cdm", async () => { await term(`cd ${R.rp}/repo-manifests`); }); await step("sed", async () => { await term(`sed -i 's/YOUR_GITHUB_USER/${R.u}/g' argocd-apps/apps.yaml`); });
   for (const [n, c] of [["gi", "git init -b main"], ["ga", "git add ."], ["gc", 'git commit -m "manifests prd"'], ["gr", `git remote add origin https://github.com/${R.u}/pharmacy-manifests.git`], ["gp", "git push -u origin main"]]) await step(n, async () => { await term(c); });
-  await L.cap("⑨ ssh เข้า k8s-1 · kubectl apply -f …/apps.yaml → application created ×2", "ssh เข้า k8s หนึ่ง แล้ว kubectl apply ไฟล์ apps dot y m l ได้แอปสองตัว");
+  await toBrowser(); await L.ev(`wbGo("${R.a}"); render(); 1`); await L.sleep(500);
+  await L.cap("⑪ ArgoCD › Settings › Repositories › CONNECT REPO: เชื่อม https://github.com/<user>/pharmacy-manifests.git", "ใน argo c d ไปที่ settings เลือก repositories กด connect repo แล้วใส่ url ของ repo manifests");
+  await step("set", async () => { await L.click({ t: "Settings", tag: "a,button,div,span", starts: true }); }); await L.sleep(400);
+  await step("rps", async () => { await L.click({ t: "Repositories", tag: "a,button,div,span", starts: true }); }); await L.sleep(400);
+  await step("cnr", async () => { await L.click({ t: "CONNECT REPO", tag: "button,div,a,span" }); }); await L.sleep(400);
+  await step("rurl", async () => { await L.fill("Repository URL", `https://github.com/${R.u}/pharmacy-manifests.git`); }); await L.hold(1.5);
+  await step("cnn", async () => { await L.click(B("CONNECT", { nth: 0 })); }); await L.hold(2);
+  await L.cap("⑫ Applications › NEW APP: ชื่อ pharmacy-backend-prd · Sync Policy Manual · Repo ที่เชื่อม · Revision main · Path prd/backend · Cluster in-cluster · Namespace prd → CREATE", "กลับไปหน้า applications กด new app ตั้งชื่อ pharmacy backend prd เลือก sync policy เป็น manual เลือก repo ที่เชื่อมไว้ revision main path เป็น prd slash backend cluster in cluster และ namespace prd แล้วกด create");
+  await step("apps", async () => { await L.click({ t: "Applications", tag: "a,button,div,span", starts: true }); }); await L.sleep(400);
+  await step("newapp", async () => { await L.click({ t: "NEW APP", tag: "button,div,a,span" }); }); await L.sleep(500);
+  await step("an", async () => { await L.fill("Application Name", "pharmacy-backend-prd"); });
+  await step("arep", async () => { await L.fill("Repository URL", `https://github.com/${R.u}/pharmacy-manifests.git`); });
+  await step("arev", async () => { await L.fill("Revision", "main"); }); await step("apath", async () => { await L.fill("Path", "prd/backend"); }); await step("ans", async () => { await L.fill("Namespace", "prd"); }); await L.hold(2);
+  await step("acr", async () => { await L.click(B("CREATE", { nth: 0 })); }); await L.hold(2.5);
+  if (!(await L.ev(`!!S.argo.apps["pharmacy-backend-prd"]`))) { console.log("FAIL app not created"); await L.finish(); process.exit(1); }
+  await L.tick(3, "ArgoCD: เชื่อม repo + สร้างแอป backend-prd (ด้วยฟอร์ม)", "สร้างแอป backend prd ด้วยฟอร์มเรียบร้อย");
+  // 3 apps.yaml
+  await L.intro(4, "apps.yaml", "ประกาศแอป prd ให้ ArgoCD", "ต่อมา ประกาศแอปที่ argo c d จะดูแล");
+  await L.cap("ชี้ไฟล์: argocd-apps/apps.yaml › แอป pharmacy-backend-prd (ไฮไลต์) = ฟอร์ม NEW APP ที่เพิ่งกด: name ↔ Application Name · repoURL ↔ Repository URL · targetRevision ↔ Revision · path ↔ Path · destination ↔ Cluster/Namespace · ไม่มี syncPolicy.automated ↔ Sync Policy Manual", "ไฟล์ apps dot y m l บอกว่าดึงจาก repo ไหน โฟลเดอร์ไหน ไป cluster ไหน และ prd ไม่มี automated ต้องมีคนกด sync"); await viewFile("repo-manifests/argocd-apps/apps.yaml", "name: pharmacy-backend-prd", 14, 1, "namespace: prd");
+  await L.tick(4, "apps.yaml (prd 2 แอป)", "ไฟล์ประกาศแอป");
+  // 4 deployment
+  await L.intro(5, "deployment.yaml", "สิ่งที่ ArgoCD เอาไปใช้", "และไฟล์ที่ argo c d เอาไปสร้างของใน cluster");
+  await L.cap("ชี้ไฟล์: prd/backend/deployment.yaml (ไฮไลต์ replicas → บรรทัด image:) · replicas 3 · probe 3 ตัว · บรรทัด image: คือที่ Jenkins แก้ทุกครั้งที่ปล่อย · Job backend-migrate (PreSync)", "ไฟล์ deployment dot y m l ของ backend มี replicas สามตัว probe สามแบบ บรรทัด image ที่ jenkins แก้ และ job migrate ที่รันก่อน sync"); await viewFile("repo-manifests/prd/backend/deployment.yaml", "  replicas:", 11, 3, "image:");
+  await L.tick(5, "deployment.yaml (prd)", "ไฟล์ deployment");
+  // 6 kubectl apply ที่เหลือ (frontend + backend = configured)
+  await L.intro(6, "kubectl apply", "apps.yaml ทั้งไฟล์ (ได้ frontend เพิ่ม)", "ส่วนที่เหลือใช้ไฟล์ apps dot y m l สร้างทีเดียว");
+  await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
+  await L.cap("⑬ ssh เข้า k8s-1 · kubectl apply -f …/apps.yaml → backend configured · frontend created (ไฟล์เดียวทำได้ทั้งสองแอป)", "ssh เข้า k8s หนึ่ง แล้ว kubectl apply ไฟล์ apps dot y m l ได้แอปสองตัว");
   await step("ssh2", async () => { await term(J); }); await step("yes2", async () => { await term("yes"); });
   await step("apply", async () => { await term(`k3s kubectl apply -f https://raw.githubusercontent.com/${R.u}/pharmacy-manifests/main/argocd-apps/apps.yaml`); }); await L.hold(3);
   await step("apps", async () => { await term("k3s kubectl get applications -n argocd"); }); await L.hold(4);
   await toBrowser(); await L.ev(`wbGo("${R.a}"); render(); 1`); await L.hold(1);
-  await L.cap("⑩ ArgoCD › Applications: pharmacy-backend-prd / pharmacy-frontend-prd (ยังไม่ Synced: prd รอคนกด Sync)", "กลับมาที่หน้า argo c d จะเห็นสองแอปของ prd ยังไม่ synced เพราะรอคนกด sync"); await L.hold(5);
-  await L.tick(5, "สร้าง 2 แอป prd ใน ArgoCD", "สร้างแอป prd ใน argo c d แล้ว");
+  await L.cap("⑭ ArgoCD › Applications: pharmacy-backend-prd / pharmacy-frontend-prd (ยังไม่ Synced: prd รอคนกด Sync)", "กลับมาที่หน้า argo c d จะเห็นสองแอปของ prd ยังไม่ synced เพราะรอคนกด sync"); await L.hold(5);
+  await L.tick(6, "2 แอป prd ใน ArgoCD (apps.yaml)", "สร้างแอป prd ใน argo c d แล้ว");
   await L.costScene("mainvm", "เรื่องค่าใช้จ่าย prd ใช้ k3s สามเครื่องกับ load balancer และ NAT ที่คิดเงินรายชั่วโมงตลอดเวลาที่เปิด ควรตั้ง Budget และ terraform destroy เมื่อเลิกใช้");
   await L.cap("✓ ตอน D เสร็จ: k3s HA + ArgoCD + apps.yaml · ตอน E: ปล่อย prd ด้วย tag แล้ว Sync", "สรุป cluster prd พร้อมแล้ว ตอนถัดไปปล่อย prd ด้วย tag แล้วกด sync"); await L.hold(1.5);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase11d-d.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase11d-e.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });

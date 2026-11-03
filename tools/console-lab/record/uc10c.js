@@ -24,12 +24,12 @@ const openUrl = async (url, direct) => { if (direct) { await L.ev(`wbGo(${JSON.s
   await L.cap("ก่อนเริ่ม: ตอน A และ B เสร็จแล้ว (เครื่อง dev, Jenkins ปล่อย dev ด้วยมือได้) ตอนนี้ทำให้ push แล้วรันเอง", "ก่อนเริ่ม ตอน เอ และ บี เสร็จแล้ว เครื่อง dev พร้อมและ jenkins ปล่อย dev ด้วยมือได้ ตอนนี้ทำให้ push แล้วรันเอง"); await L.hold(1);
   // 1 SG
   await L.intro(0, "Security Group", "เปิด 8080 ให้ IP ของ GitHub", "ขั้นแรก ต้องให้ github ส่งคำขอเข้ามาที่ jenkins ได้");
-  await L.cap("① terraform/security.tf › SG pharmacy-jenkins: ingress 8080 จาก github_hook_cidrs", "ไฟล์ security dot t f ส่วน security group ของ jenkins มี rule เปิดพอร์ตแปดศูนย์แปดศูนย์ให้ IP ของ github"); await viewFile("terraform/security.tf", "GitHub webhook", 11);
-  await L.cap("② terraform/variables.tf › github_hook_cidrs (ค่าจริงดูที่ api.github.com/meta ช่อง hooks)", "และตัวแปร github hook cidrs ใน variables dot t f ค่าจริงเปลี่ยนได้ ดูที่ api dot github dot com slash meta"); await viewFile("terraform/variables.tf", 'variable "github_hook_cidrs"', 10);
+  await L.cap("ชี้ไฟล์: terraform/security.tf › SG pharmacy-jenkins › ingress 8080 จาก var.github_hook_cidrs (ไฮไลต์) = rule ที่ต้องมีใน EC2 › Security Groups › pharmacy-jenkins › Inbound", "ไฟล์ security dot t f ส่วน security group ของ jenkins มี rule เปิดพอร์ตแปดศูนย์แปดศูนย์ให้ IP ของ github"); await viewFile("terraform/security.tf", "# GitHub webhook", 12, 1, "var.github_hook_cidrs");
+  await L.cap("② terraform/variables.tf › github_hook_cidrs (ค่าจริงดูที่ api.github.com/meta ช่อง hooks)", "และตัวแปร github hook cidrs ใน variables dot t f ค่าจริงเปลี่ยนได้ ดูที่ api dot github dot com slash meta"); await viewFile("terraform/variables.tf", 'variable "github_hook_cidrs"', 11, 1, "\n}\n");
   await L.tick(0, "SG เปิด 8080 ให้ GitHub (Terraform)", "security group เปิดให้ github เข้า jenkins ได้แล้ว");
   // 2 trigger
   await L.intro(1, "trigger", "Jenkinsfile + job ต้องรับ webhook", "ต่อมา ฝั่ง jenkins ต้องรู้ว่าจะรับ webhook");
-  await L.cap("③ repo-backend/Jenkinsfile › triggers { githubPush() } (ใช้ปลั๊กอิน github)", "ใน jenkinsfile มี triggers github push ซึ่งใช้ปลั๊กอิน github"); await viewFile("repo-backend/Jenkinsfile", "triggers {", 10);
+  await L.cap("③ repo-backend/Jenkinsfile › triggers { githubPush() } (ใช้ปลั๊กอิน github)", "ใน jenkinsfile มี triggers github push ซึ่งใช้ปลั๊กอิน github"); await viewFile("repo-backend/Jenkinsfile", "  // dev: git push", 11, 1, "githubPush() }");
   await toBrowser(); await L.ev(`wbGo("${JURL}/"); render(); 1`); await L.sleep(500);
   await L.cap("④ Jenkins › pharmacy-backend › Configure › Triggers: ติ๊ก GitHub hook trigger · Pipeline: Branch Specifier = */develop", "ใน job ต้องติ๊ก github hook trigger ที่แท็บ triggers และตั้ง branch specifier เป็น star slash develop ที่แท็บ pipeline");
   await step("job", async () => { await L.click({ t: "pharmacy-backend", tag: "a" }); }); await L.sleep(300);
@@ -78,6 +78,6 @@ const openUrl = async (url, direct) => { if (direct) { await L.ev(`wbGo(${JSON.s
   await L.tick(4, "push แล้ว Jenkins รันเอง", "push แล้ว jenkins รันเองได้แล้ว");
   await L.costScene("jkpush", "เรื่องค่าใช้จ่าย webhook ไม่มีค่าใช้จ่ายเพิ่ม ค่าใช้จ่ายอยู่ที่เครื่อง jenkins sonarqube และเครื่อง dev ที่เปิดตลอด ควรตั้ง Budget และ destroy เมื่อเลิกใช้");
   await L.cap("✓ ตอน C เสร็จ: SG · trigger · webhook · push develop → Jenkins รันเอง (ดูภาพรวมในวิดีโอสุดท้าย)", "สรุป ตั้ง security group trigger และ webhook ครบ push แล้ว jenkins รันเอง"); await L.hold(1.5);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase10c-b.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase10c-c.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });
