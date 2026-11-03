@@ -142,3 +142,6 @@ var COST_LV = [["ถูกมาก", "#0e8a55", "#34d399"], ["ถูก", "#2f8
 function costVerdict(monthUsd, bench) { var i = 0; while (i < bench.length && monthUsd >= bench[i]) i++; return { i: i, label: COST_LV[i][0], color: COST_LV[i][1], fill: COST_LV[i][2] }; }
 function costLabVerdict(fourHrUsd) { var b = fourHrUsd * COST_THB; return b < 5 ? COST_LV[0] : b < 60 ? COST_LV[1] : b < 300 ? COST_LV[2] : b < 1000 ? COST_LV[3] : COST_LV[4]; }
 COSTD.uc.jkpush = COSTD.uc.jk; // use case 10 ใช้เครื่องชุดเดียวกับ use case 9 (Jenkins + SonarQube + ECR)
+// use case 11 (prd: k3s + ArgoCD) ใช้ตัวเลขของ main lab (VM) + ข้อความที่การ์ดต้องใช้
+COSTD.uc.prdgitops = Object.assign({ big: "ค่าคงที่ตามชั่วโมงที่เครื่องเปิด: k3s 3 เครื่อง + เครื่องอื่นของ lab + ALB + NAT คิดเงินแม้ไม่มีใครใช้", drivers: ["ชั่วโมงที่เครื่อง (10 เครื่อง) เปิดอยู่", "NAT gateway + ALB รายชั่วโมง", "ข้อมูลที่ผ่าน NAT"], cut: ["ใช้ขนาดประหยัด k8s_node_count = 1, db_count = 1", "terraform destroy ทุกครั้งที่เลิกเล่น"], watch: ["Budget + Anomaly Detection", "Cost Explorer: EC2-Instances / NAT Gateway / ALB"], stop: "`terraform destroy` (ลบ NAT/ALB/เครื่องทั้งหมด)" }, COSTD.mainlab.vm);
+COSTD.uc.mainvm = COSTD.uc.prdgitops;

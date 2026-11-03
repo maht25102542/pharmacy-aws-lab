@@ -503,7 +503,43 @@ UC.push({
   loadBtns: [["โหลดตัวอย่าง: ระบบพร้อม (dev ปล่อยด้วยมือแล้ว) ไปลอง push develop เอง", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 10 แล้ว: ตั้ง webhook (GitHub › Settings › Webhooks) แล้ว git push origin develop"); go("browser", {}, "Browser"); }]]
 });
 
-var UC_SVCS = { jk: ["github", "ecr", "iam"], jkpush: ["github", "ecr", "ec2"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
+UC.push({
+  id: "prdgitops", no: 11, videos: [["ตอน D · เตรียม prd: k3s HA 3 เครื่อง, ArgoCD, apps.yaml, deployment.yaml", "videos/usecase11d-b.mp4"], ["ตอน E · ปล่อย prd ด้วย tag v1.1.0, Sync ใน ArgoCD, ย้อนด้วย deploy-only", "videos/usecase11e-b.mp4"]], title: "ปล่อย prd แบบ GitOps: tag + ArgoCD (k3s 3 เครื่อง)", color: "#326ce5", dir: "repo-manifests · repo-backend · repo-frontend · ansible/k8s.yml", loadKind: "jk",
+  tag: "✅ prd ปล่อยแบบ pull-based: Jenkins แค่แก้ image: ใน Git (ต้องกด ยืนยัน) แล้ว ArgoCD เป็นฝ่ายดึงไป deploy · ต่างจาก dev ที่ Jenkins ส่งเองด้วย docker compose",
+  intro: [
+    ["ตัวอย่างงาน", "#326ce5", "ทีมร้านยาจะปล่อยเวอร์ชัน **v1.1.0** ขึ้น **prd** ที่รัน k3s 3 เครื่อง: ติด tag → Jenkins ตรวจ/build → **คนกดยืนยัน** → แก้ manifest → **ArgoCD Sync** → pod 3 ตัวทยอยเปลี่ยน"],
+    ["GitOps คืออะไร", "#2b6cb0", "**Git คือความจริงเดียว**: สิ่งที่รันบน cluster ต้องตรงกับไฟล์ใน repo `pharmacy-manifests` · Jenkins แก้ไฟล์ ArgoCD เห็นว่าไม่ตรง (**OutOfSync**) แล้วดึงไปปรับ · ย้อนเวอร์ชัน = ย้อน commit หรือ deploy-only"],
+    ["ต่างจาก dev (use case 10)", "#8456ce", "**dev** = Jenkins ssh ไปสั่ง docker compose (push-based, ไม่มี ArgoCD) · **prd** = ArgoCD ดึงเอง (pull-based) + มีด่านยืนยัน + tag ต้องเป็น vN.N.N + replicas 3 กระจายหลายเครื่อง"],
+    ["ต้องตั้งอะไร", "#a85a00", "① `ansible-playbook k8s.yml` (k3s HA + ArgoCD) ② เข้า ArgoCD ด้วยรหัสเริ่มต้น ③ แก้ `apps.yaml` ให้ชี้ repo ของคุณ แล้ว `kubectl apply` ④ `deployment.yaml` มีบรรทัด `image:` ที่ Jenkins แก้ + Job migrate"],
+    ["ที่ต้องรู้", "#1d8102", "prd ไม่ตั้ง auto-sync: ต้องมีคนกด Sync (หรือติ๊ก AUTO_SYNC ใน Jenkins) · ถ้า role ของ node ไม่มีสิทธิ์ ECR จะเห็น ImagePullBackOff · deploy backend ก่อน frontend ครั้งแรก"]
+  ],
+  envs: [["", "dev (use case 10)", "prd (use case นี้)"], ["ตัวปล่อย", "Jenkins ssh → docker compose", "Jenkins แก้ manifest → ArgoCD Sync"], ["tag", "dev-<sha 7 ตัว>", "vN.N.N เท่านั้น"], ["ด่านยืนยัน", "ไม่มี", "ต้องกด ยืนยัน ใน Jenkins"], ["จำนวนเครื่อง/replica", "1 เครื่อง · 1 ตัว", "3 เครื่อง · 3 ตัว (HA)"]],
+  nodes: [
+    { id: "dev", x: 24, y: 150, w: 120, h: 64, t: "นักพัฒนา", s: "git tag v1.1.0", c: "#2a4a7a" },
+    { id: "jk", x: 190, y: 130, w: 150, h: 100, t: "Jenkins", s: "TARGET_ENV=prd + ยืนยัน", c: "#c0392b" },
+    { id: "mf", ico: "github", x: 390, y: 130, w: 170, h: 100, t: "pharmacy-manifests", s: "prd/*/deployment.yaml", c: "#24292f" },
+    { id: "ar", x: 610, y: 40, w: 200, h: 64, t: "ArgoCD (k8s-1)", s: "Sync ตามที่ Git บอก", c: "#ef7b4d" },
+    { id: "k8", x: 610, y: 240, w: 200, h: 64, t: "k3s ×3 (prd)", s: "backend ×3 · frontend ×3", c: "#326ce5" }
+  ],
+  links: [["dev", "jk"], ["jk", "mf"], ["mf", "ar"], ["ar", "k8"]],
+  scenes: [
+    { t: "ติด tag แล้วสั่ง Jenkins", on: ["dev", "jk"], flow: [["dev", "git tag v1.1.0"], ["jk", "TARGET_ENV=prd"]], rows: [["เกิดอะไร", "#c0392b", "Jenkins ตรวจ tag ต้องเป็น vN.N.N แล้ว **หยุดรอคนกด ยืนยัน** ก่อนแตะ prd"]] },
+    { t: "Jenkins แก้ manifest", on: ["jk", "mf"], flow: [["jk", "sed image:"], ["mf", "commit ใหม่"]], rows: [["เกิดอะไร", "#24292f", "หลัง build/ตรวจผ่านและ push ECR แล้ว Jenkins แก้บรรทัด `image:` ใน `prd/*/deployment.yaml` แล้ว **จบ** (ไม่ติ๊ก AUTO_SYNC = ไม่สั่ง ArgoCD)"]] },
+    { t: "ArgoCD เห็นว่า OutOfSync", on: ["mf", "ar"], flow: [["mf", "Git เปลี่ยน"], ["ar", "OutOfSync"]], rows: [["เกิดอะไร", "#ef7b4d", "ArgoCD เทียบ Git กับ cluster พบว่าไม่ตรง แสดง **OutOfSync** รอคนกด **SYNC**"]] },
+    { t: "Sync แล้ว pod ทยอยเปลี่ยน", on: ["ar", "k8"], flow: [["ar", "SYNCHRONIZE"], ["k8", "rolling update 3 ตัว"]], rows: [["เกิดอะไร", "#326ce5", "Job migrate รันก่อน (PreSync) แล้ว pod ใหม่ขึ้นทีละตัว ตัวเก่าไม่หยุดจนตัวใหม่พร้อม (maxUnavailable 0)"]] },
+    { t: "เคส error: ImagePullBackOff", on: ["ar", "k8"], bad: ["k8"], flow: [["ar", "Sync"], ["k8", "✗ ImagePullBackOff"]], rows: [["อาการ", "#c62828", "pod ค้างที่ ImagePullBackOff · ArgoCD แสดง Degraded"], ["ไล่หา", "#a85a00", "role ของ node k8s ไม่มี AmazonEC2ContainerRegistryReadOnly หรือ secret ecr-pull หมดอายุ (ต่ออายุทุก 12 ชม.)"]] }
+  ],
+  tf: [
+    { type: "ansible", name: "k8s.yml", file: "ansible/k8s.yml", console: ["Laptop › Terminal › ansible-playbook k8s.yml", "k3s HA 3 เครื่อง + ลง ArgoCD บน k8s-1"], err: "เครื่องออกเน็ตไม่ได้ = ลง k3s/ArgoCD ล้ม" },
+    { type: "argocd", name: "apps.yaml", file: "repo-manifests/argocd-apps/apps.yaml", console: ["ArgoCD › Applications", "pharmacy-backend-prd / pharmacy-frontend-prd"], err: "repoURL ยังเป็น YOUR_GITHUB_USER = ComparisonError" },
+    { type: "k8s", name: "deployment.yaml", file: "repo-manifests/prd/backend/deployment.yaml", console: ["ArgoCD › app › Resources", "replicas 3 · probe · Job backend-migrate"], err: "image: ผิด = ErrImagePull" },
+    { type: "stage", name: "Update manifest", file: "repo-backend/Jenkinsfile", console: ["Jenkins › Console Output", "git clone manifests → sed image: → git push"], err: "token github ไม่มีสิทธิ์ push = 403" }
+  ],
+  errors: [],
+  loadBtns: [["โหลดตัวอย่าง: ระบบพร้อม (dev ปล่อยแล้ว) ไปลองปล่อย prd เอง", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 11 แล้ว: สร้าง tag v1.1.0 → Jenkins TARGET_ENV=prd → Sync ใน ArgoCD"); go("browser", {}, "Browser"); }]]
+});
+
+var UC_SVCS = { jk: ["github", "ecr", "iam"], jkpush: ["github", "ecr", "ec2"], prdgitops: ["github", "ecr", "ec2"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
 var UC_SVC_LBL = { s3: "S3", cloudfront: "CloudFront", route53: "Route 53", acm: "ACM", ecr: "ECR", ecs: "ECS", elb: "ALB", rds: "RDS", vpc: "VPC", iam: "IAM", cloudwatch: "CloudWatch", apigw: "API Gateway", lambda: "Lambda", dynamodb: "DynamoDB", codepipeline: "CodePipeline", codebuild: "CodeBuild", github: "GitHub", ec2: "EC2", ebs: "EBS", apprunner: "App Runner", autoscaling: "Auto Scaling" };
 function ucSvcChips(u) { var ks = UC_SVCS[u.id]; if (!ks) return null; return h("div", { cls: "uc-svcs" }, ks.map(function (k) { var src = AWS_ICONS[k] || BRAND_ICONS[k]; return h("span", { title: UC_SVC_LBL[k] || k }, [src ? h("img", { src: src, width: "20", height: "20", alt: "" }) : null, UC_SVC_LBL[k] || k]); })); }
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
@@ -551,7 +587,7 @@ function ucErrTable(u) {
   return w;
 }
 // หมู่ตามแกน "แอปรันที่ไหน" + แกน CI/CD แยก (CI/CD 4,5 ปล่อยลง ECS ของ use case 2)
-var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"], ["CI/CD ฝั่ง Jenkins", ["jk", "jkpush"], "#c0392b"]];
+var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"], ["CI/CD ฝั่ง Jenkins", ["jk", "jkpush", "prdgitops"], "#c0392b"]];
 // player: ดับเบิลคลิก/แตะครึ่งขวา = ข้าม 5 วิ, ครึ่งซ้าย = ย้อน 5 วิ, คลิกเดียว = เล่น/หยุด + ปุ่มเปิด-ปิดเสียง
 var VI = {
   play: '<path d="M8 5v14l11-7z" fill="currentColor"/>', pause: '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>',
