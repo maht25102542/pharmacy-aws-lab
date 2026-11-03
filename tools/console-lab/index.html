@@ -12122,7 +12122,7 @@ UC.push({
 });
 
 UC.push({
-  id: "jkpush", no: 10, videos: [["ตอน A · เตรียมเครื่อง dev: SG, Ansible, docker-compose.yml, deploy.sh, .env", "videos/usecase10a-a.mp4"], ["ตอน B · เตรียม Jenkins: ปลั๊กอิน, DEV_HOST, Jenkinsfile, credential dev-ssh", "videos/usecase10b-a.mp4"], ["ภาพรวม · git push develop แล้ว Jenkins รันเอง", "videos/usecase10-b.mp4"]], title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
+  id: "jkpush", no: 10, videos: [["ตอน A · เตรียมเครื่อง dev: SG, Ansible, docker-compose.yml, deploy.sh, .env", "videos/usecase10a-a.mp4"], ["ตอน B · เตรียม Jenkins: ปลั๊กอิน, DEV_HOST, Jenkinsfile, credential dev-ssh", "videos/usecase10b-a.mp4"], ["ตอน C · ตั้ง webhook: SG 8080, trigger, GitHub webhook, push develop", "videos/usecase10c-a.mp4"], ["ภาพรวม · git push develop แล้ว Jenkins รันเอง", "videos/usecase10-b.mp4"]], title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
   tag: "✅ วิธีที่ทีมจริงปล่อย dev ทุกวัน: push เข้า develop → webhook → Jenkins build/ตรวจ/ปล่อยเอง · dev ใช้ docker compose (ไม่ต้องมี ArgoCD) · prd ยังกดเองด้วย tag vN.N.N",
   intro: [
     ["ตัวอย่างงาน", "#2b6cb0", "นักพัฒนา merge โค้ดเข้า branch **develop** แล้วอยากเห็นผลบนเว็บ dev ภายในไม่กี่นาที **โดยไม่มีใครเปิด Jenkins ไปกด Build**"],
