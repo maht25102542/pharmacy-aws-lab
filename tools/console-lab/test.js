@@ -319,7 +319,7 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert(L.jkCreateAdmin({ user: "admin", pass: "a", pass2: "b", full: "A", email: "a@b.c" }).errors.pass2, "รหัสไม่ตรง"); assert(L.jkCreateAdmin({ user: "admin", pass: "pw1", pass2: "pw1", full: "Admin", email: "a@b.c" }).res, "สร้าง admin"); L.jkSetUrl(); L.jkStart(); L.jkSignOut(); assert(!L.jkSignIn("admin", "x") && L.jkSignIn("admin", "pw1"), "sign in");
   // SonarQube
   assert(L.sqLogin("admin", "admin").mustChange && L.sqChangePw("admin", "short", "short").errors.nw && L.sqChangePw("admin", "LongEnoughPw123", "LongEnoughPw123").res, "sonar เปลี่ยนรหัส"); const tok = L.sqGenToken({ name: "jenkins" }).res;
-  L.jkAddCred({ id: "sonar-token", kind: "secret", secret: tok }); L.jkAddCred({ id: "github-token", kind: "userpass", user: "me", pass: "ghp_x" }); L.jkAddCred({ id: "dev-ssh", kind: "userpass", user: "ubuntu", pass: "key" });
+  L.jkAddCred({ id: "sonar-token", kind: "secret", secret: tok }); L.jkAddCred({ id: "github-token", kind: "userpass", user: "me", pass: "ghp_x" }); L.jkAddCred({ id: "dev-ssh", kind: "ssh", user: "ubuntu", secret: "key" });
   const k1i = L.S.insts.find(i => i.name === "pharmacy-k8s-1"), kIp1 = k1i.privateIp, JJ = "ssh -J ubuntu@" + L.S.insts.find(i => i.name === "pharmacy-bastion").publicIp + " -i ~/.ssh/id_ed25519 ubuntu@"; L.jkAddCred({ id: "argocd-admin", kind: "userpass", user: "admin", pass: L.argoPwdOf(k1i) });
   // job: repo ยังไม่ push ใต้ user อื่น → fail
   const badJob = L.jkCreateJob({ name: "pharmacy-backend", repo: "https://github.com/YOUR_GITHUB_USER/pharmacy-backend.git", cred: "github-token", branch: "*/main", script: "Jenkinsfile" }); assert(badJob.res, "สร้าง job");

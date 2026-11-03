@@ -71,8 +71,8 @@ function jkSignIn(u, pw) { var x = S.jk.users.filter(function (y) { return y.nam
 function jkSignOut() { S.jk.login = ""; }
 function jkAddCred(o) {
   var er = {}; if (!o.id) er.id = "ต้องกรอก ID"; else if (S.jk.creds.some(function (c) { return c.id === o.id; })) er.id = "มี credential ID นี้แล้ว";
-  if (o.kind === "secret" ? !o.secret : !(o.user && o.pass)) er.secret = o.kind === "secret" ? "ต้องกรอก Secret" : "ต้องกรอก Username และ Password";
-  if (Object.keys(er).length) return { errors: er }; S.jk.creds.push({ id: o.id, kind: o.kind, user: o.user || "", scope: o.scope || "Global", desc: o.desc || "", h: hash32(o.kind === "secret" ? o.secret : o.pass) }); return { res: o.id };
+  if (o.kind === "secret" ? !o.secret : o.kind === "ssh" ? !(o.user && o.secret) : !(o.user && o.pass)) er.secret = o.kind === "secret" ? "ต้องกรอก Secret" : o.kind === "ssh" ? "ต้องกรอก Username และ Private Key" : "ต้องกรอก Username และ Password";
+  if (Object.keys(er).length) return { errors: er }; S.jk.creds.push({ id: o.id, kind: o.kind, user: o.user || "", scope: o.scope || "Global", desc: o.desc || "", h: hash32(o.kind === "secret" || o.kind === "ssh" ? o.secret : o.pass) }); return { res: o.id };
 }
 function jkCred(id) { return S.jk.creds.filter(function (c) { return c.id === id; })[0]; }
 // หนึ่ง repo = หนึ่ง job: pharmacy-backend / pharmacy-frontend (S.jk.job = job ที่เปิดอยู่ตอนนี้ ใช้เป็นตัวชี้ที่ UI และ jkNew อ่าน)
