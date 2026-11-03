@@ -117,6 +117,13 @@ function remoteRun(i, line) {
       ["backend", "frontend"].forEach(function (sv) { var st = argoStatus("pharmacy-" + sv + "-prd"); if (!st || !st.live || argoPlaceholder(st.live)) return; var hs = hash32(st.live).slice(0, 9); for (var k = 0; k < 3; k++) rowsP.push([sv + "-" + hs + "-" + hash32(sv + k).slice(0, 5), st.health === "Healthy" ? "1/1" : "0/1", st.health === "Healthy" ? "Running" : st.health === "Progressing" ? "ContainerCreating" : "ImagePullBackOff", "0", "2m"]); });
       return { lines: rowsP.length ? rmTable(["NAME", "READY", "STATUS", "RESTARTS", "AGE"], rowsP) : ["No resources found in prd namespace."] };
     }
+    if (sub === "get svc" || sub === "get service" || sub === "get services") {
+      if (r !== "k8s_server") return { lines: ["The connection to the server localhost:8080 was refused"] };
+      var nsS = a.indexOf("-n") >= 0 ? a[a.indexOf("-n") + 1] : "default";
+      if (nsS === "argocd") return { lines: rmTable(["NAME", "TYPE", "CLUSTER-IP", "EXTERNAL-IP", "PORT(S)", "AGE"], [["argocd-repo-server", "ClusterIP", "10.43.121.8", "<none>", "8081/TCP,8084/TCP", "10m"], ["argocd-redis", "ClusterIP", "10.43.77.201", "<none>", "6379/TCP", "10m"], ["argocd-server", "NodePort", "10.43.190.14", "<none>", "443:30443/TCP", "10m"]]) };
+      if (nsS === "prd") return { lines: rmTable(["NAME", "TYPE", "CLUSTER-IP", "EXTERNAL-IP", "PORT(S)", "AGE"], [["backend", "ClusterIP", "10.43.55.19", "<none>", "8000/TCP", "5m"], ["frontend", "NodePort", "10.43.8.230", "<none>", "3000:30080/TCP", "5m"]]) };
+      return { lines: ["No resources found in " + nsS + " namespace."] };
+    }
     if (a[0] === "rollout" && a[1] === "status") {
       if (r !== "k8s_server") return { lines: ["The connection to the server localhost:8080 was refused"] };
       var dn = String(a[2] || "").replace(/^deployment[\/.]/, ""), st2 = argoStatus("pharmacy-" + dn + "-prd");
