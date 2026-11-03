@@ -116,7 +116,7 @@ resource "aws_instance" "dev" {
   subnet_id              = aws_subnet.private[0].id
   key_name               = aws_key_pair.admin.key_name
   vpc_security_group_ids = [aws_security_group.base.id, aws_security_group.dev.id] # base: SSH จาก bastion · dev: ALB เข้า :3000, Jenkins SSH, ต่อ DB ได้
-  iam_instance_profile   = aws_iam_instance_profile.k8s.name                      # ดึง ECR ได้ (docker login ตอน deploy)
+  iam_instance_profile   = aws_iam_instance_profile.k8s.name                       # ดึง ECR ได้ (docker login ตอน deploy)
 
   root_block_device {
     volume_size = 30
