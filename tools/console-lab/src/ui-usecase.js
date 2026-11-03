@@ -607,10 +607,11 @@ function ucVideo(src) {
   // เซิร์ฟเวอร์ artifact ไม่รองรับ HTTP Range → ข้าม/ย้อนเวลาไม่ได้ ถ้าสตรีมตรงๆ จึงโหลดทั้งไฟล์เป็น blob ก่อน (~4 MB)
   var v = h("video", { controls: true, volume: 1, preload: "auto", style: "display:block;width:100%" });
   var note = h("div", { cls: "hint", style: "margin:6px 0", text: "กำลังโหลดวิดีโอ…" });
-  // ลองไฟล์ตามลำดับ: webm (VP9+Opus) → mp4 (H.264+Opus) → mp4 (H.264+AAC); ข้ามไปตัวถัดไปเมื่อเล่นไม่ได้ หรือ browser ถอดรหัสเสียงไม่ได้ (VS Code/Electron มักไม่มี AAC)
+  // ลองไฟล์ตามลำดับ: mp4 (H.264+Opus) → webm (VP9+Opus) → mp4 (H.264+AAC); ข้ามไปตัวถัดไปเมื่อเล่นไม่ได้ หรือ browser ถอดรหัสเสียงไม่ได้ (VS Code/Electron มักไม่มี AAC)
   var cands = [];
-  if (v.canPlayType('video/webm; codecs="vp9, opus"')) cands.push([src.replace(/\.mp4$/, ".webm"), "video/webm", "webm VP9+Opus"]);
+  // artifact เก็บเฉพาะ -opus.mp4 (ฟอร์แมตเดียว ประหยัดพื้นที่) · webm / AAC เป็นตัวสำรองถ้ามีไฟล์
   if (v.canPlayType('video/mp4; codecs="avc1.64001f, opus"')) cands.push([src.replace(/\.mp4$/, "-opus.mp4"), "video/mp4", "mp4 H.264+Opus"]);
+  if (v.canPlayType('video/webm; codecs="vp9, opus"')) cands.push([src.replace(/\.mp4$/, ".webm"), "video/webm", "webm VP9+Opus"]);
   cands.push([src, "video/mp4", "mp4 H.264+AAC"]);
   var ci = -1, usedLabel = "", resumeAt = 0, wasPlaying = false;
   function loadNext(why) {
