@@ -63,7 +63,7 @@ function remoteRun(i, line) {
   var sudo = false; if (a[0] === "sudo") { sudo = true; a.shift(); } var c = a.shift() || "", r = rmRole(i);
   if (c === "exit" || c === "logout") { var viaS = S.laptop.via === "ssm"; S.laptop.remote = null; S.laptop.rcwd = "~"; S.laptop.via = ""; return { lines: viaS ? ["", "Exiting session with sessionId: " + (S.laptop.sid || "session") + "."] : ["logout", "Connection to " + (i.publicIp || i.privateIp) + " closed."] }; }
   if (c === "clear") return { lines: [], clear: true };
-  if (c === "help") return { lines: ["คำสั่งใน VM (จำลอง): whoami hostname pwd cd ls [-a] cat systemctl status <svc> docker ps / docker compose ps (ใน /opt/pharmacy) curl -s localhost:<port> k3s kubectl get nodes|ns|pods mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" exit"] };
+  if (c === "help") return { lines: ["คำสั่งใน VM (จำลอง): whoami hostname pwd cd ls [-a] cat systemctl status <svc> docker ps / docker compose ps (ใน /opt/pharmacy) curl -s localhost:<port> k3s kubectl get nodes|ns|pods -n prd|rollout status mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" exit"] };
   if (c === "whoami") return { lines: [sudo ? "root" : "ubuntu"] };
   if (c === "hostname") return { lines: [rmHost(i)] };
   if (c === "pwd") return { lines: [rmPath("")] };
@@ -108,7 +108,22 @@ function remoteRun(i, line) {
     var sub = a.slice(0, 2).join(" ");
     if (sub === "get nodes") { var nodes = r === "k8s_server" ? S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_server" && rmServices(x).k3s; }) : [i]; return { lines: rmTable(["NAME", "STATUS", "ROLES", "AGE", "VERSION"], nodes.map(function (n) { return [rmHost(n), "Ready", "control-plane,etcd,master", "4m", "v1.31.4+k3s1"]; })) }; }
     if (sub === "get ns" || sub === "get namespaces") return { lines: rmTable(["NAME", "STATUS", "AGE"], ["default", "kube-system", "kube-public", "kube-node-lease"].concat(["prd", "argocd"]).map(function (n) { return [n, "Active", "4m"]; })) };
-    return { lines: ["k3s kubectl: จำลองเฉพาะ get nodes / get ns"] };
+    if (sub === "get pods" || sub === "get pod") {
+      if (r !== "k8s_server") return { lines: ["The connection to the server localhost:8080 was refused"] };
+      var nsA = a.indexOf("-n") >= 0 ? a[a.indexOf("-n") + 1] : a.indexOf("--namespace") >= 0 ? a[a.indexOf("--namespace") + 1] : "default";
+      if (nsA === "argocd") return { lines: rmTable(["NAME", "READY", "STATUS", "RESTARTS", "AGE"], ["application-controller-0", "applicationset-controller", "redis", "repo-server", "server"].map(function (n) { return ["argocd-" + n + (n === "application-controller-0" ? "" : "-7d9c8f6b5-x2k4p"), "1/1", "Running", "0", "10m"]; })) };
+      if (nsA !== "prd") return { lines: ["No resources found in " + nsA + " namespace."] };
+      var rowsP = [];
+      ["backend", "frontend"].forEach(function (sv) { var st = argoStatus("pharmacy-" + sv + "-prd"); if (!st || !st.live || argoPlaceholder(st.live)) return; var hs = hash32(st.live).slice(0, 9); for (var k = 0; k < 3; k++) rowsP.push([sv + "-" + hs + "-" + hash32(sv + k).slice(0, 5), st.health === "Healthy" ? "1/1" : "0/1", st.health === "Healthy" ? "Running" : st.health === "Progressing" ? "ContainerCreating" : "ImagePullBackOff", "0", "2m"]); });
+      return { lines: rowsP.length ? rmTable(["NAME", "READY", "STATUS", "RESTARTS", "AGE"], rowsP) : ["No resources found in prd namespace."] };
+    }
+    if (a[0] === "rollout" && a[1] === "status") {
+      if (r !== "k8s_server") return { lines: ["The connection to the server localhost:8080 was refused"] };
+      var dn = String(a[2] || "").replace(/^deployment[\/.]/, ""), st2 = argoStatus("pharmacy-" + dn + "-prd");
+      if (!st2 || !st2.live || argoPlaceholder(st2.live)) return { lines: ["Error from server (NotFound): deployments.apps \"" + dn + "\" not found"] };
+      return { lines: st2.health === "Healthy" ? ["deployment \"" + dn + "\" successfully rolled out"] : ["Waiting for deployment \"" + dn + "\" rollout to finish: 0 of 3 updated replicas are available..."] };
+    }
+    return { lines: ["k3s kubectl: จำลองเฉพาะ get nodes / get ns / get pods -n prd / rollout status deployment/<name> -n prd / get applications -n argocd"] };
   }
   if (c === "mysql" || c === "mariadb") {
     if (r !== "db" || !rmServices(i).mariadb) return { lines: ["Command 'mysql' not found"] };

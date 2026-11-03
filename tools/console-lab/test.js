@@ -515,6 +515,14 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
   assert(/Permission denied/.test(S3("cat /opt/pharmacy/.env")) && /DB_NAME=pharmacy_dev/.test(S3("sudo cat /opt/pharmacy/.env")) && /BACKEND_TAG=v1\.0\.0/.test(S3("sudo cat /opt/pharmacy/.env")), ".env ต้อง sudo และมี tag ที่ deploy");
   assert(/pharmacy-backend-1/.test(S3("sudo docker ps")) && /no configuration file/.test(S3("sudo docker compose ps")), "docker ps / compose นอกโฟลเดอร์");
   S3("cd /opt/pharmacy"); const cp = S3("sudo docker compose ps"); assert(/pharmacy-frontend-1/.test(cp) && /\(healthy\)/.test(cp) && /3000->3000/.test(cp), "compose ps: " + cp); assert(/Exited \(0\)/.test(S3("sudo docker compose ps -a")), "migrate exited"); }
+// ---- kubectl บน k8s-1 (prd): get pods -n prd / rollout status
+{ const r = L.buildReady("demo"); L.readyPushCmds().forEach(c => L.shRun(c)); L.readyBuild("dev");
+  const k1 = L.S.insts.find(i => i.name === "pharmacy-k8s-1"), S4 = (c, a) => { let x = L.shRun(c), o = x.lines.slice(); a = (a || []).slice(); while (x.ask) { o.push(x.ask.label); x = x.ask.done(a.shift()); o = o.concat(x.lines); } return o.join("\n"); };
+  S4("ssh -J ubuntu@" + r.bastion + " -i ~/.ssh/id_ed25519 ubuntu@" + k1.privateIp, ["yes"]);
+  assert(/No resources found in prd/.test(S4("k3s kubectl get pods -n prd")) && /not found/.test(S4("k3s kubectl rollout status deployment/backend -n prd")), "ก่อนปล่อย prd ยังไม่มี pod");
+  S4("exit"); L.readyBuild("prd"); S4("ssh -J ubuntu@" + r.bastion + " -i ~/.ssh/id_ed25519 ubuntu@" + k1.privateIp, ["yes"]);
+  const pods = S4("k3s kubectl get pods -n prd"); assert((pods.match(/Running/g) || []).length === 6 && /backend-/.test(pods) && /frontend-/.test(pods), "prd 3+3 pod: " + pods);
+  assert(/successfully rolled out/.test(S4("k3s kubectl rollout status deployment/backend -n prd")) && /argocd-server/.test(S4("k3s kubectl get pods -n argocd")), "rollout status + argocd pods"); }
 // ---- use case 10: 3 เคส webhook ไม่ทำให้ build (ต้องไม่มี build ใหม่ และ delivery บอกสาเหตุ)
 for (const [k, rx, code] of [["sg", /timed out/i, 0], ["trigger", /ไม่มี triggers/, 200], ["branch", /ไม่ build: job ดู branch main/, 200]]) {
   L.jkpushLoad(k); const job = L.jkJob("pharmacy-backend"), d = L.S.gh.repos["pharmacy-backend"].hooks[0].deliveries.slice(-1)[0];
