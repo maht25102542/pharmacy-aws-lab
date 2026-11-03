@@ -504,7 +504,7 @@ UC.push({
 });
 
 UC.push({
-  id: "prdgitops", no: 11, videos: [["ตอน D · เตรียม prd: ดู EC2 k3s ×3 บน AWS console, Ansible k3s HA + ArgoCD, apps.yaml, deployment.yaml", "videos/usecase11d-c.mp4"], ["ตอน E · ปล่อย prd ด้วย tag v1.1.0, Sync ใน ArgoCD, ย้อนด้วย deploy-only", "videos/usecase11e-b.mp4"]], title: "ปล่อย prd แบบ GitOps: tag + ArgoCD (k3s 3 เครื่อง)", color: "#326ce5", dir: "repo-manifests · repo-backend · repo-frontend · ansible/k8s.yml", loadKind: "jk",
+  id: "prdgitops", no: 11, videos: [["ตอน D · เตรียม prd: สร้าง EC2 k3s บน AWS console, Ansible k3s HA + ArgoCD, apps.yaml, deployment.yaml", "videos/usecase11d-d.mp4"], ["ตอน E · ปล่อย prd ด้วย tag v1.1.0, Sync ใน ArgoCD, ย้อนด้วย deploy-only", "videos/usecase11e-b.mp4"]], title: "ปล่อย prd แบบ GitOps: tag + ArgoCD (k3s 3 เครื่อง)", color: "#326ce5", dir: "repo-manifests · repo-backend · repo-frontend · ansible/k8s.yml", loadKind: "jk",
   tag: "✅ prd ปล่อยแบบ pull-based: Jenkins แค่แก้ image: ใน Git (ต้องกด ยืนยัน) แล้ว ArgoCD เป็นฝ่ายดึงไป deploy · ต่างจาก dev ที่ Jenkins ส่งเองด้วย docker compose",
   intro: [
     ["ตัวอย่างงาน", "#326ce5", "ทีมร้านยาจะปล่อยเวอร์ชัน **v1.1.0** ขึ้น **prd** ที่รัน k3s 3 เครื่อง: ติด tag → Jenkins ตรวจ/build → **คนกดยืนยัน** → แก้ manifest → **ArgoCD Sync** → pod 3 ตัวทยอยเปลี่ยน"],
