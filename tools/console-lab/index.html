@@ -6299,6 +6299,7 @@ function rmRunning(i, name) { return name === "mariadb" ? !!ansVm(i).f.cluster :
 function rmDocker(i) {
   var r = rmRole(i);
   if (r === "jenkins" && rmHas(i, "Build and start Jenkins")) return [["a1b2c3d4e5f6", "jenkins-jenkins", '"/usr/bin/tini -- /usr/local/bin/jenkins.sh"', "0.0.0.0:8080->8080/tcp, 50000/tcp", "jenkins"]];
+  if (r === "dev" && rmHas(i, "Copy docker-compose.yml")) { var dcs = devcState(), reg = ansVars().ecr_registry || "", o = []; if (dcs.backend) o.push(["d4e5f6a1b2c3", reg + "/pharmacy/backend:" + dcs.backend.tag, '"gunicorn config.wsgi"', "8000/tcp", "pharmacy-backend-1"]); if (dcs.frontend) o.push(["e5f6a1b2c3d4", reg + "/pharmacy/frontend:" + dcs.frontend.tag, '"node server.js"', "0.0.0.0:3000->3000/tcp", "pharmacy-frontend-1"]); return o; }
   if (r === "sonarqube" && rmHas(i, "Start SonarQube")) return [["b2c3d4e5f6a1", "sonarqube:community", '"/opt/sonarqube/docker/entrypoint.sh"', "0.0.0.0:9000->9000/tcp", "sonarqube"], ["c3d4e5f6a1b2", "postgres:16", '"docker-entrypoint.sh postgres"', "5432/tcp", "sonarqube-db"]];
   return [];
 }
@@ -6309,16 +6310,24 @@ function rmCat(i, p, sudo) {
   if (p === "/opt/jenkins/.env" && r === "jenkins" && rmHas(i, "Write /opt/jenkins/.env (ค่าที่ pipeline อ่านเป็นตัวแปรสภาพแวดล้อม)")) return sudo ? (ansVm(i).f.env || rmEnv()).split("\n").slice(0, -1) : ["cat: /opt/jenkins/.env: Permission denied  (ไฟล์ mode 0600 เจ้าของ root ลอง sudo cat)"];
   if (p === "/opt/jenkins/docker-compose.yml" && r === "jenkins" && rmHas(i, "Copy Jenkins files to /opt/jenkins")) return LABFILES["vm-jenkins/docker-compose.yml"].split("\n");
   if (p === "/opt/sonarqube/docker-compose.yml" && r === "sonarqube" && rmHas(i, "Copy SonarQube files to /opt/sonarqube")) return LABFILES["vm-sonarqube/docker-compose.yml"].split("\n");
+  if (r === "dev" && p === "/opt/pharmacy/docker-compose.yml" && rmHas(i, "Copy docker-compose.yml")) return LABFILES["vm-dev/docker-compose.yml"].split("\n");
+  if (r === "dev" && p === "/opt/pharmacy/deploy.sh" && rmHas(i, "Copy deploy.sh (Jenkins ssh มาเรียกตอน deploy dev)")) return LABFILES["vm-dev/deploy.sh"].split("\n");
+  if (r === "dev" && p === "/opt/pharmacy/.env" && rmHas(i, "Render /opt/pharmacy/.env (รหัสผ่านและ IP ของ DB)")) {
+    if (!sudo) return ["cat: /opt/pharmacy/.env: Permission denied  (ไฟล์สิทธิ์ 0600 ของ root ลอง sudo cat)"];
+    var v2 = ansVars(), dcs2 = devcState(), gl = S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === "db"; })[0];
+    return LABFILES["vm-dev/.env.j2"].split("\n").filter(function (l) { return l.indexOf("#") !== 0; }).map(function (l) { return l.replace("{{ ecr_registry }}", v2.ecr_registry || "").replace("{{ galera_ips[0] }}", gl ? gl.privateIp : "").replace("{{ db_app_user }}", v2.db_app_user || "").replace("{{ db_app_password }}", v2.db_app_password || "").replace("{{ django_secret_key }}", v2.django_secret_key || "").replace("{{ django_admin_password }}", v2.django_admin_password || "").replace(/^BACKEND_TAG=.*/, "BACKEND_TAG=" + (dcs2.backend ? dcs2.backend.tag : "none")).replace(/^FRONTEND_TAG=.*/, "FRONTEND_TAG=" + (dcs2.frontend ? dcs2.frontend.tag : "none")); });
+  }
   if (p === "/etc/default/ecr-refresh" && r === "k8s_server" && rmHas(i, "Write /etc/default/ecr-refresh")) return ["ECR_REGISTRY=" + (ansVars().ecr_registry || ""), "NAMESPACES=prd", "AWS_DEFAULT_REGION=" + (ansVars().aws_region || "")];
   return ["cat: " + p + ": No such file or directory"];
 }
 function rmLs(i, p, all) {
   var r = rmRole(i), f = null;
   if (p === "/home/ubuntu") f = all ? [".bash_logout", ".bashrc", ".profile", ".ssh"] : [];
-  else if (p === "/opt") f = r === "jenkins" && rmHas(i, "Copy Jenkins files to /opt/jenkins") ? ["jenkins"] : r === "sonarqube" && rmHas(i, "Copy SonarQube files to /opt/sonarqube") ? ["sonarqube"] : [];
+  else if (p === "/opt/pharmacy" && r === "dev" && rmHas(i, "Copy docker-compose.yml")) f = ["docker-compose.yml"].concat(rmHas(i, "Copy deploy.sh (Jenkins ssh มาเรียกตอน deploy dev)") ? ["deploy.sh"] : [], rmHas(i, "Render /opt/pharmacy/.env (รหัสผ่านและ IP ของ DB)") ? [".env"] : []);
+  else if (p === "/opt") f = r === "dev" && rmHas(i, "Copy docker-compose.yml") ? ["pharmacy"] : r === "jenkins" && rmHas(i, "Copy Jenkins files to /opt/jenkins") ? ["jenkins"] : r === "sonarqube" && rmHas(i, "Copy SonarQube files to /opt/sonarqube") ? ["sonarqube"] : [];
   else if (p === "/opt/jenkins" && r === "jenkins" && rmHas(i, "Copy Jenkins files to /opt/jenkins")) f = ["Dockerfile", "WHERE.md", "docker-compose.yml", "plugins.txt"].concat(rmHas(i, "Write /opt/jenkins/.env (ค่าที่ pipeline อ่านเป็นตัวแปรสภาพแวดล้อม)") ? [".env"] : []);
   else if (p === "/opt/sonarqube" && r === "sonarqube" && rmHas(i, "Copy SonarQube files to /opt/sonarqube")) f = ["WHERE.md", "docker-compose.yml"].concat(rmHas(i, "Write /opt/sonarqube/.env") ? [".env"] : []);
-  else if (p === "/usr/local/bin" && /^k8s_(server|dev)$/.test(r)) f = ["ecr-refresh.sh"].concat(rmHas(i, "Install k3s server") ? ["k3s"] : []);
+  else if (p === "/usr/local/bin" && r === "k8s_server") f = ["ecr-refresh.sh"].concat(rmHas(i, "Install k3s server") ? ["k3s"] : []);
   if (f === null) return ["ls: cannot access '" + p + "': No such file or directory"];
   f = f.filter(function (x) { return all || x[0] !== "."; }).sort(); return f.length ? [f.join("  ")] : [];
 }
@@ -6328,7 +6337,7 @@ function remoteRun(i, line) {
   var sudo = false; if (a[0] === "sudo") { sudo = true; a.shift(); } var c = a.shift() || "", r = rmRole(i);
   if (c === "exit" || c === "logout") { var viaS = S.laptop.via === "ssm"; S.laptop.remote = null; S.laptop.rcwd = "~"; S.laptop.via = ""; return { lines: viaS ? ["", "Exiting session with sessionId: " + (S.laptop.sid || "session") + "."] : ["logout", "Connection to " + (i.publicIp || i.privateIp) + " closed."] }; }
   if (c === "clear") return { lines: [], clear: true };
-  if (c === "help") return { lines: ["คำสั่งใน VM (จำลอง): whoami hostname pwd cd ls [-a] cat systemctl status <svc> docker ps curl -s localhost:<port> k3s kubectl get nodes|ns|pods mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" exit"] };
+  if (c === "help") return { lines: ["คำสั่งใน VM (จำลอง): whoami hostname pwd cd ls [-a] cat systemctl status <svc> docker ps / docker compose ps (ใน /opt/pharmacy) curl -s localhost:<port> k3s kubectl get nodes|ns|pods mysql -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" exit"] };
   if (c === "whoami") return { lines: [sudo ? "root" : "ubuntu"] };
   if (c === "hostname") return { lines: [rmHost(i)] };
   if (c === "pwd") return { lines: [rmPath("")] };
@@ -6346,7 +6355,16 @@ function remoteRun(i, line) {
   if (c === "docker") {
     if (a[0] === "exec") { if (!sudo) return { lines: ["permission denied while trying to connect to the Docker daemon socket  (ลอง sudo)"] }; if (a[1] === "jenkins" && rmDocker(i).length && /initialAdminPassword/.test(a.join(" "))) return { lines: [jkPwdOf(i)] }; return { lines: ["docker exec: จำลองเฉพาะ sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword"] }; }
     if (!sudo && /^(ps|images)$/.test(a[0] || "")) { if (!rmServices(i).docker) return { lines: ["Command 'docker' not found, but can be installed with: sudo snap install docker"] }; return { lines: ["permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock  (user ubuntu ไม่ได้อยู่ในกลุ่ม docker ลอง sudo docker ps)"] }; }
-    if (a[0] !== "ps") return { lines: ["docker: จำลองเฉพาะ docker ps"] };
+    if (a[0] === "compose") {
+      if (!rmServices(i).docker) return { lines: ["Command 'docker' not found, but can be installed with: sudo snap install docker"] };
+      if (!sudo) return { lines: ["permission denied while trying to connect to the Docker daemon socket  (ลอง sudo docker compose ps)"] };
+      if (r !== "dev" || rmPath("") !== "/opt/pharmacy") return { lines: ["no configuration file provided: not found  (ต้องอยู่ในโฟลเดอร์ที่มี docker-compose.yml: cd /opt/pharmacy)"] };
+      if (a[1] !== "ps") return { lines: ["docker compose: จำลองเฉพาะ docker compose ps [-a]"] };
+      var cr = rmDocker(i), all2 = a.indexOf("-a") >= 0, rows = cr.map(function (x) { return [x[4], x[1], x[2], x[4].replace(/^pharmacy-|-1$/g, ""), "3 minutes ago", "Up 3 minutes" + (/backend/.test(x[4]) ? " (healthy)" : ""), x[3]]; });
+      if (all2 && devcState().backend) rows.unshift(["pharmacy-migrate-1", cr[0][1], '"sh -c \'python manage.py…"', "migrate", "3 minutes ago", "Exited (0) 3 minutes ago", ""]);
+      return { lines: rmTable(["NAME", "IMAGE", "COMMAND", "SERVICE", "CREATED", "STATUS", "PORTS"], rows) };
+    }
+    if (a[0] !== "ps") return { lines: ["docker: จำลองเฉพาะ docker ps / docker compose ps"] };
     if (!rmServices(i).docker) return { lines: ["Command 'docker' not found, but can be installed with: sudo snap install docker"] };
     return { lines: rmTable(["CONTAINER ID", "IMAGE", "COMMAND", "STATUS", "PORTS", "NAMES"], rmDocker(i).map(function (x) { return [x[0], x[1], x[2], "Up 3 minutes", x[3], x[4]]; })) };
   }
@@ -6363,7 +6381,7 @@ function remoteRun(i, line) {
     if (/^get (applications?|app)$/.test(a.slice(0, 2).join(" "))) { var names = Object.keys(S.argo.apps); return { lines: names.length ? rmTable(["NAME", "SYNC STATUS", "HEALTH STATUS"], names.map(function (n) { var st = argoStatus(n); return [n, st.sync, st.health]; })) : ["No resources found in argocd namespace."] }; }
     var sub = a.slice(0, 2).join(" ");
     if (sub === "get nodes") { var nodes = r === "k8s_server" ? S.insts.filter(function (x) { return x.state === "running" && ansTag(x, "Role") === "k8s_server" && rmServices(x).k3s; }) : [i]; return { lines: rmTable(["NAME", "STATUS", "ROLES", "AGE", "VERSION"], nodes.map(function (n) { return [rmHost(n), "Ready", "control-plane,etcd,master", "4m", "v1.31.4+k3s1"]; })) }; }
-    if (sub === "get ns" || sub === "get namespaces") return { lines: rmTable(["NAME", "STATUS", "AGE"], ["default", "kube-system", "kube-public", "kube-node-lease"].concat(r === "k8s_dev" ? ["dev"] : ["prd", "argocd"]).map(function (n) { return [n, "Active", "4m"]; })) };
+    if (sub === "get ns" || sub === "get namespaces") return { lines: rmTable(["NAME", "STATUS", "AGE"], ["default", "kube-system", "kube-public", "kube-node-lease"].concat(["prd", "argocd"]).map(function (n) { return [n, "Active", "4m"]; })) };
     return { lines: ["k3s kubectl: จำลองเฉพาะ get nodes / get ns"] };
   }
   if (c === "mysql" || c === "mariadb") {
