@@ -545,7 +545,48 @@ UC.push({
   loadBtns: [["โหลดตัวอย่าง: ระบบพร้อม (dev ปล่อยแล้ว) ไปลองปล่อย prd เอง", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 11 แล้ว: สร้าง tag v1.1.0 → Jenkins TARGET_ENV=prd → Sync ใน ArgoCD"); go("browser", {}, "Browser"); }]]
 });
 
-var UC_SVCS = { jk: ["github", "ecr", "iam"], jkpush: ["github", "ecr", "ec2"], prdgitops: ["github", "ecr", "ec2"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
+UC.push({
+  id: "jenkinsfile", no: 12, videos: [["ตอน 1 · เขียน Jenkinsfile: ① hello ② หลาย stage ③ environment + parameters (พิมพ์ในหน้า Configure แล้วกด Build)", "videos/usecase12a-a.mp4"], ["ตอน 2 · when, post, parallel, error (ล้มตั้งใจ) แล้วแก้ให้ผ่าน", "videos/usecase12b-a.mp4"]], title: "เขียน Jenkinsfile ตั้งแต่ศูนย์ (Pipeline script)", color: "#a85a00", dir: "Jenkins › New Item › Pipeline script", loadKind: "jk",
+  tag: "✅ ฝึกเขียน pipeline ทีละขั้น: hello → หลาย stage → parameters/environment → when/post → parallel/error · พิมพ์ในหน้า Configure แล้วกด Build ดู log ได้ทันที",
+  intro: [
+    ["ตัวอย่างงาน", "#a85a00", "ทีมอยากให้ build → test → deploy รันเองเมื่อกดปุ่ม: ต้องเขียน **Jenkinsfile** ก่อน · use case นี้ฝึกเขียนทีละขั้น พิมพ์ในช่อง Script ของ job แบบ **Pipeline script** แล้วกด Build ดูผลทันที"],
+    ["5 ขั้นที่ฝึก", "#2b6cb0", "① `pipeline { agent any … }` + `echo` ② หลาย `stage` (`sh 'pytest'`) ③ `environment` + `parameters` ④ `when` + `post` ⑤ `parallel` + `error` (ทำให้ล้มตั้งใจ)"],
+    ["ต่างจาก use case 9", "#c2185b", "use case 9 = **อ่าน log** ของ Jenkinsfile จริงของโปรเจกต์แล้วหาว่าล้มเพราะอะไร · อันนี้ = **เขียนเอง** ตั้งแต่บรรทัดแรก จึงเห็นว่าแต่ละบล็อกไปโผล่ตรงไหนของหน้า Jenkins"],
+    ["Pipeline script vs from SCM", "#8456ce", "**Pipeline script** พิมพ์ในหน้า Configure (เหมาะลองเขียน ไม่มีประวัติ) · **from SCM** อ่าน `Jenkinsfile` จาก Git (ใช้จริง แก้ผ่าน commit/PR) · เขียนเป็น Pipeline script ให้ผ่านก่อนแล้วย้ายไฟล์เข้า repo"],
+    ["ที่ต้องรู้", "#1d8102", "ตัวจำลองใช้ parser แบบง่าย (ไม่ใช่ Groovy จริง) · ของจริงมี sandbox/script approval และ error ของ Groovy ที่ตัวจำลองไม่ทำ · stage ที่ `when` ไม่ตรงจะ **skipped** (ไม่ใช่ล้ม) · stage ล้ม = stage หลังจากนั้น **not run**"]
+  ],
+  envs: [["", "Pipeline script (ในหน้า Configure)", "Pipeline script from SCM (Jenkinsfile ใน Git)"], ["สคริปต์อยู่ที่", "ช่อง Script ของ job", "ไฟล์ Jenkinsfile ใน repo"], ["เหมาะกับ", "ลองเขียน/เรียนรู้", "ใช้งานจริงทั้งทีม"], ["แก้ไขยังไง", "แก้แล้ว Save/Build ได้ทันที", "commit + push (มีประวัติ รีวิวได้)"], ["ความเสี่ยง", "ไม่มีประวัติ ไม่ผ่านรีวิว", "ต้องตั้ง credential/branch/trigger ให้ถูก"]],
+  nodes: [
+    { id: "dev", x: 24, y: 150, w: 120, h: 64, t: "ผู้เรียน", s: "พิมพ์สคริปต์", c: "#2a4a7a" },
+    { id: "job", x: 190, y: 130, w: 160, h: 100, t: "Jenkins job", s: "Pipeline script", c: "#c0392b" },
+    { id: "stg", x: 410, y: 40, w: 200, h: 64, t: "Stage View", s: "Build · Test · Deploy", c: "#8456ce" },
+    { id: "log", x: 410, y: 240, w: 200, h: 64, t: "Console Output", s: "[Pipeline] … Finished: SUCCESS", c: "#a85a00" }
+  ],
+  links: [["dev", "job"], ["job", "stg"], ["job", "log"]],
+  scenes: [
+    { t: "① hello: pipeline + echo", on: ["dev", "job", "log"], flow: [["dev", "pipeline { … }"], ["job", "Build"], ["log", "Hello Jenkins"]], rows: [["เขียน", "#a85a00", "`pipeline { agent any  stages { stage('Hello') { steps { echo 'Hello Jenkins' } } } }`"], ["ผลที่เห็น", "#2b6cb0", "Console: `[Pipeline] echo` + ข้อความ · Stage View มี 1 ช่อง"]] },
+    { t: "② หลาย stage: Build → Test → Deploy", on: ["job", "stg"], flow: [["job", "3 stage"], ["stg", "เรียงตามลำดับ"]], rows: [["เขียน", "#a85a00", "แต่ละ `stage('ชื่อ') { steps { sh '…' } }` รันตามลำดับ · `sh 'pytest'` รันคำสั่ง"], ["ผลที่เห็น", "#2b6cb0", "Stage View: 3 ช่องเขียว เรียงซ้ายไปขวา"]] },
+    { t: "③ environment + parameters", on: ["dev", "job"], flow: [["dev", "Build with Parameters"], ["job", "${params.TARGET_ENV}"]], rows: [["เขียน", "#a85a00", "`environment { APP = 'pharmacy-api' }` และ `parameters { choice(name: 'TARGET_ENV', choices: ['dev','prd']) }`"], ["ผลที่เห็น", "#2b6cb0", "ปุ่ม **Build with Parameters** โผล่ (build แรกของ job ใหม่ยังเป็น Build Now) · ใช้ `${params.TARGET_ENV}` ใน echo ได้"]] },
+    { t: "④ when + post", on: ["job", "stg", "log"], flow: [["job", "when ไม่ตรง"], ["stg", "skipped"], ["log", "post always"]], rows: [["เขียน", "#a85a00", "`when { expression { params.TARGET_ENV == 'prd' } }` ที่ stage Deploy · `post { always { echo … } failure { echo … } }`"], ["ผลที่เห็น", "#2b6cb0", "dev → Deploy ถูก **skipped** (`skipped due to when conditional`) · post รันท้ายสุดเสมอ"]] },
+    { t: "⑤ parallel + error (ล้มตั้งใจ)", on: ["job", "stg", "log"], bad: ["log"], flow: [["job", "parallel"], ["stg", "Lint ∥ Test"], ["log", "error → FAILURE"]], rows: [["เขียน", "#a85a00", "`parallel { stage('Lint') {…} stage('Unit tests') {…} }` และ `error 'Quality gate failed'`"], ["ผลที่เห็น", "#c62828", "stage ที่ error เป็นสีแดง · stage ถัดไป **not run** · `post { failure { … } }` ทำงาน"]] }
+  ],
+  tf: [
+    { type: "block", name: "stage('ชื่อ')", file: "Jenkinsfile", console: ["Jenkins › job › Stage View", "หนึ่ง stage = หนึ่งช่องในตาราง"], err: "ลืมใส่เครื่องหมายคำพูดรอบชื่อ = no stages found" },
+    { type: "block", name: "parameters { … }", file: "Jenkinsfile", console: ["Jenkins › job › Build with Parameters", "ช่องกรอก/เลือกค่าก่อนกด Build"], err: "build แรกของ job ใหม่ยังไม่รู้ parameters (ปุ่มเป็น Build Now)" },
+    { type: "block", name: "environment { … }", file: "Jenkinsfile", console: ["Jenkins › Console Output", "ใช้ในสคริปต์เป็น ${APP}"], err: "" },
+    { type: "block", name: "when { … }", file: "Jenkinsfile", console: ["Jenkins › Console Output", "Stage \"Deploy\" skipped due to when conditional"], err: "เงื่อนไขไม่ตรง = stage ถูกข้าม (ไม่ล้ม) จึงไม่มี error ให้ตามหา" },
+    { type: "block", name: "post { … }", file: "Jenkinsfile", console: ["Jenkins › Stage View / Console", "Declarative: Post Actions (รันท้ายเสมอ)"], err: "" }
+  ],
+  errors: [
+    { load: "jf-nostage", t: "build ล้ม: no stages found", sym: "Console ขึ้น `WorkflowScript: no stages found` · Finished: FAILURE ทันที", find: "ดูสคริปต์ใน job › Configure: stage(…) ต้องมีเครื่องหมายคำพูด `stage('Build')`", fix: "ใส่ quote รอบชื่อ stage แล้ว Save + Build ใหม่" },
+    { load: "jf-when", t: "Deploy ไม่ทำงาน (skipped) ทั้งที่ build เขียว", sym: "build SUCCESS แต่ stage Deploy ถูก skipped · ไม่มี error", find: "Console › `skipped due to when conditional` + เงื่อนไข `when` ในสคริปต์ + ค่า parameter ตอนกด Build", fix: "Build with Parameters เลือก TARGET_ENV = prd หรือแก้เงื่อนไขให้ตรงกับที่ตั้งใจ" },
+    { load: "jf-fail", t: "stage Test ล้ม · Deploy ไม่รัน", sym: "stage Test สีแดง · Deploy = not run · post failure ทำงาน", find: "Console › บรรทัด `+ exit 1` ใต้ stage Test (คำสั่ง sh ที่คืนค่าไม่ใช่ 0)", fix: "แก้คำสั่งใน stage Test ให้คืน 0 (เช่น sh 'echo ok') แล้ว Build ใหม่" }
+  ],
+  errGo: function (e) { jfLoad(e.load.replace(/^jf-/, "")); UI.sel = {}; flash("ok", "โหลดเคส “" + e.t + "” แล้ว เปิด Jenkins › hello-pipeline ดู Console Output"); go("browser", {}, "Browser"); var ji = S.insts.filter(function (i) { return i.name === "pharmacy-jenkins"; })[0]; W.addr = "http://" + (ji ? ji.publicIp : "") + ":8080/"; wbGo(W.addr); W.page = "build"; W.bid = jkBuildsOf(S.jk.job).slice(-1)[0].id; W.btab = "console"; render(); },
+  loadBtns: [["โหลดตัวอย่าง: Jenkins พร้อมใช้ (ยังไม่มี job) ไปลองเขียน Jenkinsfile เอง", function () { buildReady("demo"); UI.sel = {}; flash("ok", "โหลด use case 12 แล้ว: Browser › Jenkins › New Item › Pipeline › Pipeline script"); go("browser", {}, "Browser"); var ji = S.insts.filter(function (i) { return i.name === "pharmacy-jenkins"; })[0]; W.addr = "http://" + (ji ? ji.publicIp : "") + ":8080/"; wbGo(W.addr); }]]
+});
+
+var UC_SVCS = { jk: ["github", "ecr", "iam"], jkpush: ["github", "ecr", "ec2"], prdgitops: ["github", "ecr", "ec2"], jenkinsfile: ["github", "ec2"], static: ["s3", "cloudfront", "route53", "acm"], ecs: ["ecr", "ecs", "elb", "rds", "vpc", "iam", "cloudwatch"], sls: ["apigw", "lambda", "dynamodb", "cloudwatch", "iam"], cd: ["codepipeline", "codebuild", "ecr", "ecs", "s3", "iam"], gha: ["github", "iam", "ecr", "ecs"], single: ["ec2", "ebs", "vpc", "route53"], apr: ["apprunner", "ecr", "iam"], exp: ["ecs", "elb", "acm", "ecr", "iam", "autoscaling", "cloudwatch"] };
 var UC_SVC_LBL = { s3: "S3", cloudfront: "CloudFront", route53: "Route 53", acm: "ACM", ecr: "ECR", ecs: "ECS", elb: "ALB", rds: "RDS", vpc: "VPC", iam: "IAM", cloudwatch: "CloudWatch", apigw: "API Gateway", lambda: "Lambda", dynamodb: "DynamoDB", codepipeline: "CodePipeline", codebuild: "CodeBuild", github: "GitHub", ec2: "EC2", ebs: "EBS", apprunner: "App Runner", autoscaling: "Auto Scaling" };
 function ucSvcChips(u) { var ks = UC_SVCS[u.id]; if (!ks) return null; return h("div", { cls: "uc-svcs" }, ks.map(function (k) { var src = AWS_ICONS[k] || BRAND_ICONS[k]; return h("span", { title: UC_SVC_LBL[k] || k }, [src ? h("img", { src: src, width: "20", height: "20", alt: "" }) : null, UC_SVC_LBL[k] || k]); })); }
 function ucCur() { return UC.filter(function (u) { return u.id === UC_SEL.id; })[0] || UC[0]; }
@@ -593,7 +634,7 @@ function ucErrTable(u) {
   return w;
 }
 // หมู่ตามแกน "แอปรันที่ไหน" + แกน CI/CD แยก (CI/CD 4,5 ปล่อยลง ECS ของ use case 2)
-var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"], ["CI/CD ฝั่ง Jenkins", ["jk", "jkpush", "prdgitops"], "#c0392b"]];
+var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2e7d32"], ["CI/CD ฝั่ง Jenkins", ["jk", "jkpush", "prdgitops", "jenkinsfile"], "#c0392b"]];
 // player: ดับเบิลคลิก/แตะครึ่งขวา = ข้าม 5 วิ, ครึ่งซ้าย = ย้อน 5 วิ, คลิกเดียว = เล่น/หยุด + ปุ่มเปิด-ปิดเสียง
 var VI = {
   play: '<path d="M8 5v14l11-7z" fill="currentColor"/>', pause: '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>',

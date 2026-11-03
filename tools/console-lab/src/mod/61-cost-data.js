@@ -145,3 +145,4 @@ COSTD.uc.jkpush = COSTD.uc.jk; // use case 10 ใช้เครื่องช�
 // use case 11 (prd: k3s + ArgoCD) ใช้ตัวเลขของ main lab (VM) + ข้อความที่การ์ดต้องใช้
 COSTD.uc.prdgitops = Object.assign({ big: "ค่าคงที่ตามชั่วโมงที่เครื่องเปิด: k3s 3 เครื่อง + เครื่องอื่นของ lab + ALB + NAT คิดเงินแม้ไม่มีใครใช้", drivers: ["ชั่วโมงที่เครื่อง (10 เครื่อง) เปิดอยู่", "NAT gateway + ALB รายชั่วโมง", "ข้อมูลที่ผ่าน NAT"], cut: ["ใช้ขนาดประหยัด k8s_node_count = 1, db_count = 1", "terraform destroy ทุกครั้งที่เลิกเล่น"], watch: ["Budget + Anomaly Detection", "Cost Explorer: EC2-Instances / NAT Gateway / ALB"], stop: "`terraform destroy` (ลบ NAT/ALB/เครื่องทั้งหมด)" }, COSTD.mainlab.vm);
 COSTD.uc.mainvm = COSTD.uc.prdgitops;
+COSTD.uc.jenkinsfile = COSTD.uc.jk; // use case 12 ใช้เครื่อง Jenkins ตัวเดียวกับ use case 9

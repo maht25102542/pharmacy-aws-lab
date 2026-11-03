@@ -110,3 +110,14 @@ function prdLoad(kind) {
   }
   return { kind: kind, r: r };
 }
+
+// ---- use case 12: เขียน Jenkinsfile (Pipeline script) · เคสสคริปต์ที่เขียนพลาด 3 แบบ (kind: nostage | when | fail)
+var JF_SCRIPTS = {
+  nostage: "pipeline {\n  agent any\n  stages {\n    stage(Build) {\n      steps {\n        echo 'Building...'\n      }\n    }\n  }\n}\n",
+  when: "pipeline {\n  agent any\n  parameters {\n    choice(name: 'TARGET_ENV', choices: ['dev', 'prd'])\n  }\n  stages {\n    stage('Build') { steps { echo 'Building...' } }\n    stage('Deploy') {\n      when { expression { params.TARGET_ENV == 'prd' } }\n      steps { echo \"Deploying to ${params.TARGET_ENV}\" }\n    }\n  }\n}\n",
+  fail: "pipeline {\n  agent any\n  stages {\n    stage('Build') { steps { echo 'Building...' } }\n    stage('Test') { steps { sh 'exit 1' } }\n    stage('Deploy') { steps { echo 'Deploying...' } }\n  }\n  post {\n    failure { echo 'Pipeline failed' }\n  }\n}\n"
+};
+function jfLoad(kind) {
+  buildReady("demo"); var r = jkCreateJob({ name: "hello-pipeline", defn: "script", inline: JF_SCRIPTS[kind] }, true); if (r.errors) throw new Error(JSON.stringify(r.errors));
+  jkSelect("hello-pipeline"); var b = jkNew(kind === "when" ? { TARGET_ENV: "dev" } : {}); return { kind: kind, b: b };
+}
