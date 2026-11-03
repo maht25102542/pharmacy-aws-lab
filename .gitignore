@@ -22,3 +22,6 @@ labs/**/.terraform.lock.hcl
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# วิดีโอ use case เก็บเป็น GitHub Release (ไม่ track ใน git เพราะ repo บวม)
+tools/console-lab/videos/
