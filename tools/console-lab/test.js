@@ -367,8 +367,9 @@ sh2(J + dbIp, ["yes"]); assert(/wsrep_cluster_size\t3/.test(sh2("sudo mysql -e \
 { L.S.speed = "real"; L.S.roles.find(r => r.name === "pharmacy-k8s").policies = ["AmazonEC2ContainerRegistryReadOnly"];
   L.jkSelect("pharmacy-backend"); const rb = L.jkNew({ TARGET_ENV: "dev", SERVICE: "backend", VERSION: "v1.0.0", ACTION: "build-and-deploy", AUTO_SYNC: false, CHANGE_NOTE: "" });
   assert(rb.state === "running" && rb.stages.find(s => s.name === "Validate").st === "running" && rb.stages.find(s => s.name === "SonarQube scan").st === "pending", "real: เริ่มที่ Validate กำลังรัน");
-  const before = L.S.gh.repos["pharmacy-manifests"].files["dev/backend/deployment.yaml"]; let guard = 0;
-  while (rb.state === "running" && guard++ < 20) { assert(L.jkNextDelay(rb) >= 1, "delay ต่อ stage"); L.jkAdvance(rb, true); if (rb.stages.find(s => s.name === "Update manifest").st !== "success") assert(L.S.gh.repos["pharmacy-manifests"].files["dev/backend/deployment.yaml"] === before || rb.result, "manifest ยังไม่ถูก push ก่อนถึง stage นั้น"); }
+  let guard = 0; assert(!L.devcState().backend || L.devcState().backend.tag === "v1.0.0", "ก่อนรันมี backend dev เดิมหรือยังไม่มี");
+  while (rb.state === "running" && guard++ < 20) { assert(L.jkNextDelay(rb) >= 1, "delay ต่อ stage"); L.jkAdvance(rb, true); }
+  assert(rb.stages.find(s => s.name === "Update manifest").st === "skipped" && L.devcStatus("backend").health === "Healthy", "dev ไม่แตะ manifest: ปล่อยผ่าน compose เท่านั้น");
   assert(rb.result === "SUCCESS" && guard > 3, "real: จบ SUCCESS หลายก้าว (" + guard + ")"); L.S.speed = "instant"; }
 // ---- stage Test ของ Jenkins: อ่านโค้ดจริงใน GitHub จำลอง ล้มได้เมื่อโค้ด/เทสต์พัง
 { L.buildReady("me"); L.readyPushCmds().forEach(c => L.shRun(c)); const jbe = L.S.jk.jobs.find(j => j.svc === "backend"), jfe = L.S.jk.jobs.find(j => j.svc === "frontend"), gh = L.S.gh.repos;

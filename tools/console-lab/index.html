@@ -14359,7 +14359,7 @@ function pvSeedGh(user) {
       proj: { backlog: ["[Issue #2] Add dark mode"], todo: ["[Issue #1] Sidebar overlaps content on mobile"], doing: [], review: ["[PR #2] Add low-stock badge on medicines table"], done: ["[PR #1] Pharmacy theme for dashboard"] }, discs: [] },
     "pharmacy-manifests": {
       about: { desc: "GitOps manifests (Argo CD) ของระบบร้านยา", topics: ["gitops", "argocd", "kubernetes"] },
-      merged: [{ n: 1, title: "Bump dev image to v1.2.0", head: "chore/bump-dev-v1.2.0", by: "jenkins-bot", days: 2, ch: { "dev/backend/deployment.yaml": "\n# image bumped by Jenkins: v1.2.0\n" }, labels: [], body: "Jenkins อัปเดต image tag อัตโนมัติ", reviews: [] }],
+      merged: [{ n: 1, title: "Bump prd image to v1.2.0", head: "chore/bump-prd-v1.2.0", by: "jenkins-bot", days: 2, ch: { "prd/backend/deployment.yaml": "\n# image bumped by Jenkins: v1.2.0\n" }, labels: [], body: "Jenkins อัปเดต image tag อัตโนมัติ", reviews: [] }],
       open: [{ n: 2, title: "Add resource limits to backend", head: "feature/resource-limits", base: "develop", by: "prasert", days: 1, ch: { "prd/backend/deployment.yaml": "\n# resources: limits cpu 500m / memory 512Mi\n" }, labels: ["enhancement"], assignee: "", body: "กัน pod กิน memory เกิน", reviews: [] },
                { n: 3, title: "Promote v1.2.0 to prd", head: "develop", base: "main", by: "somsri", days: 1, ch: null, labels: ["release"], body: "ขึ้น prd ผ่าน Argo CD sync", reviews: [] }],
       closed: [],
