@@ -535,7 +535,12 @@ UC.push({
     { type: "k8s", name: "deployment.yaml", file: "repo-manifests/prd/backend/deployment.yaml", console: ["ArgoCD › app › Resources", "replicas 3 · probe · Job backend-migrate"], err: "image: ผิด = ErrImagePull" },
     { type: "stage", name: "Update manifest", file: "repo-backend/Jenkinsfile", console: ["Jenkins › Console Output", "git clone manifests → sed image: → git push"], err: "token github ไม่มีสิทธิ์ push = 403" }
   ],
-  errors: [],
+  errors: [
+    { load: "prd-pull", t: "pod ค้าง ImagePullBackOff", sym: "ArgoCD แอป prd เป็น Degraded · kubectl get pods -n prd ขึ้น ImagePullBackOff", find: "ArgoCD › app › Health (message) · k3s kubectl get pods -n prd · IAM › Roles › pharmacy-k8s › Permissions", fix: "แนบ AmazonEC2ContainerRegistryReadOnly ให้ role pharmacy-k8s (และเช็ก secret ecr-pull ต่ออายุทุก 12 ชม.) แล้ว Sync ใหม่" },
+    { load: "prd-apps", t: "แอปขึ้น ComparisonError", sym: "ArgoCD แอป prd สถานะ Unknown · Repository not found", find: "ArgoCD › app › Conditions/Message · apps.yaml บรรทัด repoURL", fix: "แก้ YOUR_GITHUB_USER ใน apps.yaml เป็นชื่อ GitHub จริง แล้ว push + kubectl apply ใหม่" },
+    { load: "prd-token", t: "Jenkins แก้ manifest ไม่ได้ (403)", sym: "stage Update manifest แดง · Permission denied · ArgoCD ไม่เห็นอะไรเปลี่ยน", find: "Jenkins › Console Output › Update manifest · GitHub › Settings › Developer settings › token (scope repo)", fix: "สร้าง token ที่มี scope repo (classic) หรือ Contents: Read and write (fine-grained) แล้วแก้ credential github-token ใน Jenkins" }
+  ],
+  errGo: function (e) { var k = e.load.replace(/^prd-/, ""); prdLoad(k); UI.sel = {}; flash("ok", "โหลดเคส “" + e.t + "” แล้ว"); go("browser", {}, "Browser"); if (k === "token") { var ji = S.insts.filter(function (i) { return i.name === "pharmacy-jenkins"; })[0]; W.addr = "http://" + (ji ? ji.publicIp : "") + ":8080/"; wbGo(W.addr); W.page = "build"; W.bid = jkBuildsOf(S.jk.job).slice(-1)[0].id; W.btab = "console"; render(); } else { W.addr = "http://" + S.albs[0].dns + ":8443"; wbGo(W.addr); } },
   loadBtns: [["โหลดตัวอย่าง: ระบบพร้อม (dev ปล่อยแล้ว) ไปลองปล่อย prd เอง", function () { jkexLoad(""); UI.sel = {}; flash("ok", "โหลด use case 11 แล้ว: สร้าง tag v1.1.0 → Jenkins TARGET_ENV=prd → Sync ใน ArgoCD"); go("browser", {}, "Browser"); }]]
 });
 

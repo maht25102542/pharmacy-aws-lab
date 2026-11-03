@@ -94,3 +94,18 @@ function jkpushLoad(kind) {
   shRun("git add ."); shRun("git commit -m \"ทดลอง: hook-" + kind + "\""); shRun("git push -u origin develop");
   return { r: r, kind: kind };
 }
+
+// ---- use case 11: เคส prd ปล่อยไม่ขึ้น (kind: pull | apps | token) · โหลดแล้วอยู่ในสถานะที่เห็นอาการ ผู้เรียนไล่หาสาเหตุเอง
+function prdLoad(kind) {
+  if (kind === "apps") { // apps.yaml ยังเป็น YOUR_GITHUB_USER → ArgoCD ดึง repo ไม่ได้ (ComparisonError)
+    buildAnsibleLab("ans-half"); var u = ghUser(); ["repo-backend", "repo-frontend", "repo-manifests"].forEach(function (d) { shRun("cd " + REPO + "/" + d); ["git init -b main", "git add .", "git commit -m initial", "git remote add origin https://github.com/" + u + "/pharmacy-" + d.slice(5) + ".git", "git push -u origin main"].forEach(function (c) { shRun(c); }); });
+    argoParse(fsRead(REPO + "/repo-manifests/argocd-apps/apps.yaml")).forEach(function (a) { S.argo.apps[a.name] = a; }); S.argo.login = true; return { kind: kind };
+  }
+  var r = buildReady("demo"); readyPushCmds().forEach(function (c) { shRun(c); }); readyBuild("dev"); readyBuild("prd"); S.argo.login = true;
+  if (kind === "pull") { S.roles.filter(function (x) { return x.name === "pharmacy-k8s"; })[0].policies = []; } // node ดึง image จาก ECR ไม่ได้
+  if (kind === "token") { // token ของ Jenkins ไม่มี scope repo → push manifest ไม่ได้ (403)
+    ghInit(); var tk = { kind: "classic", name: "jenkins", scopes: [], token: "ghp_noRepoScopeDemo", exp: "never" }; ghTokens().push(tk); jkCred("github-token").h = hash32(tk.token);
+    jkSelect("pharmacy-backend"); var b = jkNew({ TARGET_ENV: "prd", VERSION: "v1.0.0", ACTION: "deploy-only", AUTO_SYNC: false, CHANGE_NOTE: "" }); if (b.state === "waiting") jkInput(b, true);
+  }
+  return { kind: kind, r: r };
+}
