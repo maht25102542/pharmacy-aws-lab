@@ -7881,7 +7881,7 @@ var EXF = {
   "launch.nsDesc": ["pharmacy base", "pharmacy jenkins", "pharmacy k8s", "pharmacy db"], "launch.diskSize": ["8", "20", "30", "50"], "launch.hop": ["1", "2"],
   "tg-create.name": ["pharmacy-prd", "pharmacy-dev"], "tg-create.hcPath": ["/", "/healthz", "/api/health"], "alb-create.name": ["pharmacy-alb"],
   "user-create.name": ["terraform-admin", "pharmacy-ci"], "user-create.desc": ["aws configure บนเครื่องเรา", "terraform CLI"], "ak-create-.desc": ["aws configure บนเครื่องเรา", "terraform CLI"],
-  "eip-alloc.bg": [REGION], "*.k": ["Name", "Role", "Tier", "Env", "Project"], "*.v": ["pharmacy", "jenkins", "sonarqube", "bastion", "k8s_server", "k8s_dev", "db", "prd", "dev"],
+  "eip-alloc.bg": [REGION], "*.k": ["Name", "Role", "Tier", "Env", "Project"], "*.v": ["pharmacy", "jenkins", "sonarqube", "bastion", "k8s_server", "db", "prd", "dev", "private", "public"],
   "*.tag": ["v1.0.0", "v1.1.0", "dev-1"], "*.dest": ["0.0.0.0/0", "10.0.0.0/16", "10.1.0.0/16"], "*.cidr": ["10.0.1.0/24", "10.0.2.0/24", "10.1.1.0/24", "10.1.2.0/24"], "*.nk": ["pharmacy-admin", "pharmacy-admin-manual"]
 };
 function exFor(id) { var fn = UI.form ? UI.form.name : ""; var hit = EXF[fn + "." + id] || EXF["*." + id]; if (!hit && fn.slice(-1) === "-") hit = null; if (!hit) Object.keys(EXF).some(function (k) { if (k.indexOf(".") > 0 && k.slice(-id.length - 1) === "." + id && k.charAt(k.length - id.length - 2) === "-" && fn.indexOf(k.slice(0, k.length - id.length - 1)) === 0) { hit = EXF[k]; return true; } }); return hit ? hit.map(function (x) { return [x, x]; }) : null; }
@@ -12140,7 +12140,7 @@ UC.push({
 });
 
 UC.push({
-  id: "jkpush", no: 10, videos: [["ตอน A · เตรียมเครื่อง dev: SG, Ansible, docker-compose.yml, deploy.sh, .env", "videos/usecase10a-a.mp4"], ["ตอน B · เตรียม Jenkins: ปลั๊กอิน, DEV_HOST, Jenkinsfile, credential dev-ssh", "videos/usecase10b-a.mp4"], ["ตอน C · ตั้ง webhook: SG 8080, trigger, GitHub webhook, push develop", "videos/usecase10c-a.mp4"], ["ภาพรวม · git push develop แล้ว Jenkins รันเอง", "videos/usecase10-b.mp4"]], title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
+  id: "jkpush", no: 10, videos: [["ตอน A · สร้าง EC2 dev บน AWS console + Ansible, docker-compose.yml, deploy.sh, .env", "videos/usecase10a-b.mp4"], ["ตอน B · เตรียม Jenkins: ปลั๊กอิน, DEV_HOST, Jenkinsfile, credential dev-ssh", "videos/usecase10b-a.mp4"], ["ตอน C · ตั้ง webhook: SG 8080, trigger, GitHub webhook, push develop", "videos/usecase10c-a.mp4"], ["ภาพรวม · git push develop แล้ว Jenkins รันเอง", "videos/usecase10-b.mp4"]], title: "Deploy dev ปกติ: git push develop แล้ว Jenkins รันเอง", color: "#2b6cb0", dir: "repo-backend · repo-frontend · vm-dev", loadKind: "jk",
   tag: "✅ วิธีที่ทีมจริงปล่อย dev ทุกวัน: push เข้า develop → webhook → Jenkins build/ตรวจ/ปล่อยเอง · dev ใช้ docker compose (ไม่ต้องมี ArgoCD) · prd ยังกดเองด้วย tag vN.N.N",
   intro: [
     ["ตัวอย่างงาน", "#2b6cb0", "นักพัฒนา merge โค้ดเข้า branch **develop** แล้วอยากเห็นผลบนเว็บ dev ภายในไม่กี่นาที **โดยไม่มีใครเปิด Jenkins ไปกด Build**"],
@@ -12182,7 +12182,7 @@ UC.push({
 });
 
 UC.push({
-  id: "prdgitops", no: 11, videos: [["ตอน D · เตรียม prd: k3s HA 3 เครื่อง, ArgoCD, apps.yaml, deployment.yaml", "videos/usecase11d-b.mp4"], ["ตอน E · ปล่อย prd ด้วย tag v1.1.0, Sync ใน ArgoCD, ย้อนด้วย deploy-only", "videos/usecase11e-b.mp4"]], title: "ปล่อย prd แบบ GitOps: tag + ArgoCD (k3s 3 เครื่อง)", color: "#326ce5", dir: "repo-manifests · repo-backend · repo-frontend · ansible/k8s.yml", loadKind: "jk",
+  id: "prdgitops", no: 11, videos: [["ตอน D · เตรียม prd: ดู EC2 k3s ×3 บน AWS console, Ansible k3s HA + ArgoCD, apps.yaml, deployment.yaml", "videos/usecase11d-c.mp4"], ["ตอน E · ปล่อย prd ด้วย tag v1.1.0, Sync ใน ArgoCD, ย้อนด้วย deploy-only", "videos/usecase11e-b.mp4"]], title: "ปล่อย prd แบบ GitOps: tag + ArgoCD (k3s 3 เครื่อง)", color: "#326ce5", dir: "repo-manifests · repo-backend · repo-frontend · ansible/k8s.yml", loadKind: "jk",
   tag: "✅ prd ปล่อยแบบ pull-based: Jenkins แค่แก้ image: ใน Git (ต้องกด ยืนยัน) แล้ว ArgoCD เป็นฝ่ายดึงไป deploy · ต่างจาก dev ที่ Jenkins ส่งเองด้วย docker compose",
   intro: [
     ["ตัวอย่างงาน", "#326ce5", "ทีมร้านยาจะปล่อยเวอร์ชัน **v1.1.0** ขึ้น **prd** ที่รัน k3s 3 เครื่อง: ติด tag → Jenkins ตรวจ/build → **คนกดยืนยัน** → แก้ manifest → **ArgoCD Sync** → pod 3 ตัวทยอยเปลี่ยน"],

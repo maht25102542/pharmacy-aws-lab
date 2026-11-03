@@ -15,6 +15,7 @@ const viewFile = async (rel, anchor, secs, pages) => {
   for (let p = 1; p < (pages || 1); p++) { await L.ev(`(function(){var t=document.getElementById("edtxt"); t.scrollTop+=t.clientHeight-30; })(); 1`); await L.hold(secs || 9); }
 };
 const openUrl = async (url, direct) => { if (direct) { await L.ev(`wbGo(${JSON.stringify(url)}); render(); 1`); await L.hold(1.2); return; } if (await L.ev(`!![].slice.call(document.querySelectorAll("button")).filter(function(b){return b.innerText.trim()==="— เลือกตัวอย่าง —"})[0]`)) await step("pick", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); }); await L.sleep(300); await step("url", async () => { await L.type("main input[placeholder], main input[type=text]", url); }); await L.click(B("Go")); await L.hold(1.2); };
+const svc = async (t, cat) => { await L.click(B("Services")); if (cat) { await L.click(B(cat)); await L.sleep(300); } await L.click(B(t, { starts: true })); };
 const argoLogin = async (pw) => {
   await step("au1", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); }); await step("au2", async () => { await L.type("#w-aau", "admin"); });
   await step("ap1", async () => { await L.pickBtn("— เลือกตัวอย่าง —", "ไม่ระบุ"); }); await step("ap2", async () => { await L.type("#w-aap", pw); }); await L.hold(1);
@@ -22,13 +23,24 @@ const argoLogin = async (pw) => {
 };
 (async () => {
   await L.start("file://" + require("path").resolve(__dirname, "../index.html"));
-  await L.plan([["ansible k8s.yml", "🎛️"], ["ล็อกอิน ArgoCD", "🐙"], ["apps.yaml", "📁"], ["deployment.yaml", "📁"], ["kubectl apply", "⌨️"]]);
+  await L.plan([["EC2 k3s ×3 (console)", "EC2"], ["ansible k8s.yml", "🎛️"], ["ล็อกอิน ArgoCD", "🐙"], ["apps.yaml", "📁"], ["deployment.yaml", "📁"], ["kubectl apply", "⌨️"]]);
   await L.cap("Use case 11 ตอน D · เตรียม prd: k3s 3 เครื่อง + ArgoCD", "use case สิบเอ็ด ตอน ดี เตรียม prd ที่ใช้ k3s สามเครื่องกับ argo c d จะรัน ansible เปิดไฟล์ที่ต้องตั้ง และสร้างแอปใน argo c d"); await L.hold(1);
   const R = JSON.parse(await L.ev(`buildAnsibleLab("ans-half"); var u=ghUser(); ["repo-backend","repo-frontend"].forEach(function(d){ shRun("cd "+REPO+"/"+d); ["git init -b main","git add .","git commit -m initial","git remote add origin https://github.com/"+u+"/pharmacy-"+d.slice(5)+".git","git push -u origin main","git tag v1.0.0","git push origin v1.0.0"].forEach(function(c){shRun(c)}); }); JSON.stringify({b:S.insts.filter(function(i){return i.name==="pharmacy-bastion"})[0].publicIp,k:S.insts.filter(function(i){return i.name==="pharmacy-k8s-1"})[0].privateIp,a:"http://"+S.albs[0].dns+":8443",u:u,rp:REPO})`));
   const J = `ssh -J ubuntu@${R.b} -i ~/.ssh/id_ed25519 ubuntu@${R.k}`;
   await L.cap("ก่อนเริ่ม: เครื่อง/ฐานข้อมูลพร้อมแล้ว (lab หลัก) และ push repo backend/frontend ขึ้น GitHub แล้ว ตอนนี้เตรียม cluster prd", "ก่อนเริ่ม เครื่องและฐานข้อมูลพร้อมแล้วจาก lab หลัก และ push repo backend กับ frontend แล้ว ตอนนี้เตรียม cluster prd"); await L.hold(1);
+  // 0 EC2 บน console: เครื่อง k3s 3 เครื่อง
+  await L.intro(0, "EC2", "เครื่อง k3s ×3 คนละ AZ", "ก่อนลง k3s ดูเครื่องที่จะใช้บน AWS console ก่อน");
+  await L.cap("① EC2 › Instances: pharmacy-k8s-1, 2, 3 อยู่คนละ AZ (a, b, c) · private subnet · ไม่มี public IP", "เปิด EC2 ไปที่ Instances จะเห็นเครื่อง k eight s หนึ่ง สอง สาม อยู่คนละ availability zone ใน private subnet ไม่มี public IP");
+  await svc("EC2", "Compute"); await step("inst", async () => { await L.click(B("Instances")); }); await L.sleep(500); await L.hold(4);
+  await L.cap("② เลือก pharmacy-k8s-1 › Details: Role = k8s_server · IAM Role pharmacy-k8s · SG pharmacy-base + pharmacy-k8s", "เลือกเครื่อง k eight s หนึ่ง ดู details จะเห็น tag role เป็น k eight s server มี IAM role และ security group สองตัว ซึ่งสร้างด้วยวิธีเดียวกับเครื่อง dev ในตอนก่อน แต่ Terraform สร้างให้ทีเดียวสามเครื่อง");
+  await step("k1", async () => { await L.click({ t: "pharmacy-k8s-1", tag: "td,a,button,span", starts: true }); }); await L.hold(7);
+  await L.cap("③ EC2 › Security Groups › pharmacy-k8s › Inbound: เครื่อง k3s คุยกันเอง (6443 · etcd) · ALB เข้า :30080 · :30443 (ArgoCD)", "ที่ security groups เลือก pharmacy k eight s ดู inbound rules เครื่อง k three s คุยกันเองได้ และ ALB เข้าได้พอร์ตสามหมื่นแปดสิบกับสามหมื่นสี่ร้อยสี่สิบสาม ซึ่งเป็นพอร์ตของ ArgoCD");
+  await step("sgs", async () => { await L.click(B("Security Groups")); }); await L.sleep(400);
+  await step("sgk", async () => { await L.click({ t: "pharmacy-k8s", tag: "td,a,button,span", starts: true }); }); await L.hold(3);
+  await step("inb", async () => { await L.click({ t: "Inbound rules", tag: "button,a,div,span", starts: true }); }); await L.hold(6);
+  await L.tick(0, "เครื่อง k3s ×3 + SG (จาก Terraform)", "เครื่องและ security group พร้อมแล้ว");
   // 1 ansible
-  await L.intro(0, "Ansible", "k3s HA 3 เครื่อง + ArgoCD", "ขั้นแรก ใช้ ansible ลง k3s สามเครื่องแบบ เอชเอ และลง argo c d");
+  await L.intro(1, "Ansible", "k3s HA 3 เครื่อง + ArgoCD", "ขั้นแรก ใช้ ansible ลง k3s สามเครื่องแบบ เอชเอ และลง argo c d");
   await L.cap("① ansible/k8s.yml (k8s-1 --cluster-init · k8s-2,3 join ทีละเครื่อง · ลง ArgoCD บน k8s-1)", "ไฟล์ k eight s dot y m l"); await viewFile("ansible/k8s.yml", "", 12, 2);
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
   await L.cap("② cd ansible · ansible-playbook k8s.yml", "แล้วรัน ansible playbook k eight s dot y m l");
@@ -37,9 +49,9 @@ const argoLogin = async (pw) => {
   await step("ssh", async () => { await term(J); }); await step("yes", async () => { await term("yes"); });
   await step("nodes", async () => { await term("k3s kubectl get nodes"); }); await L.hold(3);
   await step("argopods", async () => { await term("k3s kubectl get pods -n argocd"); }); await L.hold(4);
-  await L.tick(0, "k3s 3 เครื่อง + ArgoCD พร้อม", "k three s สามเครื่องและ argo c d พร้อมแล้ว");
+  await L.tick(1, "k3s 3 เครื่อง + ArgoCD พร้อม", "k three s สามเครื่องและ argo c d พร้อมแล้ว");
   // 2 login
-  await L.intro(1, "ArgoCD", "รหัสผ่านเริ่มต้น + เข้า UI ผ่าน ALB :8443", "ต่อมา ดึงรหัสผ่านเริ่มต้นของ argo c d แล้วเข้า หน้า UI");
+  await L.intro(2, "ArgoCD", "รหัสผ่านเริ่มต้น + เข้า UI ผ่าน ALB :8443", "ต่อมา ดึงรหัสผ่านเริ่มต้นของ argo c d แล้วเข้า หน้า UI");
   await L.cap("④ kubectl -n argocd get secret argocd-initial-admin-secret … | base64 -d", "ดึงรหัสผ่านเริ่มต้นจาก secret แล้วถอดรหัส base sixty four");
   await step("pw", async () => { await term("k3s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"); }); await L.hold(4);
   const PW = await L.ev(`argoPwdOf(argoInst())`);
@@ -47,17 +59,17 @@ const argoLogin = async (pw) => {
   await toBrowser(); await L.ev(`wbGo("${R.a}"); render(); 1`); await L.sleep(500);
   await L.cap("⑤ แท็บ Browser › http://<ALB>:8443 › admin + รหัสที่ได้ → SIGN IN", "เปิด ALB พอร์ตแปดสี่สี่สาม ล็อกอินด้วย admin และรหัสที่ได้");
   await argoLogin(PW);
-  await L.tick(1, "เข้า ArgoCD ได้", "เข้า argo c d ได้แล้ว");
+  await L.tick(2, "เข้า ArgoCD ได้", "เข้า argo c d ได้แล้ว");
   // 3 apps.yaml
-  await L.intro(2, "apps.yaml", "ประกาศแอป prd ให้ ArgoCD", "ต่อมา ประกาศแอปที่ argo c d จะดูแล");
+  await L.intro(3, "apps.yaml", "ประกาศแอป prd ให้ ArgoCD", "ต่อมา ประกาศแอปที่ argo c d จะดูแล");
   await L.cap("⑥ repo-manifests/argocd-apps/apps.yaml: repoURL · path · destination · ไม่มี automated (prd ต้องมีคนกด Sync)", "ไฟล์ apps dot y m l บอกว่าดึงจาก repo ไหน โฟลเดอร์ไหน ไป cluster ไหน และ prd ไม่มี automated ต้องมีคนกด sync"); await viewFile("repo-manifests/argocd-apps/apps.yaml", "", 12);
-  await L.tick(2, "apps.yaml (prd 2 แอป)", "ไฟล์ประกาศแอป");
+  await L.tick(3, "apps.yaml (prd 2 แอป)", "ไฟล์ประกาศแอป");
   // 4 deployment
-  await L.intro(3, "deployment.yaml", "สิ่งที่ ArgoCD เอาไปใช้", "และไฟล์ที่ argo c d เอาไปสร้างของใน cluster");
+  await L.intro(4, "deployment.yaml", "สิ่งที่ ArgoCD เอาไปใช้", "และไฟล์ที่ argo c d เอาไปสร้างของใน cluster");
   await L.cap("⑦ repo-manifests/prd/backend/deployment.yaml: replicas 3 · probe 3 ตัว · บรรทัด image: คือที่ Jenkins แก้ · Job backend-migrate (PreSync)", "ไฟล์ deployment dot y m l ของ backend มี replicas สามตัว probe สามแบบ บรรทัด image ที่ jenkins แก้ และ job migrate ที่รันก่อน sync"); await viewFile("repo-manifests/prd/backend/deployment.yaml", "", 11, 3);
-  await L.tick(3, "deployment.yaml (prd)", "ไฟล์ deployment");
+  await L.tick(4, "deployment.yaml (prd)", "ไฟล์ deployment");
   // 5 push manifests + apply
-  await L.intro(4, "kubectl apply", "push manifests แล้วสร้าง 2 แอป", "สุดท้าย push repo manifests ขึ้น github แล้วสร้างแอปใน argo c d");
+  await L.intro(5, "kubectl apply", "push manifests แล้วสร้าง 2 แอป", "สุดท้าย push repo manifests ขึ้น github แล้วสร้างแอปใน argo c d");
   await L.click(B("Laptop", { nth: 0 })); await L.click({ t: "⌨️ Terminal", tag: "button", starts: true }); await L.sleep(400);
   await L.cap("⑧ repo-manifests: แก้ YOUR_GITHUB_USER → ชื่อ GitHub · git init/add/commit/push", "ในโฟลเดอร์ repo manifests แก้ชื่อ github ในไฟล์ apps แล้ว push ขึ้น github");
   await step("cdm", async () => { await term(`cd ${R.rp}/repo-manifests`); }); await step("sed", async () => { await term(`sed -i 's/YOUR_GITHUB_USER/${R.u}/g' argocd-apps/apps.yaml`); });
@@ -68,9 +80,9 @@ const argoLogin = async (pw) => {
   await step("apps", async () => { await term("k3s kubectl get applications -n argocd"); }); await L.hold(4);
   await toBrowser(); await L.ev(`wbGo("${R.a}"); render(); 1`); await L.hold(1);
   await L.cap("⑩ ArgoCD › Applications: pharmacy-backend-prd / pharmacy-frontend-prd (ยังไม่ Synced: prd รอคนกด Sync)", "กลับมาที่หน้า argo c d จะเห็นสองแอปของ prd ยังไม่ synced เพราะรอคนกด sync"); await L.hold(5);
-  await L.tick(4, "สร้าง 2 แอป prd ใน ArgoCD", "สร้างแอป prd ใน argo c d แล้ว");
+  await L.tick(5, "สร้าง 2 แอป prd ใน ArgoCD", "สร้างแอป prd ใน argo c d แล้ว");
   await L.costScene("mainvm", "เรื่องค่าใช้จ่าย prd ใช้ k3s สามเครื่องกับ load balancer และ NAT ที่คิดเงินรายชั่วโมงตลอดเวลาที่เปิด ควรตั้ง Budget และ terraform destroy เมื่อเลิกใช้");
   await L.cap("✓ ตอน D เสร็จ: k3s HA + ArgoCD + apps.yaml · ตอน E: ปล่อย prd ด้วย tag แล้ว Sync", "สรุป cluster prd พร้อมแล้ว ตอนถัดไปปล่อย prd ด้วย tag แล้วกด sync"); await L.hold(1.5);
-  await L.encode(require("path").resolve(__dirname, "../videos/usecase11d-b.mp4"));
+  await L.encode(require("path").resolve(__dirname, "../videos/usecase11d-c.mp4"));
   await L.finish();
 })().catch((e) => { console.error("ERR", e.message); process.exit(1); });

@@ -360,7 +360,7 @@ var EXF = {
   "launch.nsDesc": ["pharmacy base", "pharmacy jenkins", "pharmacy k8s", "pharmacy db"], "launch.diskSize": ["8", "20", "30", "50"], "launch.hop": ["1", "2"],
   "tg-create.name": ["pharmacy-prd", "pharmacy-dev"], "tg-create.hcPath": ["/", "/healthz", "/api/health"], "alb-create.name": ["pharmacy-alb"],
   "user-create.name": ["terraform-admin", "pharmacy-ci"], "user-create.desc": ["aws configure บนเครื่องเรา", "terraform CLI"], "ak-create-.desc": ["aws configure บนเครื่องเรา", "terraform CLI"],
-  "eip-alloc.bg": [REGION], "*.k": ["Name", "Role", "Tier", "Env", "Project"], "*.v": ["pharmacy", "jenkins", "sonarqube", "bastion", "k8s_server", "k8s_dev", "db", "prd", "dev"],
+  "eip-alloc.bg": [REGION], "*.k": ["Name", "Role", "Tier", "Env", "Project"], "*.v": ["pharmacy", "jenkins", "sonarqube", "bastion", "k8s_server", "db", "prd", "dev", "private", "public"],
   "*.tag": ["v1.0.0", "v1.1.0", "dev-1"], "*.dest": ["0.0.0.0/0", "10.0.0.0/16", "10.1.0.0/16"], "*.cidr": ["10.0.1.0/24", "10.0.2.0/24", "10.1.1.0/24", "10.1.2.0/24"], "*.nk": ["pharmacy-admin", "pharmacy-admin-manual"]
 };
 function exFor(id) { var fn = UI.form ? UI.form.name : ""; var hit = EXF[fn + "." + id] || EXF["*." + id]; if (!hit && fn.slice(-1) === "-") hit = null; if (!hit) Object.keys(EXF).some(function (k) { if (k.indexOf(".") > 0 && k.slice(-id.length - 1) === "." + id && k.charAt(k.length - id.length - 2) === "-" && fn.indexOf(k.slice(0, k.length - id.length - 1)) === 0) { hit = EXF[k]; return true; } }); return hit ? hit.map(function (x) { return [x, x]; }) : null; }
