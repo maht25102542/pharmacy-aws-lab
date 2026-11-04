@@ -56,7 +56,7 @@ var AP_ROWS = [
   ["+ CI/CD (ปล่อยลง ECS)", "GitHub Actions + OIDC (นิยมสุด)", "code อยู่ GitHub", "ต่ำ", "฿ ต่ำ", { uc: "gha" }],
   ["+ CI/CD (ปล่อยลง ECS)", "CodePipeline + CodeBuild", "ทีมที่ใช้ AWS ล้วน", "ต่ำ", "฿ ต่ำ", { uc: "cd" }]
 ];
-var AP_COL = { "①": "#8c4fff", "②": "#d9480f", "③": "#7d4acf", "+": "#7fae12" };
+var AP_COL = { "①": "#8c4fff", "②": "#d9480f", "③": "#7d4acf", "+": "#2e7d32" };
 PAGES["lab-ap"] = function () {
   var groups = [], cur = null;
   AP_ROWS.forEach(function (r) { if (!cur || cur.name !== r[0]) { cur = { name: r[0], rows: [] }; groups.push(cur); } cur.rows.push(r); });
