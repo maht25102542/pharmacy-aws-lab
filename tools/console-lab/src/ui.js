@@ -34,7 +34,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform สร้างเครื่อง"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย Jenkins → ArgoCD"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed (EKS + RDS)"], ["lab-check", "ตรวจกับ Terraform"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]], "mini"]],
+  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform สร้างเครื่อง"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย Jenkins → ArgoCD"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed (EKS + RDS)"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]], "mini"]],
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
@@ -1760,7 +1760,7 @@ function labBody(tab) {
 }
 
 [["lab-check", "check", "ตรวจกับ Terraform"], ["lab-hcl", "hcl", "Terraform"], ["lab-flow", "flow", "ลำดับปล่อย Jenkins → ArgoCD"], ["lab-rules", "rules", "กฎที่จำลอง"], ["lab-scen", "scen", "ตัวอย่างสำเร็จรูป"]].forEach(function (t) {
-  PAGES[t[0]] = function () { return h("div", {}, [crumbEl("Lab › " + t[2]), h("h1", { text: t[2] }), h("div", { cls: "card" }, [labBody(t[1])])]); };
+  PAGES[t[0]] = function () { var kids = [crumbEl("Lab › " + t[2]), h("h1", { text: t[2] }), h("div", { cls: "card" }, [labBody(t[1])])]; if (t[0] === "lab-hcl") { var fc = fold("hclchk", "✅ ตรวจกับ Terraform: กดครบตามโค้ดหรือยัง"); fc.className = "fold card"; fc.style.marginTop = "14px"; fc.appendChild(labBody("check")); kids.push(fc); } return h("div", {}, kids); };
 });
 
 // ---- top bar controls
