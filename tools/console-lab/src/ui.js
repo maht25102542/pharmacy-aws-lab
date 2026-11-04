@@ -34,7 +34,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"], ["faults", "ปัญหาโลกจริง"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform สร้างเครื่อง"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย Jenkins → ArgoCD"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed (EKS + RDS)"], ["lab-check", "ตรวจกับ Terraform"], ["lab-rules", "กฎที่จำลอง"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]]]],
+  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform สร้างเครื่อง"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย Jenkins → ArgoCD"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed (EKS + RDS)"], ["lab-check", "ตรวจกับ Terraform"], ["lab-rules", "กฎที่จำลอง"], ["lab-preview", "Preview เว็บ (ดูเฉยๆ)"]], "mini"]],
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
@@ -82,7 +82,7 @@ function render() {
     if (g[0]) nv.appendChild(h("div", { cls: "grp", text: g[0] }));
     g[1].forEach(function (p) {
       var on = !!p[0] && (UI.page === p[0] || UI.params.from === p[0]);
-      nv.appendChild(h("button", { type: "button", "data-p": p[0] || null, cls: p[0] ? "" : "off", title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", "aria-current": String(on), onclick: function () { if (p[0]) go(p[0], {}, UI.svc); else { flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); render(); } } }, NAVICO[p[0]] ? [h("span", { cls: "ni", text: NAVICO[p[0]] }), h("span", { text: p[1] })] : [p[1]]));
+      nv.appendChild(h("button", { type: "button", "data-p": p[0] || null, cls: (p[0] ? "" : "off") + (g[2] ? " mini" : ""), title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", "aria-current": String(on), onclick: function () { if (p[0]) go(p[0], {}, UI.svc); else { flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); render(); } } }, NAVICO[p[0]] ? [h("span", { cls: "ni", text: NAVICO[p[0]] }), h("span", { text: p[1] })] : [p[1]]));
     });
   });
   var m = document.getElementById("main"); m.textContent = "";
