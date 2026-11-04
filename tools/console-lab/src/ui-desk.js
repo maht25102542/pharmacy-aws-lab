@@ -1,5 +1,5 @@
 // Laptop › Desktop: เดสก์ท็อป Ubuntu จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
-var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 880, h: 500, z: 10 } } };
+var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 50, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 80, w: 0, h: 0, z: 10 } } };
 var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Code Editor", "📝"]];
 function deskTitle(id) { if (id === "files") return "Code Editor — " + (ED.active ? ED.active.replace(REPO + "/", "").replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
 function deskBody(id) {
@@ -16,8 +16,10 @@ PAGES["desk"] = function () {
   var ico = h("button", { type: "button", cls: "dicon", ondblclick: function () { deskOpen("files"); }, onclick: function () { deskOpen("files"); }, title: "เปิด pharmacy-aws-lab" }, [h("span", { text: "📁" }), "pharmacy-aws-lab"]);
   var wp = h("div", { cls: "dwp" }, [ico]);
   desk.appendChild(top); desk.appendChild(dock); desk.appendChild(wp);
+  var dw0 = Math.max(520, Math.min(1000, window.innerWidth - 252 - 70 - 100)), dh0 = Math.max(380, window.innerHeight - 190 - 30 - 70);
   DESK_APPS.forEach(function (a) {
     var id = a[0], w = DESK.wins[id]; if (!w.open || w.min) return;
+    if (!w.w) { w.w = dw0; w.h = dh0; }
     var win = h("div", { cls: "dw" + (w.max ? " max" : ""), "data-w": id, style: w.max ? "z-index:" + w.z : "left:" + w.x + "px;top:" + w.y + "px;width:" + w.w + "px;height:" + w.h + "px;z-index:" + w.z });
     var tb = h("div", { cls: "dwt" }, [h("span", { cls: "dwtt", text: a[2] + " " + deskTitle(id) }), h("span", { cls: "dwb3" }, [h("button", { type: "button", title: "ย่อ", text: "–", onclick: function (e) { e.stopPropagation(); w.min = true; render(); } }), h("button", { type: "button", title: "ขยาย", text: w.max ? "❐" : "□", onclick: function (e) { e.stopPropagation(); w.max = !w.max; render(); } }), h("button", { type: "button", cls: "x", title: "ปิด", text: "×", onclick: function (e) { e.stopPropagation(); w.open = false; render(); } })])]);
     tb.addEventListener("dblclick", function () { w.max = !w.max; render(); });
@@ -29,7 +31,7 @@ PAGES["desk"] = function () {
     });
     win.addEventListener("pointerdown", function () { if (w.z !== DESK.z) { w.z = ++DESK.z; win.style.zIndex = w.z; } });
     win.appendChild(tb); win.appendChild(h("div", { cls: "dwbody" }, [deskBody(id)])); desk.appendChild(win);
-    if (!w.max && window.ResizeObserver) { var first = true; new ResizeObserver(function () { if (first) { first = false; return; } w.w = win.offsetWidth; w.h = win.offsetHeight; }).observe(win); }
+    win.addEventListener("mouseup", function () { if (!w.max && win.offsetWidth > 200) { w.w = win.offsetWidth; w.h = win.offsetHeight; } });
   });
   setTimeout(function () { var i = document.getElementById("terminp"); if (i) i.focus(); }, 30);
   return h("div", {}, [desk]);

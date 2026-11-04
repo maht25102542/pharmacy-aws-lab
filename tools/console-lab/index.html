@@ -1151,11 +1151,11 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .dapp { position: relative; width: 44px; height: 44px; border: 0; border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; font-size: 1.4rem; cursor: pointer; display: grid; place-items: center; transition: background .15s, transform .15s; } .dapp:hover { background: rgba(255,255,255,.25); transform: scale(1.08); } .dapp.run::before { content: ""; position: absolute; left: -7px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #ffb38a; } .dsp { flex: 1; }
 .dwp { position: absolute; inset: 30px 0 0 0; padding: 18px 22px; display: flex; justify-content: flex-end; align-items: flex-start; }
 .dicon { background: transparent; border: 0; color: #fff; display: flex; flex-direction: column; gap: 4px; align-items: center; font-size: .75rem; width: 96px; padding: 8px; border-radius: 10px; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,.6); } .dicon:hover { background: rgba(255,255,255,.15); } .dicon span { font-size: 2.2rem; }
-.dw { position: absolute; display: flex; flex-direction: column; min-width: 320px; min-height: 180px; background: #300a24; color: #fff; border-radius: 12px; overflow: hidden; resize: both; box-shadow: 0 14px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12); } .dw.max { inset: 30px 0 0 74px; width: auto !important; height: auto !important; border-radius: 0; resize: none; }
+.dw { position: absolute; display: flex; flex-direction: column; min-width: 420px; min-height: 260px; background: #300a24; color: #fff; border-radius: 12px; overflow: hidden; resize: both; box-shadow: 0 14px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12); } .dw.max { inset: 30px 0 0 74px; width: auto !important; height: auto !important; border-radius: 0; resize: none; }
 .dwt { flex: none; height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 14px; background: linear-gradient(#4a3a4a, #3b2a3b); cursor: grab; user-select: none; font-size: .82rem; font-weight: 600; } .dwtt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dwb3 { display: flex; gap: 8px; } .dwb3 button { width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(255,255,255,.18); color: #fff; font-size: .8rem; line-height: 1; cursor: pointer; padding: 0; } .dwb3 button:hover { background: rgba(255,255,255,.34); } .dwb3 .x { background: #e95420; }
 .dwbody { flex: 1; min-height: 0; overflow: auto; background: var(--surface, #fff); color: var(--fg, #16191f); } .dw[data-w="term"] .dwbody { background: #1a0f1c; padding: 0; }
-.dwbody #termwrap { display: flex; flex-direction: column; height: 100%; } .dwbody #termwrap .term { flex: 1; min-height: 0 !important; max-height: none !important; border-radius: 0; } .dwbody .filewrap { padding: 10px; grid-template-columns: 230px 1fr; } .dwbody .filewrap textarea { height: calc(100% - 60px); min-height: 220px; }
+.dwbody #termwrap { display: flex; flex-direction: column; height: 100%; } .dwbody #termwrap .term { flex: 0 1 auto; min-height: 0 !important; max-height: calc(100% - 46px) !important; border-radius: 0; } .dwbody .filewrap { padding: 10px; grid-template-columns: 230px 1fr; } .dwbody .filewrap textarea { height: calc(100% - 60px); min-height: 220px; }
 .dwbody .termbar { display: none !important; } .dwbody .termbar-x { margin: 0 !important; padding: 6px 12px !important; background: #2b1a2e !important; color: #e8dce8 !important; border: 0 !important; border-bottom: 1px solid rgba(255,255,255,.1) !important; font-size: .75rem; } .dwbody .termbar select { font-size: .75rem; padding: 1px 6px; } .dwbody .termrow { background: #1a0f1c; padding: 4px 12px 10px; }
 .dwbody #termwrap { background: var(--t-bg, #1a0f1c); } .dwbody .termrow { background: var(--t-bg, #1a0f1c) !important; }
 .dw[data-w="files"] .dwbody { background: #1e1e1e; overflow: hidden; }
@@ -8908,7 +8908,7 @@ var TERM_THEMES = {
 function termPref(k, d) { try { return localStorage.getItem("console-lab-term-" + k) || d; } catch (e) { return d; } }
 function termSet(k, v) { try { localStorage.setItem("console-lab-term-" + k, v); } catch (e) {} }
 function termApplyTheme() {
-  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
+  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[UI.page === "desk" ? "ubuntu" : termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
   Object.keys(t).forEach(function (k) { w.style.setProperty("--t-" + (k === "user" ? "user" : k === "path" ? "path" : k === "cmd" ? "cmd" : k === "err" ? "err" : k === "ok" ? "ok" : k === "warn" ? "warn" : k === "dim" ? "dim" : k === "head" ? "head" : k), t[k]); });
   w.style.setProperty("--t-bg", t.bg); w.style.setProperty("--t-fg", t.fg); w.style.setProperty("--t-fs", fs);
 }
@@ -15531,7 +15531,7 @@ function editorApp() {
 }
 
 // Laptop › Desktop: เดสก์ท็อป Ubuntu จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
-var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 880, h: 500, z: 10 } } };
+var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 50, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 80, w: 0, h: 0, z: 10 } } };
 var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Code Editor", "📝"]];
 function deskTitle(id) { if (id === "files") return "Code Editor — " + (ED.active ? ED.active.replace(REPO + "/", "").replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
 function deskBody(id) {
@@ -15548,8 +15548,10 @@ PAGES["desk"] = function () {
   var ico = h("button", { type: "button", cls: "dicon", ondblclick: function () { deskOpen("files"); }, onclick: function () { deskOpen("files"); }, title: "เปิด pharmacy-aws-lab" }, [h("span", { text: "📁" }), "pharmacy-aws-lab"]);
   var wp = h("div", { cls: "dwp" }, [ico]);
   desk.appendChild(top); desk.appendChild(dock); desk.appendChild(wp);
+  var dw0 = Math.max(520, Math.min(1000, window.innerWidth - 252 - 70 - 100)), dh0 = Math.max(380, window.innerHeight - 190 - 30 - 70);
   DESK_APPS.forEach(function (a) {
     var id = a[0], w = DESK.wins[id]; if (!w.open || w.min) return;
+    if (!w.w) { w.w = dw0; w.h = dh0; }
     var win = h("div", { cls: "dw" + (w.max ? " max" : ""), "data-w": id, style: w.max ? "z-index:" + w.z : "left:" + w.x + "px;top:" + w.y + "px;width:" + w.w + "px;height:" + w.h + "px;z-index:" + w.z });
     var tb = h("div", { cls: "dwt" }, [h("span", { cls: "dwtt", text: a[2] + " " + deskTitle(id) }), h("span", { cls: "dwb3" }, [h("button", { type: "button", title: "ย่อ", text: "–", onclick: function (e) { e.stopPropagation(); w.min = true; render(); } }), h("button", { type: "button", title: "ขยาย", text: w.max ? "❐" : "□", onclick: function (e) { e.stopPropagation(); w.max = !w.max; render(); } }), h("button", { type: "button", cls: "x", title: "ปิด", text: "×", onclick: function (e) { e.stopPropagation(); w.open = false; render(); } })])]);
     tb.addEventListener("dblclick", function () { w.max = !w.max; render(); });
@@ -15561,7 +15563,7 @@ PAGES["desk"] = function () {
     });
     win.addEventListener("pointerdown", function () { if (w.z !== DESK.z) { w.z = ++DESK.z; win.style.zIndex = w.z; } });
     win.appendChild(tb); win.appendChild(h("div", { cls: "dwbody" }, [deskBody(id)])); desk.appendChild(win);
-    if (!w.max && window.ResizeObserver) { var first = true; new ResizeObserver(function () { if (first) { first = false; return; } w.w = win.offsetWidth; w.h = win.offsetHeight; }).observe(win); }
+    win.addEventListener("mouseup", function () { if (!w.max && win.offsetWidth > 200) { w.w = win.offsetWidth; w.h = win.offsetHeight; } });
   });
   setTimeout(function () { var i = document.getElementById("terminp"); if (i) i.focus(); }, 30);
   return h("div", {}, [desk]);

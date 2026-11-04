@@ -1321,7 +1321,7 @@ var TERM_THEMES = {
 function termPref(k, d) { try { return localStorage.getItem("console-lab-term-" + k) || d; } catch (e) { return d; } }
 function termSet(k, v) { try { localStorage.setItem("console-lab-term-" + k, v); } catch (e) {} }
 function termApplyTheme() {
-  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
+  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[UI.page === "desk" ? "ubuntu" : termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
   Object.keys(t).forEach(function (k) { w.style.setProperty("--t-" + (k === "user" ? "user" : k === "path" ? "path" : k === "cmd" ? "cmd" : k === "err" ? "err" : k === "ok" ? "ok" : k === "warn" ? "warn" : k === "dim" ? "dim" : k === "head" ? "head" : k), t[k]); });
   w.style.setProperty("--t-bg", t.bg); w.style.setProperty("--t-fg", t.fg); w.style.setProperty("--t-fs", fs);
 }
