@@ -60,7 +60,14 @@ function edTree() {
   });
   return root;
 }
-function edHL(text, kind) { var frag = document.createDocumentFragment(); text.split("\n").forEach(function (ln, i, a) { jkxHi(ln, kind, ED_T).forEach(function (n) { frag.appendChild(n); }); frag.appendChild(document.createTextNode(i < a.length - 1 ? "\n" : " ")); }); return frag; }
+function edHL(text, kind) {
+  var frag = document.createDocumentFragment(), bold = ED_T[5], ital = [ED_T[9], ED_T[7]]; // keyword/key = ตัวหนา · ค่าคงที่/flag = ตัวเอียง · comment เอียงอยู่แล้ว
+  text.split("\n").forEach(function (ln, i, a) {
+    jkxHi(ln, kind, ED_T).forEach(function (n) { var st = n.getAttribute("style") || ""; if (st.indexOf("color:" + bold) >= 0 && st.indexOf("font-weight") < 0) n.setAttribute("style", st + ";font-weight:700"); else if (ital.some(function (c) { return st.indexOf("color:" + c) >= 0; }) && st.indexOf("font-style") < 0) n.setAttribute("style", st + ";font-style:italic"); frag.appendChild(n); });
+    frag.appendChild(document.createTextNode(i < a.length - 1 ? "\n" : " "));
+  });
+  return frag;
+}
 function editorApp() {
   if (!ED.active && ED.tabs.length === 0 && !ED.closedAll) { var pref = REPO + "/ansible/dev.yml", all0 = fsAll(); edOpen(UI.edit && all0[UI.edit] != null ? UI.edit : all0[pref] != null ? pref : Object.keys(all0).filter(function (k) { return k.indexOf(REPO + "/") === 0; }).sort()[0]); }
   var root = h("div", { cls: "edr" }), act = h("div", { cls: "edact" }), side = h("div", { cls: "edtree" }), main = h("div", { cls: "edmain" }), stat = h("div", { cls: "edstat" });
