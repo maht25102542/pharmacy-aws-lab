@@ -30,7 +30,7 @@ function deskBody(id) {
   var el = PAGES[id](); [].slice.call(el.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1,.ic,.card")) el.removeChild(c); }); return el;
 }
 function deskOpen(id) { var w = DESK.wins[id]; w.open = true; w.min = false; w.z = ++DESK.z; render(); }
-function deskDock(id) { var w = DESK.wins[id]; if (w.open && !w.min && w.z === DESK.z) { w.min = true; } else { w.open = true; w.min = false; w.z = ++DESK.z; } render(); }
+function deskDock(id) { if (id === "term" && typeof ED !== "undefined" && ED.termOpen) ED.termOpen = false; var w = DESK.wins[id]; if (w.open && !w.min && w.z === DESK.z) { w.min = true; } else { w.open = true; w.min = false; w.z = ++DESK.z; } render(); }
 function deskClock() { var d = new Date(), D = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; return D[d.getDay()] + " " + d.getDate() + " " + M[d.getMonth()] + "  " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
 setInterval(function () { var c = document.getElementById("deskclock"); if (c) c.textContent = deskClock(); }, 15000);
 PAGES["desk"] = function () {

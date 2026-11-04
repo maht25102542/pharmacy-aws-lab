@@ -91,7 +91,7 @@ function editorApp() {
   stat.appendChild(h("span", { cls: "edsl1", html: '<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M5 2.500a1.500 1.500 0 1 1 1 1.410v3.200a3.500 3.500 0 0 1 2-.6h1.500a1.500 1.500 0 0 0 1.500-1.500v-.1a1.500 1.500 0 1 1 1.500 0v.1A3 3 0 0 1 9.500 8H8a2 2 0 0 0-2 2v1.100a1.500 1.500 0 1 1-1 0V3.900A1.500 1.500 0 0 1 5 2.500z"/></svg> main' })); stat.appendChild(h("span", { text: "⊗ 0  ⚠ 0" })); stat.appendChild(h("span", { cls: "edsp" }));
   if (!p) {
     main.appendChild(tabs); main.appendChild(h("div", { cls: "edwel" }, [h("div", { html: '<svg viewBox="0 0 24 24" width="120" height="120" fill="#e6d7bf"><path d="M23.150 2.587L18.210.21a1.494 1.494 0 0 0-1.705.29l-9.460 8.630-4.120-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.740L3.899 12 .326 15.260a1 1 0 0 0 .001 1.479L1.650 17.940a.999.999 0 0 0 1.276.057l4.120-3.128 9.460 8.630a1.492 1.492 0 0 0 1.704.290l4.942-2.377A1.500 1.500 0 0 0 24 20.060V3.939a1.500 1.500 0 0 0-.850-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>' }), h("div", { cls: "edkb" }, [["Open File", "Explorer ด้านซ้าย"], ["Save", "Ctrl+S"], ["Find in Files", "Search ด้านซ้าย"]].map(function (r) { return h("div", {}, [h("span", { text: r[0] }), h("kbd", { text: r[1] })]); }))]));
-    stat.appendChild(h("span", { text: "Ln 1, Col 1" })); root.appendChild(act); if (ED.view) root.appendChild(side); root.appendChild(h("div", { cls: "edcol" }, [main, stat])); return root;
+    stat.appendChild(h("span", { text: "Ln 1, Col 1" })); root.appendChild(act); if (ED.view) root.appendChild(side); root.appendChild(h("div", { cls: "edcol" }, [main, edTermPanel(), stat])); return root;
   }
   var ro = edRO(p), kind = edKind(p), ta = h("textarea", { cls: "edta", spellcheck: "false", wrap: "off", readonly: ro ? "readonly" : null }), pre = h("pre", { cls: "edhl" }), gut = h("div", { cls: "edgut" }), wrap = h("div", { cls: "edwrap" }), cur = h("div", { cls: "edcur" });
   ta.value = edText(p);
@@ -116,7 +116,17 @@ function editorApp() {
   var parts = p.replace(REPO + "/", "").replace(HOME, "~").split("/"), bc = h("div", { cls: "edbc" }); parts.forEach(function (x, i) { if (i) bc.appendChild(h("span", { cls: "edbs", text: "›" })); if (i === parts.length - 1) bc.appendChild(h("span", { html: edGlyph(x) })); bc.appendChild(h("span", { text: x })); }); if (ro) bc.appendChild(h("span", { cls: "edro", text: "  🔒 Read-only" }));
   main.appendChild(tabs); main.appendChild(bc); main.appendChild(wrap);
   stat.appendChild(pos); stat.appendChild(h("span", { text: "Spaces: 2" })); stat.appendChild(h("span", { text: "UTF-8" })); stat.appendChild(h("span", { text: "LF" })); stat.appendChild(h("span", { text: edLang(p) })); stat.appendChild(save1);
-  root.appendChild(act); if (ED.view) root.appendChild(side); root.appendChild(h("div", { cls: "edcol" }, [main, stat]));
+  root.appendChild(act); if (ED.view) root.appendChild(side); root.appendChild(h("div", { cls: "edcol" }, [main, edTermPanel(), stat]));
   setTimeout(function () { refresh(); if (ED.goto) { var l = ED.goto; ED.goto = 0; var off = 0, ls = ta.value.split("\n"); for (var i = 0; i < l - 1; i++) off += ls[i].length + 1; ta.focus(); ta.setSelectionRange(off, off); ta.scrollTop = Math.max(0, (l - 6) * lh()); refresh(); } }, 0);
   return root;
 }
+
+// Terminal ฝังใต้ editor (Ctrl+J / Ctrl+` เปิด-ปิด): ใช้ Terminal จำลองตัวเดียวกัน
+function edTermPanel() {
+  if (!ED.termOpen) return null;
+  var body = PAGES["term"](); [].slice.call(body.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1,.ic,.card")) body.removeChild(c); });
+  var tabs = ["PROBLEMS", "OUTPUT", "DEBUG CONSOLE", "TERMINAL", "PORTS"].map(function (t) { return h("span", { cls: "edpt" + (t === "TERMINAL" ? " on" : ""), text: t, onclick: function () { if (t !== "TERMINAL") flash("info", t + " ไม่ได้จำลอง"); } }); });
+  return h("div", { cls: "edpanel" }, [h("div", { cls: "edph" }, tabs.concat([h("span", { cls: "edsp" }), h("span", { cls: "edpi", text: "zsh" }), h("button", { type: "button", cls: "edpx", title: "Hide Panel (Ctrl+J)", text: "×", onclick: function () { ED.termOpen = false; render(); } })])), h("div", { cls: "edpb" }, [body])]);
+}
+function edToggleTerm() { var w = DESK.wins.files; if (UI.page !== "desk" || !w.open || w.min) return false; ED.termOpen = !ED.termOpen; if (ED.termOpen) DESK.wins.term.open = false; render(); if (ED.termOpen) setTimeout(function () { var i = document.getElementById("terminp"); if (i) i.focus(); }, 60); return true; }
+document.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === "j" || e.key === "J" || e.key === "`")) { if (edToggleTerm()) e.preventDefault(); } });
