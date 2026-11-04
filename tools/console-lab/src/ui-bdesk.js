@@ -12,8 +12,21 @@ function bdTitle() {
 }
 function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; wbGo(v); }
 function bdSvg(k) { return '<svg viewBox="0 0 16 16" width="16" height="16" class="bdsv">' + (typeof FD_SI !== "undefined" ? FD_SI[k] : "") + "</svg>"; }
+function bdName(u) { var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
+function bdTiles(kind) {
+  var seen = {}, us = bdUrls().filter(function (u) { var n = bdName(u)[0]; if (seen[n]) return false; seen[n] = 1; return true; }).slice(0, 8);
+  return h("div", { cls: "bdtiles " + kind }, us.map(function (u) { var n = bdName(u); return h("button", { type: "button", cls: "bdtile", title: u, onclick: function () { bdGo(u); } }, [h("span", { cls: "bdti", style: "background:" + n[1], text: n[0].charAt(0).toUpperCase() }), h("span", { cls: "bdtn", text: n[0] })]); }));
+}
+function browserStart(kind) {
+  if (kind === "chrome") {
+    var g = "Google".split("").map(function (c, i) { return h("span", { style: "color:" + ["#4285f4", "#ea4335", "#fbbc05", "#4285f4", "#34a853", "#ea4335"][i], text: c }); });
+    var q = h("input", { cls: "bdsq", type: "text", list: "bdurls", placeholder: "Search Google or type a URL", spellcheck: "false", onkeydown: function (e) { if (e.key === "Enter") bdGo(q.value); } });
+    return h("div", { cls: "bdstart chrome" }, [h("div", { cls: "bdlogo" }, g), h("div", { cls: "bdsearch" }, [h("span", { html: bdSvg("search") }), q, h("span", { cls: "bdmic", text: "🎤" })]), bdTiles("chrome"), h("div", { cls: "bdcust", text: "✎ Customize Chrome" })]);
+  }
+  return h("div", { cls: "bdstart safari" }, [h("h3", { text: "Favorites" }), bdTiles("safari"), h("h3", { text: "Privacy Report" }), h("div", { cls: "bdpriv", text: "🛡️  Safari ป้องกันตัวติดตามให้คุณ (จำลอง)" })]);
+}
 function browserApp(kind) {
-  var pg = PAGES.browser(), kids = [].slice.call(pg.children), view = kids[kids.length - 1];
+  var pg = PAGES.browser(), kids = [].slice.call(pg.children), view = W.res ? kids[kids.length - 1] : browserStart(kind);
   var https = /^https:/i.test(W.addr || ""), host = (/^https?:\/\/([^\/]+)/i.exec(W.addr || "") || [0, ""])[1];
   var can = function (d) { return typeof whCan === "function" && whCan(d); };
   var dl = h("datalist", { id: "bdurls" }, bdUrls().map(function (u) { return h("option", { value: u }); }));
