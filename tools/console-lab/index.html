@@ -9011,6 +9011,7 @@ function termHtml(ln) {
   if (m) { var cm = /^(\S+)(.*)$/.exec(m[4]); return '<span class="tu">' + escH(m[1]) + '</span>:<span class="tp">' + escH(m[2]) + '</span><span class="tu">' + escH(m[3]) + "</span> " + (cm ? '<span class="tc">' + escH(cm[1]) + "</span>" + escH(cm[2]) : ""); }
   var e = escH(ln);
   if (/^\s*$/.test(ln)) return e;
+  if (/^bash: .*command not found/.test(ln)) return e; // command not found = ข้อความธรรมดา ไม่หนา ไม่แดง
   if (/^(PLAY|TASK) \[|^PLAY RECAP|^Terraform will perform|^Apply complete|^Plan:|^Outputs:|^Initializing|^Terraform has been successfully/.test(ln)) return /^Apply complete|successfully/.test(ln) ? '<span class="to"><b>' + e + "</b></span>" : /^Plan:/.test(ln) ? '<span class="tw"><b>' + e + "</b></span>" : '<span class="th">' + e + "</span>";
   if (/\bfatal:|FAILED|UNREACHABLE|^Error:|^│ Error|\bError\b|denied|not found|No such file|refused|timed out|Permission denied|failed=[1-9]|unreachable=[1-9]|✗/i.test(ln)) return '<span class="te">' + e + "</span>";
   if (/^(ok|changed|skipping|failed|fatal):|ok=\d+|Creation complete|Destruction complete|SUCCESS|Finished: SUCCESS|\bhealthy\b|✓|Welcome to|Reading state|^\s*\+ /.test(ln)) return /^changed:|^\s*~ /.test(ln) ? '<span class="tw">' + e + "</span>" : '<span class="to">' + e + "</span>";
