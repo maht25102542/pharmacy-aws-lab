@@ -48,7 +48,7 @@ function mgStats() {
 // ตารางเทียบ: เรื่อง | แบบ VM | แบบ managed | ราคา
 var MG_ROWS = [
   ["เข้าเครื่องดูแล", "bastion + SSH key + SG port 22", "SSM Session Manager (ไม่มี port 22)", "SSM ฟรี · bastion t3.micro ประหยัดได้เล็กน้อย", "#475569"],
-  ["Kubernetes", "k3s ×3 HA + dev VM · Ansible ลง/join/ต่อ token", "EKS: AWS ดูแล control plane", "EKS คิดค่า control plane ต่อ cluster เพิ่มจากค่า node (เช็กราคาปัจจุบัน)", "#2f8cff"],
+  ["Kubernetes", "k3s ×3 HA + dev VM · Ansible ลง/join/ต่อ token", "EKS: AWS ดูแล control plane", "EKS คิดค่า control plane ต่อ cluster เพิ่มจากค่า node (เช็กราคาปัจจุบัน)", "#3f9a73"],
   ["ฐานข้อมูล", "Galera ×3 · bootstrap/quorum ดูแลเอง", "RDS MariaDB Multi-AZ (standby + backup ให้)", "แพงกว่า VM ที่ขนาดใกล้กัน (Multi-AZ = จ่ายเครื่องสำรองด้วย) แลกกับไม่ต้องดูแล · เช็กราคาจริงก่อน", "#b45309"],
   ["ออกเน็ตของ private", "NAT gateway ตัวเดียว", "NAT gateway ตัวเดียว (เหมือนเดิม)", "ค่า NAT เท่าเดิม", "#e8590c"],
   ["รหัสผ่าน DB", "ข้อความเปล่าใน `group_vars/all/main.yml`", "Secrets Manager สร้างและหมุนให้", "คิดต่อ secret ต่อเดือน (เล็กน้อย)", "#7c3aed"],
@@ -57,7 +57,7 @@ var MG_ROWS = [
 
 function mgTable() {
   var w = h("div", { style: "overflow-x:auto;margin:0 0 14px" }), tb = h("table", { style: "width:100%;border-collapse:collapse;font-size:.86rem" });
-  tb.appendChild(h("tr", {}, ["เรื่อง", "แบบ VM (terraform/)", "แบบ managed (terraform-managed/)", "ค่าใช้จ่าย / หมายเหตุ"].map(function (t, i) { return h("th", { style: "text-align:left;padding:8px 10px;border-bottom:2px solid var(--accent);color:" + (i === 1 ? "#c62828" : i === 2 ? "#2f8cff" : "inherit"), text: t }); })));
+  tb.appendChild(h("tr", {}, ["เรื่อง", "แบบ VM (terraform/)", "แบบ managed (terraform-managed/)", "ค่าใช้จ่าย / หมายเหตุ"].map(function (t, i) { return h("th", { style: "text-align:left;padding:8px 10px;border-bottom:2px solid var(--accent);color:" + (i === 1 ? "#c62828" : i === 2 ? "#3f9a73" : "inherit"), text: t }); })));
   MG_ROWS.forEach(function (r) {
     tb.appendChild(h("tr", {}, [
       h("td", { style: "padding:8px 10px;border-bottom:1px solid var(--ctl-line);font-weight:700;border-left:4px solid " + r[4], text: r[0] }),
@@ -84,7 +84,7 @@ function mgCompare() {
   };
   box.appendChild(h("div", { style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px" }, [
     side("แบบ VM (เราดูแลเอง)", "#c62828", cur[2], cur[4], "ภาระที่เราต้องทำ"),
-    side("แบบ managed (AWS ดูแลให้)", "#2f8cff", cur[3], cur[5], "AWS ทำให้")
+    side("แบบ managed (AWS ดูแลให้)", "#3f9a73", cur[3], cur[5], "AWS ทำให้")
   ]));
   return box;
 }
@@ -107,36 +107,36 @@ function mgAnim() {
   var tx = function (x, y, t, o) { o = o || {}; return sv("text", { x: x, y: y, "font-size": o.sz || 12, "font-weight": o.b ? 700 : 400, fill: o.c || "currentColor", "text-anchor": o.a || "start" }, [t]); };
   var rows = [
     ["เข้าเครื่อง", "bastion + SSH :22 + key pair", "SSM Session Manager · ไม่มี port 22", "#475569"],
-    ["Kubernetes", "k3s ×3 (เรา join/อัปเกรด) + dev VM", "EKS · AWS ดูแล control plane", "#2f8cff"],
+    ["Kubernetes", "k3s ×3 (เรา join/อัปเกรด) + dev VM", "EKS · AWS ดูแล control plane", "#3f9a73"],
     ["ฐานข้อมูล", "Galera ×3 (เรา bootstrap/ตรวจ quorum)", "RDS Multi-AZ · primary + standby", "#b45309"],
     ["ต่อ ALB", "ผูก node ทีละเครื่อง", "ผูกกับ Auto Scaling group", "#c0392b"],
     ["ล่ม 1 AZ", "คนต้องเข้าไปดู/แก้", "สลับให้เองอัตโนมัติ", "#c62828"]
   ], y0 = 64, rh = 70, boxes = [], cap = h("div", { style: "min-height:5em;margin:8px 0" }), lay = {};
-  svg.appendChild(tx(40, 28, "แบบ VM (terraform/)", { b: 1, c: "#c62828", sz: 14 })); svg.appendChild(tx(560, 28, "แบบ managed (terraform-managed/)", { b: 1, c: "#2f8cff", sz: 14 }));
+  svg.appendChild(tx(40, 28, "แบบ VM (terraform/)", { b: 1, c: "#c62828", sz: 14 })); svg.appendChild(tx(560, 28, "แบบ managed (terraform-managed/)", { b: 1, c: "#3f9a73", sz: 14 }));
   rows.forEach(function (r, i) {
     var y = y0 + i * rh, g = sv("g", {}, []);
     g.appendChild(tx(40, y + 4, r[0], { b: 1, sz: 11, c: r[3] }));
     g.appendChild(sv("rect", { x: 40, y: y + 10, width: 440, height: 46, rx: 9, fill: "rgba(198,40,40,.07)", stroke: "#c62828", "stroke-width": 1.5 }));
     g.appendChild(tx(54, y + 38, r[1], { sz: 12 }));
     g.appendChild(sv("path", { d: "M486 " + (y + 33) + " L546 " + (y + 33), stroke: r[3], "stroke-width": 2.5, "marker-end": "url(#mgar)" }));
-    g.appendChild(sv("rect", { x: 560, y: y + 10, width: 440, height: 46, rx: 9, fill: "rgba(29,129,2,.08)", stroke: "#2f8cff", "stroke-width": 1.5 }));
+    g.appendChild(sv("rect", { x: 560, y: y + 10, width: 440, height: 46, rx: 9, fill: "rgba(29,129,2,.08)", stroke: "#3f9a73", "stroke-width": 1.5 }));
     g.appendChild(tx(574, y + 38, r[2], { sz: 12 }));
     g.style.transition = "opacity .5s"; g.style.opacity = ".18"; svg.appendChild(g); boxes.push(g); lay[i] = y;
   });
   svg.insertBefore(sv("defs", {}, [sv("marker", { id: "mgar", viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" }, [sv("path", { d: "M0 0 L10 5 L0 10 z", fill: "#64748b" })])]), svg.firstChild);
-  var fail = sv("g", {}, [sv("rect", { x: 40, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#c62828", "stroke-width": 3, "stroke-dasharray": "6 4" }), sv("rect", { x: 560, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#2f8cff", "stroke-width": 3 })]);
+  var fail = sv("g", {}, [sv("rect", { x: 40, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#c62828", "stroke-width": 3, "stroke-dasharray": "6 4" }), sv("rect", { x: 560, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#3f9a73", "stroke-width": 3 })]);
   fail.style.opacity = "0"; fail.style.transition = "opacity .4s"; svg.appendChild(fail);
   function light(n) { boxes.forEach(function (g, i) { g.style.opacity = i === n ? "1" : (n === -1 ? ".18" : ".35"); }); }
   var SC = [
-    [0, [["แบบ VM", "#c62828", "ต้องมี **bastion** (เครื่องที่เปิด :22 ให้ My IP) ทุกคนใช้ key pair ร่วมกัน · ถอดคนออก = เปลี่ยนกุญแจทั้งชุด"], ["แบบ managed", "#2f8cff", "เครื่องติด **IAM role + SSM agent** · เข้าด้วย `aws ssm start-session` ไม่เปิด port ใดเลย · สิทธิ์ผูกกับ IAM ของแต่ละคน และมี log"]]],
-    [1, [["แบบ VM", "#c62828", "`ansible/k8s.yml` ลง k3s, `--cluster-init`, join, ต่อ token ECR ทุก 12 ชม. · อัปเกรดเวอร์ชัน = ทำเอง"], ["แบบ managed", "#2f8cff", "`aws_eks_cluster` + `aws_eks_node_group` · AWS ดูแล **control plane** (API server, etcd) · node ดึง image ECR ด้วย IAM role ไม่มี token หมดอายุ"]]],
-    [2, [["แบบ VM", "#c62828", "Galera 3 node · **เรา** bootstrap, join, ตรวจ quorum, backup, patch · backend ต่อผ่าน Service ที่สุ่ม node (ไม่มี health check)"], ["แบบ managed", "#2f8cff", "`aws_db_instance` `multi_az = true` · มี **standby** อีก AZ · backup 7 วัน · รหัสผ่านใน **Secrets Manager** (ไม่เป็นข้อความเปล่าอีก)"]]],
-    [3, [["แบบ VM", "#c62828", "`aws_lb_target_group_attachment` ทีละเครื่อง · เพิ่ม/เปลี่ยนเครื่อง = แก้ Terraform แล้ว apply"], ["แบบ managed", "#2f8cff", "`aws_autoscaling_attachment` ผูกกับ ASG ของ node · node ใหม่ลงทะเบียนเข้า ALB เอง"]]],
-    [4, [["AZ a ล่ม — แบบ VM", "#c62828", "k8s ยังรอด 2/3 และ DB 2/3 แต่ **คนต้องตามดู** (node หาย, Jenkins/bastion หาย, NAT หาย)"], ["AZ a ล่ม — แบบ managed", "#2f8cff", "RDS **สลับ standby** อัตโนมัติ 1-2 นาที · EKS ย้าย pod ไป node AZ อื่น · ASG สร้าง node ใหม่ · ข้อจำกัดเดียวกัน: NAT ตัวเดียวยังเป็นจุดอ่อน"]]]
+    [0, [["แบบ VM", "#c62828", "ต้องมี **bastion** (เครื่องที่เปิด :22 ให้ My IP) ทุกคนใช้ key pair ร่วมกัน · ถอดคนออก = เปลี่ยนกุญแจทั้งชุด"], ["แบบ managed", "#3f9a73", "เครื่องติด **IAM role + SSM agent** · เข้าด้วย `aws ssm start-session` ไม่เปิด port ใดเลย · สิทธิ์ผูกกับ IAM ของแต่ละคน และมี log"]]],
+    [1, [["แบบ VM", "#c62828", "`ansible/k8s.yml` ลง k3s, `--cluster-init`, join, ต่อ token ECR ทุก 12 ชม. · อัปเกรดเวอร์ชัน = ทำเอง"], ["แบบ managed", "#3f9a73", "`aws_eks_cluster` + `aws_eks_node_group` · AWS ดูแล **control plane** (API server, etcd) · node ดึง image ECR ด้วย IAM role ไม่มี token หมดอายุ"]]],
+    [2, [["แบบ VM", "#c62828", "Galera 3 node · **เรา** bootstrap, join, ตรวจ quorum, backup, patch · backend ต่อผ่าน Service ที่สุ่ม node (ไม่มี health check)"], ["แบบ managed", "#3f9a73", "`aws_db_instance` `multi_az = true` · มี **standby** อีก AZ · backup 7 วัน · รหัสผ่านใน **Secrets Manager** (ไม่เป็นข้อความเปล่าอีก)"]]],
+    [3, [["แบบ VM", "#c62828", "`aws_lb_target_group_attachment` ทีละเครื่อง · เพิ่ม/เปลี่ยนเครื่อง = แก้ Terraform แล้ว apply"], ["แบบ managed", "#3f9a73", "`aws_autoscaling_attachment` ผูกกับ ASG ของ node · node ใหม่ลงทะเบียนเข้า ALB เอง"]]],
+    [4, [["AZ a ล่ม — แบบ VM", "#c62828", "k8s ยังรอด 2/3 และ DB 2/3 แต่ **คนต้องตามดู** (node หาย, Jenkins/bastion หาย, NAT หาย)"], ["AZ a ล่ม — แบบ managed", "#3f9a73", "RDS **สลับ standby** อัตโนมัติ 1-2 นาที · EKS ย้าย pod ไป node AZ อื่น · ASG สร้าง node ใหม่ · ข้อจำกัดเดียวกัน: NAT ตัวเดียวยังเป็นจุดอ่อน"]]]
   ];
   function say(i) { cap.textContent = ""; cap.appendChild(h("h3", { style: "margin:4px 0 8px", text: (i + 1) + ". " + rows[i][0] })); cap.appendChild(infoCard(SC[i][1])); fail.style.opacity = i === 4 ? "1" : "0"; light(i); }
   function reset() { light(-1); fail.style.opacity = "0"; cap.textContent = ""; cap.appendChild(infoCard([["ดูอะไร", "#2563eb", "กด ==▶ เล่น== เพื่อดูทีละเรื่อง: **เข้าเครื่อง → Kubernetes → ฐานข้อมูล → ต่อ ALB → ล่ม 1 AZ**"]])); }
-  var P = jkxPlayer(reset, function (P) { P.start(SC.map(function (s, i) { return [i === 0 ? 400 : 2600, function () { say(i); }]; }).concat([[2600, function () { light(-1); fail.style.opacity = "0"; cap.appendChild(infoCard([["สรุป", "#2f8cff", "แบบ managed **ลดงานที่ต้องดูแลเอง** (ไม่มี bastion, k3s, Galera) แต่ **จ่ายแพงกว่า** และผูกกับ AWS · ฝึกเข้าใจข้างในด้วยแบบ VM ก่อน แล้วใช้แบบ managed ตอนทำจริง"]])); }]])); }, "▶ เล่น: เทียบทีละเรื่อง");
+  var P = jkxPlayer(reset, function (P) { P.start(SC.map(function (s, i) { return [i === 0 ? 400 : 2600, function () { say(i); }]; }).concat([[2600, function () { light(-1); fail.style.opacity = "0"; cap.appendChild(infoCard([["สรุป", "#3f9a73", "แบบ managed **ลดงานที่ต้องดูแลเอง** (ไม่มี bastion, k3s, Galera) แต่ **จ่ายแพงกว่า** และผูกกับ AWS · ฝึกเข้าใจข้างในด้วยแบบ VM ก่อน แล้วใช้แบบ managed ตอนทำจริง"]])); }]])); }, "▶ เล่น: เทียบทีละเรื่อง");
   var wrap = h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, P.ctl), cap, svg]);
   reset(); return wrap;
 }
@@ -148,7 +148,7 @@ function mgSystem() {
   var W = 1040, H = 760, svg = sv("svg", { viewBox: "0 0 " + W + " " + H, width: "100%", style: "max-width:1040px;font-family:inherit", role: "img", "aria-label": "แผนภาพการเชื่อมต่อทุกส่วนของระบบแบบ managed" });
   var tx = function (x, y, t, o) { o = o || {}; return sv("text", { x: x, y: y, "font-size": o.sz || 11, "font-weight": o.b ? 700 : 400, fill: o.c || "currentColor", "text-anchor": o.a || "start" }, [t]); };
   var bx = function (x, y, w, hh, fill, stroke, dash, sw) { return sv("rect", { x: x, y: y, width: w, height: hh, rx: 8, fill: fill, stroke: stroke, "stroke-width": sw || 1.6, "stroke-dasharray": dash || null }); };
-  var N = {}, lines = [], COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#2f8cff" };
+  var N = {}, lines = [], COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#3f9a73" };
   // node(id, x, y, w, h, title, sub, color, dashed)
   function node(id, x, y, w, hh, t, sub, col, dash) { var h2 = hh;
     var g = sv("g", {}, [bx(x, y, w, hh, "#fff", col, dash), tx(x + w / 2, y + 16, t, { a: "middle", b: 1, c: col, sz: 11 })]);
@@ -178,7 +178,7 @@ function mgSystem() {
   node("free", COL.c + 10, 496, 290, 154, "ว่าง", "เพิ่ม node / replica ได้ตรงนี้ (ASG กระจายให้)", "#94a3b8", "5 4");
   // ----- นอก VPC: บริการที่ AWS ดูแล + คน -----
   node("users", 20, 20, 110, 60, "ผู้ใช้เว็บ", "อินเทอร์เน็ต", "#2a4a7a"); node("admin", 150, 20, 120, 60, "ผู้ดูแล (เรา)", "laptop · IAM + My IP", "#475569");
-  node("ssm", 290, 20, 130, 60, "SSM", "Session Manager", "#475569"); node("eks", 440, 20, 170, 60, "EKS control plane", "API server + etcd (AWS ดูแล)", "#2f8cff");
+  node("ssm", 290, 20, 130, 60, "SSM", "Session Manager", "#475569"); node("eks", 440, 20, 170, 60, "EKS control plane", "API server + etcd (AWS ดูแล)", "#3f9a73");
   node("ecr", 630, 20, 110, 60, "ECR", "image ของเรา", "#e8590c"); node("sec", 760, 20, 120, 60, "Secrets Manager", "รหัสผ่าน DB", "#7c3aed"); node("gh", 900, 20, 120, 60, "GitHub", "3 repo", "#334155");
   // ----- เส้นเชื่อม: [ฉากที่ใช้, จุด, สี, ป้าย, ตำแหน่งป้าย] -----
   function link(sc, pts, col, label, lx, ly, dash) {
@@ -186,7 +186,7 @@ function mgSystem() {
     if (label) g.appendChild(tx(lx, ly, label, { sz: 9, b: 1, c: col, a: "middle" }));
     g.style.opacity = "0"; g.style.transition = "opacity .4s"; svg.appendChild(g); lines.push({ sc: sc, g: g, pts: pts });
   }
-  var defs = sv("defs", {}, []), cols = ["#2563eb", "#7c3aed", "#475569", "#2f8cff", "#c0392b", "#b45309", "#e8590c"];
+  var defs = sv("defs", {}, []), cols = ["#2563eb", "#7c3aed", "#475569", "#3f9a73", "#c0392b", "#b45309", "#e8590c"];
   cols.forEach(function (c) { defs.appendChild(sv("marker", { id: "mgs-" + c.slice(1), viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto" }, [sv("path", { d: "M0 0 L10 5 L0 10 z", fill: c })])); }); svg.insertBefore(defs, svg.firstChild);
   var B = N.alb, FEb = N.podbFE, BEc = N.podcBE, P = N.rdsP;
   // 0 ผู้ใช้เข้าเว็บ
@@ -200,8 +200,8 @@ function mgSystem() {
   link([1], [[N.jenkins.x, 620], [30, 620], [30, 264], [200, 264]], "#475569", "SSM agent ออกไปหา SSM", 150, 584, "5 4");
   link([1], [[210, 236], [210, 112], [330, 112], [330, 80]], "#475569", "ผ่าน NAT → IGW", 270, 124, "5 4");
   // 2 kubectl
-  link([2], [[230, 80], [230, 108], [525, 108], [525, 80]], "#2f8cff", "kubectl · :443 (เฉพาะ My IP)", 380, 124);
-  link([2], [[560, 80], [560, 330], [N.nodeb.cx + 60, 330], [N.nodeb.cx + 60, 346]], "#2f8cff", "ENI ใน private subnet", 640, 326, "5 4");
+  link([2], [[230, 80], [230, 108], [525, 108], [525, 80]], "#3f9a73", "kubectl · :443 (เฉพาะ My IP)", 380, 124);
+  link([2], [[560, 80], [560, 330], [N.nodeb.cx + 60, 330], [N.nodeb.cx + 60, 346]], "#3f9a73", "ENI ใน private subnet", 640, 326, "5 4");
   // 3 CI/CD
   link([3], [[960, 80], [960, 120], [N.jenkins.cx + 30, 120], [N.jenkins.cx + 30, 590]], "#c0392b", "tag → build", 985, 300, "");
   link([3], [[N.jenkins.x + N.jenkins.w, 620], [N.sonar.x, 620]], "#0f766e", ":9000 scan", 340, 612);
@@ -225,11 +225,11 @@ function mgSystem() {
   function show(sc) { cur = sc; lines.forEach(function (l) { l.g.style.opacity = l.sc.indexOf(sc) >= 0 ? "1" : "0"; }); fail.style.opacity = sc === 5 ? "1" : "0"; failPub.style.opacity = sc === 5 ? "1" : "0"; Object.keys(N).forEach(function (k) { N[k].g.style.opacity = sc === 5 && /^(nodea|poda|rdsP|jenkins|nat)/.test(k) ? ".35" : "1"; }); }
   var SC = [
     ["ผู้ใช้เข้าเว็บ", [["ทางเดิน", "#2563eb", "**ผู้ใช้ → IGW → ALB :80 → node :30080 (FE) → Service backend (BE) → RDS :3306**"], ["จุดสังเกต", "#7c3aed", "ผู้ใช้เห็นแค่ **ALB** · node และ DB ไม่มี public IP · SG ของ node รับ NodePort จาก **SG ของ ALB** เท่านั้น"]]],
-    ["เข้าเครื่อง (SSM)", [["ทางเดิน", "#475569", "เราสั่ง `aws ssm start-session` (ยืนยันด้วย **IAM**) → SSM → **agent บนเครื่อง** ที่ต่อออกไปหา SSM เอง ผ่าน NAT → IGW"], ["ไม่มีขาเข้า", "#2f8cff", "**ไม่เปิด port 22 เลย** · เครื่องไม่มี public IP · ถอนสิทธิ์ IAM = เข้าไม่ได้ทันที · เปิด Jenkins ด้วย port-forward `localhost:8080`"]]],
-    ["kubectl", [["ทางเดิน", "#2f8cff", "laptop → **EKS API :443** (เปิดเฉพาะ `my_ip` ใน `public_access_cidrs`) · control plane คุยกับ node ผ่าน **ENI ใน private subnet**"], ["ใครดูแล", "#2f8cff", "control plane (API + etcd) อยู่นอก VPC และ **AWS ดูแลให้** ไม่มีเครื่องให้ลง/อัปเกรด"]]],
+    ["เข้าเครื่อง (SSM)", [["ทางเดิน", "#475569", "เราสั่ง `aws ssm start-session` (ยืนยันด้วย **IAM**) → SSM → **agent บนเครื่อง** ที่ต่อออกไปหา SSM เอง ผ่าน NAT → IGW"], ["ไม่มีขาเข้า", "#3f9a73", "**ไม่เปิด port 22 เลย** · เครื่องไม่มี public IP · ถอนสิทธิ์ IAM = เข้าไม่ได้ทันที · เปิด Jenkins ด้วย port-forward `localhost:8080`"]]],
+    ["kubectl", [["ทางเดิน", "#3f9a73", "laptop → **EKS API :443** (เปิดเฉพาะ `my_ip` ใน `public_access_cidrs`) · control plane คุยกับ node ผ่าน **ENI ใน private subnet**"], ["ใครดูแล", "#3f9a73", "control plane (API + etcd) อยู่นอก VPC และ **AWS ดูแลให้** ไม่มีเครื่องให้ลง/อัปเกรด"]]],
     ["CI/CD", [["ทางเดิน", "#c0392b", "tag ใน GitHub → **Jenkins** → SonarQube :9000 → `docker push` **ECR** → แก้ `image:` ใน manifests → **ArgoCD** (ใน cluster) ดึง manifests แล้วอัปเดต"], ["ดึง image", "#e8590c", "node ดึง image จาก ECR ด้วย **IAM role ของ node** (ไม่มี token หมดอายุ 12 ชม. เหมือนแบบ VM)"]]],
     ["รหัสผ่านและ DB", [["รหัสผ่าน", "#7c3aed", "รหัสผ่าน DB อยู่ใน **Secrets Manager** (หมุนให้) · เราสร้าง Secret `db-credentials` ใน cluster จากค่านี้ (**ต้องทำเอง**)"], ["Multi-AZ", "#b45309", "RDS **primary ซิงก์ทุกการเขียนไป standby** คนละ AZ · แอปต่อที่ endpoint เดียว ไม่ต้องรู้ว่าตัวไหนเป็น writer"]]],
-    ["AZ a ล่ม", [["สิ่งที่เกิด", "#c62828", "node AZ a, **RDS primary**, Jenkins และ **NAT** หายพร้อมกัน"], ["ที่รอด", "#2f8cff", "RDS **สลับ standby** (AZ b) เป็น writer อัตโนมัติ · pod ย้ายไป node AZ b/c · ALB ตัด node ที่ตายออก"], ["ที่หาย", "#c62828", "**Jenkins** และ **NAT** อยู่ AZ a ตัวเดียว → build ไม่ได้ · private ออกเน็ตไม่ได้ (ข้อจำกัดของ lab เพื่อประหยัด)"]]]
+    ["AZ a ล่ม", [["สิ่งที่เกิด", "#c62828", "node AZ a, **RDS primary**, Jenkins และ **NAT** หายพร้อมกัน"], ["ที่รอด", "#3f9a73", "RDS **สลับ standby** (AZ b) เป็น writer อัตโนมัติ · pod ย้ายไป node AZ b/c · ALB ตัด node ที่ตายออก"], ["ที่หาย", "#c62828", "**Jenkins** และ **NAT** อยู่ AZ a ตัวเดียว → build ไม่ได้ · private ออกเน็ตไม่ได้ (ข้อจำกัดของ lab เพื่อประหยัด)"]]]
   ];
   function say(i) { cap.textContent = ""; cap.appendChild(h("h3", { style: "margin:4px 0 8px", text: (i + 1) + ". " + SC[i][0] })); cap.appendChild(infoCard(SC[i][1])); show(i); }
   var PATH = [
@@ -244,7 +244,7 @@ function mgSystem() {
   var PL = jkxPlayer(reset, function (PL) {
     var st = [];
     SC.forEach(function (s, i) { st.push([i === 0 ? 400 : 1200, function () { hidePk(); say(i); }]); PATH[i].forEach(function (p) { st.push([800, function () { mv(p[0], p[1], p[2]); }]); }); });
-    st.push([1200, function () { hidePk(); show(-1); cap.appendChild(infoCard([["สรุป", "#2f8cff", "ทุกอย่างคุยกันผ่าน **SG ที่อ้างกันเอง** · ทางเข้ามี 2 ทาง: **ALB** (ผู้ใช้) และ **IAM/SSM** (ผู้ดูแล) · ส่วนที่เหลือไม่มี public IP"]])); }]);
+    st.push([1200, function () { hidePk(); show(-1); cap.appendChild(infoCard([["สรุป", "#3f9a73", "ทุกอย่างคุยกันผ่าน **SG ที่อ้างกันเอง** · ทางเข้ามี 2 ทาง: **ALB** (ผู้ใช้) และ **IAM/SSM** (ผู้ดูแล) · ส่วนที่เหลือไม่มี public IP"]])); }]);
     PL.start(st);
   }, "▶ เล่น: ดูการเชื่อมต่อ");
   var wrap = h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, PL.ctl), cap, svg]);
@@ -259,13 +259,13 @@ function managedTab() {
   var cb = h("div", { cls: "cb" });
   cb.appendChild(infoCard([
     ["ทำอะไร", "#2b6cb0", "เทียบระบบ **แบบ VM** (ที่ lab นี้ใช้เรียนรู้) กับ **แบบ managed** ที่ใช้ทำจริง: **EKS + RDS + SSM** · โค้ดจริงอยู่ที่ `terraform-managed/`"],
-    ["เหมือนกัน", "#2f8cff", "เครือข่าย 3 AZ, public/private, NAT, ALB, ECR, Jenkinsfile, repo-manifests, ArgoCD"],
+    ["เหมือนกัน", "#3f9a73", "เครือข่าย 3 AZ, public/private, NAT, ALB, ECR, Jenkinsfile, repo-manifests, ArgoCD"],
     ["เปลี่ยน", "#c0392b", "bastion → **SSM** · k3s ×3 + dev → **EKS** · Galera ×3 → **RDS Multi-AZ** · target group ผูกกับ **ASG**"],
     ["สถานะโค้ด", "#b45309", "ผ่าน `terraform validate` แล้ว · **ยังไม่เคย apply บน AWS จริง** (account ระงับ) คาดว่าเจอ error ตอนรันครั้งแรก · ต้องลง ArgoCD และสร้าง Secret ของ DB เอง"]
   ]));
   cb.appendChild(infoCard([
     ["ลองจริง (กดสร้าง)", "#7c3aed", "โหลดตัวอย่างแล้วไปกดดูที่แถบ **EKS / RDS / SSM** (หน้าตาแบบ AWS console) · ของที่กดสร้างถูกแปลงเป็นโค้ด Terraform ที่ Lab › Terraform และตรวจกับโค้ดจริงที่ Lab › ตรวจกับ Terraform"],
-    ["ลองจริง (Terminal)", "#2f8cff", "เปิด Laptop › Terminal แล้วรัน **terraform-managed/** ได้เลย (สร้าง 57 resource) ตามคำสั่งด้านล่าง"]]));
+    ["ลองจริง (Terminal)", "#3f9a73", "เปิด Laptop › Terminal แล้วรัน **terraform-managed/** ได้เลย (สร้าง 57 resource) ตามคำสั่งด้านล่าง"]]));
   cb.appendChild(h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px" }, [["managed", "โหลด Managed ครบทั้งชุด"], ["managed-base", "เตรียมเครือข่าย แล้วสร้าง EKS/RDS เอง"], ["managed-badrole", "ล้ม: node ไม่ join (role ขาด policy)"], ["managed-nonat", "ล้ม: private ไม่มี NAT (SSM ออฟไลน์)"]].map(function (b) {
     return h("button", { cls: "btn" + (b[0] === "managed" ? " pri" : ""), type: "button", text: b[1], onclick: function () { try { buildManaged(b[0]); UI.sel = {}; UI.form = null; flash("ok", "โหลด '" + b[1] + "' แล้ว"); go(b[0] === "managed-base" ? "eks-create" : "eks", {}, "EKS"); } catch (e) { flash("bad", "โหลดไม่สำเร็จ: " + e.message); render(); } } });
   })));

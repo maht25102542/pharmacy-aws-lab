@@ -17,7 +17,7 @@ var COSTD = {
     ["ดูว่าเงินไปไหน: Cost Explorer", "#2b6cb0", "Billing › **Cost Explorer** กรอง Group by `Service` แล้วลง `Usage type` เช่น `NatGateway-Hours`, `LoadBalancerUsage`, `PublicIPv4:InUseAddress` · เปิดครั้งแรกรอข้อมูล ~24 ชม. และข้อมูลช้าราว 1 วัน (ไม่ใช่ real-time)"],
     ["Tag ทุก resource", "#6d28d9", "ใส่ tag `Project=pharmacy-lab` ทุก resource (Terraform: `default_tags` ใน provider \"aws\") แล้ว **activate cost allocation tag** ที่ Billing › Cost allocation tags (มีผลหลัง ~24 ชม.) → กรอง Cost Explorer ตาม tag ได้"],
     ["จับค่าผิดปกติ: Cost Anomaly Detection", "#a85a00", "Billing › **Cost Anomaly Detection** สร้าง monitor (ฟรี) + subscription อีเมล · จับกรณี bill พุ่งผิดปกติเช่น Lambda วนลูป, NAT ส่งข้อมูลเยอะ"],
-    ["Free tier ไม่ครอบทุกอย่าง", "#2f8cff", "Billing › **Free Tier** ดูการใช้เทียบโควต้า · แบบ 12 เดือนแรก (EC2 t3.micro ฯลฯ) กับแบบ always-free (Lambda 1 ล้านครั้ง/เดือน, DynamoDB 25 GB) · **NAT, ALB, RDS Multi-AZ, EKS ไม่อยู่ในฟรีเทียร์ของ lab ใหญ่** และ public IPv4 คิดเงินตั้งแต่ ก.พ. 2024"],
+    ["Free tier ไม่ครอบทุกอย่าง", "#3f9a73", "Billing › **Free Tier** ดูการใช้เทียบโควต้า · แบบ 12 เดือนแรก (EC2 t3.micro ฯลฯ) กับแบบ always-free (Lambda 1 ล้านครั้ง/เดือน, DynamoDB 25 GB) · **NAT, ALB, RDS Multi-AZ, EKS ไม่อยู่ในฟรีเทียร์ของ lab ใหญ่** และ public IPv4 คิดเงินตั้งแต่ ก.พ. 2024"],
     ["ทำเสร็จต้องลบ", "#c62828", "`terraform destroy` ทุกครั้ง แล้วไล่ตรวจของตกค้างที่ยังคิดเงิน: NAT gateway, Elastic IP ที่ไม่ผูก, ALB, RDS (และ snapshot สุดท้าย), EBS volume/snapshot, CloudWatch log group, S3 bucket, ECR image · ใช้ **Tag Editor / Resource Explorer** หาด้วย tag Project"],
     ["กัน bill shock จาก key รั่ว", "#a85a00", "อย่าเก็บ access key ใน repo (บอทสแกน GitHub เจอแล้วขุดเหรียญ bill หลักแสนได้) · ใช้ role/OIDC แทน (ดู use case 5) · เปิด MFA ที่ root · ตั้ง Budget + Anomaly Detection ไว้เสมอ"],
     ["ที่อยู่ของหน้า Billing", "#2b6cb0", "คอนโซล › ชื่อบัญชีมุมขวาบน › **Billing and cost management**: Bills (บิลรายเดือนแยกบริการ) · Payments · Cost Explorer · Budgets · Cost Anomaly Detection · Cost allocation tags · Free Tier · Savings Plans"]
@@ -138,7 +138,7 @@ var COSTD = {
 function costSum(items) { var hr = 0, mo = 0; items.forEach(function (x) { if (x.k === "hr") hr += x.r * x.q; if (x.k === "mo") mo += x.r * x.q; }); return { hr: hr, month: hr * COST_HRS + mo, perHours: function (n) { return hr * n + mo * (n / COST_HRS); } }; }
 
 // ตัดสินว่า "ราคานี้ถูก/ปกติ/แพง" เทียบเกณฑ์ของระบบประเภทเดียวกัน (กฎคร่าวๆ ไม่ใช่ราคาตลาดจริง)
-var COST_LV = [["ถูกมาก", "#1f7ae0", "#4aa8ff"], ["ถูก", "#2f8cff", "#6fd0ff"], ["ปกติ", "#a07300", "#ffd23f"], ["แพง", "#c2501c", "#f59a5a"], ["แพงเกินไป", "#c8321f", "#f4573f"]]; // [ชื่อ, สีตัวอักษร, สีเติม] ไล่เขียว→แดง
+var COST_LV = [["ถูกมาก", "#0e8a55", "#52b088"], ["ถูก", "#2f8f1c", "#7ddc3c"], ["ปกติ", "#a07300", "#ffd23f"], ["แพง", "#c2501c", "#f59a5a"], ["แพงเกินไป", "#c8321f", "#f4573f"]]; // [ชื่อ, สีตัวอักษร, สีเติม] ไล่เขียว→แดง
 function costVerdict(monthUsd, bench) { var i = 0; while (i < bench.length && monthUsd >= bench[i]) i++; return { i: i, label: COST_LV[i][0], color: COST_LV[i][1], fill: COST_LV[i][2] }; }
 function costLabVerdict(fourHrUsd) { var b = fourHrUsd * COST_THB; return b < 5 ? COST_LV[0] : b < 60 ? COST_LV[1] : b < 300 ? COST_LV[2] : b < 1000 ? COST_LV[3] : COST_LV[4]; }
 COSTD.uc.jkpush = COSTD.uc.jk; // use case 10 ใช้เครื่องชุดเดียวกับ use case 9 (Jenkins + SonarQube + ECR)
