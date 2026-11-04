@@ -1331,7 +1331,7 @@ function termApplyTheme() {
 function escH(x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function termHtml(ln) {
   var m = /^([A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+):([^$#]*)([$#]) ?(.*)$/.exec(ln);
-  if (m) { var cm = /^(\S+)(.*)$/.exec(m[4]); return '<span class="tu">' + escH(m[1]) + '</span>:<span class="tp">' + escH(m[2]) + "</span>" + escH(m[3]) + " " + (cm ? '<span class="tc">' + escH(cm[1]) + "</span>" + escH(cm[2]) : ""); }
+  if (m) { var cm = /^(\S+)(.*)$/.exec(m[4]); return '<span class="tu">' + escH(m[1]) + '</span>:<span class="tp">' + escH(m[2]) + '</span><span class="tu">' + escH(m[3]) + "</span> " + (cm ? '<span class="tc">' + escH(cm[1]) + "</span>" + escH(cm[2]) : ""); }
   var e = escH(ln);
   if (/^\s*$/.test(ln)) return e;
   if (/^(PLAY|TASK) \[|^PLAY RECAP|^Terraform will perform|^Apply complete|^Plan:|^Outputs:|^Initializing|^Terraform has been successfully/.test(ln)) return /^Apply complete|successfully/.test(ln) ? '<span class="to"><b>' + e + "</b></span>" : /^Plan:/.test(ln) ? '<span class="tw"><b>' + e + "</b></span>" : '<span class="th">' + e + "</span>";
