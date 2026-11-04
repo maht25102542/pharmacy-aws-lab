@@ -47,7 +47,7 @@ function go(page, params, svc) {
   if (svc) UI.svc = svc; else if (!navHas(UI.svc, page)) { for (var s in NAV) if (navHas(s, page)) { UI.svc = s; break; } }
   render();
 }
-function flash(kind, msg) { UI.banner = { kind: kind, msg: msg }; }
+function flash(kind, msg) { UI.banner = { kind: kind, msg: msg }; if (UI.page === "desk") setTimeout(function () { if (UI.banner) render(); }, 0); } // บน Desktop แจ้งเตือนเป็นป้ายลอย (ไม่ดันหน้า) จึงต้อง render เอง
 
 // ---- ไอคอน SVG (วาดเอง เส้นง่ายๆ ไม่ใช้ asset ของ AWS) ใช้ innerHTML กับสตริงตายตัวเท่านั้น
 var ICONS = {
@@ -86,6 +86,7 @@ function render() {
     });
   });
   var m = document.getElementById("main"); m.textContent = "";
+  if (UI.banner && UI.page === "desk") { DESK.toast = { kind: UI.banner.kind, msg: UI.banner.msg, t: Date.now() }; UI.banner = null; }
   if (UI.banner) { var awsSvc = /^(VPC|EC2|IAM|ECR|EKS|RDS|SSM|S3|CloudFront|Route 53|ACM|ECS|CloudWatch|Lambda|API Gateway|DynamoDB|CodePipeline|CodeBuild|App Runner)$/.test(UI.svc); m.appendChild(UI.banner.kind === "ok" && awsSvc ? h("div", { cls: "sb", role: "status" }, [icoEl("check", 18), UI.banner.msg]) : h("div", { cls: "alert " + UI.banner.kind, text: UI.banner.msg, role: "status" })); UI.banner = null; }
   var P = PAGES[UI.page];
   // หน้าใดหน้าหนึ่งพัง (เช่น state เก่าใน sessionStorage ไม่ตรงรูปแบบใหม่) ต้องไม่ทำให้ทั้งหน้าว่าง: แสดงข้อผิดพลาด + ปุ่มล้าง state

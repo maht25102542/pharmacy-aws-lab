@@ -1247,6 +1247,9 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .fdtb { padding: 0 14px; height: 44px; gap: 10px; background: #fff; border-bottom: 0; cursor: grab; } .fdnbg { display: inline-flex; background: #f1f1f4; border-radius: 9px; overflow: hidden; } .fdnb { width: 30px; height: 28px; border: 0; border-radius: 0; background: transparent; color: #3a3a40; display: grid; place-items: center; padding: 0; } .fdnb:disabled { opacity: .3; } .fdnb + .fdnb { border-left: 1px solid #e0e0e6; } .fdtt { font-size: .92rem; font-weight: 700; margin-left: 4px; }
 .fdvw { width: 30px; height: 28px; display: grid; place-items: center; background: #f1f1f4; border-radius: 9px; color: #5a5a60; } .fdsr { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 28px; border: 0; border-radius: 9px; background: #f1f1f4; color: #8c8c93; font-size: .78rem; min-width: 150px; }
 .fdpb, .fdst { background: #fff; }
+.dtoast { position: absolute; z-index: 9500; top: 36px; right: 12px; width: 300px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 16px; background: rgba(246,246,250,.86); backdrop-filter: blur(24px) saturate(1.6); box-shadow: 0 10px 30px rgba(0,0,0,.28), 0 0 0 .5px rgba(0,0,0,.15); color: #1d1d1f; pointer-events: none; animation-duration: .25s, .4s; animation-fill-mode: both, forwards; } .dtoast b { display: block; font-size: .8rem; } .dtoast span { font-size: .78rem; color: #3a3a40; line-height: 1.35; display: block; }
+.dti { flex: none; width: 34px; height: 34px; border-radius: 9px; background: #0a84ff; color: #fff; display: grid; place-items: center; font-weight: 800; } .dtoast.ok .dti { background: #30b455; } .dtoast.bad .dti, .dtoast.error .dti { background: #ff453a; } .dtoast.warn .dti { background: #ff9f0a; }
+@keyframes dtIn { from { transform: translateY(-14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes dtOut { to { opacity: 0; transform: translateX(30px); } }
 </style>
 
 <header class="top">
@@ -7714,7 +7717,7 @@ function go(page, params, svc) {
   if (svc) UI.svc = svc; else if (!navHas(UI.svc, page)) { for (var s in NAV) if (navHas(s, page)) { UI.svc = s; break; } }
   render();
 }
-function flash(kind, msg) { UI.banner = { kind: kind, msg: msg }; }
+function flash(kind, msg) { UI.banner = { kind: kind, msg: msg }; if (UI.page === "desk") setTimeout(function () { if (UI.banner) render(); }, 0); } // บน Desktop แจ้งเตือนเป็นป้ายลอย (ไม่ดันหน้า) จึงต้อง render เอง
 
 // ---- ไอคอน SVG (วาดเอง เส้นง่ายๆ ไม่ใช้ asset ของ AWS) ใช้ innerHTML กับสตริงตายตัวเท่านั้น
 var ICONS = {
@@ -7753,6 +7756,7 @@ function render() {
     });
   });
   var m = document.getElementById("main"); m.textContent = "";
+  if (UI.banner && UI.page === "desk") { DESK.toast = { kind: UI.banner.kind, msg: UI.banner.msg, t: Date.now() }; UI.banner = null; }
   if (UI.banner) { var awsSvc = /^(VPC|EC2|IAM|ECR|EKS|RDS|SSM|S3|CloudFront|Route 53|ACM|ECS|CloudWatch|Lambda|API Gateway|DynamoDB|CodePipeline|CodeBuild|App Runner)$/.test(UI.svc); m.appendChild(UI.banner.kind === "ok" && awsSvc ? h("div", { cls: "sb", role: "status" }, [icoEl("check", 18), UI.banner.msg]) : h("div", { cls: "alert " + UI.banner.kind, text: UI.banner.msg, role: "status" })); UI.banner = null; }
   var P = PAGES[UI.page];
   // หน้าใดหน้าหนึ่งพัง (เช่น state เก่าใน sessionStorage ไม่ตรงรูปแบบใหม่) ต้องไม่ทำให้ทั้งหน้าว่าง: แสดงข้อผิดพลาด + ปุ่มล้าง state
@@ -15760,7 +15764,7 @@ PAGES["desk"] = function () {
   var dock = h("div", { cls: "ddock" }, DESK_APPS.map(function (a) { var w = DESK.wins[a[0]]; return h("button", { type: "button", cls: "dapp" + (w.open ? " run" : ""), title: a[1], onclick: function () { deskDock(a[0]); } }, [deskIco(a[2])]); }).concat([h("button", { type: "button", cls: "dapp", title: "Google Chrome → แท็บ Browser", onclick: function () { go("browser", {}, "Browser"); } }, [deskIco("chrome")]), h("button", { type: "button", cls: "dapp", title: "Safari → แท็บ Browser", onclick: function () { go("browser", {}, "Browser"); } }, [deskIco("web")]), h("span", { cls: "dsep" }), h("button", { type: "button", cls: "dapp", title: "Trash (จำลอง)", onclick: function () { flash("info", "ถังขยะว่างเปล่า"); } }, [deskIco("trash")])]));
   var ico = h("button", { type: "button", cls: "dicon", ondblclick: function () { FD.path = REPO; deskOpen("finder"); }, onclick: function () { FD.path = REPO; deskOpen("finder"); }, title: "เปิด pharmacy-aws-lab ใน Finder" }, [deskIco("folder"), "pharmacy-aws-lab"]);
   var wp = h("div", { cls: "dwp" }, [ico]);
-  var wall = h('div', { cls: 'dwallw' }); wall.innerHTML = DESK_WALL; desk.appendChild(wall); desk.appendChild(top); desk.appendChild(dock); desk.appendChild(wp);
+  var wall = h('div', { cls: 'dwallw' }); wall.innerHTML = DESK_WALL; desk.appendChild(wall); desk.appendChild(top); var age = DESK.toast ? Date.now() - DESK.toast.t : 99999; if (DESK.toast && age < 3600) { var tk = DESK.toast.kind; desk.appendChild(h('div', { cls: 'dtoast ' + tk, style: 'animation-name:' + (age < 300 ? 'dtIn,dtOut' : 'dtOut') + ';animation-delay:' + (age < 300 ? '0s,' : '') + Math.max(0, (3.2 - age / 1000)).toFixed(2) + 's' }, [h('div', { cls: 'dti', text: tk === 'bad' || tk === 'error' ? '!' : tk === 'ok' ? '✓' : 'i' }), h('div', {}, [h('b', { text: 'Console Lab' }), h('span', { text: DESK.toast.msg })])])); } desk.appendChild(dock); desk.appendChild(wp);
   var dw0 = Math.max(520, Math.min(1000, window.innerWidth - 252 - 70 - 170)), dh0 = Math.max(340, window.innerHeight - 190 - 40 - 110);
   DESK_APPS.forEach(function (a) {
     var id = a[0], w = DESK.wins[id]; if (!w.open || w.min) return;
