@@ -1311,6 +1311,7 @@ function termRun(raw) {
 // ---- ธีม + ไฮไลต์สีของ Terminal (laptop/VM)
 var TERM_THEMES = {
   navy: ["เข้ม (ค่าเริ่มต้น)", { bg: "#0b1118", fg: "#d9e4ef", user: "#8fd18f", path: "#7aa7ff", cmd: "#ffffff", err: "#ff6b6b", ok: "#7ee787", warn: "#f2cc60", dim: "#7d8896", head: "#79c0ff" }],
+  macpro: ["macOS Terminal (Pro)", { bg: "#141414", fg: "#f2f2f2", user: "#5af78e", path: "#57c7ff", cmd: "#ffffff", err: "#ff5c57", ok: "#5af78e", warn: "#f3f99d", dim: "#7f7f7f", head: "#9aedfe" }],
   ubuntu: ["Ubuntu", { bg: "#300a24", fg: "#eeeeec", user: "#8ae234", path: "#729fcf", cmd: "#ffffff", err: "#ef2929", ok: "#8ae234", warn: "#fce94f", dim: "#ad7fa8", head: "#34e2e2" }],
   dracula: ["Dracula", { bg: "#282a36", fg: "#f8f8f2", user: "#50fa7b", path: "#bd93f9", cmd: "#ffffff", err: "#ff5555", ok: "#50fa7b", warn: "#f1fa8c", dim: "#6272a4", head: "#8be9fd" }],
   solar: ["Solarized Dark", { bg: "#002b36", fg: "#93a1a1", user: "#859900", path: "#268bd2", cmd: "#eee8d5", err: "#dc322f", ok: "#859900", warn: "#b58900", dim: "#586e75", head: "#2aa198" }],
@@ -1321,7 +1322,7 @@ var TERM_THEMES = {
 function termPref(k, d) { try { return localStorage.getItem("console-lab-term-" + k) || d; } catch (e) { return d; } }
 function termSet(k, v) { try { localStorage.setItem("console-lab-term-" + k, v); } catch (e) {} }
 function termApplyTheme() {
-  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[UI.page === "desk" ? "ubuntu" : termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
+  var w = document.getElementById("termwrap"); if (!w) return; var t = (TERM_THEMES[UI.page === "desk" ? "macpro" : termPref("theme", "navy")] || TERM_THEMES.navy)[1], fs = { s: ".74rem", m: ".84rem", l: ".98rem", xl: "1.12rem" }[termPref("size", "m")] || ".84rem";
   Object.keys(t).forEach(function (k) { w.style.setProperty("--t-" + (k === "user" ? "user" : k === "path" ? "path" : k === "cmd" ? "cmd" : k === "err" ? "err" : k === "ok" ? "ok" : k === "warn" ? "warn" : k === "dim" ? "dim" : k === "head" ? "head" : k), t[k]); });
   w.style.setProperty("--t-bg", t.bg); w.style.setProperty("--t-fg", t.fg); w.style.setProperty("--t-fs", fs);
 }
