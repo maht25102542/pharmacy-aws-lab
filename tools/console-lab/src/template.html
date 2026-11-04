@@ -1184,6 +1184,24 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .dicon { text-shadow: 0 1px 4px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.6); font-weight: 600; }
 .dsymw { display: inline-flex; align-items: center; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); } .dsym { display: block; } .dicon .dsvg { width: 58px; height: 58px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.35)); } .dicon span { font-size: inherit; }
 .dmr { gap: 13px; font-weight: 500; }
+/* macOS Big Sur / Catalina look */
+.desk { border-radius: 12px; }
+.dtop { height: 26px; background: rgba(246,246,248,.5); backdrop-filter: blur(26px) saturate(1.7); color: #1d1d1f; text-shadow: none; font-size: .78rem; font-weight: 500; border-bottom: .5px solid rgba(0,0,0,.12); } .dml b { font-weight: 700; } .dapl { fill: currentColor; } .dsymw { filter: none; }
+.ddock { bottom: 8px; height: 68px; padding: 7px 10px; border-radius: 20px; background: rgba(255,255,255,.28); backdrop-filter: blur(22px) saturate(1.6); border: 1px solid rgba(255,255,255,.4); box-shadow: 0 8px 26px rgba(0,0,0,.28); gap: 9px; }
+.dapp { width: 52px; height: 52px; } .dapp .dsvg { filter: drop-shadow(0 3px 4px rgba(0,0,0,.3)); }
+.dw { border-radius: 10px; background: #fff; backdrop-filter: none; box-shadow: 0 22px 55px rgba(0,0,0,.42), 0 0 0 .5px rgba(0,0,0,.4); } .dw.max { border-radius: 0; }
+.dwt { height: 40px; padding: 0 14px; background: linear-gradient(#ececec, #d4d4d4); border-bottom: 1px solid #b4b4b4; color: #4d4d4d; font-weight: 600; font-size: .8rem; }
+.dwb3 { gap: 8px; } .dwb3 button { width: 12px; height: 12px; box-shadow: 0 0 0 .5px rgba(0,0,0,.28) inset; } .dwb3 .x { background: #ff5f57; } .dwb3 .m { background: #febc2e; } .dwb3 .z { background: #28c840; }
+.dwbody { background: #fff; } .dw[data-w="term"] .dwbody, .dwbody #termwrap { background: var(--t-bg, #fbfbfb); } .dw[data-w="files"] .dwbody { background: #1e1e1e; }
+.dw[data-w="files"] .dwt { background: linear-gradient(#3d3d3f, #2b2b2d); border-bottom: 1px solid #111; color: #d0d0d0; }
+.dw[data-w="term"] .dwbody .term, .dwbody #termwrap .term { color: #1d1d1f; }
+.dwbody .termrow { background: var(--t-bg, #fbfbfb) !important; } .dwbody .termrow input { color: #000; }
+.dw[data-w="finder"] .dwbody { background: #fff; overflow: hidden; } .dw[data-w="finder"] .dwt { background: linear-gradient(#e8e8e8, #d6d6d6); }
+.fdr { display: flex; height: 100%; color: #1d1d1f; font-size: .8rem; background: #fff; } .fdside { flex: none; width: 180px; background: rgba(238,236,240,.96); border-right: 1px solid #d3d1d6; padding: 10px 8px; overflow: auto; } .fdsh { font-size: .66rem; font-weight: 700; color: #8d8d92; padding: 8px 8px 4px; }
+.fdsi { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; padding: 4px 8px; border-radius: 6px; font: inherit; color: #1d1d1f; cursor: pointer; text-align: left; } .fdsi:hover { background: rgba(0,0,0,.05); } .fdsi.on { background: rgba(0,0,0,.12); } .fdsi i { width: 13px; height: 13px; border-radius: 4px; flex: none; }
+.fdmain { flex: 1; min-width: 0; display: flex; flex-direction: column; } .fdtb { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid #e3e3e6; background: #f6f6f8; } .fdnb { width: 28px; height: 24px; border: 1px solid #d0d0d4; border-radius: 6px; background: #fff; color: #555; font-size: 1.1rem; line-height: 1; cursor: pointer; } .fdnb:disabled { opacity: .35; cursor: default; } .fdtt { margin-left: 6px; font-size: .9rem; } .fdsp { flex: 1; } .fdsr { padding: 3px 12px; border: 1px solid #d6d6da; border-radius: 6px; color: #8d8d92; background: #fff; font-size: .74rem; }
+.fdgrid { flex: 1; overflow: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, 92px); gap: 10px 6px; align-content: start; } .fdit { display: flex; flex-direction: column; align-items: center; gap: 5px; background: transparent; border: 0; padding: 4px; border-radius: 8px; font: inherit; color: #1d1d1f; cursor: default; } .fdic { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 8px; } .fdic svg { width: 100%; height: 100%; } .fdic .fdfi { width: 44px; } .fdit.on .fdic { background: #d9d9de; } .fdnm { font-size: .74rem; line-height: 1.25; max-width: 88px; word-break: break-word; border-radius: 4px; padding: 1px 4px; } .fdit.on .fdnm { background: #0a60ff; color: #fff; } .fdemp { grid-column: 1/-1; color: #8d8d92; text-align: center; padding: 30px 0; }
+.fdst { flex: none; text-align: center; font-size: .7rem; color: #8d8d92; padding: 3px; border-top: 1px solid #ececef; } .fdpb { flex: none; display: flex; gap: 5px; align-items: center; padding: 5px 12px; font-size: .72rem; color: #6a6a70; background: #f6f6f8; border-top: 1px solid #e3e3e6; overflow-x: auto; white-space: nowrap; } .fdpc { cursor: pointer; } .fdpc:hover { color: #000; } .fdps { color: #b0b0b5; }
 </style>
 
 <header class="top">
