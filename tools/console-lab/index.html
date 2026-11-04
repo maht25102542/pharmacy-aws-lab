@@ -1271,6 +1271,9 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .edpanel { flex: none; height: 38%; min-height: 150px; display: flex; flex-direction: column; border-top: 1px solid #e2d2b8; background: #fffaf3; } .edph { flex: none; display: flex; align-items: center; gap: 18px; padding: 0 12px; height: 30px; font-size: 11px; color: #8a7d68; background: #fffaf3; } .edpt { cursor: pointer; height: 30px; line-height: 30px; border-bottom: 1px solid transparent; } .edpt.on { color: #061246; border-bottom-color: #ec4899; } .edpi { color: #5d6a8c; } .edpx { border: 0; background: transparent; color: #5d6a8c; font-size: 1.1rem; cursor: pointer; line-height: 1; } .edpx:hover { color: #061246; }
 .edpb { flex: 1; min-height: 0; overflow: hidden; } .edpb #termwrap { height: 100%; overflow: auto; }
 .edtt { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 0 6px; height: 22px; } .edtt:hover, .edtt.on { background: rgba(6,18,70,.09); }
+.dml { gap: 2px !important; } .dmi { position: relative; display: inline-block; } .dmb { border: 0; background: transparent; color: inherit; font: inherit; font-size: .8rem; font-weight: 500; padding: 2px 9px; border-radius: 5px; cursor: default; display: inline-flex; align-items: center; height: 22px; } .dmb.b { font-weight: 700; } .dmb:hover, .dmb.on { background: rgba(255,255,255,.45); } .dmb .dapl { width: 14px; height: 16px; }
+.dmd { position: absolute; top: 24px; left: 0; z-index: 9800; min-width: 230px; padding: 5px; border-radius: 10px; background: rgba(245,245,248,.88); backdrop-filter: blur(30px) saturate(1.8); box-shadow: 0 12px 32px rgba(0,0,0,.3), 0 0 0 .5px rgba(0,0,0,.2); color: #1d1d1f; }
+.dmit { display: flex; justify-content: space-between; gap: 28px; width: 100%; border: 0; background: transparent; color: inherit; font: inherit; font-size: .8rem; padding: 3px 12px; border-radius: 5px; cursor: default; text-align: left; } .dmit em { font-style: normal; color: #6c6c72; letter-spacing: .06em; } .dmit:hover:not(.dis) { background: #0a60ff; color: #fff; } .dmit:hover:not(.dis) em { color: rgba(255,255,255,.85); } .dmit.dis { color: #9a9aa0; } .dmsep { height: 1px; background: rgba(0,0,0,.12); margin: 4px 8px; }
 </style>
 
 <header class="top">
@@ -15810,8 +15813,63 @@ function browserApp(kind) {
   return h("div", { cls: "bdapp " + kind }, [bar, dl, h("div", { cls: "bdview" }, [view])]);
 }
 
+// เมนูบาร์ macOS บน Desktop: Apple + เมนูของแอปที่อยู่หน้าสุด (กดแล้วมี dropdown ใช้งานได้จริงหลายรายการ)
+function dmFront() { var t = DESK_APPS.filter(function (a) { var w = DESK.wins[a[0]]; return w.open && !w.min; }).sort(function (x, y) { return DESK.wins[y[0]].z - DESK.wins[x[0]].z; })[0]; return t ? t[0] : null; }
+function dmClose() { var f = dmFront(); if (f) DESK.wins[f].open = false; }
+function dmMin() { var f = dmFront(); if (f) DESK.wins[f].min = true; }
+function dmZoom() { var f = dmFront(); if (f) DESK.wins[f].max = !DESK.wins[f].max; }
+function dmOpen(id) { if (id === "term" && typeof ED !== "undefined") ED.termOpen = false; DESK.wins[id].open = true; DESK.wins[id].min = false; DESK.wins[id].z = ++DESK.z; }
+function dmInfo(t) { return function () { flash("info", t); }; }
+function dmExec(cmd) { document.execCommand(cmd); }
+function dmNewTerm() { if (DESK.wins.files.open && !DESK.wins.files.min) { ED.termOpen = true; DESK.wins.term.open = false; } else dmOpen("term"); }
+function dmGoDir(p) { return function () { FD.path = p; dmOpen("finder"); }; }
+function dmWin() { return [["Minimize", "⌘M", dmMin], ["Zoom", "", dmZoom], "-", ["Finder", "", function () { dmOpen("finder"); }], ["Terminal", "", function () { dmOpen("term"); }], ["Code", "", function () { dmOpen("files"); }], ["Google Chrome", "", function () { dmOpen("chrome"); }], ["Safari", "", function () { dmOpen("safari"); }]]; }
+function dmEdit() { return [["Undo", "⌘Z", function () { dmExec("undo"); }], ["Redo", "⇧⌘Z", function () { dmExec("redo"); }], "-", ["Cut", "⌘X", function () { dmExec("cut"); }], ["Copy", "⌘C", function () { dmExec("copy"); }], ["Paste", "⌘V", null], ["Select All", "⌘A", function () { dmExec("selectAll"); }]]; }
+function dmHelp(app) { return [["Search", "", null], "-", [app + " Help", "", dmInfo("Help ไม่ได้จำลอง")]]; }
+function deskMenus(app) {
+  var quit = function () { dmClose(); };
+  if (app === "Terminal") return [["Terminal", [["About Terminal", "", dmInfo("Terminal (จำลอง) · zsh")], "-", ["Settings…", "⌘,", dmInfo("ตั้งค่าธีม Terminal ที่หน้า Laptop › Terminal")], "-", ["Quit Terminal", "⌘Q", quit]]],
+    ["Shell", [["New Window", "⌘N", function () { dmOpen("term"); }], "-", ["Close Window", "⌘W", dmClose]]],
+    ["Edit", [["Copy", "⌘C", function () { dmExec("copy"); }], ["Paste", "⌘V", null], ["Select All", "⌘A", function () { dmExec("selectAll"); }], "-", ["Clear to Start", "⌘K", function () { TERM.lines = []; }]]],
+    ["View", [["Bigger", "⌘+", function () { termSet("size", { s: "m", m: "l", l: "xl", xl: "xl" }[termPref("size", "m")]); }], ["Smaller", "⌘-", function () { termSet("size", { xl: "l", l: "m", m: "s", s: "s" }[termPref("size", "m")]); }]]],
+    ["Window", dmWin()], ["Help", dmHelp("Terminal")]];
+  if (app === "Code") return [["Code", [["About Visual Studio Code", "", dmInfo("Visual Studio Code (จำลอง)")], "-", ["Settings", "⌘,", dmInfo("Settings ไม่ได้จำลอง")], "-", ["Quit Visual Studio Code", "⌘Q", quit]]],
+    ["File", [["New File", "⌘N", dmInfo("New File ยังไม่ได้จำลอง")], ["Open Folder…", "⌘O", function () { ED.view = "files"; }], "-", ["Save", "⌘S", function () { edSave(ED.active); }], ["Save All", "⌥⌘S", function () { ED.tabs.forEach(edSave); }], "-", ["Close Editor", "⌘W", function () { if (ED.active) { var p = ED.active; ED.tabs.splice(ED.tabs.indexOf(p), 1); delete ED.buf[p]; ED.active = ED.tabs[ED.tabs.length - 1] || null; if (!ED.tabs.length) ED.closedAll = true; } }], ["Close Window", "⇧⌘W", dmClose]]],
+    ["Edit", dmEdit().concat([["-"], ["Find in Files", "⇧⌘F", function () { ED.view = "search"; }]])],
+    ["Selection", [["Select All", "⌘A", function () { dmExec("selectAll"); }]]],
+    ["View", [["Explorer", "⇧⌘E", function () { ED.view = "files"; }], ["Search", "⇧⌘F", function () { ED.view = "search"; }], "-", ["Terminal", "⌃`", function () { edToggleTerm(); }]]],
+    ["Go", [["Go to File…", "⌘P", dmInfo("Go to File ยังไม่ได้จำลอง — ใช้ Search ใน sidebar แทน")]]],
+    ["Run", [["Start Debugging", "F5", dmInfo("Run/Debug ไม่ได้จำลอง")]]],
+    ["Terminal", [["New Terminal", "⌃⇧`", dmNewTerm], ["Toggle Terminal", "⌃`", function () { edToggleTerm(); }], "-", ["Kill Terminal", "", function () { ED.termOpen = false; }]]],
+    ["Window", dmWin()], ["Help", dmHelp("Code")]];
+  if (app === "Google Chrome" || app === "Safari") { var ch = app === "Google Chrome"; return [[app, [["About " + app, "", dmInfo(app + " (จำลอง)")], "-", ["Settings…", "⌘,", dmInfo("Settings ไม่ได้จำลอง")], "-", ["Quit " + app, "⌘Q", quit]]],
+    ["File", [["New Window", "⌘N", function () { dmOpen(ch ? "chrome" : "safari"); }], ["New Tab", "⌘T", dmInfo("ตัวจำลองมีแท็บเดียวต่อหน้าต่าง")], "-", ["Close Window", "⇧⌘W", dmClose]]],
+    ["Edit", dmEdit()],
+    ["View", [["Reload Page", "⌘R", function () { if (W.addr) wbGo(W.addr); }]]],
+    [ch ? "History" : "History", [["Back", "⌘[", function () { if (whCan(-1)) whGo(-1); }], ["Forward", "⌘]", function () { if (whCan(1)) whGo(1); }]]],
+    ["Bookmarks", [["Add Bookmark…", "⌘D", dmInfo("Bookmark ไม่ได้จำลอง")]]],
+    ["Window", dmWin()], ["Help", dmHelp(app)]]; }
+  return [["Finder", [["About Finder", "", dmInfo("Finder (จำลอง)")], "-", ["Settings…", "⌘,", dmInfo("Settings ไม่ได้จำลอง")], "-", ["Empty Trash…", "⇧⌘⌫", dmInfo("ถังขยะว่างเปล่า")]]],
+    ["File", [["New Finder Window", "⌘N", function () { FD.path = REPO; dmOpen("finder"); }], "-", ["Close Window", "⌘W", dmClose]]],
+    ["Edit", dmEdit()],
+    ["View", [["as Icons", "⌘1", null], ["as List", "⌘2", dmInfo("มุมมองรายการไม่ได้จำลอง")]]],
+    ["Go", [["Back", "⌘[", function () { if (FD.back && FD.back.length) { FD.fwd.push(FD.path); FD.path = FD.back.pop(); } }], "-", ["Applications", "⇧⌘A", dmGoDir("/Applications")], ["Desktop", "⇧⌘D", dmGoDir(HOME + "/Desktop")], ["Documents", "⇧⌘O", dmGoDir(HOME + "/Documents")], ["Downloads", "⌥⌘L", dmGoDir(HOME + "/Downloads")], ["Home", "⇧⌘H", dmGoDir(HOME)], ["pharmacy-aws-lab", "", dmGoDir(REPO)]]],
+    ["Window", dmWin()], ["Help", dmHelp("Finder")]];
+}
+function deskAppleMenu() { return [["About This Mac", "", dmInfo("Mac จำลอง · macOS (Big Sur style)")], "-", ["System Settings…", "", dmInfo("System Settings ไม่ได้จำลอง")], ["App Store…", "", dmInfo("ไม่ได้จำลอง")], "-", ["Recent Items", "", null], "-", ["Force Quit…", "⌥⌘⎋", function () { dmClose(); }], "-", ["Sleep", "", dmInfo("Mac จำลอง ไม่เข้าสู่โหมดพัก")], ["Restart…", "", dmInfo("Mac จำลอง ไม่รีสตาร์ท")], ["Shut Down…", "", dmInfo("Mac จำลอง ไม่ปิดเครื่อง")], "-", ["Lock Screen", "⌃⌘Q", dmInfo("ล็อกหน้าจอไม่ได้จำลอง")], ["Log Out swd…", "⇧⌘Q", dmInfo("Log out ไม่ได้จำลอง")]]; }
+function dmMenu(key, label, items, bold, icon) {
+  var wrap = h("span", { cls: "dmi", "data-k": key }), btn = h("button", { type: "button", cls: "dmb" + (bold ? " b" : "") + (DESK.menu === key ? " on" : ""), onclick: function () { dmShow(DESK.menu === key ? null : key); }, onmouseenter: function () { if (DESK.menu != null && DESK.menu !== key) dmShow(key); } }, [icon || label]);
+  var dd = h("div", { cls: "dmd", style: DESK.menu === key ? "" : "display:none" }, items.map(function (it) {
+    if (it === "-" || it[0] === "-") return h("div", { cls: "dmsep" });
+    return h("button", { type: "button", cls: "dmit" + (it[2] ? "" : " dis"), onclick: function () { if (!it[2]) return; DESK.menu = null; try { it[2](); } catch (e) { flash("bad", String(e && e.message || e)); } render(); } }, [h("span", { text: it[0] }), h("em", { text: it[1] || "" })]);
+  }));
+  wrap.appendChild(btn); wrap.appendChild(dd); return wrap;
+}
+function dmShow(key) { DESK.menu = key; [].forEach.call(document.querySelectorAll(".dmi"), function (m) { var on = m.getAttribute("data-k") === key; m.querySelector(".dmd").style.display = on ? "" : "none"; m.querySelector(".dmb").classList.toggle("on", on); }); }
+document.addEventListener("pointerdown", function (e) { if (DESK.menu != null && !(e.target.closest && e.target.closest(".dmi"))) dmShow(null); }, true);
+
 // Laptop › Desktop: เดสก์ท็อป macOS (สไตล์ Big Sur) จำลอง — Finder / Terminal / Code Editor เป็นหน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้
-var DESK = { z: 11, wins: { chrome: { open: false, min: false, max: false, x: 70, y: 40, w: 0, h: 0, z: 8 }, safari: { open: false, min: false, max: false, x: 100, y: 60, w: 0, h: 0, z: 7 }, finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
+var DESK = { z: 11, menu: null, wins: { chrome: { open: false, min: false, max: false, x: 70, y: 40, w: 0, h: 0, z: 8 }, safari: { open: false, min: false, max: false, x: 100, y: 60, w: 0, h: 0, z: 7 }, finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
 var DESK_APPS = [["finder", "Finder", "find"], ["term", "Terminal", "term"], ["files", "Code", "code"], ["chrome", "Google Chrome", "chrome"], ["safari", "Safari", "web"]];
 
 // ไอคอนแอปแบบ macOS (SVG) และวอลเปเปอร์ภูเขา-ทะเลสาบ
@@ -15848,7 +15906,7 @@ setInterval(function () { var c = document.getElementById("deskclock"); if (c) c
 PAGES["desk"] = function () {
   var desk = h("div", { cls: "desk", id: "desk" }), tops = DESK_APPS.filter(function (a) { var w = DESK.wins[a[0]]; return w.open && !w.min; }).sort(function (x, y) { return DESK.wins[y[0]].z - DESK.wins[x[0]].z; })[0], appn = tops ? tops[1] : "Finder";
   var apple = document.createElementNS("http://www.w3.org/2000/svg", "svg"); apple.setAttribute("viewBox", "0 0 24 24"); apple.setAttribute("class", "dapl"); apple.innerHTML = '<path fill="currentColor" d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.800 2.300-1.600 2.800-.4 6.900 1.200 9.200.8 1.100 1.700 2.400 2.900 2.300 1.200 0 1.600-.7 3-.7s1.800.7 3 .7c1.300 0 2.100-1.100 2.800-2.200.9-1.300 1.300-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.800zM14.200 5.900c.6-.8 1.100-1.800.9-2.900-.9 0-2 .6-2.700 1.400-.6.700-1.100 1.800-1 2.800 1 .1 2.100-.5 2.800-1.300z"/>';
-  var top = h("div", { cls: "dtop" }, [h("div", { cls: "dml" }, [apple, h("b", { text: appn })].concat((appn === "Finder" ? ["File", "Edit", "View", "Go", "Window", "Help"] : appn === "Terminal" ? ["Shell", "Edit", "View", "Window", "Help"] : ["File", "Edit", "Selection", "View", "Go", "Run", "Window", "Help"]).map(function (m) { return h("span", { text: m }); }))), h("div", { cls: "dmr", title: "สถานะเครื่อง (จำลอง)" }, [deskSym("bat"), deskSym("wifi"), deskSym("search"), deskSym("cc"), h("span", { id: "deskclock", text: deskClock() })])]);
+  var menus = deskMenus(appn), top = h("div", { cls: "dtop" }, [h("div", { cls: "dml" }, [dmMenu("apple", "", deskAppleMenu(), false, apple)].concat(menus.map(function (m, i) { return dmMenu("m" + i, m[0], m[1], i === 0); }))), h("div", { cls: "dmr", title: "สถานะเครื่อง (จำลอง)" }, [deskSym("bat"), deskSym("wifi"), deskSym("search"), deskSym("cc"), h("span", { id: "deskclock", text: deskClock() })])]);
   var dock = h("div", { cls: "ddock" }, DESK_APPS.map(function (a) { var w = DESK.wins[a[0]]; return h("button", { type: "button", cls: "dapp" + (w.open ? " run" : ""), title: a[1], onclick: function () { deskDock(a[0]); } }, [deskIco(a[2])]); }).concat([h("span", { cls: "dsep" }), h("button", { type: "button", cls: "dapp", title: "Trash (จำลอง)", onclick: function () { flash("info", "ถังขยะว่างเปล่า"); } }, [deskIco("trash")])]));
   var ico = h("button", { type: "button", cls: "dicon", ondblclick: function () { FD.path = REPO; deskOpen("finder"); }, onclick: function () { FD.path = REPO; deskOpen("finder"); }, title: "เปิด pharmacy-aws-lab ใน Finder" }, [deskIco("folder"), "pharmacy-aws-lab"]);
   var wp = h("div", { cls: "dwp" }, [ico]);
