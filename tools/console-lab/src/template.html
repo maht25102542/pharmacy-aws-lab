@@ -1235,6 +1235,11 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .edstat { background: #efe2cc; color: #061246; border-top: 1px solid #e2d2b8; } .edstat .edsave { color: #061246; } .edstat .edsave:hover { background: #e2d3bb; }
 .dwbody #termwrap { padding: 0; } .dwbody #termwrap .term { background: transparent !important; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; margin: 0 !important; padding: 12px 16px 0 !important; min-height: 0 !important; height: auto; }
 .dwbody #termwrap .termrow { background: transparent !important; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; margin: 0 !important; padding: 0 16px 12px !important; } .dwbody #termwrap .termrow input { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+/* หัวหน้าต่าง macOS รุ่นใหม่: กลืนกับเนื้อหา ไม่มีแถบไล่เฉด/เส้นคั่น */
+.dw { border-radius: 14px; box-shadow: 0 26px 70px rgba(10,20,50,.45), 0 0 0 .5px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.25) inset; }
+.dw .dwt, .dw[data-w="term"] .dwt, .dw[data-w="finder"] .dwt, .dw[data-w="files"] .dwt { height: 40px; padding: 0 16px; background: transparent !important; border-bottom: 0 !important; color: #3a3a40; font-size: .8rem; font-weight: 600; }
+.dw[data-w="term"] { background: #fbfbfb; } .dw[data-w="finder"] { background: #f6f6f8; } .dw[data-w="files"] { background: #efe2cc; }
+.dw .dwtt { opacity: .85; } .dw .dwb3 { gap: 8px; } .dw .dwb3 button { width: 13px; height: 13px; box-shadow: 0 0 0 .5px rgba(0,0,0,.22) inset; }
 </style>
 
 <header class="top">
