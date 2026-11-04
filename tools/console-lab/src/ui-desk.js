@@ -1,6 +1,6 @@
 // Laptop › Desktop: เดสก์ท็อป macOS (สไตล์ Big Sur) จำลอง — Finder / Terminal / Code Editor เป็นหน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้
 var DESK = { z: 11, wins: { finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
-var DESK_APPS = [["finder", "Finder", "find"], ["term", "Terminal", "term"], ["files", "Code Editor", "code"]];
+var DESK_APPS = [["finder", "Finder", "find"], ["term", "Terminal", "term"], ["files", "Code", "code"]];
 
 // ไอคอนแอปแบบ macOS (SVG) และวอลเปเปอร์ภูเขา-ทะเลสาบ
 var DESK_ICO = {
@@ -21,7 +21,7 @@ var DESK_SYM = {
   cc: '<svg viewBox="0 0 18 14" class="dsym" style="width:15px"><rect x=".8" y=".8" width="16.400" height="5" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.300"/><circle cx="4.500" cy="3.300" r="1.600" fill="currentColor"/><rect x=".8" y="8.200" width="16.400" height="5" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.300"/><circle cx="13.500" cy="10.700" r="1.600" fill="currentColor"/></svg>'
 };
 function deskSym(k) { var d = document.createElement("span"); d.className = "dsymw"; d.innerHTML = DESK_SYM[k]; return d; }
-function deskTitle(id) { if (id === "finder") return !FD.path || FD.path === "/" ? "Macintosh HD" : FD.path.split("/").pop(); if (id === "files") return "Code Editor — " + (ED.active ? ED.active.replace(REPO + "/", "").replace(HOME, "~") : "pharmacy-aws-lab"); return "swd — zsh — 96×28"; }
+function deskTitle(id) { if (id === "finder") return !FD.path || FD.path === "/" ? "Macintosh HD" : FD.path.split("/").pop(); if (id === "files") return (ED.active ? ED.active.split("/").pop() + " — " : "") + "pharmacy-aws-lab"; return "swd — zsh — 96×28"; }
 function deskBody(id) {
   if (id === "files") return editorApp();
   if (id === "finder") return finderApp();
