@@ -1080,7 +1080,7 @@ body .pf .navlink { color: #d5f3ee !important; text-decoration: none !important;
 .cd-row .vd { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--c) 14%, var(--surface)); color: var(--c); font-style: normal; font-size: 11px; font-weight: 800; vertical-align: 1px; }
 
 .cd-rule { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 10px; } @media (max-width: 800px) { .cd-rule { grid-template-columns: 1fr; } }
-.cd-rule > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .cd-rule .r1 { border-left: 5px solid #c62828; } .cd-rule .r2 { border-left: 5px solid #3f9a73; }
+.cd-rule > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .cd-rule .r1 { border-left: 5px solid #c62828; } .cd-rule .r2 { border-left: 5px solid #2f8cff; }
 .cd-rule b { font-size: .98rem; } .cd-rule span { color: var(--muted); font-size: 12.5px; } .cd-rule em { font-style: normal; font-size: 13px; font-weight: 700; }
 .cd-guide { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 16px; }
 .cd-guide .gc { border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; background: var(--surface); padding: 12px 14px; } .cd-guide .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .cd-guide .no { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; font: 800 12px inherit; } .cd-guide .hd b { font-size: .95rem; line-height: 1.3; } .cd-guide .bd { font-size: 13.5px; line-height: 1.65; color: var(--fg); }
@@ -1089,7 +1089,7 @@ body .pf .navlink { color: #d5f3ee !important; text-decoration: none !important;
 /* การ์ดที่มีแถบสี: ใช้ ::before ที่ถูกตัดโดย overflow แทน border หนาด้านเดียว (border หนา + มุมโค้งเกิดขอบโก่งเป็นรอยโค้ง) */
 .cd-kpi, .cd-call, .cd-guide .gc, .cd-rule > div, .uc-hero { position: relative; overflow: hidden; border: 1px solid var(--line) !important; }
 .cd-kpi::before, .cd-call::before, .cd-guide .gc::before, .cd-rule > div::before, .uc-hero::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c, var(--uc, #64748b)); }
-.cd-rule .r1 { --c: #c62828; } .cd-rule .r2 { --c: #3f9a73; }
+.cd-rule .r1 { --c: #c62828; } .cd-rule .r2 { --c: #2f8cff; }
 .cd-kpi { padding: 14px 16px 14px 20px; } .cd-call { padding-left: 24px; } .cd-guide .gc { padding-left: 20px; } .cd-rule > div { padding-left: 22px; } .uc-hero { padding-left: 24px; }
 .cd-kpi .l { font-size: 12.5px; font-weight: 600; letter-spacing: .01em; } .cd-kpi .v { margin: 4px 0 2px; font-size: 1.7rem; line-height: 1.15; } .cd-kpi .u { font-size: 12.5px; }
 
@@ -6463,7 +6463,7 @@ var COSTD = {
     ["ดูว่าเงินไปไหน: Cost Explorer", "#2b6cb0", "Billing › **Cost Explorer** กรอง Group by `Service` แล้วลง `Usage type` เช่น `NatGateway-Hours`, `LoadBalancerUsage`, `PublicIPv4:InUseAddress` · เปิดครั้งแรกรอข้อมูล ~24 ชม. และข้อมูลช้าราว 1 วัน (ไม่ใช่ real-time)"],
     ["Tag ทุก resource", "#6d28d9", "ใส่ tag `Project=pharmacy-lab` ทุก resource (Terraform: `default_tags` ใน provider \"aws\") แล้ว **activate cost allocation tag** ที่ Billing › Cost allocation tags (มีผลหลัง ~24 ชม.) → กรอง Cost Explorer ตาม tag ได้"],
     ["จับค่าผิดปกติ: Cost Anomaly Detection", "#a85a00", "Billing › **Cost Anomaly Detection** สร้าง monitor (ฟรี) + subscription อีเมล · จับกรณี bill พุ่งผิดปกติเช่น Lambda วนลูป, NAT ส่งข้อมูลเยอะ"],
-    ["Free tier ไม่ครอบทุกอย่าง", "#3f9a73", "Billing › **Free Tier** ดูการใช้เทียบโควต้า · แบบ 12 เดือนแรก (EC2 t3.micro ฯลฯ) กับแบบ always-free (Lambda 1 ล้านครั้ง/เดือน, DynamoDB 25 GB) · **NAT, ALB, RDS Multi-AZ, EKS ไม่อยู่ในฟรีเทียร์ของ lab ใหญ่** และ public IPv4 คิดเงินตั้งแต่ ก.พ. 2024"],
+    ["Free tier ไม่ครอบทุกอย่าง", "#2f8cff", "Billing › **Free Tier** ดูการใช้เทียบโควต้า · แบบ 12 เดือนแรก (EC2 t3.micro ฯลฯ) กับแบบ always-free (Lambda 1 ล้านครั้ง/เดือน, DynamoDB 25 GB) · **NAT, ALB, RDS Multi-AZ, EKS ไม่อยู่ในฟรีเทียร์ของ lab ใหญ่** และ public IPv4 คิดเงินตั้งแต่ ก.พ. 2024"],
     ["ทำเสร็จต้องลบ", "#c62828", "`terraform destroy` ทุกครั้ง แล้วไล่ตรวจของตกค้างที่ยังคิดเงิน: NAT gateway, Elastic IP ที่ไม่ผูก, ALB, RDS (และ snapshot สุดท้าย), EBS volume/snapshot, CloudWatch log group, S3 bucket, ECR image · ใช้ **Tag Editor / Resource Explorer** หาด้วย tag Project"],
     ["กัน bill shock จาก key รั่ว", "#a85a00", "อย่าเก็บ access key ใน repo (บอทสแกน GitHub เจอแล้วขุดเหรียญ bill หลักแสนได้) · ใช้ role/OIDC แทน (ดู use case 5) · เปิด MFA ที่ root · ตั้ง Budget + Anomaly Detection ไว้เสมอ"],
     ["ที่อยู่ของหน้า Billing", "#2b6cb0", "คอนโซล › ชื่อบัญชีมุมขวาบน › **Billing and cost management**: Bills (บิลรายเดือนแยกบริการ) · Payments · Cost Explorer · Budgets · Cost Anomaly Detection · Cost allocation tags · Free Tier · Savings Plans"]
@@ -6584,7 +6584,7 @@ var COSTD = {
 function costSum(items) { var hr = 0, mo = 0; items.forEach(function (x) { if (x.k === "hr") hr += x.r * x.q; if (x.k === "mo") mo += x.r * x.q; }); return { hr: hr, month: hr * COST_HRS + mo, perHours: function (n) { return hr * n + mo * (n / COST_HRS); } }; }
 
 // ตัดสินว่า "ราคานี้ถูก/ปกติ/แพง" เทียบเกณฑ์ของระบบประเภทเดียวกัน (กฎคร่าวๆ ไม่ใช่ราคาตลาดจริง)
-var COST_LV = [["ถูกมาก", "#0e8a55", "#52b088"], ["ถูก", "#2f8f1c", "#7ddc3c"], ["ปกติ", "#a07300", "#ffd23f"], ["แพง", "#c2501c", "#f59a5a"], ["แพงเกินไป", "#c8321f", "#f4573f"]]; // [ชื่อ, สีตัวอักษร, สีเติม] ไล่เขียว→แดง
+var COST_LV = [["ถูกมาก", "#1f7ae0", "#4aa8ff"], ["ถูก", "#2f8cff", "#6fd0ff"], ["ปกติ", "#a07300", "#ffd23f"], ["แพง", "#c2501c", "#f59a5a"], ["แพงเกินไป", "#c8321f", "#f4573f"]]; // [ชื่อ, สีตัวอักษร, สีเติม] ไล่เขียว→แดง
 function costVerdict(monthUsd, bench) { var i = 0; while (i < bench.length && monthUsd >= bench[i]) i++; return { i: i, label: COST_LV[i][0], color: COST_LV[i][1], fill: COST_LV[i][2] }; }
 function costLabVerdict(fourHrUsd) { var b = fourHrUsd * COST_THB; return b < 5 ? COST_LV[0] : b < 60 ? COST_LV[1] : b < 300 ? COST_LV[2] : b < 1000 ? COST_LV[3] : COST_LV[4]; }
 COSTD.uc.jkpush = COSTD.uc.jk; // use case 10 ใช้เครื่องชุดเดียวกับ use case 9 (Jenkins + SonarQube + ECR)
@@ -7729,7 +7729,7 @@ function tagsTab(r) { var t = (r.name ? [["Name", r.name]] : []).concat((r.tags 
 function ruleType(r) { if (r.proto === "-1") return "All traffic"; var m = { 22: "SSH", 80: "HTTP", 443: "HTTPS", 3306: "MYSQL/Aurora", 5432: "PostgreSQL" }; return r.from === r.to && m[r.from] ? m[r.from] : "Custom TCP"; }
 function srcText(r) { return r.srcKind === "sg" ? nm(find(S.sgs, r.src)) + " (" + r.src.slice(0, 11) + ")" : r.src; }
 function ruleRows(list) { return list.map(function (r) { return [ruleType(r), r.proto === "-1" ? "All" : "TCP", r.proto === "-1" ? "All" : (r.from === r.to ? String(r.from) : r.from + " - " + r.to), srcText(r)]; }); }
-function stateIcon(st, r) { if (r) st = instPhase(r).state; var T = { pending: ["clock", "#5f6b7a", "Pending"], stopping: ["clock", "#5f6b7a", "Stopping"], "shutting-down": ["clock", "#5f6b7a", "Shutting-down"], running: ["check", "#3f9a73", "Running"], stopped: ["pause", "#5f6b7a", "Stopped"], terminated: ["minus", "#5f6b7a", "Terminated"] }[st]; return h("span", { style: "color:" + T[1] + ";white-space:nowrap;display:inline-flex;gap:6px;align-items:center" }, [icoEl(T[0], 15), T[2]]); }
+function stateIcon(st, r) { if (r) st = instPhase(r).state; var T = { pending: ["clock", "#5f6b7a", "Pending"], stopping: ["clock", "#5f6b7a", "Stopping"], "shutting-down": ["clock", "#5f6b7a", "Shutting-down"], running: ["check", "#2f8cff", "Running"], stopped: ["pause", "#5f6b7a", "Stopped"], terminated: ["minus", "#5f6b7a", "Terminated"] }[st]; return h("span", { style: "color:" + T[1] + ";white-space:nowrap;display:inline-flex;gap:6px;align-items:center" }, [icoEl(T[0], 15), T[2]]); }
 function stateTag(st) { var T = { running: ["Running", "ok"], stopped: ["Stopped", "warn"], terminated: ["Terminated", "bad"] }; return tagp(T[st][0], T[st][1]); }
 function vpcMap(r) {
   var sn = S.subnets.filter(function (x) { return x.vpcId === r.id; }), rt = S.rtbs.filter(function (x) { return x.vpcId === r.id; }), ig = vpcIgw(r.id);
@@ -7966,12 +7966,12 @@ function subnetReview(D) {
     var per = Math.max(1, total / 256), cells = h("div", { style: "display:grid;grid-template-columns:repeat(16,11px);gap:1px;flex:none", title: "1 ช่อง = " + per + " IP" });
     for (var c = 0; c < Math.min(256, total); c++) {
       var lo = base + c * per, hi = lo + per - 1, rsv = [base, base + 1, base + 2, base + 3, base + total - 1].some(function (a) { return a >= lo && a <= hi; }), used = usedN.some(function (a) { return a >= lo && a <= hi; });
-      cells.appendChild(h("div", { style: "width:11px;height:11px;border-radius:2px;background:" + (used ? "#3f9a73" : rsv ? "#c62828" : "rgba(95,107,122,.25)") }));
+      cells.appendChild(h("div", { style: "width:11px;height:11px;border-radius:2px;background:" + (used ? "#2f8cff" : rsv ? "#c62828" : "rgba(95,107,122,.25)") }));
     }
     var rows = [[n2ip(base), "Network address", "ที่อยู่ของซอยเอง ใช้กับเครื่องไม่ได้"], [n2ip(base + 1), "VPC router", "ตัวกลางส่ง packet ตาม route table"], [n2ip(base + 2), "DNS ของ Amazon", "ตัวแปลงชื่อเป็น IP ในวง VPC"], [n2ip(base + 3), "สงวนไว้ใช้อนาคต", "AWS ไม่ให้ใช้"], [n2ip(base + total - 1), "Broadcast", "AWS ไม่รองรับ broadcast แต่ยังสงวนไว้"]];
     box.appendChild(h("div", { style: "display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line,#d3dae3);border-radius:8px" }, [
       h("div", {}, [h("div", { style: "font-weight:700;margin-bottom:4px", text: (sn.name || sn.id) + " · " + sn.cidr }), cells,
-        h("div", { style: "font-size:.75rem;margin-top:6px;display:flex;gap:10px;flex-wrap:wrap" }, [["#c62828", "สงวนโดย AWS 5"], ["#3f9a73", "ใช้จริง " + ins.length], ["rgba(95,107,122,.5)", "ว่าง " + (usable - ins.length)]].map(function (l) { return h("span", {}, [h("span", { style: "display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;background:" + l[0] }), l[1]]); })),
+        h("div", { style: "font-size:.75rem;margin-top:6px;display:flex;gap:10px;flex-wrap:wrap" }, [["#c62828", "สงวนโดย AWS 5"], ["#2f8cff", "ใช้จริง " + ins.length], ["rgba(95,107,122,.5)", "ว่าง " + (usable - ins.length)]].map(function (l) { return h("span", {}, [h("span", { style: "display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;background:" + l[0] }), l[1]]); })),
         per > 1 ? h("div", { cls: "hint", style: "font-size:.72rem", text: "(1 ช่อง = " + per + " IP)" }) : null]),
       h("div", { style: "flex:1;min-width:300px;font-size:.88rem;line-height:1.6" }, [
         h("div", {}, ["① ", h("b", { text: sn.cidr }), " = ล็อก " + pb + " บิต → เหลือ 32 − " + pb + " = " + (32 - pb) + " บิต → 2^" + (32 - pb) + " = ", h("b", { text: total.toLocaleString() }), " ที่อยู่ (" + n2ip(base) + " – " + n2ip(base + total - 1) + ")"]),
@@ -8011,7 +8011,7 @@ function netAnim() {
   var sx = rx + rw + 70, sw = W - sx - 24, sh = Math.min(100, (H - 96) / n - 10), pos = {};
   D.asns.forEach(function (sn, i) {
     var y = 70 + i * ((H - 96) / n), rt = subnetRtb(sn), explicit = D.rt && D.rt.assoc.indexOf(sn.id) >= 0 && !NA.forget, here = D.insts.filter(function (x) { return x.subnetId === sn.id; });
-    var eff = explicit ? D.rt : (D.rt && D.rt.assoc.indexOf(sn.id) >= 0 ? D.main : rt), isPub = hasIgwRoute(eff), col = isPub ? "#3f9a73" : "#5f6b7a";
+    var eff = explicit ? D.rt : (D.rt && D.rt.assoc.indexOf(sn.id) >= 0 ? D.main : rt), isPub = hasIgwRoute(eff), col = isPub ? "#2f8cff" : "#5f6b7a";
     pos[sn.id] = { y: y + sh / 2, explicit: explicit, isPub: isPub, inst: here[0] };
     var g = sv("g", {}, [sv("rect", { x: sx, y: y, width: sw, height: sh, rx: 8, fill: isPub ? "rgba(29,129,2,.08)" : "rgba(95,107,122,.10)", stroke: col, "stroke-width": 1.5 }),
       T(sx + 10, y + 19, "Subnet " + (sn.name || sn.id), { b: 1, c: col }), T(sx + 10, y + 36, sn.cidr + "  ·  " + sn.az + "  ·  " + (Math.pow(2, 32 - +sn.cidr.split("/")[1]) - 5) + " IP ใช้ได้", { sz: 11 }),
@@ -8086,7 +8086,7 @@ function sgAnim() {
   });
   var msg = h("div", { id: "sgmsg", style: "min-height:2.6em;margin:8px 0;font-weight:600;line-height:1.5" }), score = h("div", { style: "margin:8px 0" }), spd = h("select", { "aria-label": "ความเร็ว", id: "sgspd" }, [["1.6", "ช้า"], ["0.9", "ปกติ"], ["0.4", "เร็ว"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: o[0] === "0.9" ? "selected" : null }); }));
   var idx = 0, paused = false, pbtn = null, steps = [];
-  function pill(ok, t) { return h("span", { style: "display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;font-size:.82rem;color:#fff;background:" + (ok ? "#3f9a73" : "#c62828") }, [t]); }
+  function pill(ok, t) { return h("span", { style: "display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;font-size:.82rem;color:#fff;background:" + (ok ? "#2f8cff" : "#c62828") }, [t]); }
   function reset() { ST.forEach(clearTimeout); ST = []; steps = []; idx = 0; paused = false; if (pbtn) { pbtn.textContent = "⏸ หยุดชั่วคราว"; pbtn.disabled = true; } rowsAll.forEach(function (x) { x.cMe.textContent = ""; x.cSt.textContent = ""; x.cRk.textContent = ""; x.cMe.parentNode.style.background = ""; }); msg.textContent = ""; score.textContent = ""; }
   function tick() { ST.forEach(clearTimeout); ST = []; if (paused) return; if (idx >= steps.length) { if (pbtn) pbtn.disabled = true; return; } var s0 = steps[idx++]; s0(); ST.push(setTimeout(tick, +spd.value * 1000)); }
   function run() {
@@ -8094,8 +8094,8 @@ function sgAnim() {
     rowsAll.forEach(function (x) {
       var port = x.r.proto === "-1" ? "ทุก port" : "port " + (x.r.from === x.r.to ? x.r.from : x.r.from + "-" + x.r.to);
       steps.push(function () { x.cMe.parentNode.style.background = hexA("#ff9900", 0.18); msg.textContent = "🛡 " + x.g.name + " · กฎ " + port + " ← " + srcText(x.r) + " · ส่ง packet จาก 👤 คุณ (" + S.myIp + ") ..."; x.cMe.appendChild(x.sgSrc ? h("span", { cls: "hint", text: "ไม่ใช่ IP (อ้าง SG)" }) : pill(x.me, x.me ? "✓ ผ่าน" : "✗ ถูกทิ้ง")); });
-      steps.push(function () { msg.textContent = "🛡 " + x.g.name + " · กฎ " + port + " · ส่ง packet จาก 🕵 คนแปลกหน้า (" + STR + ") ..." + (x.sgSrc ? " (ไม่ว่าจะ IP ไหนก็ผ่านไม่ได้ ต้องมาจากเครื่องใน SG นั้นเท่านั้น)" : ""); x.cSt.appendChild(x.sgSrc ? h("span", { cls: "hint", text: "ผ่านไม่ได้ (ไม่อยู่ใน SG)" }) : pill(!x.st, x.st ? (x.rk.lvl === "ok" ? "✓ เข้าได้ (ตั้งใจ: เว็บสาธารณะ)" : "✗ เข้าได้!") : "✓ ถูกบล็อก")); x.cSt.firstChild.style.background = x.sgSrc ? "" : (x.st ? (x.rk.lvl === "ok" ? "#0972d3" : "#c62828") : "#3f9a73"); });
-      steps.push(function () { x.cMe.parentNode.style.background = ""; msg.textContent = RISK_ICON[x.rk.lvl] + " " + x.rk.why; x.cRk.appendChild(h("span", { style: "font-weight:700;color:" + ({ ok: "#3f9a73", warn: "#b36b00", bad: "#c62828" })[x.rk.lvl], text: RISK_ICON[x.rk.lvl] + " " + ({ ok: "เหมาะสม", warn: "ทบทวน", bad: "เสี่ยง" })[x.rk.lvl] })); });
+      steps.push(function () { msg.textContent = "🛡 " + x.g.name + " · กฎ " + port + " · ส่ง packet จาก 🕵 คนแปลกหน้า (" + STR + ") ..." + (x.sgSrc ? " (ไม่ว่าจะ IP ไหนก็ผ่านไม่ได้ ต้องมาจากเครื่องใน SG นั้นเท่านั้น)" : ""); x.cSt.appendChild(x.sgSrc ? h("span", { cls: "hint", text: "ผ่านไม่ได้ (ไม่อยู่ใน SG)" }) : pill(!x.st, x.st ? (x.rk.lvl === "ok" ? "✓ เข้าได้ (ตั้งใจ: เว็บสาธารณะ)" : "✗ เข้าได้!") : "✓ ถูกบล็อก")); x.cSt.firstChild.style.background = x.sgSrc ? "" : (x.st ? (x.rk.lvl === "ok" ? "#0972d3" : "#c62828") : "#2f8cff"); });
+      steps.push(function () { x.cMe.parentNode.style.background = ""; msg.textContent = RISK_ICON[x.rk.lvl] + " " + x.rk.why; x.cRk.appendChild(h("span", { style: "font-weight:700;color:" + ({ ok: "#2f8cff", warn: "#b36b00", bad: "#c62828" })[x.rk.lvl], text: RISK_ICON[x.rk.lvl] + " " + ({ ok: "เหมาะสม", warn: "ทบทวน", bad: "เสี่ยง" })[x.rk.lvl] })); });
     });
     steps.push(function () {
       var open = rowsAll.filter(function (x) { return x.r.srcKind === "cidr" && x.r.src === "0.0.0.0/0"; }), badN = rowsAll.filter(function (x) { return x.rk.lvl === "bad"; }), okOpen = open.filter(function (x) { return x.rk.lvl === "ok"; });
@@ -8113,7 +8113,7 @@ function sgAnim() {
   return card;
 }
 // แผนภาพ "สร้างอะไรก่อน-หลัง" ของแท็บ HCL
-var HCL_GRP = { vpc: ["VPC", "#0972d3"], subnet: ["Subnet", "#00a1c9"], igw: ["Internet gateway", "#f2711c"], eip: ["Elastic IP", "#c47d00"], nat: ["NAT gateway", "#e8590c"], rtb: ["Route table", "#8456ce"], rtba: ["ผูก subnet↔route table", "#d63f9e"], sg: ["Security group", "#c62828"], key: ["Key pair", "#8a9a00"], role: ["IAM role", "#3f9a73"], attach: ["แนบ policy", "#7cb518"], profile: ["Instance profile", "#4f5bd5"], ecr: ["ECR", "#a85a00"], instance: ["EC2 instance", "#0f766e"], tg: ["Target group", "#b8860b"], tgatt: ["ลงทะเบียน target", "#6d4c41"], alb: ["Load balancer", "#d81b60"], listener: ["Listener", "#546e7a"], eks: ["EKS cluster", "#3f9a73"], lg: ["CloudWatch log group", "#c2410c"], ecsc: ["ECS cluster", "#d97706"], ecstd: ["ECS task definition", "#b45309"], ecssvc: ["ECS service", "#0f766e"], s3: ["S3 bucket", "#3f8624"], pab: ["Block public access", "#7a8a3a"], obj: ["ไฟล์ใน bucket", "#8a6d3b"], oac: ["OAC", "#8456ce"], zone: ["Route 53 zone", "#0d7c8f"], cert: ["ACM certificate", "#b8860b"], certrec: ["CNAME ตรวจสอบ", "#a35a00"], certval: ["รอ Issued", "#6a8a00"], cfd: ["CloudFront", "#c2410c"], s3pol: ["Bucket policy", "#c62828"], r53: ["Route 53 record", "#2563eb"], dbsg: ["DB subnet group", "#a35a00"], ng: ["EKS node group", "#3f9a73"], rds: ["RDS database", "#b45309"], asgatt: ["ผูก ASG↔target group", "#5e35b1"], ddb: ["DynamoDB table", "#3b48cc"], lamfn: ["Lambda function", "#ed7100"], lamperm: ["Lambda permission", "#b45309"], apigw: ["API Gateway", "#e7157b"], apiint: ["API integration", "#c2185b"], apiroute: ["API route", "#8e24aa"], apistage: ["API stage", "#6a1b9a"], cdconn: ["CodeStar connection", "#0f766e"], cdproj: ["CodeBuild project", "#3f9a73"], cdpipe: ["CodePipeline", "#1565c0"], oidc: ["OIDC provider (GitHub)", "#24292f"], apr: ["App Runner service", "#c2185b"], exp: ["ECS Express service", "#0b7a8f"] };
+var HCL_GRP = { vpc: ["VPC", "#0972d3"], subnet: ["Subnet", "#00a1c9"], igw: ["Internet gateway", "#f2711c"], eip: ["Elastic IP", "#c47d00"], nat: ["NAT gateway", "#e8590c"], rtb: ["Route table", "#8456ce"], rtba: ["ผูก subnet↔route table", "#d63f9e"], sg: ["Security group", "#c62828"], key: ["Key pair", "#8a9a00"], role: ["IAM role", "#2f8cff"], attach: ["แนบ policy", "#7cb518"], profile: ["Instance profile", "#4f5bd5"], ecr: ["ECR", "#a85a00"], instance: ["EC2 instance", "#0f766e"], tg: ["Target group", "#b8860b"], tgatt: ["ลงทะเบียน target", "#6d4c41"], alb: ["Load balancer", "#d81b60"], listener: ["Listener", "#546e7a"], eks: ["EKS cluster", "#2f8cff"], lg: ["CloudWatch log group", "#c2410c"], ecsc: ["ECS cluster", "#d97706"], ecstd: ["ECS task definition", "#b45309"], ecssvc: ["ECS service", "#0f766e"], s3: ["S3 bucket", "#3f8624"], pab: ["Block public access", "#7a8a3a"], obj: ["ไฟล์ใน bucket", "#8a6d3b"], oac: ["OAC", "#8456ce"], zone: ["Route 53 zone", "#0d7c8f"], cert: ["ACM certificate", "#b8860b"], certrec: ["CNAME ตรวจสอบ", "#a35a00"], certval: ["รอ Issued", "#6a8a00"], cfd: ["CloudFront", "#c2410c"], s3pol: ["Bucket policy", "#c62828"], r53: ["Route 53 record", "#2563eb"], dbsg: ["DB subnet group", "#a35a00"], ng: ["EKS node group", "#2f8cff"], rds: ["RDS database", "#b45309"], asgatt: ["ผูก ASG↔target group", "#5e35b1"], ddb: ["DynamoDB table", "#3b48cc"], lamfn: ["Lambda function", "#ed7100"], lamperm: ["Lambda permission", "#b45309"], apigw: ["API Gateway", "#e7157b"], apiint: ["API integration", "#c2185b"], apiroute: ["API route", "#8e24aa"], apistage: ["API stage", "#6a1b9a"], cdconn: ["CodeStar connection", "#0f766e"], cdproj: ["CodeBuild project", "#2f8cff"], cdpipe: ["CodePipeline", "#1565c0"], oidc: ["OIDC provider (GitHub)", "#24292f"], apr: ["App Runner service", "#c2185b"], exp: ["ECS Express service", "#0b7a8f"] };
 // animation: เล่นลำดับ apply (ซ้าย→ขวา) / destroy (ขวา→ซ้าย) บนแผนภาพ + โค้ด
 var HT = [];
 function hclAnim(mode) {
@@ -8135,7 +8135,7 @@ function hclAnim(mode) {
       blocks.forEach(function (e) { if (keys.indexOf(e.getAttribute("data-k")) >= 0) { e.classList.remove("hdim"); e.classList.add("hlive"); } });
     }, t0));
     HT.push(setTimeout(function () {
-      inL.forEach(function (b) { b.classList.remove("hcreating"); if (ap) setSt(b, "✓ Creation complete", "#3f9a73"); else { b.classList.add("hgone"); setSt(b, "✓ Destruction complete", "#5f6b7a"); } });
+      inL.forEach(function (b) { b.classList.remove("hcreating"); if (ap) setSt(b, "✓ Creation complete", "#2f8cff"); else { b.classList.add("hgone"); setSt(b, "✓ Destruction complete", "#5f6b7a"); } });
       if (!ap) blocks.forEach(function (e) { if (keys.indexOf(e.getAttribute("data-k")) >= 0) e.classList.add("hgone"); });
       if (idx === layers.length - 1 && msg) msg.textContent = ap ? "เสร็จ: Apply complete! สร้างครบ " + boxes.length + " กลุ่ม ลองกด ◀ เพื่อดูตอนลบ (ย้อนลำดับ)" : "เสร็จ: Destroy complete! ลบย้อนจากขวาไปซ้าย กด ⏹ รีเซ็ตเพื่อกลับ";
     }, t0 + dur * 0.7));
@@ -8187,7 +8187,7 @@ function hclView() {
       }))));
     }
     var code = h("div", { style: "padding:8px 0;background:" + T[1] + ";color:" + T[2] + ";border-radius:0 6px 6px 0" });
-    var RC = { "✅": "#3f9a73", "⚠": "#b36b00", "❌": "#c62828" }, cur = null;
+    var RC = { "✅": "#2f8cff", "⚠": "#b36b00", "❌": "#c62828" }, cur = null;
     lines.slice(start).forEach(function (ln) {
       var row = h("div"), rm0 = /^\s+# (✅|⚠️|❌) /.exec(ln);
       if (rm0) { cur = RC[rm0[1].charAt(0)] || RC[rm0[1]]; row.appendChild(h("b", { style: "color:" + cur + ";background:" + hexA(cur, 0.14) + ";padding:0 4px;border-radius:3px", text: ln })); }
@@ -8273,7 +8273,7 @@ function ruleTable(V, dir, vpcId, saved) {
 var OWNER = "000000000000";
 function t0() { if (!S.t0) S.t0 = Date.now(); return S.t0; }
 function fmtT(ts) { var d = new Date(ts), o = -d.getTimezoneOffset(); return d.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" }) + ", " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + " (UTC" + (o >= 0 ? "+" : "-") + ("0" + Math.floor(Math.abs(o) / 60)).slice(-2) + ":" + ("0" + Math.abs(o) % 60).slice(-2) + ")"; }
-function okIco(t, kind) { var c = kind === "warn" ? "#5f6b7a" : "#3f9a73"; return h("span", { style: "color:" + c + ";white-space:nowrap;display:inline-flex;gap:6px;align-items:center" }, [icoEl(kind === "warn" ? "clock" : "check", 15), t]); }
+function okIco(t, kind) { var c = kind === "warn" ? "#5f6b7a" : "#2f8cff"; return h("span", { style: "color:" + c + ";white-space:nowrap;display:inline-flex;gap:6px;align-items:center" }, [icoEl(kind === "warn" ? "clock" : "check", 15), t]); }
 function vcol(id) { var v = find(S.vpcs, id); return v ? v.id + (v.name ? " | " + v.name : "") : "-"; }
 function azId(az) { return { a: "apse1-az2", b: "apse1-az1", c: "apse1-az3" }[az.slice(-1)] || az; }
 function eniOf(id) { return "eni-0" + hash32(id + "eni") + hash32("e" + id).slice(0, 8); }
@@ -8289,7 +8289,7 @@ function vpcPreview(V) {
   function chip(n, c) { return h("div", { style: "background:var(--code-bg);border-radius:4px;padding:6px 8px;margin:6px 0;font-size:.78rem;word-break:break-all;" + (c ? "border-left:4px solid " + c : "") , text: n }); }
   var cols = [box("VPC", "Your AWS virtual network", [h("a", { href: "#", cls: "infolink", text: "Show details", onclick: function (e) { e.preventDefault(); } }), chip(p + "-vpc")])];
   if (more) {
-    var sn = azs.map(function (z, i) { var rows = []; if (i < pub) rows.push(chip(p + "-subnet-public" + (i + 1) + "-" + z, "#3f9a73")); if (i < priv) rows.push(chip(p + "-subnet-private" + (i + 1) + "-" + z, "#0972d3")); return rows.length ? h("div", {}, [h("b", { style: "font-size:.82rem", text: z })].concat(rows)) : null; }).filter(Boolean);
+    var sn = azs.map(function (z, i) { var rows = []; if (i < pub) rows.push(chip(p + "-subnet-public" + (i + 1) + "-" + z, "#2f8cff")); if (i < priv) rows.push(chip(p + "-subnet-private" + (i + 1) + "-" + z, "#0972d3")); return rows.length ? h("div", {}, [h("b", { style: "font-size:.82rem", text: z })].concat(rows)) : null; }).filter(Boolean);
     var rt = []; if (pub) rt.push(chip(p + "-rtb-public")); azs.forEach(function (z, i) { if (i < priv) rt.push(chip(p + "-rtb-private" + (i + 1) + "-" + z)); });
     var nets = []; if (pub) nets.push(chip(p + "-igw")); if (V.nat === "1az" && pub) nets.push(chip(p + "-nat-public1-" + azs[0])); if (V.nat === "perAz") azs.slice(0, pub).forEach(function (z, i) { nets.push(chip(p + "-nat-public" + (i + 1) + "-" + z)); }); if (V.s3 === true || V.s3 === "true") nets.push(chip(p + "-vpce-s3"));
     cols.push(box("Subnets (" + (Math.min(pub, nAz) + Math.min(priv, nAz)) + ")", "Subnets within this VPC", sn), box("Route tables (" + rt.length + ")", "Route network traffic to resources", rt), box("Network connections (" + nets.length + ")", "Connections to other networks", nets));
@@ -8490,7 +8490,7 @@ LISTS.insts = function () {
       { label: "Change instance type", page: "inst-type", when: function (r) { return r.state !== "terminated"; } },
       { label: "Modify IAM role", page: "inst-role", when: function (r) { return r.state !== "terminated"; } },
       { label: "Terminate (delete) instance", grp: "Instance state", page: "del", kind: "inst", when: function (r) { return r.state !== "terminated"; } }],
-    rows: function () { return S.insts; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Instance ID", function (r) { return r.id; }], ["Instance state", function (r) { return stateIcon(r.state, r); }], ["Instance type", function (r) { return r.type; }], ["Status check", function (r) { var ph = instPhase(r); return ph.check === "2/2 checks passed" ? h("span", { style: "display:inline-flex;gap:6px;align-items:center;white-space:nowrap" }, [icoEl("check", 15, "#3f9a73"), "2/2 checks passed"]) : ph.check === "Initializing" ? h("span", { style: "display:inline-flex;gap:6px;align-items:center;white-space:nowrap" }, [icoEl("clock", 15, "#5f6b7a"), "Initializing"]) : "–"; }], ["Alarm status", function () { return "No alarms  +"; }], ["Availability Zone", function (r) { return r.az; }], ["Public IPv4 DNS", function (r) { var v = find(S.vpcs, r.vpcId); return v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "–"; }], ["Public IPv4 address", function (r) { return r.publicIp || "–"; }], ["Private IPv4 address", function (r) { return r.privateIp; }], ["Subnet", function (r) { return nm(find(S.subnets, r.subnetId)); }], ["Key name", function (r) { return r.keyName || "-"; }]],
+    rows: function () { return S.insts; }, cols: [["Name", function (r) { return r.name || "-"; }], ["Instance ID", function (r) { return r.id; }], ["Instance state", function (r) { return stateIcon(r.state, r); }], ["Instance type", function (r) { return r.type; }], ["Status check", function (r) { var ph = instPhase(r); return ph.check === "2/2 checks passed" ? h("span", { style: "display:inline-flex;gap:6px;align-items:center;white-space:nowrap" }, [icoEl("check", 15, "#2f8cff"), "2/2 checks passed"]) : ph.check === "Initializing" ? h("span", { style: "display:inline-flex;gap:6px;align-items:center;white-space:nowrap" }, [icoEl("clock", 15, "#5f6b7a"), "Initializing"]) : "–"; }], ["Alarm status", function () { return "No alarms  +"; }], ["Availability Zone", function (r) { return r.az; }], ["Public IPv4 DNS", function (r) { var v = find(S.vpcs, r.vpcId); return v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "–"; }], ["Public IPv4 address", function (r) { return r.publicIp || "–"; }], ["Private IPv4 address", function (r) { return r.privateIp; }], ["Subnet", function (r) { return nm(find(S.subnets, r.subnetId)); }], ["Key name", function (r) { return r.keyName || "-"; }]],
     detail: function (r) {
       var v = find(S.vpcs, r.vpcId), dns = v && v.dnsHostnames && v.dnsResolution && r.publicIp ? "ec2-" + r.publicIp.replace(/\./g, "-") + "." + REGION + ".compute.lab.invalid" : "-";
       var rows = [["Instance ID", r.id], ["Instance state", stateTag(r.state)], ["Public IPv4 address", r.publicIp || "-"], ["Private IPv4 addresses", r.privateIp], ["Public IPv4 DNS", dns + (dns === "-" && r.publicIp ? "  (VPC ต้องเปิดทั้ง DNS hostnames และ DNS resolution)" : "")], ["Instance type", r.type], ["Security groups", r.sgIds.map(function (id) { return nm(find(S.sgs, id)); }).join(", ")], ["IAM Role", r.profile || "-"], ["Elastic IP", r.eipId ? (find(S.eips, r.eipId) || {}).ip : "-"], ["Metadata", "tokens: " + r.imds.tokens + ", hop limit: " + r.imds.hop], ["Tags", r.tags.map(function (t) { return t.k + "=" + t.v; }).join(", ") || "-"]];
@@ -8907,7 +8907,7 @@ function readyPanel() {
   if (!S.ready) return null;
   var st = readyState(), u = S.ready.user, ip = function (n) { return (S.insts.filter(function (i) { return i.name === n; })[0] || {}).publicIp; }, alb = S.albs[0] && S.albs[0].dns;
   function goBrowser(url, page) { go("browser", {}, "Browser"); wbGo(url); if (page) { W.page = page; render(); } }
-  function step(n, done, title, hint, label, dis, fn) { return h("div", { style: "display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line,#d3dae3);flex-wrap:wrap" }, [h("span", { style: "width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:" + (done ? "#3f9a73" : "#5f6b7a"), text: done ? "✓" : String(n) }), h("div", { style: "flex:1;min-width:240px" }, [h("b", { text: title }), h("div", { cls: "hint", text: hint })]), h("button", { cls: "btn pri", type: "button", text: label, disabled: dis, onclick: fn })]); }
+  function step(n, done, title, hint, label, dis, fn) { return h("div", { style: "display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line,#d3dae3);flex-wrap:wrap" }, [h("span", { style: "width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:" + (done ? "#2f8cff" : "#5f6b7a"), text: done ? "✓" : String(n) }), h("div", { style: "flex:1;min-width:240px" }, [h("b", { text: title }), h("div", { cls: "hint", text: hint })]), h("button", { cls: "btn pri", type: "button", text: label, disabled: dis, onclick: fn })]); }
   function chip(t, fn) { return h("button", { cls: "btn", type: "button", text: t, onclick: fn }); }
   return h("div", { cls: "card", style: "margin-bottom:12px" }, [h("div", { cls: "ch", text: "ปุ่มลัดตัวอย่าง 'พร้อมปล่อย' (ไม่ต้องพิมพ์) · GitHub user: " + u }), h("div", { cls: "cb" }, [
     step(1, st.pushed, "git push ทั้ง 3 repo", "สั่ง git init/add/commit/remote/push (+ tag v1.0.0) ให้ทีละคำสั่ง ดูผลใน Terminal ด้านล่าง", "▶ push ให้", false, function () { readyPushCmds().forEach(termExec); termDraw(); render(); }),
@@ -8923,7 +8923,7 @@ PAGES["term"] = function () {
     else if (e.key === "ArrowUp" && !TERM.ask) { if (TERM.hi > 0) inp.value = TERM.hist[--TERM.hi]; e.preventDefault(); }
     else if (e.key === "ArrowDown" && !TERM.ask) { TERM.hi = Math.min(TERM.hist.length, TERM.hi + 1); inp.value = TERM.hist[TERM.hi] || ""; e.preventDefault(); }
   } });
-  var box = h("div", { id: "termwrap" }, [crumbEl("Laptop › Terminal"), h("h1", { text: "Terminal" }), readyPanel(), infoCard([["ทำอะไร", "#2b6cb0", "เครื่อง laptop จำลอง: รัน `terraform` · `ansible` · `aws` cli · `ssh` กับ AWS จำลอง"], ["ผลที่เห็น", "#3f9a73", "สะท้อนในเมนู **VPC, EC2, IAM, ECR** ทันที"]]),
+  var box = h("div", { id: "termwrap" }, [crumbEl("Laptop › Terminal"), h("h1", { text: "Terminal" }), readyPanel(), infoCard([["ทำอะไร", "#2b6cb0", "เครื่อง laptop จำลอง: รัน `terraform` · `ansible` · `aws` cli · `ssh` กับ AWS จำลอง"], ["ผลที่เห็น", "#2f8cff", "สะท้อนในเมนู **VPC, EC2, IAM, ECR** ทันที"]]),
     h("div", { cls: "termbar" }, [h("label", {}, ["ความเร็ว ", h("select", { id: "termspeed", "aria-label": "ความเร็ว", onchange: function (e) { S.speed = e.target.value; save(); } }, [["instant", "เสร็จทันที"], ["real", "เวลาเหมือนจริง (ประมาณ ใช้เวลาหลายนาที)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: (S.speed || "instant") === o[0] ? "selected" : null }); }))]), h("label", {}, ["ธีม ", h("select", { id: "termtheme", "aria-label": "ธีม Terminal", onchange: function (e) { termSet("theme", e.target.value); termApplyTheme(); } }, Object.keys(TERM_THEMES).map(function (k) { return h("option", { value: k, text: TERM_THEMES[k][0], selected: termPref("theme", "navy") === k ? "selected" : null }); }))]), h("label", {}, ["ขนาดตัวอักษร ", h("select", { id: "termsize", "aria-label": "ขนาดตัวอักษร Terminal", onchange: function (e) { termSet("size", e.target.value); termApplyTheme(); } }, [["s", "เล็ก"], ["m", "กลาง"], ["l", "ใหญ่"], ["xl", "ใหญ่มาก"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: termPref("size", "m") === o[0] ? "selected" : null }); }))]), h("button", { type: "button", id: "termskip", cls: "btn", hidden: true, text: "ข้าม (Ctrl+C) แสดงที่เหลือทันที", onclick: function () { if (TERM.busy) TERM.busy.skip(); } })]),
     h("pre", { cls: "term", id: "termout", style: "min-height:320px;max-height:520px;overflow:auto" }), h("div", { cls: "termrow" }, [h("span", { id: "termlab", cls: "termlab" }), inp])]);
   setTimeout(termDraw, 0); return box;
@@ -8950,7 +8950,7 @@ PAGES["faults"] = function () {
     box.appendChild(h("div", { cls: "card", style: "margin:10px 0" }, [h("div", { cls: "cb" }, [
       h("label", { style: "display:flex;gap:8px;align-items:center;font-weight:600" }, [h("input", { type: "checkbox", checked: on, onchange: function (e) { if (e.target.checked) S.faults[f[0]] = true; else delete S.faults[f[0]]; save(); render(); } }), f[1], h("span", { cls: "tag " + (on ? "warn" : "ok"), text: on ? "เปิดอยู่" : "ปิด" })]),
       h("div", { cls: "sub", style: "margin:4px 0 10px" }, rich(f[2])),
-      infoCard([["จะเกิด", "#c0392b", f[3]], ["วิธีแก้", "#3f9a73", f[4]]])])]));
+      infoCard([["จะเกิด", "#c0392b", f[3]], ["วิธีแก้", "#2f8cff", f[4]]])])]));
   });
   box.appendChild(h("h2", { text: "ที่เกิดอยู่แล้วโดยไม่ต้องเปิด" })); box.appendChild(infoCard([["AMI", "#7b3fe4", "ไม่เจอถ้า `owners` / ชื่อ filter **ไม่ตรง**"], ["โควตา", "#a85a00", "ตามเอกสาร: Elastic IP / VPC / IGW **5 ต่อ region** · SG rule **60**"], ["Free plan", "#c0392b", "ใช้ได้เฉพาะ instance type ในรายการ (เมนู ==บัญชี== ด้านบน)"], ["เวลาสร้าง", "#1d6fb8", "ALB / EC2 / NAT แสดง `Still creating...` ตาม**เวลาโดยประมาณ**"]]));
   return box;
@@ -9091,7 +9091,7 @@ function wbSonar(res) {
   }
   function frame(inner) { return h("div", { cls: "sq" }, [bar(), inner]); }
   function pad(k) { return h("div", { cls: "sq-pad" }, k); }
-  function rate(n, c) { var col = { A: ["#d4f5dc", "#3f9a73"], B: ["#e6f3b8", "#5a7a00"], C: ["#fdeabf", "#9a6500"], D: ["#fbd9b5", "#a1530a"], E: ["#f8cbcb", "#a31212"] }[n] || ["#eee", "#444"]; return h("span", { style: "display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;text-align:center;background:" + col[0] + ";color:" + col[1] + ";font-weight:700", text: n }); }
+  function rate(n, c) { var col = { A: ["#d4f5dc", "#2f8cff"], B: ["#e6f3b8", "#5a7a00"], C: ["#fdeabf", "#9a6500"], D: ["#fbd9b5", "#a1530a"], E: ["#f8cbcb", "#a31212"] }[n] || ["#eee", "#444"]; return h("span", { style: "display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;text-align:center;background:" + col[0] + ";color:" + col[1] + ";font-weight:700", text: n }); }
   if (!S.sq.login) { ["sl", "sp"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); var li = function (id, lab, key, type, ex) { return h("div", { cls: "sq-f" }, [h("label", { for: id }, [lab, h("span", { cls: "sq-req", text: " *" })]), wbEx(lab, key, ex, "Enter your " + lab.toLowerCase(), type, id)]); }; var ready = (F.sl || "").length > 0 && (F.sp || "").length > 0; return h("div", { cls: "sq sq-login" }, [h("div", { cls: "sq-lleft" }, [h("div", { cls: "sq-lbox" }, [h("div", { cls: "sq-logo big" }, [h("span", { cls: "sq-wave", text: "((•))" }), h("span", { cls: "sq-lt" }, [h("b", {}, [h("span", { text: "Sonar" }), h("span", { cls: "q", text: "Qube" })]), h("small", { text: "server" })])]), h("h1", { text: "Welcome to SonarQube" }), li("w-sl", "Username", "sl", "text", ["admin"]), li("w-sp", "Password", "sp", "password", S.sq.pwdChanged ? [[S.sq.pass, "รหัสที่ตั้งไว้"], "admin"] : [["admin", "admin (ค่าเริ่มต้น)"]]), wbErr(W.lg), h("button", { type: "button", cls: "sq-login-btn" + (ready ? " on" : ""), text: "Log in", onclick: function () { var r = sqLogin(F.sl, F.sp); if (!r.ok) W.lg = "Authentication failed"; else { W.lg = ""; W.sq = r.mustChange ? "chpw" : "projects"; } render(); } })]), h("div", { cls: "sq-lfoot", text: "SonarQube™ technology is powered by SonarSource Sàrl" })]), h("div", { cls: "sq-lright" }, [h("div", { cls: "sq-rlogo", text: "◖ Sonar" }), h("h2", { text: "SonarQube Server: Your independent code verification layer" }), h("p", { text: "SonarQube Server provides deep analysis to ensure all your code, human-written and AI-generated, is secure and high quality." }), h("ul", {}, [h("li", {}, [h("b", { text: "Continuous Verification: " }), "Automatically reviews your code in real-time, helping you eliminate security risks, bugs, and technical debt before they reach production."]), h("li", {}, [h("b", { text: "DevSecOps integrated: " }), "Works seamlessly within your existing CI/CD workflow, including integrations with tools like GitHub Actions, GitLab CI/CD, and Jenkins."]), h("li", {}, [h("b", { text: "Empowering developers: " }), "SonarQube for IDE in connected mode enables developers to receive real-time, actionable code intelligence and guidance to resolve issues quickly."])])])]); }
   if (!S.sq.pwdChanged && pg !== "chpw") pg = W.sq = "chpw";
   if (pg === "chpw") { ["so", "sn", "sc"].forEach(function (k) { if (F[k] == null) F[k] = ""; }); return frame(pad([h("div", { style: "max-width:420px;margin:0 auto;background:#fff;border:1px solid #d5d8e0;border-radius:8px;padding:24px" }, [h("h2", { text: "Update your password" }), h("p", { text: "This account should not use the default password." }), wbEx("Old Password", "so", [S.sq.pwdChanged ? [S.sq.pass, "รหัสปัจจุบัน"] : ["admin", "admin (ค่าเริ่มต้น)"]], "", "password", "w-so"), wbEx("New Password", "sn", ["Pharmacy-Lab-2026!", "Sonar-Pharmacy-01"], "ยาวอย่างน้อย 12 ตัว", "password", "w-sn"), wbEx("Confirm Password", "sc", ["Pharmacy-Lab-2026!", "Sonar-Pharmacy-01"], "", "password", "w-sc"), wbErr(W.lg), h("button", { cls: "btn pri", type: "button", text: "Update", onclick: function () { var r = sqChangePw(F.so, F.sn, F.sc); if (r.errors) W.lg = r.errors; else { W.lg = ""; W.sq = "projects"; } render(); } })])])); }
@@ -9179,7 +9179,7 @@ PAGES.browser = function () {
   var r = W.res, view;
   var noOut = !urls.some(function (u) { return /^https?:\/\/(?!github\.com)/.test(u); });
   if (!r && noOut) view = h("div", { cls: "card" }, [h("div", { cls: "cb" }, [h("h2", { text: "ยังไม่มี link ของ Jenkins / SonarQube / ArgoCD / เว็บ" }), h("p", { text: "link พวกนี้มาจาก terraform output หลังสร้างเครื่องแล้ว (state ถูกล้างเมื่อกด Reset หรือเปิดแท็บใหม่)" }), h("p", { text: "ทางลัด: Lab › ตัวอย่างสำเร็จรูป › \"พร้อมปล่อย\" แล้วกดโหลด จะได้ครบทุก link ทันที หรือทำเองที่แท็บ Laptop: terraform apply" }), h("button", { type: "button", cls: "btn pri", text: "ไปที่ ตัวอย่างสำเร็จรูป", onclick: function () { go("lab-scen", {}, "Lab"); } })])]);
-  else if (!r) view = infoCard([["ทำอะไร", "#2b6cb0", "เลือก URL จาก `terraform output` (หรือพิมพ์เอง) แล้วกด ==Go=="], ["ตัวจำลองตรวจ", "#3f9a73", "เหมือน `ssh`: เครื่อง**รันอยู่** · มี **public IP** · **route** · **security group** · service ที่ฟัง**พอร์ต**นั้น"]]);
+  else if (!r) view = infoCard([["ทำอะไร", "#2b6cb0", "เลือก URL จาก `terraform output` (หรือพิมพ์เอง) แล้วกด ==Go=="], ["ตัวจำลองตรวจ", "#2f8cff", "เหมือน `ssh`: เครื่อง**รันอยู่** · มี **public IP** · **route** · **security group** · service ที่ฟัง**พอร์ต**นั้น"]]);
   else if (r && r.site === "cf") view = wbCloudFront(r);
   else if (r.err) view = wbWin({ url: W.addr, title: /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached", ico: "⚠️", insecure: /CERT|SSL/.test(r.err), body: wbErrBody(r.host || W.addr, r.err), steps: r.steps || [], stepsTitle: "ตัวจำลองบอกเหตุผล (ไม่มีในเบราว์เซอร์จริง)" });
   else if (r.site === "jenkins") view = h("div", { cls: "site-jenkins" }, [wbJenkins(r)]);
@@ -9203,13 +9203,13 @@ function labBody(tab) {
   var cb = h("div", { cls: "cb" });
   if (tab === "check") {
     var c = checks(), n = c.filter(function (x) { return x.ok; }).length;
-    cb.appendChild(infoCard([["ความคืบหน้า", n === c.length ? "#3f9a73" : "#2b6cb0", "สิ่งที่คุณกดมาตรงกับโค้ด Terraform ของ lab แล้ว **" + n + "** จาก **" + c.length + "** ข้อ"]]));
+    cb.appendChild(infoCard([["ความคืบหน้า", n === c.length ? "#2f8cff" : "#2b6cb0", "สิ่งที่คุณกดมาตรงกับโค้ด Terraform ของ lab แล้ว **" + n + "** จาก **" + c.length + "** ข้อ"]]));
     cb.appendChild(h("div", { cls: "prog" }, [h("i", { style: "width:" + Math.round(100 * n / c.length) + "%" })]));
     cb.appendChild(h("ul", { cls: "chk" }, c.map(function (x) { return h("li", { cls: x.ok ? "ok" : "no" }, [h("span", { cls: "m", text: x.ok ? "✓" : "✗" }), h("span", {}, [x.label, x.hint && !x.ok ? h("small", { text: "วิธี: " + x.hint }) : null])]); })));
   } else if (tab === "flow") {
     cb.appendChild(flowTab());
   } else if (tab === "hcl") {
-    cb.appendChild(infoCard([["ทำอะไร", "#2b6cb0", "สิ่งที่คุณ**กดใน console** ถูกแปลงเป็นโค้ด Terraform ตรงๆ"], ["ต่างจาก repo จริง", "#a85a00", "ไม่ย่อด้วย `count` / `for_each` จึง==ยาวกว่า== ของจริง"], ["ใช้ทำอะไร", "#3f9a73", "เทียบว่า**แต่ละคลิก**กลายเป็น**บรรทัดไหน**"]]));
+    cb.appendChild(infoCard([["ทำอะไร", "#2b6cb0", "สิ่งที่คุณ**กดใน console** ถูกแปลงเป็นโค้ด Terraform ตรงๆ"], ["ต่างจาก repo จริง", "#a85a00", "ไม่ย่อด้วย `count` / `for_each` จึง==ยาวกว่า== ของจริง"], ["ใช้ทำอะไร", "#2f8cff", "เทียบว่า**แต่ละคลิก**กลายเป็น**บรรทัดไหน**"]]));
     cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:0 0 10px" }, [foldBar(), jkxViewSel(), codeThemeSel()]));
     if (isStaticLab()) { var sk = h("div", { cls: "card", style: "margin-bottom:14px;padding:8px 14px 14px" }), sf = fold("sysan", "แอนิเมชัน: เว็บ static (S3 + CloudFront + Route 53 + ACM) ใครคุยกับใคร"); sf.appendChild(ucAnim(UC[0])); sk.appendChild(sf); cb.appendChild(sk); }
     else { cb.appendChild(netAnim()); cb.appendChild(sgAnim()); cb.appendChild(isManagedLab() ? mgSysCard() : sysAnimCard()); }
@@ -9333,12 +9333,12 @@ load(); render();
 // ---- แท็บ Lab › "ลำดับการปล่อย": ภาพ + animation + โค้ดที่ตรงกัน (Jenkinsfile, deployment.yaml, apps.yaml) เหมือนแท็บ HCL ของ Terraform
 FOLD.fanim = 1; FOLD.fcode = 1;
 var FLOW = { env: "dev", action: "build-and-deploy", svc: "backend", sync: false }, FT = [];
-var FNODE = { you: [20, 150, "คุณ (Laptop)", "git push · กด Build", "#546e7a"], gh: [210, 150, "GitHub", "", "#24292f"], jk: [400, 150, "Jenkins", "", "#d33833"], sq: [400, 30, "SonarQube", ":9000", "#3f9a73"], ecr: [400, 300, "ECR", "", "#a85a00"], mf: [610, 150, "GitHub", "pharmacy-manifests", "#24292f"], ar: [810, 150, "ArgoCD", "", "#ef7b4d"], k8: [810, 300, "k3s cluster", "", "#326ce5"], alb: [610, 440, "ALB", "", "#d81b60"], br: [400, 440, "Browser", "ผู้ใช้เปิดเว็บ", "#546e7a"] };
+var FNODE = { you: [20, 150, "คุณ (Laptop)", "git push · กด Build", "#546e7a"], gh: [210, 150, "GitHub", "", "#24292f"], jk: [400, 150, "Jenkins", "", "#d33833"], sq: [400, 30, "SonarQube", ":9000", "#2f8cff"], ecr: [400, 300, "ECR", "", "#a85a00"], mf: [610, 150, "GitHub", "pharmacy-manifests", "#24292f"], ar: [810, 150, "ArgoCD", "", "#ef7b4d"], k8: [810, 300, "k3s cluster", "", "#326ce5"], alb: [610, 440, "ALB", "", "#d81b60"], br: [400, 440, "Browser", "ผู้ใช้เปิดเว็บ", "#546e7a"] };
 var FICO = { you: "terraform", gh: "github", jk: "jenkins", sq: "sonarqubeserver", ecr: "ecr", mf: "github", ar: "argo", k8: "kubernetes", alb: "elb", br: null };
 var FEDGE = [["you", "gh"], ["you", "jk"], ["gh", "jk"], ["jk", "sq"], ["jk", "ecr"], ["jk", "mf"], ["mf", "ar"], ["ar", "k8"], ["ecr", "k8"], ["br", "alb"], ["alb", "k8"]];
 var FSTAGE = {
   git: ["#546e7a", "คำสั่ง git ที่คุณพิมพ์", "Terminal บน laptop"], params: ["#8456ce", "พารามิเตอร์ของ job (หน้า Build with Parameters)", "Jenkins"], env: ["#6d4c41", "ตัวแปรของ pipeline (ชื่อ image, ชื่อแอป ArgoCD)", "Jenkins"], head: ["#879596", "หัวไฟล์ + ตัวเลือกของ pipeline", "Jenkins"],
-  "Validate": ["#0972d3", "ตรวจ VERSION (prd รับเฉพาะ vN.N.N)", "Jenkins"], "Confirm production": ["#d63f9e", "หยุดรอคนกดยืนยัน (เฉพาะ prd)", "Jenkins"], "Checkout version": ["#00a1c9", "ดึงโค้ดตาม tag จาก GitHub", "Jenkins ← GitHub"], "SonarQube scan": ["#3f9a73", "ส่งโค้ดให้ SonarQube ตรวจ + รอ Quality gate", "Jenkins → SonarQube :9000"],
+  "Validate": ["#0972d3", "ตรวจ VERSION (prd รับเฉพาะ vN.N.N)", "Jenkins"], "Confirm production": ["#d63f9e", "หยุดรอคนกดยืนยัน (เฉพาะ prd)", "Jenkins"], "Checkout version": ["#00a1c9", "ดึงโค้ดตาม tag จาก GitHub", "Jenkins ← GitHub"], "SonarQube scan": ["#2f8cff", "ส่งโค้ดให้ SonarQube ตรวจ + รอ Quality gate", "Jenkins → SonarQube :9000"],
   "Test": ["#a85a00", "รันเทสต์ในกล่องชั่วคราว", "Jenkins (docker run --rm)"], "Build image": ["#a85a00", "docker build เป็น image ตาม tag", "Jenkins (docker build)"], "Scan image": ["#a85a00", "Trivy สแกนช่องโหว่ก่อน push", "Jenkins (trivy)"], "Push image": ["#a85a00", "push ขึ้น ECR ด้วย IAM role", "Jenkins → ECR (IAM role PowerUser)"], "Check image exists": ["#a85a00", "เช็กว่า image มีใน ECR แล้ว (deploy-only)", "Jenkins → ECR"], "Deploy dev (docker compose)": ["#326ce5", "ssh ไป pharmacy-dev แล้วสั่ง docker compose pull/up (เฉพาะ dev)", "Jenkins → pharmacy-dev :22"], "Update manifest": ["#c62828", "แก้บรรทัด image: ใน repo manifests แล้ว push", "Jenkins → GitHub pharmacy-manifests"],
   "Sync ArgoCD": ["#ef7b4d", "สั่ง ArgoCD sync แล้วรอ Healthy (เมื่อติ๊ก AUTO_SYNC)", "Jenkins → ArgoCD :30443"], post: ["#879596", "ทำความสะอาด + สรุปผล", "Jenkins"], apps: ["#5c6bc0", "ประกาศแอปให้ ArgoCD: ดึงจาก repo ไหน ไป cluster ไหน sync เองไหม", "ArgoCD (บน k8s-1)"], deploy: ["#326ce5", "Deployment + Service ของ k3s: บรรทัด image: คือสิ่งที่ Jenkins แก้", "k3s cluster"]
 };
@@ -9428,7 +9428,7 @@ function flowAnim() {
   var I = flowCfgInfo(), c = I.c, steps = flowSteps(), W2 = 980, H2 = 540, svg = sv("svg", { viewBox: "0 0 " + W2 + " " + H2, width: "100%", style: "max-width:" + W2 + "px;font-family:inherit", role: "img", "aria-label": "แผนภาพลำดับการปล่อย" }), el = {};
   var sub = { gh: I.repo, jk: "job " + I.repo, ecr: "pharmacy/" + c.svc, ar: "app " + I.app, k8: (c.env === "dev" ? "pharmacy-dev" : "k8s-1..3") + " · pod ×" + I.n, alb: "พอร์ต " + I.port };
   FEDGE.forEach(function (e) { var a = FNODE[e[0]], b = FNODE[e[1]]; svg.appendChild(sv("line", { x1: a[0] + 70, y1: a[1] + 30, x2: b[0] + 70, y2: b[1] + 30, stroke: "#b6bec9", "stroke-width": 2, "stroke-dasharray": "5 4" })); });
-  Object.keys(FNODE).forEach(function (k) { var n = FNODE[k], g = sv("g", {}), r = sv("rect", { x: n[0], y: n[1], width: 140, height: 62, rx: 10, fill: hexA(n[4], 0.10), stroke: n[4], "stroke-width": 2 }); g.appendChild(r); var fi = svgIco(FICO[k], n[0] + 6, n[1] + 6, 24); if (fi) g.appendChild(fi); g.appendChild(sv("text", { x: n[0] + 70, y: n[1] + 26, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "currentColor" }, [n[2]])); g.appendChild(sv("text", { x: n[0] + 70, y: n[1] + 46, "text-anchor": "middle", "font-size": 10.5, fill: "currentColor" }, [(sub[k] || n[3]).slice(0, 26)])); var ck = sv("text", { x: n[0] + 124, y: n[1] + 18, "font-size": 16, fill: "#3f9a73", "font-weight": 700 }, ["✓"]); ck.style.opacity = "0"; g.appendChild(ck); el[k] = { r: r, ck: ck, col: n[4] }; svg.appendChild(g); });
+  Object.keys(FNODE).forEach(function (k) { var n = FNODE[k], g = sv("g", {}), r = sv("rect", { x: n[0], y: n[1], width: 140, height: 62, rx: 10, fill: hexA(n[4], 0.10), stroke: n[4], "stroke-width": 2 }); g.appendChild(r); var fi = svgIco(FICO[k], n[0] + 6, n[1] + 6, 24); if (fi) g.appendChild(fi); g.appendChild(sv("text", { x: n[0] + 70, y: n[1] + 26, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "currentColor" }, [n[2]])); g.appendChild(sv("text", { x: n[0] + 70, y: n[1] + 46, "text-anchor": "middle", "font-size": 10.5, fill: "currentColor" }, [(sub[k] || n[3]).slice(0, 26)])); var ck = sv("text", { x: n[0] + 124, y: n[1] + 18, "font-size": 16, fill: "#2f8cff", "font-weight": 700 }, ["✓"]); ck.style.opacity = "0"; g.appendChild(ck); el[k] = { r: r, ck: ck, col: n[4] }; svg.appendChild(g); });
   var pk = sv("circle", { r: 9, cx: 0, cy: 0, fill: "#ff9900", stroke: "#fff", "stroke-width": 2 }); pk.style.opacity = "0"; pk.style.transition = "transform .7s ease-in-out, opacity .3s"; svg.appendChild(pk);
   var msg = h("div", { id: "fmsg", style: "min-height:4.2em;margin:8px 0;font-weight:600;line-height:1.6;padding:8px 12px;border-left:4px solid #ff9900;background:rgba(255,153,0,.08);border-radius:4px", text: "กด ▶ เพื่อดูลำดับการปล่อยทีละขั้น (ปรับ env / ACTION / service ได้ด้านบน)" });
   var PH = { git: 0, params: 0, "Validate": 1, "Confirm production": 1, "Checkout version": 1, "Test": 1, "SonarQube scan": 1, "Build image": 1, "Scan image": 1, "Push image": 1, "Check image exists": 1, "Deploy dev (docker compose)": 2, "Update manifest": 2, apps: 2, "Sync ArgoCD": 2, deploy: 3 }, PHN = [["1  ส่งโค้ด + สั่งปล่อย", "#546e7a"], ["2  Jenkins ตรวจและสร้าง image", "#d33833"], FLOW.env === "dev" ? ["3  ส่งมอบ: Jenkins ssh ไป pharmacy-dev", "#326ce5"] : ["3  ส่งมอบให้ ArgoCD", "#ef7b4d"], FLOW.env === "dev" ? ["4  รันจริงด้วย docker compose", "#326ce5"] : ["4  รันจริงบน k3s", "#326ce5"]], list = h("div", { style: "margin:8px 0" }), lastPh = -1;
@@ -9463,7 +9463,7 @@ function flowAnim() {
   return [ctl, msg, svg, h("p", { cls: "hint", style: "margin:10px 0 0", text: "ขั้นตอนทั้งหมด จัดเป็น 4 ช่วง (กดข้อไหนเลื่อนไปดูโค้ดที่ตรงกัน):" }), list];
 }
 function flowTab() {
-  var cb = h("div"); cb.appendChild(infoCard([["ภาพรวม", "#2b6cb0", "การปล่อยแอป**หนึ่งครั้ง**: ตั้งแต่ `git push` จนผู้ใช้เปิดเว็บเห็น**เวอร์ชันใหม่**"], ["วิธีใช้", "#3f9a73", "กด ==▶ เล่น== แล้วโค้ดที่เกี่ยวข้องจะ**สว่างขึ้นทีละขั้น** (หน้าตาเหมือนแท็บ Terraform)"], ["โค้ดที่เกี่ยว", "#7b3fe4", "`Jenkinsfile` · `apps.yaml` · `deployment.yaml`"]]));
+  var cb = h("div"); cb.appendChild(infoCard([["ภาพรวม", "#2b6cb0", "การปล่อยแอป**หนึ่งครั้ง**: ตั้งแต่ `git push` จนผู้ใช้เปิดเว็บเห็น**เวอร์ชันใหม่**"], ["วิธีใช้", "#2f8cff", "กด ==▶ เล่น== แล้วโค้ดที่เกี่ยวข้องจะ**สว่างขึ้นทีละขั้น** (หน้าตาเหมือนแท็บ Terraform)"], ["โค้ดที่เกี่ยว", "#7b3fe4", "`Jenkinsfile` · `apps.yaml` · `deployment.yaml`"]]));
   cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:0 0 10px" }, [foldBar(), jkxViewSel(), codeThemeSel()]));
   var a = fold("fanim", "แอนิเมชัน: ลำดับการปล่อย (git push → Jenkins → ECR → ArgoCD → เว็บ)"), card = h("div", { cls: "card", style: "margin-bottom:14px;padding:8px 14px 12px" }); flowAnim().forEach(function (x) { a.appendChild(x); }); card.appendChild(a); cb.appendChild(card);
   var cd = fold("fcode", (JKX.view === "full" ? "โค้ดทั้งไฟล์ต่อเนื่อง (Jenkinsfile ของ repo-" + FLOW.svc + " + manifests) · เส้นสีซ้าย = ช่วง" : "โค้ดที่ตรงกับแต่ละขั้น (Jenkinsfile ของ repo-" + FLOW.svc + " + manifests) · ขีดสีแต่ละกล่อง = stage เดียวกับในภาพ")); cd.className = "fold card"; cd.style.padding = "8px 14px 12px"; cd.appendChild(flowCodeView()); cb.appendChild(cd);
@@ -10655,7 +10655,7 @@ var AN_PLAYBOOKS = ["db.yml", "k8s.yml", "sonarqube.yml", "jenkins.yml"];
 var AN_FILES = [["ansible/site.yml", "site.yml"], ["ansible/db.yml", "db.yml"], ["ansible/k8s.yml", "k8s.yml"], ["ansible/sonarqube.yml", "sonarqube.yml"], ["ansible/jenkins.yml", "jenkins.yml"], ["ansible/inventory/aws_ec2.yml", "inventory/aws_ec2.yml"], ["ansible/ansible.cfg", "ansible.cfg"], ["ansible/group_vars/all/main.yml", "group_vars/all/main.yml"], ["ansible/group_vars/internal.yml", "group_vars/internal.yml"],
   ["vm-db/60-galera.cnf.j2", "vm-db/60-galera.cnf.j2"], ["vm-jenkins/docker-compose.yml", "vm-jenkins/docker-compose.yml"], ["vm-jenkins/Dockerfile", "vm-jenkins/Dockerfile"], ["vm-sonarqube/docker-compose.yml", "vm-sonarqube/docker-compose.yml"], ["vm-k8s/cluster-base.yaml.j2", "vm-k8s/cluster-base.yaml.j2"], ["vm-k8s/ecr-refresh.sh", "vm-k8s/ecr-refresh.sh"], ["vm-k8s/ecr-refresh.service", "vm-k8s/ecr-refresh.service"], ["vm-k8s/ecr-refresh.timer", "vm-k8s/ecr-refresh.timer"]];
 JKX_SRC.an = [
-  [/\{\{\s*(ecr_registry|aws_region|github_user|manifests_repo|db_app_user|db_app_password|sonar_db_password|django_[a-z_]+)\s*\}\}/, "group_vars/all/main.yml", "#3f9a73", "ค่าที่คุณตั้งเองในไฟล์ group_vars"],
+  [/\{\{\s*(ecr_registry|aws_region|github_user|manifests_repo|db_app_user|db_app_password|sonar_db_password|django_[a-z_]+)\s*\}\}/, "group_vars/all/main.yml", "#2f8cff", "ค่าที่คุณตั้งเองในไฟล์ group_vars"],
   [/hostvars|groups\[|private_ip_address|ansible_host|group_names/, "inventory (tag AWS)", "#7b3fe4", "ได้จากที่ Ansible ถาม AWS (ป้ายที่ Terraform ติดไว้): IP, กลุ่ม role"],
   [/ProxyCommand|ProxyJump/, "ผ่าน bastion", "#475569", "SSH กระโดดผ่านเครื่อง bastion เพราะเครื่องภายในรับ SSH จาก bastion เท่านั้น"],
   [/\{\{ playbook_dir \}\}\/\.\.\/vm-/, "ไฟล์ใน repo vm-*", "#a85a00", "โฟลเดอร์ vm-* ใน repo นี้ ถูกคัดลอกไปวางบนเครื่อง"],
@@ -10732,7 +10732,7 @@ function anTheater() {
   var banner = h("div", { style: "min-height:3.2em;margin:10px 0;padding:10px 14px;border-radius:12px;background:var(--accent-bg);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);font-size:.9rem;line-height:1.6" });
   var recap = h("pre", { style: "margin:8px 0 0;padding:10px 14px;border-radius:12px;background:var(--code-bg);font:.78rem/1.55 var(--mono);overflow:auto;max-height:220px;white-space:pre", text: "" });
   function paint(name, state, text) {
-    var m = mach[name]; if (!m) return; var c = { idle: "var(--line)", on: "var(--accent)", ok: "#3f9a73", chg: "#b36b00", skip: "var(--line)" }[state];
+    var m = mach[name]; if (!m) return; var c = { idle: "var(--line)", on: "var(--accent)", ok: "#2f8cff", chg: "#b36b00", skip: "var(--line)" }[state];
     m.el.style.borderColor = c; m.el.style.boxShadow = state === "on" ? "0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)" : "none"; m.el.style.opacity = state === "skip" ? ".55" : "1"; if (text != null) m.st.textContent = text;
     m.bar.style.width = Math.round(100 * (done[name] || 0) / (totals[name] || 1)) + "%";
   }
@@ -10770,7 +10770,7 @@ function anMachinePanel() {
   AN_PLAYBOOKS.forEach(function (f) { anSplit(anText(f), f).forEach(function (s, i, all) { if (s.kind !== "play" || s.machines.indexOf(AN.m) < 0) return; var tasks = []; for (var j = i + 1; j < all.length && all[j].kind === "task"; j++) tasks.push(all[j]); rows.push({ f: f, play: s, tasks: tasks });
     tasks.forEach(function (t) { var tx = t.lines.join("\n"), d = /^\s+dest:\s*(\S+)/m.exec(tx), sr = /^\s+src:\s*"?([^"\n]+)"?/m.exec(tx); if (d && /^(copy|template|file)$/.test(anMod(t.mod))) files.push([sr ? sr[1].replace(/\{\{ playbook_dir \}\}\/\.\.\//, "") : "(เขียนจาก content: ในไฟล์ playbook)", d[1], f]); }); }); });
   var nT = rows.reduce(function (a, r) { return a + r.tasks.length; }, 0);
-  return { sel: sel, panel: h("div", { cls: "card", style: "margin-top:12px;border-left:5px solid " + m[2] }, [h("div", { cls: "cb" }, [h("h2", { style: "margin-top:0", text: m[3] + " " + m[0] }), infoCard([["role", m[2], "กลุ่ม `" + m[1][0] + "` · " + m[4]], ["สรุป", "#3f9a73", "ถูกเล่น **" + rows.length + "** play · **" + nT + "** task · วางไฟล์ **" + files.length + "** ไฟล์"]]),
+  return { sel: sel, panel: h("div", { cls: "card", style: "margin-top:12px;border-left:5px solid " + m[2] }, [h("div", { cls: "cb" }, [h("h2", { style: "margin-top:0", text: m[3] + " " + m[0] }), infoCard([["role", m[2], "กลุ่ม `" + m[1][0] + "` · " + m[4]], ["สรุป", "#2f8cff", "ถูกเล่น **" + rows.length + "** play · **" + nT + "** task · วางไฟล์ **" + files.length + "** ไฟล์"]]),
     h("h3", { text: "ลำดับสิ่งที่ Ansible ทำกับเครื่องนี้" }), h("ol", { style: "line-height:1.9;padding-left:22px;margin:0" }, rows.map(function (r) { return h("li", {}, [h("b", { text: r.play.sec[1].replace(/^PLAY: /, "") }), h("span", { style: "color:var(--muted)", text: "  (" + r.f + ")" }), h("ul", { style: "margin:2px 0 8px;padding-left:20px" }, r.tasks.map(function (t) { return h("li", {}, [h("span", { text: t.sec[1] })]); }))]); })),
     files.length ? h("div", {}, [h("h3", { text: "ไฟล์ที่ถูกวางบนเครื่องนี้" }), h("div", { cls: "twrap" }, [h("table", {}, [h("thead", {}, [h("tr", {}, [h("th", { text: "ต้นทาง (ใน repo)" }), h("th", { text: "→ ปลายทาง (บนเครื่อง)" }), h("th", { text: "จาก playbook" })])]), h("tbody", {}, files.map(function (f) { return h("tr", {}, [h("td", {}, [h("code", { cls: "rch", text: f[0] })]), h("td", {}, [h("code", { cls: "rch", text: f[1] })]), h("td", { text: f[2] })]); }))])])]) : null])]) };
 }
@@ -10800,7 +10800,7 @@ function anCode() {
 
 function ansibleTab() {
   var cb = h("div", { cls: "cb" });
-  cb.appendChild(infoCard([["ทำอะไร", "#2b6cb0", "**ตั้งค่าเครื่อง**ทั้ง 10 ตัวที่ Terraform สร้างไว้ (ลง Docker / k3s / MariaDB, วางไฟล์, เปิดบริการ) แทนการ SSH ทำมือทีละเครื่อง"], ["กลุ่ม role_* มาจากไหน", "#7b3fe4", "**ไม่มีไฟล์ไหนสร้างกลุ่ม** · ทุกครั้งที่รัน `ansible-inventory` / `ansible-playbook` Ansible ถาม AWS (`aws_ec2`) หาเครื่องที่ติดป้าย **Project=pharmacy** แล้วแยกกลุ่มตามป้าย **Role** ที่ ==Terraform ติดไว้== ➜ `role_db`, `role_sonarqube` ฯลฯ"], ["ถึงจะเห็นกลุ่ม ต้องมี", "#b36b00", "① เครื่อง **running** อยู่ (หลัง `terraform apply`) ② ตั้ง **aws credentials** แล้ว (`aws configure`) · ขาดอย่างใดอย่างหนึ่ง `ansible-inventory --graph` จะว่างเปล่า"], ["ลำดับ", "#3f9a73", "`site.yml` เรียก **db ➜ k8s ➜ sonarqube ➜ jenkins** · รันซ้ำได้ปลอดภัย (ข้ามสิ่งที่ตรงอยู่แล้ว)"], ["เข้าเครื่องยังไง", "#475569", "เครื่องภายในไม่มี public IP / SG รับ SSH จาก bastion เท่านั้น ➜ Ansible ต่อ **ผ่าน bastion** ด้วย private IP (ตั้งใน `group_vars/internal.yml`)"]]));
+  cb.appendChild(infoCard([["ทำอะไร", "#2b6cb0", "**ตั้งค่าเครื่อง**ทั้ง 10 ตัวที่ Terraform สร้างไว้ (ลง Docker / k3s / MariaDB, วางไฟล์, เปิดบริการ) แทนการ SSH ทำมือทีละเครื่อง"], ["กลุ่ม role_* มาจากไหน", "#7b3fe4", "**ไม่มีไฟล์ไหนสร้างกลุ่ม** · ทุกครั้งที่รัน `ansible-inventory` / `ansible-playbook` Ansible ถาม AWS (`aws_ec2`) หาเครื่องที่ติดป้าย **Project=pharmacy** แล้วแยกกลุ่มตามป้าย **Role** ที่ ==Terraform ติดไว้== ➜ `role_db`, `role_sonarqube` ฯลฯ"], ["ถึงจะเห็นกลุ่ม ต้องมี", "#b36b00", "① เครื่อง **running** อยู่ (หลัง `terraform apply`) ② ตั้ง **aws credentials** แล้ว (`aws configure`) · ขาดอย่างใดอย่างหนึ่ง `ansible-inventory --graph` จะว่างเปล่า"], ["ลำดับ", "#2f8cff", "`site.yml` เรียก **db ➜ k8s ➜ sonarqube ➜ jenkins** · รันซ้ำได้ปลอดภัย (ข้ามสิ่งที่ตรงอยู่แล้ว)"], ["เข้าเครื่องยังไง", "#475569", "เครื่องภายในไม่มี public IP / SG รับ SSH จาก bastion เท่านั้น ➜ Ansible ต่อ **ผ่าน bastion** ด้วย private IP (ตั้งใน `group_vars/internal.yml`)"]]));
   cb.appendChild(h("div", { style: "display:flex;gap:8px;margin:0 0 10px" }, [foldBar()]));
   var a = fold("antheater", "แอนิเมชัน: ansible-playbook site.yml ทำอะไรกับเครื่องแต่ละตัว"), card = h("div", { cls: "card", style: "margin-bottom:14px;padding:8px 14px 14px" }); a.appendChild(anTheater()); card.appendChild(a); cb.appendChild(card);
   cb.appendChild(anCode());
@@ -10812,7 +10812,7 @@ PAGES["lab-ansible"] = function () { return h("div", {}, [crumbEl("Lab › Ansib
 // ---- แอนิเมชันภาพรวมทั้งระบบ (Lab › Terraform): แบบที่ระบบจริงใช้ — 3 AZ · public/private subnet · NAT · bastion · k3s HA · Galera คนละ AZ
 // เครื่องทุกตัวเชื่อมกันยังไง · แต่ละเครื่องมีอะไรติดตัว (Role, Tier, SG, subnet/AZ, แอป FE/BE, env dev/prd) · Load balancer กระจายคำขอ
 // · เครื่องล่ม / AZ ล่มแล้วอะไรรอด · SSH ผ่าน bastion · ออกเน็ตผ่าน NAT · เส้นทางส่งมอบ CI/CD
-var SYS_C = { prd: "#2563eb", dev: "#3f9a73", db: "#b45309", tool: "#c0392b", net: "#3f9a73", alb: "#8456ce", bas: "#475569", mute: "#64748b" };
+var SYS_C = { prd: "#2563eb", dev: "#2f8cff", db: "#b45309", tool: "#c0392b", net: "#2f8cff", alb: "#8456ce", bas: "#475569", mute: "#64748b" };
 // ข้อมูลเครื่อง: [ชื่อ, role tag, env(สี), tier, AZ (a/b/c), SG ตามหน้าที่, แอปที่รัน (ป้าย, สี), พอร์ต/หมายเหตุ]
 var SYS_M = [
   ["pharmacy-bastion", "bastion", "bas", "public", "a", ["pharmacy-bastion"], [["SSH", "#475569"]], "SSH :22 จาก My IP เท่านั้น"],
@@ -10821,7 +10821,7 @@ var SYS_M = [
   ["pharmacy-k8s-1", "k8s_server", "prd", "private", "a", ["pharmacy-base", "pharmacy-k8s"], [["FE", "#2563eb"], ["BE", "#7c3aed"], ["ArgoCD", "#ef7b4d"]], "k3s server #1 (leader) · NodePort 30080/30443"],
   ["pharmacy-k8s-2", "k8s_server", "prd", "private", "b", ["pharmacy-base", "pharmacy-k8s"], [["FE", "#2563eb"], ["BE", "#7c3aed"]], "k3s server #2 · NodePort 30080"],
   ["pharmacy-k8s-3", "k8s_server", "prd", "private", "c", ["pharmacy-base", "pharmacy-k8s"], [["FE", "#2563eb"], ["BE", "#7c3aed"]], "k3s server #3 · NodePort 30080"],
-  ["pharmacy-dev", "dev", "dev", "private", "a", ["pharmacy-base", "pharmacy-dev"], [["FE", "#3f9a73"], ["BE", "#0b7285"]], "docker compose เครื่องเดียว · frontend :3000"],
+  ["pharmacy-dev", "dev", "dev", "private", "a", ["pharmacy-base", "pharmacy-dev"], [["FE", "#2f8cff"], ["BE", "#0b7285"]], "docker compose เครื่องเดียว · frontend :3000"],
   ["pharmacy-db-1", "db", "db", "private", "a", ["pharmacy-base", "pharmacy-db"], [["MariaDB", "#b45309"]], "3306 จาก k8s เท่านั้น · Galera node 1"],
   ["pharmacy-db-2", "db", "db", "private", "b", ["pharmacy-base", "pharmacy-db"], [["MariaDB", "#b45309"]], "3306 จาก k8s เท่านั้น · Galera node 2"],
   ["pharmacy-db-3", "db", "db", "private", "c", ["pharmacy-base", "pharmacy-db"], [["MariaDB", "#b45309"]], "3306 จาก k8s เท่านั้น · Galera node 3"]
@@ -10840,7 +10840,7 @@ function sysAnim() {
   function L(layer, e) { (layers[layer] = layers[layer] || []).push(e); e.style.opacity = "0"; e.style.transition = "opacity .5s"; svg.appendChild(e); return e; }
   function show(names, on) { [].concat(names).forEach(function (n) { (layers[n] || []).forEach(function (e) { e.style.opacity = on === false ? "0" : "1"; }); }); }
   function chip(layer, x, y, w, t, col) { L(layer, sv("g", {}, [box(x, y, w, 15, 7, col + "22", col, 1), tx(x + w / 2, y + 11, t, { a: "middle", sz: 9, b: 1, c: col })])); }
-  var COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#3f9a73" }, AZN = { a: 1, b: 2, c: 3 };
+  var COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#2f8cff" }, AZN = { a: 1, b: 2, c: 3 };
 
   // ---------- โครงเครือข่าย ----------
   svg.appendChild(sv("g", {}, [box(30, 22, 130, 50, 25, "#eef3fa", "#8aa4c8"), tx(95, 44, "Internet", { a: "middle", b: 1, c: "#2a4a7a", sz: 13 }), tx(95, 60, "ผู้ใช้เว็บ / เรา", { a: "middle", c: "#2a4a7a", sz: 10 })]));
@@ -10899,19 +10899,19 @@ function sysAnim() {
   // ---------- คำอธิบาย + ไทม์ไลน์ ----------
   var cap = h("div", { style: "margin:10px 0" }), tl = h("div", { cls: "chips", style: "margin:10px 0 6px" });
   var SC = [
-    ["เครือข่าย 3 AZ", "net", [["อะไร", "#2563eb", "**VPC** `10.0.0.0/16` ซอยเป็น **public** 3 อัน และ **private** 3 อัน กระจาย **3 AZ** (a, b, c) · **IGW** คือประตูออกเน็ต · **NAT** ให้เครื่องใน private ออกเน็ตได้แต่ ==ขาเข้าเข้าไม่ได้=="], ["ทำไมแยก", "#3f9a73", "เครื่องที่เก็บ**แอปและข้อมูล**อยู่ private ไม่มี public IP ==ไม่มีทางถูกเข้าตรงจากอินเทอร์เน็ต== · มีแค่ ALB และ bastion ที่เปิดหน้าบ้าน"]]],
-    ["เครื่อง 10 ตัว", "mach", [["อะไร", "#2563eb", "**public:** bastion, Jenkins, SonarQube (+ NAT) · **private:** k8s ×3 (HA), dev, DB ×3"], ["วางยังไง", "#3f9a73", "k8s และ DB อย่างละ 3 ตัว **คนละ AZ** · dev, Jenkins, SonarQube อยู่ AZ a (ตัวเดียว)"]]],
+    ["เครือข่าย 3 AZ", "net", [["อะไร", "#2563eb", "**VPC** `10.0.0.0/16` ซอยเป็น **public** 3 อัน และ **private** 3 อัน กระจาย **3 AZ** (a, b, c) · **IGW** คือประตูออกเน็ต · **NAT** ให้เครื่องใน private ออกเน็ตได้แต่ ==ขาเข้าเข้าไม่ได้=="], ["ทำไมแยก", "#2f8cff", "เครื่องที่เก็บ**แอปและข้อมูล**อยู่ private ไม่มี public IP ==ไม่มีทางถูกเข้าตรงจากอินเทอร์เน็ต== · มีแค่ ALB และ bastion ที่เปิดหน้าบ้าน"]]],
+    ["เครื่อง 10 ตัว", "mach", [["อะไร", "#2563eb", "**public:** bastion, Jenkins, SonarQube (+ NAT) · **private:** k8s ×3 (HA), dev, DB ×3"], ["วางยังไง", "#2f8cff", "k8s และ DB อย่างละ 3 ตัว **คนละ AZ** · dev, Jenkins, SonarQube อยู่ AZ a (ตัวเดียว)"]]],
     ["Role + Tier", "role", [["ป้าย Role", "#7b3fe4", "นามบัตรของเครื่อง (`bastion`, `jenkins`, `k8s_server`, `dev`, `db`, `sonarqube`) · **Ansible** แยกกลุ่ม `role_*` จากป้ายนี้"], ["ป้าย Tier", "#475569", "`public` / `private` · บอกว่าเครื่องไหนมี public IP (ต้องผ่าน bastion หรือไม่)"]]],
     ["Security group", "sg", [["อะไร", "#c2410c", "**SG** = firewall ติดตัวเครื่อง · **bastion** รับ SSH จาก ==My IP== ที่เดียว · เครื่องอื่นมี `base` = รับ SSH จาก **SG ของ bastion เท่านั้น**"], ["เช่น", "#2563eb", "`k8s` รับ NodePort จาก ==ALB เท่านั้น== · `db` รับ **3306** จาก SG ของ k8s เท่านั้น · `jenkins`/`sonarqube` เปิด UI เฉพาะ My IP"]]],
     ["แอปบนเครื่อง", "app", [["อะไร", "#2563eb", "**k8s ×3** รัน FE กับ BE (prd) + **ArgoCD** ที่ k8s-1 · **dev** รัน FE/BE ของ dev · **db ×3** เป็น MariaDB Galera · **Jenkins/SonarQube** รันใน docker"], ["k3s HA", "#7c3aed", "k8s ทั้ง 3 เป็น **server** (มี etcd ในตัว) ล่มได้ 1 เครื่อง cluster ยังทำงาน · ตัวแรกเริ่ม `--cluster-init` ที่เหลือมา join"]]],
-    ["Load balancer", "alb", [["อะไร", "#8456ce", "**ALB** อยู่ public ครบ 3 AZ รับคำขอแล้วส่งเข้า k8s ใน **private** · `:80` → prd (NodePort `30080`) · `:8080` → dev (`30081`) · `:8443` → ArgoCD"], ["ตรวจสุขภาพ", "#3f9a73", "ALB เรียก `/healthz` ตลอด · ==เครื่องที่ไม่ตอบ== ไม่ถูกส่งคำขอ"]]],
+    ["Load balancer", "alb", [["อะไร", "#8456ce", "**ALB** อยู่ public ครบ 3 AZ รับคำขอแล้วส่งเข้า k8s ใน **private** · `:80` → prd (NodePort `30080`) · `:8080` → dev (`30081`) · `:8443` → ArgoCD"], ["ตรวจสุขภาพ", "#2f8cff", "ALB เรียก `/healthz` ตลอด · ==เครื่องที่ไม่ตอบ== ไม่ถูกส่งคำขอ"]]],
     ["คำขอ prd", "lbprd", [["เห็นอะไร", "#2563eb", "เข้าเว็บ prd 6 ครั้ง ALB ส่ง==วนทีละเครื่อง== (**round-robin**) k8s-1 → 2 → 3 → 1 …"], ["ต่อจาก FE", "#7c3aed", "FE เรียก **BE** ผ่าน Service `backend` (สุ่ม pod ทั้ง cluster จึงข้ามเครื่อง/AZ ได้) · BE ต่อ DB ผ่าน Service `galera` เลือก node ที่ว่าง"]]],
-    ["เครื่องล่ม", "health", [["เหตุการณ์", "#c0392b", "**k8s-2 ล่ม** · health check `/healthz` ไม่ผ่าน → ALB ==ตัดออกจากวง== ส่งให้ k8s-1 กับ k8s-3"], ["ผลต่อผู้ใช้", "#3f9a73", "ผู้ใช้ไม่รู้ตัว · k8s-2 กลับมา ALB ใส่กลับเอง"]]],
-    ["AZ a ล่มทั้งโซน", "azdown", [["เหตุการณ์", "#c0392b", "ตึก **AZ a ทั้งหลังดับ** · เครื่องใน AZ a หายหมด (k8s-1, db-1, dev, bastion, NAT, Jenkins, SonarQube)"], ["ที่ยังรอด ✓", "#3f9a73", "**เว็บ prd** (k8s-2, 3 ใน AZ b, c รับต่อ) · **DB** (เหลือ db-2, db-3 = เสียงข้างมาก ==2 ใน 3== ยังรับ-เขียนได้) · k3s **ยังมี etcd 2 ใน 3**"], ["ที่หาย ✗", "#c0392b", "dev, **ArgoCD** (อยู่บน k8s-1), Jenkins, SonarQube, bastion (อยู่ AZ a ตัวเดียว) · **NAT** อยู่ AZ a ➜ private ออกเน็ตไม่ได้ (pod ที่รันอยู่ปกติ แต่ดึง image ใหม่ไม่ได้) ➜ ระบบจริงใช้ NAT ต่อ AZ"]]],
-    ["คำขอ dev", "lbdev", [["เห็นอะไร", "#3f9a73", "เข้า `:8080` = **dev** ส่งไป pharmacy-dev → FE → BE → DB ชื่อ `pharmacy_dev`"], ["ทำไมแยก", "#3f9a73", "ทดสอบเวอร์ชันใหม่บน dev ==ไม่กระทบ prd== · ใช้ Galera ชุดเดียวกัน แต่คนละฐานข้อมูล"]]],
-    ["SSH ผ่าน bastion", "ssh", [["ลำดับ", "#475569", "ผู้ดูแล (หรือ **Ansible**) ต่อ SSH เข้า **bastion** ก่อน (SG รับจาก My IP) แล้วกระโดดต่อไป **private IP** ของ k8s-2 (SG ของ k8s-2 รับ SSH จาก SG ของ bastion)"], ["ทำไม", "#3f9a73", "เครื่องภายในไม่ต้องเปิด SSH ออกอินเทอร์เน็ต · ==ทางเข้าเดียว== ตรวจ/ปิดได้ที่เดียว"]]],
-    ["ออกเน็ตผ่าน NAT", "nat", [["เห็นอะไร", "#e8590c", "k8s-2 (private) ดึง image จาก **ECR** ➜ ส่งออกทาง **NAT** ➜ IGW ➜ อินเทอร์เน็ต · คำตอบกลับมาทางเดิม"], ["ข้อจำกัด", "#3f9a73", "NAT ให้แค่ ==ขาออก== · ใครจากเน็ตเริ่มต่อเข้า k8s-2 ตรงๆ ไม่ได้"]]],
-    ["ส่งมอบ CI/CD", "cicd", [["ลำดับ", "#c0392b", "① **Jenkins** build แล้ว push image ขึ้น **ECR** ② แก้ `image:` ใน manifests ③ **ArgoCD** เห็นแล้วสั่ง cluster ④ node **ดึง image** (ผ่าน NAT)"], ["ทำไม", "#3f9a73", "Git เป็นแหล่งความจริงเดียว · ย้อนเวอร์ชัน = ย้อน commit"]]]
+    ["เครื่องล่ม", "health", [["เหตุการณ์", "#c0392b", "**k8s-2 ล่ม** · health check `/healthz` ไม่ผ่าน → ALB ==ตัดออกจากวง== ส่งให้ k8s-1 กับ k8s-3"], ["ผลต่อผู้ใช้", "#2f8cff", "ผู้ใช้ไม่รู้ตัว · k8s-2 กลับมา ALB ใส่กลับเอง"]]],
+    ["AZ a ล่มทั้งโซน", "azdown", [["เหตุการณ์", "#c0392b", "ตึก **AZ a ทั้งหลังดับ** · เครื่องใน AZ a หายหมด (k8s-1, db-1, dev, bastion, NAT, Jenkins, SonarQube)"], ["ที่ยังรอด ✓", "#2f8cff", "**เว็บ prd** (k8s-2, 3 ใน AZ b, c รับต่อ) · **DB** (เหลือ db-2, db-3 = เสียงข้างมาก ==2 ใน 3== ยังรับ-เขียนได้) · k3s **ยังมี etcd 2 ใน 3**"], ["ที่หาย ✗", "#c0392b", "dev, **ArgoCD** (อยู่บน k8s-1), Jenkins, SonarQube, bastion (อยู่ AZ a ตัวเดียว) · **NAT** อยู่ AZ a ➜ private ออกเน็ตไม่ได้ (pod ที่รันอยู่ปกติ แต่ดึง image ใหม่ไม่ได้) ➜ ระบบจริงใช้ NAT ต่อ AZ"]]],
+    ["คำขอ dev", "lbdev", [["เห็นอะไร", "#2f8cff", "เข้า `:8080` = **dev** ส่งไป pharmacy-dev → FE → BE → DB ชื่อ `pharmacy_dev`"], ["ทำไมแยก", "#2f8cff", "ทดสอบเวอร์ชันใหม่บน dev ==ไม่กระทบ prd== · ใช้ Galera ชุดเดียวกัน แต่คนละฐานข้อมูล"]]],
+    ["SSH ผ่าน bastion", "ssh", [["ลำดับ", "#475569", "ผู้ดูแล (หรือ **Ansible**) ต่อ SSH เข้า **bastion** ก่อน (SG รับจาก My IP) แล้วกระโดดต่อไป **private IP** ของ k8s-2 (SG ของ k8s-2 รับ SSH จาก SG ของ bastion)"], ["ทำไม", "#2f8cff", "เครื่องภายในไม่ต้องเปิด SSH ออกอินเทอร์เน็ต · ==ทางเข้าเดียว== ตรวจ/ปิดได้ที่เดียว"]]],
+    ["ออกเน็ตผ่าน NAT", "nat", [["เห็นอะไร", "#e8590c", "k8s-2 (private) ดึง image จาก **ECR** ➜ ส่งออกทาง **NAT** ➜ IGW ➜ อินเทอร์เน็ต · คำตอบกลับมาทางเดิม"], ["ข้อจำกัด", "#2f8cff", "NAT ให้แค่ ==ขาออก== · ใครจากเน็ตเริ่มต่อเข้า k8s-2 ตรงๆ ไม่ได้"]]],
+    ["ส่งมอบ CI/CD", "cicd", [["ลำดับ", "#c0392b", "① **Jenkins** build แล้ว push image ขึ้น **ECR** ② แก้ `image:` ใน manifests ③ **ArgoCD** เห็นแล้วสั่ง cluster ④ node **ดึง image** (ผ่าน NAT)"], ["ทำไม", "#2f8cff", "Git เป็นแหล่งความจริงเดียว · ย้อนเวอร์ชัน = ย้อน commit"]]]
   ];
   function sync() { tl.textContent = ""; SC.forEach(function (s, i) { tl.appendChild(h("span", { cls: "chip" + (i === ci ? " on" : ""), style: "cursor:default" }, [(i + 1) + ". " + s[0]])); }); }
   function say(i) { ci = i; sync(); cap.textContent = ""; cap.appendChild(h("h3", { style: "margin:4px 0 8px", text: (i + 1) + ". " + SC[i][0] })); cap.appendChild(infoCard(SC[i][2])); }
@@ -10925,14 +10925,14 @@ function sysAnim() {
   function reset() {
     Object.keys(layers).forEach(function (k) { show(k, false); }); hidePk(); count = {}; ci = 0;
     Object.keys(cards).forEach(function (n) { down(n, false); glow(n, false); if (cards[n].cnt) cards[n].cnt.textContent = ""; });
-    sync(); cap.textContent = ""; cap.appendChild(infoCard([["ดูอะไร", "#2563eb", "กด ==▶ เล่น== เพื่อดูทีละฉาก: **เครือข่าย 3 AZ → เครื่อง → Role → Security group → แอป → Load balancer → คำขอ → เครื่องล่ม → AZ ล่ม → dev → SSH ผ่าน bastion → NAT → CI/CD**"], ["ปรับความเร็ว", "#3f9a73", "เลือก ช้า / ปกติ / เร็ว ที่ปุ่มด้านบน · หยุดชั่วคราวได้ทุกเมื่อ"]]));
+    sync(); cap.textContent = ""; cap.appendChild(infoCard([["ดูอะไร", "#2563eb", "กด ==▶ เล่น== เพื่อดูทีละฉาก: **เครือข่าย 3 AZ → เครื่อง → Role → Security group → แอป → Load balancer → คำขอ → เครื่องล่ม → AZ ล่ม → dev → SSH ผ่าน bastion → NAT → CI/CD**"], ["ปรับความเร็ว", "#2f8cff", "เลือก ช้า / ปกติ / เร็ว ที่ปุ่มด้านบน · หยุดชั่วคราวได้ทุกเมื่อ"]]));
   }
   var P = jkxPlayer(reset, function (P) {
     var st = [], prd = ["pharmacy-k8s-1", "pharmacy-k8s-2", "pharmacy-k8s-3"], dbs = ["pharmacy-db-1", "pharmacy-db-2", "pharmacy-db-3"], rr = 0, dbi = 0, J = cards["pharmacy-jenkins"];
     function scene(i, layer, wait) { st.push([wait || 900, function () { say(i); show(layer); }]); }
     function request(env, k) {
       // เลือกเครื่องตอนเล่นจริง (ไม่ใช่ตอนสร้างลำดับ) เพราะเครื่องที่ล่มเปลี่ยนไปตามฉาก
-      var c = {}, col = env === "prd" ? "#ff9900" : "#3f9a73";
+      var c = {}, col = env === "prd" ? "#ff9900" : "#2f8cff";
       st.push([350, function () {
         var alive = env === "prd" ? prd.filter(function (x) { return up[x]; }) : ["pharmacy-dev"], dalive = dbs.filter(function (x) { return up[x]; });
         c.n = alive[rr % alive.length]; c.be = env === "prd" ? alive[(rr + 1) % alive.length] : c.n; c.db = dalive[dbi++ % dalive.length]; rr++;
@@ -10956,7 +10956,7 @@ function sysAnim() {
     st.push([700, function () { move(288, 93, "SSH จาก My IP", "#7c3aed"); }], [800, function () { move(B.cx, B.y, "bastion", "#7c3aed"); glow("pharmacy-bastion", true, "#475569"); }], [900, function () { move(K2.cx, K2.y - 4, "→ k8s-2 (private IP)", "#7c3aed"); glow("pharmacy-k8s-2", true, "#7c3aed"); }], [900, function () { hidePk(); glow("pharmacy-bastion", false); glow("pharmacy-k8s-2", false); }]);
     scene(11, [], 700); st.push([700, function () { move(K2.cx, K2.y + 40, "docker pull ECR", "#e8590c"); }], [900, function () { move(nat.cx, nat.y + 40, "NAT", "#e8590c"); }], [900, function () { move(288, 93, "IGW", "#e8590c"); }], [900, function () { move(95, 47, "ECR / เน็ต", "#e8590c"); }], [800, function () { hidePk(); }]);
     scene(12, ["cicd"], 900); st.push([1000, function () { move(J.cx, J.y + J.h, "image v1.0.0", "#c0392b"); }], [900, function () { move(615, 812, "ECR", "#c0392b"); }], [900, function () { move(435, 812, "manifests", "#c0392b"); }], [900, function () { move(cards["pharmacy-k8s-1"].pods.ArgoCD[0], cards["pharmacy-k8s-1"].pods.ArgoCD[1], "ArgoCD อ่าน manifests", "#ef7b4d"); }], [900, function () { hidePk(); }]);
-    st.push([700, function () { cap.appendChild(infoCard([["สรุป", "#3f9a73", "**เครือข่ายเดียว** แยก public/private 3 AZ · แอปและข้อมูล**ไม่มี public IP** · เข้าได้ทางเดียว: ALB (ผู้ใช้) และ bastion (ผู้ดูแล) · k8s/DB **คนละ AZ** ทน AZ ล่มได้ · **Git → Jenkins → ECR → ArgoCD** ส่งของใหม่ขึ้นย้อนกลับได้"]])); }]);
+    st.push([700, function () { cap.appendChild(infoCard([["สรุป", "#2f8cff", "**เครือข่ายเดียว** แยก public/private 3 AZ · แอปและข้อมูล**ไม่มี public IP** · เข้าได้ทางเดียว: ALB (ผู้ใช้) และ bastion (ผู้ดูแล) · k8s/DB **คนละ AZ** ทน AZ ล่มได้ · **Git → Jenkins → ECR → ArgoCD** ส่งของใหม่ขึ้นย้อนกลับได้"]])); }]);
     P.start(st);
   }, "▶ เล่น: ระบบทั้งหมด");
   var wrap = h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, P.ctl), tl, cap, svg]);
@@ -11018,7 +11018,7 @@ function mgStats() {
 // ตารางเทียบ: เรื่อง | แบบ VM | แบบ managed | ราคา
 var MG_ROWS = [
   ["เข้าเครื่องดูแล", "bastion + SSH key + SG port 22", "SSM Session Manager (ไม่มี port 22)", "SSM ฟรี · bastion t3.micro ประหยัดได้เล็กน้อย", "#475569"],
-  ["Kubernetes", "k3s ×3 HA + dev VM · Ansible ลง/join/ต่อ token", "EKS: AWS ดูแล control plane", "EKS คิดค่า control plane ต่อ cluster เพิ่มจากค่า node (เช็กราคาปัจจุบัน)", "#3f9a73"],
+  ["Kubernetes", "k3s ×3 HA + dev VM · Ansible ลง/join/ต่อ token", "EKS: AWS ดูแล control plane", "EKS คิดค่า control plane ต่อ cluster เพิ่มจากค่า node (เช็กราคาปัจจุบัน)", "#2f8cff"],
   ["ฐานข้อมูล", "Galera ×3 · bootstrap/quorum ดูแลเอง", "RDS MariaDB Multi-AZ (standby + backup ให้)", "แพงกว่า VM ที่ขนาดใกล้กัน (Multi-AZ = จ่ายเครื่องสำรองด้วย) แลกกับไม่ต้องดูแล · เช็กราคาจริงก่อน", "#b45309"],
   ["ออกเน็ตของ private", "NAT gateway ตัวเดียว", "NAT gateway ตัวเดียว (เหมือนเดิม)", "ค่า NAT เท่าเดิม", "#e8590c"],
   ["รหัสผ่าน DB", "ข้อความเปล่าใน `group_vars/all/main.yml`", "Secrets Manager สร้างและหมุนให้", "คิดต่อ secret ต่อเดือน (เล็กน้อย)", "#7c3aed"],
@@ -11027,7 +11027,7 @@ var MG_ROWS = [
 
 function mgTable() {
   var w = h("div", { style: "overflow-x:auto;margin:0 0 14px" }), tb = h("table", { style: "width:100%;border-collapse:collapse;font-size:.86rem" });
-  tb.appendChild(h("tr", {}, ["เรื่อง", "แบบ VM (terraform/)", "แบบ managed (terraform-managed/)", "ค่าใช้จ่าย / หมายเหตุ"].map(function (t, i) { return h("th", { style: "text-align:left;padding:8px 10px;border-bottom:2px solid var(--accent);color:" + (i === 1 ? "#c62828" : i === 2 ? "#3f9a73" : "inherit"), text: t }); })));
+  tb.appendChild(h("tr", {}, ["เรื่อง", "แบบ VM (terraform/)", "แบบ managed (terraform-managed/)", "ค่าใช้จ่าย / หมายเหตุ"].map(function (t, i) { return h("th", { style: "text-align:left;padding:8px 10px;border-bottom:2px solid var(--accent);color:" + (i === 1 ? "#c62828" : i === 2 ? "#2f8cff" : "inherit"), text: t }); })));
   MG_ROWS.forEach(function (r) {
     tb.appendChild(h("tr", {}, [
       h("td", { style: "padding:8px 10px;border-bottom:1px solid var(--ctl-line);font-weight:700;border-left:4px solid " + r[4], text: r[0] }),
@@ -11054,7 +11054,7 @@ function mgCompare() {
   };
   box.appendChild(h("div", { style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px" }, [
     side("แบบ VM (เราดูแลเอง)", "#c62828", cur[2], cur[4], "ภาระที่เราต้องทำ"),
-    side("แบบ managed (AWS ดูแลให้)", "#3f9a73", cur[3], cur[5], "AWS ทำให้")
+    side("แบบ managed (AWS ดูแลให้)", "#2f8cff", cur[3], cur[5], "AWS ทำให้")
   ]));
   return box;
 }
@@ -11077,36 +11077,36 @@ function mgAnim() {
   var tx = function (x, y, t, o) { o = o || {}; return sv("text", { x: x, y: y, "font-size": o.sz || 12, "font-weight": o.b ? 700 : 400, fill: o.c || "currentColor", "text-anchor": o.a || "start" }, [t]); };
   var rows = [
     ["เข้าเครื่อง", "bastion + SSH :22 + key pair", "SSM Session Manager · ไม่มี port 22", "#475569"],
-    ["Kubernetes", "k3s ×3 (เรา join/อัปเกรด) + dev VM", "EKS · AWS ดูแล control plane", "#3f9a73"],
+    ["Kubernetes", "k3s ×3 (เรา join/อัปเกรด) + dev VM", "EKS · AWS ดูแล control plane", "#2f8cff"],
     ["ฐานข้อมูล", "Galera ×3 (เรา bootstrap/ตรวจ quorum)", "RDS Multi-AZ · primary + standby", "#b45309"],
     ["ต่อ ALB", "ผูก node ทีละเครื่อง", "ผูกกับ Auto Scaling group", "#c0392b"],
     ["ล่ม 1 AZ", "คนต้องเข้าไปดู/แก้", "สลับให้เองอัตโนมัติ", "#c62828"]
   ], y0 = 64, rh = 70, boxes = [], cap = h("div", { style: "min-height:5em;margin:8px 0" }), lay = {};
-  svg.appendChild(tx(40, 28, "แบบ VM (terraform/)", { b: 1, c: "#c62828", sz: 14 })); svg.appendChild(tx(560, 28, "แบบ managed (terraform-managed/)", { b: 1, c: "#3f9a73", sz: 14 }));
+  svg.appendChild(tx(40, 28, "แบบ VM (terraform/)", { b: 1, c: "#c62828", sz: 14 })); svg.appendChild(tx(560, 28, "แบบ managed (terraform-managed/)", { b: 1, c: "#2f8cff", sz: 14 }));
   rows.forEach(function (r, i) {
     var y = y0 + i * rh, g = sv("g", {}, []);
     g.appendChild(tx(40, y + 4, r[0], { b: 1, sz: 11, c: r[3] }));
     g.appendChild(sv("rect", { x: 40, y: y + 10, width: 440, height: 46, rx: 9, fill: "rgba(198,40,40,.07)", stroke: "#c62828", "stroke-width": 1.5 }));
     g.appendChild(tx(54, y + 38, r[1], { sz: 12 }));
     g.appendChild(sv("path", { d: "M486 " + (y + 33) + " L546 " + (y + 33), stroke: r[3], "stroke-width": 2.5, "marker-end": "url(#mgar)" }));
-    g.appendChild(sv("rect", { x: 560, y: y + 10, width: 440, height: 46, rx: 9, fill: "rgba(29,129,2,.08)", stroke: "#3f9a73", "stroke-width": 1.5 }));
+    g.appendChild(sv("rect", { x: 560, y: y + 10, width: 440, height: 46, rx: 9, fill: "rgba(29,129,2,.08)", stroke: "#2f8cff", "stroke-width": 1.5 }));
     g.appendChild(tx(574, y + 38, r[2], { sz: 12 }));
     g.style.transition = "opacity .5s"; g.style.opacity = ".18"; svg.appendChild(g); boxes.push(g); lay[i] = y;
   });
   svg.insertBefore(sv("defs", {}, [sv("marker", { id: "mgar", viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" }, [sv("path", { d: "M0 0 L10 5 L0 10 z", fill: "#64748b" })])]), svg.firstChild);
-  var fail = sv("g", {}, [sv("rect", { x: 40, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#c62828", "stroke-width": 3, "stroke-dasharray": "6 4" }), sv("rect", { x: 560, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#3f9a73", "stroke-width": 3 })]);
+  var fail = sv("g", {}, [sv("rect", { x: 40, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#c62828", "stroke-width": 3, "stroke-dasharray": "6 4" }), sv("rect", { x: 560, y: y0 + 4 * rh + 10, width: 440, height: 46, rx: 9, fill: "none", stroke: "#2f8cff", "stroke-width": 3 })]);
   fail.style.opacity = "0"; fail.style.transition = "opacity .4s"; svg.appendChild(fail);
   function light(n) { boxes.forEach(function (g, i) { g.style.opacity = i === n ? "1" : (n === -1 ? ".18" : ".35"); }); }
   var SC = [
-    [0, [["แบบ VM", "#c62828", "ต้องมี **bastion** (เครื่องที่เปิด :22 ให้ My IP) ทุกคนใช้ key pair ร่วมกัน · ถอดคนออก = เปลี่ยนกุญแจทั้งชุด"], ["แบบ managed", "#3f9a73", "เครื่องติด **IAM role + SSM agent** · เข้าด้วย `aws ssm start-session` ไม่เปิด port ใดเลย · สิทธิ์ผูกกับ IAM ของแต่ละคน และมี log"]]],
-    [1, [["แบบ VM", "#c62828", "`ansible/k8s.yml` ลง k3s, `--cluster-init`, join, ต่อ token ECR ทุก 12 ชม. · อัปเกรดเวอร์ชัน = ทำเอง"], ["แบบ managed", "#3f9a73", "`aws_eks_cluster` + `aws_eks_node_group` · AWS ดูแล **control plane** (API server, etcd) · node ดึง image ECR ด้วย IAM role ไม่มี token หมดอายุ"]]],
-    [2, [["แบบ VM", "#c62828", "Galera 3 node · **เรา** bootstrap, join, ตรวจ quorum, backup, patch · backend ต่อผ่าน Service ที่สุ่ม node (ไม่มี health check)"], ["แบบ managed", "#3f9a73", "`aws_db_instance` `multi_az = true` · มี **standby** อีก AZ · backup 7 วัน · รหัสผ่านใน **Secrets Manager** (ไม่เป็นข้อความเปล่าอีก)"]]],
-    [3, [["แบบ VM", "#c62828", "`aws_lb_target_group_attachment` ทีละเครื่อง · เพิ่ม/เปลี่ยนเครื่อง = แก้ Terraform แล้ว apply"], ["แบบ managed", "#3f9a73", "`aws_autoscaling_attachment` ผูกกับ ASG ของ node · node ใหม่ลงทะเบียนเข้า ALB เอง"]]],
-    [4, [["AZ a ล่ม — แบบ VM", "#c62828", "k8s ยังรอด 2/3 และ DB 2/3 แต่ **คนต้องตามดู** (node หาย, Jenkins/bastion หาย, NAT หาย)"], ["AZ a ล่ม — แบบ managed", "#3f9a73", "RDS **สลับ standby** อัตโนมัติ 1-2 นาที · EKS ย้าย pod ไป node AZ อื่น · ASG สร้าง node ใหม่ · ข้อจำกัดเดียวกัน: NAT ตัวเดียวยังเป็นจุดอ่อน"]]]
+    [0, [["แบบ VM", "#c62828", "ต้องมี **bastion** (เครื่องที่เปิด :22 ให้ My IP) ทุกคนใช้ key pair ร่วมกัน · ถอดคนออก = เปลี่ยนกุญแจทั้งชุด"], ["แบบ managed", "#2f8cff", "เครื่องติด **IAM role + SSM agent** · เข้าด้วย `aws ssm start-session` ไม่เปิด port ใดเลย · สิทธิ์ผูกกับ IAM ของแต่ละคน และมี log"]]],
+    [1, [["แบบ VM", "#c62828", "`ansible/k8s.yml` ลง k3s, `--cluster-init`, join, ต่อ token ECR ทุก 12 ชม. · อัปเกรดเวอร์ชัน = ทำเอง"], ["แบบ managed", "#2f8cff", "`aws_eks_cluster` + `aws_eks_node_group` · AWS ดูแล **control plane** (API server, etcd) · node ดึง image ECR ด้วย IAM role ไม่มี token หมดอายุ"]]],
+    [2, [["แบบ VM", "#c62828", "Galera 3 node · **เรา** bootstrap, join, ตรวจ quorum, backup, patch · backend ต่อผ่าน Service ที่สุ่ม node (ไม่มี health check)"], ["แบบ managed", "#2f8cff", "`aws_db_instance` `multi_az = true` · มี **standby** อีก AZ · backup 7 วัน · รหัสผ่านใน **Secrets Manager** (ไม่เป็นข้อความเปล่าอีก)"]]],
+    [3, [["แบบ VM", "#c62828", "`aws_lb_target_group_attachment` ทีละเครื่อง · เพิ่ม/เปลี่ยนเครื่อง = แก้ Terraform แล้ว apply"], ["แบบ managed", "#2f8cff", "`aws_autoscaling_attachment` ผูกกับ ASG ของ node · node ใหม่ลงทะเบียนเข้า ALB เอง"]]],
+    [4, [["AZ a ล่ม — แบบ VM", "#c62828", "k8s ยังรอด 2/3 และ DB 2/3 แต่ **คนต้องตามดู** (node หาย, Jenkins/bastion หาย, NAT หาย)"], ["AZ a ล่ม — แบบ managed", "#2f8cff", "RDS **สลับ standby** อัตโนมัติ 1-2 นาที · EKS ย้าย pod ไป node AZ อื่น · ASG สร้าง node ใหม่ · ข้อจำกัดเดียวกัน: NAT ตัวเดียวยังเป็นจุดอ่อน"]]]
   ];
   function say(i) { cap.textContent = ""; cap.appendChild(h("h3", { style: "margin:4px 0 8px", text: (i + 1) + ". " + rows[i][0] })); cap.appendChild(infoCard(SC[i][1])); fail.style.opacity = i === 4 ? "1" : "0"; light(i); }
   function reset() { light(-1); fail.style.opacity = "0"; cap.textContent = ""; cap.appendChild(infoCard([["ดูอะไร", "#2563eb", "กด ==▶ เล่น== เพื่อดูทีละเรื่อง: **เข้าเครื่อง → Kubernetes → ฐานข้อมูล → ต่อ ALB → ล่ม 1 AZ**"]])); }
-  var P = jkxPlayer(reset, function (P) { P.start(SC.map(function (s, i) { return [i === 0 ? 400 : 2600, function () { say(i); }]; }).concat([[2600, function () { light(-1); fail.style.opacity = "0"; cap.appendChild(infoCard([["สรุป", "#3f9a73", "แบบ managed **ลดงานที่ต้องดูแลเอง** (ไม่มี bastion, k3s, Galera) แต่ **จ่ายแพงกว่า** และผูกกับ AWS · ฝึกเข้าใจข้างในด้วยแบบ VM ก่อน แล้วใช้แบบ managed ตอนทำจริง"]])); }]])); }, "▶ เล่น: เทียบทีละเรื่อง");
+  var P = jkxPlayer(reset, function (P) { P.start(SC.map(function (s, i) { return [i === 0 ? 400 : 2600, function () { say(i); }]; }).concat([[2600, function () { light(-1); fail.style.opacity = "0"; cap.appendChild(infoCard([["สรุป", "#2f8cff", "แบบ managed **ลดงานที่ต้องดูแลเอง** (ไม่มี bastion, k3s, Galera) แต่ **จ่ายแพงกว่า** และผูกกับ AWS · ฝึกเข้าใจข้างในด้วยแบบ VM ก่อน แล้วใช้แบบ managed ตอนทำจริง"]])); }]])); }, "▶ เล่น: เทียบทีละเรื่อง");
   var wrap = h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, P.ctl), cap, svg]);
   reset(); return wrap;
 }
@@ -11118,7 +11118,7 @@ function mgSystem() {
   var W = 1040, H = 760, svg = sv("svg", { viewBox: "0 0 " + W + " " + H, width: "100%", style: "max-width:1040px;font-family:inherit", role: "img", "aria-label": "แผนภาพการเชื่อมต่อทุกส่วนของระบบแบบ managed" });
   var tx = function (x, y, t, o) { o = o || {}; return sv("text", { x: x, y: y, "font-size": o.sz || 11, "font-weight": o.b ? 700 : 400, fill: o.c || "currentColor", "text-anchor": o.a || "start" }, [t]); };
   var bx = function (x, y, w, hh, fill, stroke, dash, sw) { return sv("rect", { x: x, y: y, width: w, height: hh, rx: 8, fill: fill, stroke: stroke, "stroke-width": sw || 1.6, "stroke-dasharray": dash || null }); };
-  var N = {}, lines = [], COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#3f9a73" };
+  var N = {}, lines = [], COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#2f8cff" };
   // node(id, x, y, w, h, title, sub, color, dashed)
   function node(id, x, y, w, hh, t, sub, col, dash) { var h2 = hh;
     var g = sv("g", {}, [bx(x, y, w, hh, "#fff", col, dash), tx(x + w / 2, y + 16, t, { a: "middle", b: 1, c: col, sz: 11 })]);
@@ -11148,7 +11148,7 @@ function mgSystem() {
   node("free", COL.c + 10, 496, 290, 154, "ว่าง", "เพิ่ม node / replica ได้ตรงนี้ (ASG กระจายให้)", "#94a3b8", "5 4");
   // ----- นอก VPC: บริการที่ AWS ดูแล + คน -----
   node("users", 20, 20, 110, 60, "ผู้ใช้เว็บ", "อินเทอร์เน็ต", "#2a4a7a"); node("admin", 150, 20, 120, 60, "ผู้ดูแล (เรา)", "laptop · IAM + My IP", "#475569");
-  node("ssm", 290, 20, 130, 60, "SSM", "Session Manager", "#475569"); node("eks", 440, 20, 170, 60, "EKS control plane", "API server + etcd (AWS ดูแล)", "#3f9a73");
+  node("ssm", 290, 20, 130, 60, "SSM", "Session Manager", "#475569"); node("eks", 440, 20, 170, 60, "EKS control plane", "API server + etcd (AWS ดูแล)", "#2f8cff");
   node("ecr", 630, 20, 110, 60, "ECR", "image ของเรา", "#e8590c"); node("sec", 760, 20, 120, 60, "Secrets Manager", "รหัสผ่าน DB", "#7c3aed"); node("gh", 900, 20, 120, 60, "GitHub", "3 repo", "#334155");
   // ----- เส้นเชื่อม: [ฉากที่ใช้, จุด, สี, ป้าย, ตำแหน่งป้าย] -----
   function link(sc, pts, col, label, lx, ly, dash) {
@@ -11156,7 +11156,7 @@ function mgSystem() {
     if (label) g.appendChild(tx(lx, ly, label, { sz: 9, b: 1, c: col, a: "middle" }));
     g.style.opacity = "0"; g.style.transition = "opacity .4s"; svg.appendChild(g); lines.push({ sc: sc, g: g, pts: pts });
   }
-  var defs = sv("defs", {}, []), cols = ["#2563eb", "#7c3aed", "#475569", "#3f9a73", "#c0392b", "#b45309", "#e8590c"];
+  var defs = sv("defs", {}, []), cols = ["#2563eb", "#7c3aed", "#475569", "#2f8cff", "#c0392b", "#b45309", "#e8590c"];
   cols.forEach(function (c) { defs.appendChild(sv("marker", { id: "mgs-" + c.slice(1), viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto" }, [sv("path", { d: "M0 0 L10 5 L0 10 z", fill: c })])); }); svg.insertBefore(defs, svg.firstChild);
   var B = N.alb, FEb = N.podbFE, BEc = N.podcBE, P = N.rdsP;
   // 0 ผู้ใช้เข้าเว็บ
@@ -11170,8 +11170,8 @@ function mgSystem() {
   link([1], [[N.jenkins.x, 620], [30, 620], [30, 264], [200, 264]], "#475569", "SSM agent ออกไปหา SSM", 150, 584, "5 4");
   link([1], [[210, 236], [210, 112], [330, 112], [330, 80]], "#475569", "ผ่าน NAT → IGW", 270, 124, "5 4");
   // 2 kubectl
-  link([2], [[230, 80], [230, 108], [525, 108], [525, 80]], "#3f9a73", "kubectl · :443 (เฉพาะ My IP)", 380, 124);
-  link([2], [[560, 80], [560, 330], [N.nodeb.cx + 60, 330], [N.nodeb.cx + 60, 346]], "#3f9a73", "ENI ใน private subnet", 640, 326, "5 4");
+  link([2], [[230, 80], [230, 108], [525, 108], [525, 80]], "#2f8cff", "kubectl · :443 (เฉพาะ My IP)", 380, 124);
+  link([2], [[560, 80], [560, 330], [N.nodeb.cx + 60, 330], [N.nodeb.cx + 60, 346]], "#2f8cff", "ENI ใน private subnet", 640, 326, "5 4");
   // 3 CI/CD
   link([3], [[960, 80], [960, 120], [N.jenkins.cx + 30, 120], [N.jenkins.cx + 30, 590]], "#c0392b", "tag → build", 985, 300, "");
   link([3], [[N.jenkins.x + N.jenkins.w, 620], [N.sonar.x, 620]], "#0f766e", ":9000 scan", 340, 612);
@@ -11195,11 +11195,11 @@ function mgSystem() {
   function show(sc) { cur = sc; lines.forEach(function (l) { l.g.style.opacity = l.sc.indexOf(sc) >= 0 ? "1" : "0"; }); fail.style.opacity = sc === 5 ? "1" : "0"; failPub.style.opacity = sc === 5 ? "1" : "0"; Object.keys(N).forEach(function (k) { N[k].g.style.opacity = sc === 5 && /^(nodea|poda|rdsP|jenkins|nat)/.test(k) ? ".35" : "1"; }); }
   var SC = [
     ["ผู้ใช้เข้าเว็บ", [["ทางเดิน", "#2563eb", "**ผู้ใช้ → IGW → ALB :80 → node :30080 (FE) → Service backend (BE) → RDS :3306**"], ["จุดสังเกต", "#7c3aed", "ผู้ใช้เห็นแค่ **ALB** · node และ DB ไม่มี public IP · SG ของ node รับ NodePort จาก **SG ของ ALB** เท่านั้น"]]],
-    ["เข้าเครื่อง (SSM)", [["ทางเดิน", "#475569", "เราสั่ง `aws ssm start-session` (ยืนยันด้วย **IAM**) → SSM → **agent บนเครื่อง** ที่ต่อออกไปหา SSM เอง ผ่าน NAT → IGW"], ["ไม่มีขาเข้า", "#3f9a73", "**ไม่เปิด port 22 เลย** · เครื่องไม่มี public IP · ถอนสิทธิ์ IAM = เข้าไม่ได้ทันที · เปิด Jenkins ด้วย port-forward `localhost:8080`"]]],
-    ["kubectl", [["ทางเดิน", "#3f9a73", "laptop → **EKS API :443** (เปิดเฉพาะ `my_ip` ใน `public_access_cidrs`) · control plane คุยกับ node ผ่าน **ENI ใน private subnet**"], ["ใครดูแล", "#3f9a73", "control plane (API + etcd) อยู่นอก VPC และ **AWS ดูแลให้** ไม่มีเครื่องให้ลง/อัปเกรด"]]],
+    ["เข้าเครื่อง (SSM)", [["ทางเดิน", "#475569", "เราสั่ง `aws ssm start-session` (ยืนยันด้วย **IAM**) → SSM → **agent บนเครื่อง** ที่ต่อออกไปหา SSM เอง ผ่าน NAT → IGW"], ["ไม่มีขาเข้า", "#2f8cff", "**ไม่เปิด port 22 เลย** · เครื่องไม่มี public IP · ถอนสิทธิ์ IAM = เข้าไม่ได้ทันที · เปิด Jenkins ด้วย port-forward `localhost:8080`"]]],
+    ["kubectl", [["ทางเดิน", "#2f8cff", "laptop → **EKS API :443** (เปิดเฉพาะ `my_ip` ใน `public_access_cidrs`) · control plane คุยกับ node ผ่าน **ENI ใน private subnet**"], ["ใครดูแล", "#2f8cff", "control plane (API + etcd) อยู่นอก VPC และ **AWS ดูแลให้** ไม่มีเครื่องให้ลง/อัปเกรด"]]],
     ["CI/CD", [["ทางเดิน", "#c0392b", "tag ใน GitHub → **Jenkins** → SonarQube :9000 → `docker push` **ECR** → แก้ `image:` ใน manifests → **ArgoCD** (ใน cluster) ดึง manifests แล้วอัปเดต"], ["ดึง image", "#e8590c", "node ดึง image จาก ECR ด้วย **IAM role ของ node** (ไม่มี token หมดอายุ 12 ชม. เหมือนแบบ VM)"]]],
     ["รหัสผ่านและ DB", [["รหัสผ่าน", "#7c3aed", "รหัสผ่าน DB อยู่ใน **Secrets Manager** (หมุนให้) · เราสร้าง Secret `db-credentials` ใน cluster จากค่านี้ (**ต้องทำเอง**)"], ["Multi-AZ", "#b45309", "RDS **primary ซิงก์ทุกการเขียนไป standby** คนละ AZ · แอปต่อที่ endpoint เดียว ไม่ต้องรู้ว่าตัวไหนเป็น writer"]]],
-    ["AZ a ล่ม", [["สิ่งที่เกิด", "#c62828", "node AZ a, **RDS primary**, Jenkins และ **NAT** หายพร้อมกัน"], ["ที่รอด", "#3f9a73", "RDS **สลับ standby** (AZ b) เป็น writer อัตโนมัติ · pod ย้ายไป node AZ b/c · ALB ตัด node ที่ตายออก"], ["ที่หาย", "#c62828", "**Jenkins** และ **NAT** อยู่ AZ a ตัวเดียว → build ไม่ได้ · private ออกเน็ตไม่ได้ (ข้อจำกัดของ lab เพื่อประหยัด)"]]]
+    ["AZ a ล่ม", [["สิ่งที่เกิด", "#c62828", "node AZ a, **RDS primary**, Jenkins และ **NAT** หายพร้อมกัน"], ["ที่รอด", "#2f8cff", "RDS **สลับ standby** (AZ b) เป็น writer อัตโนมัติ · pod ย้ายไป node AZ b/c · ALB ตัด node ที่ตายออก"], ["ที่หาย", "#c62828", "**Jenkins** และ **NAT** อยู่ AZ a ตัวเดียว → build ไม่ได้ · private ออกเน็ตไม่ได้ (ข้อจำกัดของ lab เพื่อประหยัด)"]]]
   ];
   function say(i) { cap.textContent = ""; cap.appendChild(h("h3", { style: "margin:4px 0 8px", text: (i + 1) + ". " + SC[i][0] })); cap.appendChild(infoCard(SC[i][1])); show(i); }
   var PATH = [
@@ -11214,7 +11214,7 @@ function mgSystem() {
   var PL = jkxPlayer(reset, function (PL) {
     var st = [];
     SC.forEach(function (s, i) { st.push([i === 0 ? 400 : 1200, function () { hidePk(); say(i); }]); PATH[i].forEach(function (p) { st.push([800, function () { mv(p[0], p[1], p[2]); }]); }); });
-    st.push([1200, function () { hidePk(); show(-1); cap.appendChild(infoCard([["สรุป", "#3f9a73", "ทุกอย่างคุยกันผ่าน **SG ที่อ้างกันเอง** · ทางเข้ามี 2 ทาง: **ALB** (ผู้ใช้) และ **IAM/SSM** (ผู้ดูแล) · ส่วนที่เหลือไม่มี public IP"]])); }]);
+    st.push([1200, function () { hidePk(); show(-1); cap.appendChild(infoCard([["สรุป", "#2f8cff", "ทุกอย่างคุยกันผ่าน **SG ที่อ้างกันเอง** · ทางเข้ามี 2 ทาง: **ALB** (ผู้ใช้) และ **IAM/SSM** (ผู้ดูแล) · ส่วนที่เหลือไม่มี public IP"]])); }]);
     PL.start(st);
   }, "▶ เล่น: ดูการเชื่อมต่อ");
   var wrap = h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, PL.ctl), cap, svg]);
@@ -11229,13 +11229,13 @@ function managedTab() {
   var cb = h("div", { cls: "cb" });
   cb.appendChild(infoCard([
     ["ทำอะไร", "#2b6cb0", "เทียบระบบ **แบบ VM** (ที่ lab นี้ใช้เรียนรู้) กับ **แบบ managed** ที่ใช้ทำจริง: **EKS + RDS + SSM** · โค้ดจริงอยู่ที่ `terraform-managed/`"],
-    ["เหมือนกัน", "#3f9a73", "เครือข่าย 3 AZ, public/private, NAT, ALB, ECR, Jenkinsfile, repo-manifests, ArgoCD"],
+    ["เหมือนกัน", "#2f8cff", "เครือข่าย 3 AZ, public/private, NAT, ALB, ECR, Jenkinsfile, repo-manifests, ArgoCD"],
     ["เปลี่ยน", "#c0392b", "bastion → **SSM** · k3s ×3 + dev → **EKS** · Galera ×3 → **RDS Multi-AZ** · target group ผูกกับ **ASG**"],
     ["สถานะโค้ด", "#b45309", "ผ่าน `terraform validate` แล้ว · **ยังไม่เคย apply บน AWS จริง** (account ระงับ) คาดว่าเจอ error ตอนรันครั้งแรก · ต้องลง ArgoCD และสร้าง Secret ของ DB เอง"]
   ]));
   cb.appendChild(infoCard([
     ["ลองจริง (กดสร้าง)", "#7c3aed", "โหลดตัวอย่างแล้วไปกดดูที่แถบ **EKS / RDS / SSM** (หน้าตาแบบ AWS console) · ของที่กดสร้างถูกแปลงเป็นโค้ด Terraform ที่ Lab › Terraform และตรวจกับโค้ดจริงที่ Lab › ตรวจกับ Terraform"],
-    ["ลองจริง (Terminal)", "#3f9a73", "เปิด Laptop › Terminal แล้วรัน **terraform-managed/** ได้เลย (สร้าง 57 resource) ตามคำสั่งด้านล่าง"]]));
+    ["ลองจริง (Terminal)", "#2f8cff", "เปิด Laptop › Terminal แล้วรัน **terraform-managed/** ได้เลย (สร้าง 57 resource) ตามคำสั่งด้านล่าง"]]));
   cb.appendChild(h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px" }, [["managed", "โหลด Managed ครบทั้งชุด"], ["managed-base", "เตรียมเครือข่าย แล้วสร้าง EKS/RDS เอง"], ["managed-badrole", "ล้ม: node ไม่ join (role ขาด policy)"], ["managed-nonat", "ล้ม: private ไม่มี NAT (SSM ออฟไลน์)"]].map(function (b) {
     return h("button", { cls: "btn" + (b[0] === "managed" ? " pri" : ""), type: "button", text: b[1], onclick: function () { try { buildManaged(b[0]); UI.sel = {}; UI.form = null; flash("ok", "โหลด '" + b[1] + "' แล้ว"); go(b[0] === "managed-base" ? "eks-create" : "eks", {}, "EKS"); } catch (e) { flash("bad", "โหลดไม่สำเร็จ: " + e.message); render(); } } });
   })));
@@ -11661,11 +11661,11 @@ var SCEN_CATS = [
   { t: "① Terraform พื้นฐาน + VM (lab หลัก)", c: "#0972d3", d: "VPC 3 AZ, EC2, ALB, ECR", re: /^(full|noassoc|wrongip|ecr)$/ },
   { t: "② ตั้งค่าเครื่องด้วย Ansible", c: "#8456ce", d: "inventory ผ่าน bastion, site.yml", re: /^ans/ },
   { t: "③ ปล่อยจริง Jenkins → dev/prd", c: "#c0392b", d: "git push → build → dev (compose) / prd (ArgoCD) → เปิดเว็บ", re: /^ready$/ },
-  { t: "④ Managed: EKS + RDS + SSM", c: "#3f9a73", d: "แบบที่ทีมจริงใช้: ไม่มี bastion/Galera/k3s ให้ดูแล", re: /^managed/ },
+  { t: "④ Managed: EKS + RDS + SSM", c: "#2f8cff", d: "แบบที่ทีมจริงใช้: ไม่มี bastion/Galera/k3s ให้ดูแล", re: /^managed/ },
   { t: "⑤ Use case 1 · เว็บ static: S3 + CloudFront + Route 53 + ACM (dev + prd)", c: "#e8590c", d: "นิยมที่สุด · ถูก · ไม่มีเซิร์ฟเวอร์ให้ดูแล", re: /^static/ },
   { t: "⑥ Use case 2 · ECS Fargate + ALB + ECR + RDS (dev + prd)", c: "#d9480f", d: "คอนเทนเนอร์ไม่ต้องดูแล k8s · แบบที่ทีมเล็กนิยม", re: /^ecs/ },
   { t: "⑦ Use case 3 · Serverless API: API Gateway + Lambda + DynamoDB (dev + prd)", c: "#7d4acf", d: "ไม่มีเซิร์ฟเวอร์เลย · จ่ายตามคำขอ · นิยมกับ API เล็ก-กลางและ event", re: /^sls/ },
-  { t: "⑧ Use case 4 · CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", c: "#3f9a73", d: "ปล่อยของอัตโนมัติ: push โค้ด → build → dev → คนอนุมัติ → prd", re: /^cd/ },
+  { t: "⑧ Use case 4 · CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", c: "#2f8cff", d: "ปล่อยของอัตโนมัติ: push โค้ด → build → dev → คนอนุมัติ → prd", re: /^cd/ },
   { t: "⑨ Use case 5 · GitHub Actions + OIDC → ECR → ECS (CI/CD ที่นิยมที่สุด)", c: "#24292f", d: "ไม่มี access key ถาวร · dev อัตโนมัติ · prd ต้องมีคนอนุมัติ", re: /^gha/ },
   { t: "⑩ Use case 6 · เครื่องเดียว: EC2 + Docker Compose + Caddy (แบบที่ทีมเล็กนิยม)", c: "#8c4fff", d: "ง่ายสุด ถูกสุด · ดูแลเครื่องเอง (patch, backup) · ไม่ scale อัตโนมัติ", re: /^single/ },
   { t: "⑪ Use case 7 · App Runner (PaaS · ⚠️ ปิดรับลูกค้าใหม่แล้ว)", c: "#c2185b", d: "ไว้เข้าใจแนวคิด/อ่านระบบเก่า · โปรเจกต์ใหม่ใช้ ECS Express Mode", re: /^apr/ },
@@ -11681,8 +11681,8 @@ function scenGroups(cb, sc, card) {
     f.style.borderLeft = "5px solid " + g.c; f.style.paddingLeft = "10px";
     f.appendChild(h("div", { cls: "scen", style: "margin-top:8px" }, items.map(function (s) {
       var bd = SCEN_ERR.indexOf(s[0]) >= 0, el = card(s);
-      el.style.borderLeft = "4px solid " + (bd ? "#c62828" : "#3f9a73");
-      el.insertBefore(h("span", { style: "flex:none;align-self:flex-start;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;background:" + (bd ? "#c62828" : "#3f9a73"), text: bd ? "เคส error" : "ปกติ" }), el.firstChild);
+      el.style.borderLeft = "4px solid " + (bd ? "#c62828" : "#2f8cff");
+      el.insertBefore(h("span", { style: "flex:none;align-self:flex-start;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;background:" + (bd ? "#c62828" : "#2f8cff"), text: bd ? "เคส error" : "ปกติ" }), el.firstChild);
       return el;
     })));
     cb.appendChild(f);
@@ -11724,7 +11724,7 @@ UC.push({
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "บล็อก · หน้าแนะนำร้าน/บริษัท · เว็บ React/Vue (SPA) ที่ build เป็นไฟล์ HTML/JS แล้ว — **เพราะ** ไม่มีโค้ดฝั่ง server ให้รัน จ่ายแค่ที่เก็บไฟล์ + ทราฟฟิก"],
     ["ใช้ทำอะไร", "#2b6cb0", "เว็บ **ที่เป็นไฟล์** (React/Vue/Next export, เว็บบริษัท, หน้า landing, เอกสาร) ไม่มี backend · ผู้ใช้ทั่วโลกได้ไฟล์จาก **edge ใกล้ตัว** (CloudFront) ส่วน S3 เก็บต้นฉบับแบบส่วนตัว"],
-    ["ใครใช้", "#3f9a73", "แทบทุกทีมที่ทำ frontend · หลายที่ย้ายมาใช้เพราะ **ไม่ต้องดูแลเซิร์ฟเวอร์ ไม่ต้อง patch ไม่ต้อง scale** และค่าใช้จ่ายต่ำ (จ่ายตามการใช้ ไม่มีเครื่องเปิดทิ้ง)"],
+    ["ใครใช้", "#2f8cff", "แทบทุกทีมที่ทำ frontend · หลายที่ย้ายมาใช้เพราะ **ไม่ต้องดูแลเซิร์ฟเวอร์ ไม่ต้อง patch ไม่ต้อง scale** และค่าใช้จ่ายต่ำ (จ่ายตามการใช้ ไม่มีเครื่องเปิดทิ้ง)"],
     ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = `dev.<โดเมน>` ใช้ทดลองก่อน, prd = `www.<โดเมน>` ผู้ใช้จริง · แต่ละ env มี **bucket + distribution + policy ของตัวเอง** ใช้ **ใบรับรองและ OAC ร่วมกัน**"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① bucket **ไม่เปิด public** ใช้ **OAC** ② ใบรับรอง CloudFront ต้องอยู่ **us-east-1** ③ ปล่อยเวอร์ชันใหม่ = `s3 sync` + **invalidation** ④ ชื่อ bucket ต้อง **ไม่ซ้ำทั้งโลก**"]
   ],
@@ -11743,13 +11743,13 @@ UC.push({
     { t: "DNS: ชื่อเว็บ → CloudFront", on: ["user", "dns"], flow: [["user", "ถามชื่อ"], ["dns", "A alias"], ["user", "ได้ IP edge"]], rows: [["เกิดอะไร", "#0d7c8f", "เบราว์เซอร์ถาม Route 53 ว่า `www.pharmacy.example.com` คือ IP อะไร ➜ record **A แบบ alias** ชี้ไป `dxxxx.cloudfront.net` ➜ ได้ IP ของ edge ใกล้ผู้ใช้"], ["ถ้าไม่ขึ้น", "#c62828", "`NXDOMAIN` = ไม่มี record / ยังไม่ตั้ง NS ที่ผู้ขายโดเมนให้ชี้มา Route 53 (ลอง `dig www.pharmacy.example.com` ใน Terminal)"]] },
     { t: "HTTPS: ใบรับรองจาก ACM", on: ["user", "cf", "acm"], flow: [["user", "TLS hello"], ["cf", "ส่งใบรับรอง"], ["user", "เชื่อถือ"]], rows: [["เกิดอะไร", "#b8860b", "CloudFront ส่งใบรับรอง ACM ที่ครอบ `www` และ `dev` ให้เบราว์เซอร์ตรวจ · **ต้องอยู่ us-east-1 และ Issued** เท่านั้นถึงผูกได้"], ["ถ้าไม่ผ่าน", "#c62828", "ผูกไม่ได้: `InvalidViewerCertificate` (ผิด region / ยัง Pending / ไม่ครอบชื่อ) · เบราว์เซอร์เตือน `ERR_CERT_COMMON_NAME_INVALID` ถ้าไม่ใส่ alias+ใบรับรอง"]] },
     { t: "Cache miss: ไปเอาจาก S3 ผ่าน OAC", on: ["user", "cf", "s3prd"], flow: [["user", "GET /"], ["cf", "miss"], ["s3prd", "เซ็นคำขอ SigV4"], ["cf", "เก็บ cache"], ["user", "200"]], rows: [["เกิดอะไร", "#c2410c", "ไม่มีใน edge ➜ CloudFront **เซ็นคำขอด้วย OAC** ไป S3 ➜ S3 ตรวจ **bucket policy** (Principal = cloudfront.amazonaws.com + `AWS:SourceArn` ตรง distribution) ➜ ส่งไฟล์ ➜ เก็บ cache (`X-Cache: Miss`)"], ["จุดสังเกต", "#a85a00", "เปิด `/` ได้ index.html เพราะตั้ง **Default root object** · โฟลเดอร์ย่อย (`/about/`) ไม่ได้ผลแบบนี้"]] },
-    { t: "Cache hit: ตอบจาก edge เลย", on: ["user", "cf"], flow: [["user", "GET /"], ["cf", "hit (Age)"], ["user", "200 เร็ว"]], rows: [["เกิดอะไร", "#3f9a73", "ครั้งต่อไปตอบจาก **cache ที่ edge** ไม่ถาม S3 (`X-Cache: Hit from cloudfront`, มี `Age`) ➜ เร็วและประหยัดค่า S3"], ["ข้อแลก", "#a85a00", "ไฟล์ที่เปลี่ยนใน S3 **ไม่ถึงผู้ใช้ทันที** จน TTL หมด (ค่าเริ่มต้น 24 ชม.) หรือ invalidate"]] },
+    { t: "Cache hit: ตอบจาก edge เลย", on: ["user", "cf"], flow: [["user", "GET /"], ["cf", "hit (Age)"], ["user", "200 เร็ว"]], rows: [["เกิดอะไร", "#2f8cff", "ครั้งต่อไปตอบจาก **cache ที่ edge** ไม่ถาม S3 (`X-Cache: Hit from cloudfront`, มี `Age`) ➜ เร็วและประหยัดค่า S3"], ["ข้อแลก", "#a85a00", "ไฟล์ที่เปลี่ยนใน S3 **ไม่ถึงผู้ใช้ทันที** จน TTL หมด (ค่าเริ่มต้น 24 ชม.) หรือ invalidate"]] },
     { t: "ปล่อยเวอร์ชันใหม่: s3 sync", on: ["ci", "s3prd", "user", "cf"], flow: [["ci", "aws s3 sync dist"], ["s3prd", "ไฟล์ใหม่ v2"], ["user", "ยังเห็น v1!"]], rows: [["เกิดอะไร", "#475569", "CI อัปโหลดไฟล์ใหม่ไป S3 ด้วย `aws s3 sync ./dist s3://… --delete` ➜ S3 เป็น v2 แล้ว"], ["แต่", "#c62828", "ผู้ใช้ยังได้ **v1** จาก edge cache ➜ นี่คือเคส ‘ปล่อยแล้วไม่เปลี่ยน’ ที่เจอบ่อยที่สุด (Hard refresh ไม่ช่วย)"]] },
-    { t: "Invalidation: ล้างแคช", on: ["ci", "cf", "user"], flow: [["ci", "create-invalidation /*"], ["cf", "ล้าง cache"], ["user", "เห็น v2"]], rows: [["เกิดอะไร", "#3f9a73", "`aws cloudfront create-invalidation --paths '/*'` ➜ edge ลบไฟล์ที่ cache ไว้ ➜ คำขอถัดไป miss แล้วเอา **v2** จาก S3"], ["ทางเลือกที่ดีกว่า", "#2b6cb0", "ตั้งชื่อไฟล์มี hash (`app.3f9a.js`) และให้ `index.html` TTL สั้น/invalidate เฉพาะ `/index.html` ➜ เสียค่า invalidation น้อยกว่า"]] },
+    { t: "Invalidation: ล้างแคช", on: ["ci", "cf", "user"], flow: [["ci", "create-invalidation /*"], ["cf", "ล้าง cache"], ["user", "เห็น v2"]], rows: [["เกิดอะไร", "#2f8cff", "`aws cloudfront create-invalidation --paths '/*'` ➜ edge ลบไฟล์ที่ cache ไว้ ➜ คำขอถัดไป miss แล้วเอา **v2** จาก S3"], ["ทางเลือกที่ดีกว่า", "#2b6cb0", "ตั้งชื่อไฟล์มี hash (`app.3f9a.js`) และให้ `index.html` TTL สั้น/invalidate เฉพาะ `/index.html` ➜ เสียค่า invalidation น้อยกว่า"]] },
     { t: "dev vs prd: แยกกันจริง", on: ["user", "cf", "s3dev"], flow: [["user", "dev.pharmacy…"], ["cf", "dist dev"], ["s3dev", "bucket dev"], ["user", "หน้า DEV"]], rows: [["เกิดอะไร", "#7a8a3a", "`dev.…` ใช้ distribution + bucket ของ **dev** · ผู้ใช้จริงไม่เห็น · ปล่อยลอง dev ก่อน แล้วค่อย sync ไป prd"], ["กฎสำคัญ", "#c62828", "policy ของแต่ละ bucket ต้องอ้าง **distribution ของ env ตัวเอง** — อ้างผิดตัว = env นั้น 403"]] },
     { t: "เคส error 1: 403 AccessDenied", on: ["user", "cf", "s3prd"], bad: ["s3prd"], flow: [["user", "GET /"], ["cf", "ส่งไป S3"], ["s3prd", "✗ policy ไม่ตรง"], ["user", "403 XML"]], rows: [["อาการ", "#c62828", "เปิดเว็บเจอ XML `AccessDenied` (HTTP 403 จาก S3 ผ่าน CloudFront)"], ["สาเหตุที่พบบ่อย", "#a85a00", "① ไม่มี/ผิด **bucket policy** (`AWS:SourceArn` ไม่ตรง distribution) ② origin **ไม่ผูก OAC** ③ **ไม่มีไฟล์** นั้นใน bucket (S3 ตอบ 403 ไม่ใช่ 404 เมื่อ OAC ไม่มี ListBucket) ④ ไม่ตั้ง Default root object"], ["ไล่หา", "#2b6cb0", "CloudFront › Origins (OAC?) → S3 › Permissions (policy) → เทียบ distribution ID · Browser ของ lab บอกสาเหตุให้"]] },
-    { t: "เคส error 2: ใบรับรองผิด region / ยังไม่ Issued", on: ["cf", "acm"], bad: ["acm"], flow: [["cf", "ขอผูกใบรับรอง"], ["acm", "✗ ผิด region / pending"]], rows: [["อาการ", "#c62828", "ใส่ alias + ใบรับรองแล้ว error `InvalidViewerCertificate: …isn't in us-east-1 region, isn't valid…`"], ["สาเหตุ", "#a85a00", "① ขอใบรับรองไว้ที่ ap-southeast-1 (ไม่ใช่ us-east-1) ② **Pending validation** เพราะไม่ได้สร้าง CNAME ใน Route 53 ③ ใบรับรองไม่ครอบชื่อ alias"], ["แก้", "#3f9a73", "ขอใบรับรองใหม่ที่ **us-east-1** → ACM › Create records in Route 53 → รอ Issued → ผูก CloudFront · Terraform: `provider = aws.use1` + `aws_acm_certificate_validation`"]] },
-    { t: "เคส error 3: ปล่อยแล้วเห็นของเก่า", on: ["ci", "cf", "user"], bad: ["cf"], flow: [["ci", "sync v3"], ["cf", "✗ ยังมี v2 ใน cache"], ["user", "เห็น v2"]], rows: [["อาการ", "#c62828", "S3 เป็น v3 แล้ว แต่ผู้ใช้เห็น v2 · `X-Cache: Hit from cloudfront`, `Age` เพิ่มเรื่อยๆ"], ["สาเหตุ", "#a85a00", "edge cache ยังไม่หมดอายุ (TTL 24 ชม.) · Hard refresh ล้างแค่แคชเบราว์เซอร์"], ["แก้", "#3f9a73", "**Create invalidation** `/*` (หรือ `/index.html`) ➜ ใส่เป็นขั้นสุดท้ายของ CI เสมอ"]] }
+    { t: "เคส error 2: ใบรับรองผิด region / ยังไม่ Issued", on: ["cf", "acm"], bad: ["acm"], flow: [["cf", "ขอผูกใบรับรอง"], ["acm", "✗ ผิด region / pending"]], rows: [["อาการ", "#c62828", "ใส่ alias + ใบรับรองแล้ว error `InvalidViewerCertificate: …isn't in us-east-1 region, isn't valid…`"], ["สาเหตุ", "#a85a00", "① ขอใบรับรองไว้ที่ ap-southeast-1 (ไม่ใช่ us-east-1) ② **Pending validation** เพราะไม่ได้สร้าง CNAME ใน Route 53 ③ ใบรับรองไม่ครอบชื่อ alias"], ["แก้", "#2f8cff", "ขอใบรับรองใหม่ที่ **us-east-1** → ACM › Create records in Route 53 → รอ Issued → ผูก CloudFront · Terraform: `provider = aws.use1` + `aws_acm_certificate_validation`"]] },
+    { t: "เคส error 3: ปล่อยแล้วเห็นของเก่า", on: ["ci", "cf", "user"], bad: ["cf"], flow: [["ci", "sync v3"], ["cf", "✗ ยังมี v2 ใน cache"], ["user", "เห็น v2"]], rows: [["อาการ", "#c62828", "S3 เป็น v3 แล้ว แต่ผู้ใช้เห็น v2 · `X-Cache: Hit from cloudfront`, `Age` เพิ่มเรื่อยๆ"], ["สาเหตุ", "#a85a00", "edge cache ยังไม่หมดอายุ (TTL 24 ชม.) · Hard refresh ล้างแค่แคชเบราว์เซอร์"], ["แก้", "#2f8cff", "**Create invalidation** `/*` (หรือ `/index.html`) ➜ ใส่เป็นขั้นสุดท้ายของ CI เสมอ"]] }
   ],
   tf: [
     { type: "aws_s3_bucket", name: "site", file: "labs/01-static-site/s3.tf", console: ["S3 › General purpose buckets › Create bucket", "ใส่ Bucket name (ไม่ซ้ำทั้งโลก) · Region · ปล่อย Block all public access เปิดไว้"], err: "BucketAlreadyExists = ชื่อซ้ำทั้งโลก · ชื่อไม่ผ่านกฎ 3-63 ตัว a-z 0-9 . -" },
@@ -11778,7 +11778,7 @@ UC.push({
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "API หลังบ้านร้านขายยา (REST + Postgres) ที่ต้องรันตลอดและ scale ได้ — **เพราะ** มี server process + ฐานข้อมูล + ต้องคุมเครือข่าย/security group เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **backend API ที่เป็น container** (Django/Node/Go) โดย **ไม่ต้องมีเครื่อง** ไม่ต้องดูแล k8s · AWS รัน task ให้ตาม CPU/RAM ที่ขอ · มี **ALB** กระจายโหลด + **RDS** เก็บข้อมูล"],
-    ["ใครใช้", "#3f9a73", "ทีมที่อยากได้ container แต่ไม่อยากแบก Kubernetes (EKS) · เหมาะ API ทั่วไป · ถ้าต้องการ ecosystem k8s ค่อยย้ายไป EKS"],
+    ["ใครใช้", "#2f8cff", "ทีมที่อยากได้ container แต่ไม่อยากแบก Kubernetes (EKS) · เหมาะ API ทั่วไป · ถ้าต้องการ ecosystem k8s ค่อยย้ายไป EKS"],
     ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = 1 task เล็ก DB single-AZ พอร์ต 8080 · prd = 2 task ใหญ่กว่า DB **Multi-AZ** พอร์ต 80 · แต่ละ env มี cluster / service / target group / DB ของตัวเอง ใช้ VPC + ECR ร่วมกัน"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① task อยู่ **private subnet** ออกเน็ตผ่าน **NAT** (ไปดึง ECR/Secrets/Logs) ② image ต้อง **docker push** ก่อนสร้าง service ③ **execution role** ≠ task role ④ target group ต้องเป็นแบบ **IP** ⑤ SG ต่อกันเป็นสาย: ALB → task → DB ⑥ health check path ต้องตรงกับที่แอปตอบ"]
   ],
@@ -11799,7 +11799,7 @@ UC.push({
     { t: "Service เริ่ม task", on: ["task", "ecr", "nat"], flow: [["task", "Fargate เริ่ม task"], ["nat", "ออกเน็ต"], ["ecr", "ดึง image"], ["task", "แอปเริ่ม"]], rows: [["เกิดอะไร", "#d9480f", "Fargate ใช้ **execution role** ดึง image ผ่าน **NAT** (task อยู่ private subnet) แล้วรันคอนเทนเนอร์"]] },
     { t: "แอปต่อฐานข้อมูล", on: ["task", "rds"], flow: [["task", "อ่าน DB_PASSWORD"], ["rds", "รับ :5432"], ["task", "connected"]], rows: [["เกิดอะไร", "#2e6bd0", "รหัสผ่านมาจาก **Secrets Manager** (RDS สร้างให้) · SG ของ DB รับ 5432 จาก SG ของ task เท่านั้น"]] },
     { t: "ALB health check", on: ["alb", "task"], flow: [["alb", "GET /healthz"], ["task", "200"]], rows: [["เกิดอะไร", "#8c4fff", "target group (แบบ IP) ตรวจ `/healthz` · ผ่านแล้วถึงรับ traffic · ไม่ผ่าน = ECS ฆ่า task แล้วเริ่มใหม่วน"]] },
-    { t: "คำขอจากผู้ใช้", on: ["user", "alb", "task", "rds"], flow: [["user", "GET /api/drugs"], ["alb", "เลือก task"], ["task", "query"], ["rds", "ข้อมูล"], ["user", "200 JSON"]], rows: [["เกิดอะไร", "#3f9a73", "ALB กระจายไป task ตัวใดตัวหนึ่ง · ที่ Browser ลองกด Go ซ้ำ จะเห็น `task`/`az` สลับกัน (prd มี 2 task)"]] },
+    { t: "คำขอจากผู้ใช้", on: ["user", "alb", "task", "rds"], flow: [["user", "GET /api/drugs"], ["alb", "เลือก task"], ["task", "query"], ["rds", "ข้อมูล"], ["user", "200 JSON"]], rows: [["เกิดอะไร", "#2f8cff", "ALB กระจายไป task ตัวใดตัวหนึ่ง · ที่ Browser ลองกด Go ซ้ำ จะเห็น `task`/`az` สลับกัน (prd มี 2 task)"]] },
     { t: "ส่ง log ไป CloudWatch", on: ["task", "log"], flow: [["task", "stdout"], ["log", "log stream"]], rows: [["เกิดอะไร", "#c2185b", "awslogs driver ส่ง stdout ไป **log group** · 1 task = 1 stream · ไม่มี log group/สิทธิ์ = ไม่เห็น log"]] },
     { t: "เคส error 1: task ดึง image ไม่ได้", on: ["task", "nat", "ecr"], bad: ["nat"], flow: [["task", "ขอ image"], ["nat", "✗ ไม่มีทาง/ไม่มี image"]], rows: [["อาการ", "#c62828", "task STOPPED วนซ้ำ · `ResourceInitializationError` (ไม่มี NAT) หรือ `CannotPullContainerError` (ไม่มี tag)"], ["สาเหตุ", "#a85a00", "route 0.0.0.0/0 → NAT หาย · หรือยังไม่ docker push"]] },
     { t: "เคส error 2: role ขาดสิทธิ์", on: ["task", "ecr"], bad: ["task"], flow: [["task", "ใช้ execution role"], ["ecr", "✗ AccessDenied"]], rows: [["อาการ", "#c62828", "ดึง image/secret ไม่ได้ ทั้งที่เน็ตปกติ"], ["สาเหตุ", "#a85a00", "execution role ไม่มี AmazonECSTaskExecutionRolePolicy"]] },
@@ -11841,7 +11841,7 @@ UC.push({
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ฟอร์มรับสมัคร · webhook · API ค้นข้อมูลที่ถูกเรียกเป็นช่วงๆ — **เพราะ** ไม่มีคนเรียกก็ไม่เสียเงิน และไม่ต้องดูแลเซิร์ฟเวอร์"],
     ["ใช้ทำอะไร", "#2b6cb0", "ทำ **API ที่ไม่มีเครื่อง** เลย: ผู้ใช้เรียก **API Gateway** → ปลุก **Lambda** รันโค้ดแค่ตอนมีคำขอ → อ่าน/เขียน **DynamoDB** · ไม่มีอะไรให้ patch/scale · ไม่มีคำขอ = ไม่เสียเงิน"],
-    ["ใครใช้", "#3f9a73", "ทีมที่อยากส่งงานเร็ว · API ภายในองค์กร · งาน event (อัปโหลด, ตั้งเวลา) · ระบบที่ traffic กระชากเป็นช่วง ๆ · ข้อจำกัด: cold start, เวลารันสูงสุด 15 นาที, ติด lock-in กับ AWS"],
+    ["ใครใช้", "#2f8cff", "ทีมที่อยากส่งงานเร็ว · API ภายในองค์กร · งาน event (อัปโหลด, ตั้งเวลา) · ระบบที่ traffic กระชากเป็นช่วง ๆ · ข้อจำกัด: cold start, เวลารันสูงสุด 15 นาที, ติด lock-in กับ AWS"],
     ["dev vs prd", "#c0392b", "**2 env ในโค้ดเดียว** (`for_each` ตาม `local.envs`): dev = Lambda 128 MB, ไม่เปิด PITR, log เก็บ 7 วัน · prd = 256 MB, **เปิด point-in-time recovery**, log 30 วัน · แต่ละ env มี **API + Lambda + role + table ของตัวเอง** (ไม่ปนข้อมูลกัน)"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① Lambda ใช้ **execution role** (สิทธิ์ของโค้ด) ② API Gateway ต้องมี **permission** ถึงเรียก Lambda ได้ (console ใส่ให้เอง · Terraform ต้องเขียนเอง) ③ route key ต้องตรงทั้ง METHOD และ path ④ ตัวแปร `TABLE_NAME` ชี้ table ⑤ 500 จาก API Gateway ไม่บอกสาเหตุ ต้องไล่ log ใน CloudWatch ⑥ ปลุกครั้งแรก = cold start"]
   ],
@@ -11851,7 +11851,7 @@ UC.push({
     { id: "api", ico: "apigw", x: 220, y: 150, w: 180, h: 80, t: "API Gateway (HTTP)", s: "stage · route · integration", c: "#c2185b" },
     { id: "fn", ico: "lambda", x: 490, y: 150, w: 190, h: 80, t: "Lambda", s: "python3.12 · app.handler", c: "#d9480f" },
     { id: "ddb", ico: "dynamodb", x: 780, y: 150, w: 210, h: 80, t: "DynamoDB", s: "pharmacy-drugs-env", c: "#2e6bd0" },
-    { id: "role", ico: "iam", x: 490, y: 30, w: 190, h: 64, t: "IAM role (Lambda)", s: "log + แตะเฉพาะ table นี้", c: "#3f9a73" },
+    { id: "role", ico: "iam", x: 490, y: 30, w: 190, h: 64, t: "IAM role (Lambda)", s: "log + แตะเฉพาะ table นี้", c: "#2f8cff" },
     { id: "log", ico: "cloudwatch", x: 490, y: 320, w: 190, h: 64, t: "CloudWatch Logs", s: "/aws/lambda/…", c: "#c2185b" },
     { id: "ci", ico: "github", x: 220, y: 320, w: 180, h: 64, t: "laptop / CI", s: "zip + terraform apply", c: "#475569" }
   ],
@@ -11861,7 +11861,7 @@ UC.push({
     { t: "คำขอเข้า API Gateway", on: ["user", "api"], flow: [["user", "GET /prd/drugs"], ["api", "จับ stage + route"]], rows: [["เกิดอะไร", "#c2185b", "API Gateway ดู **stage** (prd) แล้วหา **route** `GET /drugs` · ไม่ตรง = 404 `{\"message\":\"Not Found\"}`"]] },
     { t: "API Gateway ปลุก Lambda", on: ["api", "fn"], flow: [["api", "invoke"], ["fn", "cold start (ครั้งแรก)"]], rows: [["เกิดอะไร", "#d9480f", "ตรวจ **permission** ว่า API นี้เรียก Lambda นี้ได้ → สร้าง execution environment (ครั้งแรกช้า = cold start) แล้วรัน `handler`"]] },
     { t: "Lambda อ่าน DynamoDB", on: ["fn", "role", "ddb"], flow: [["fn", "สวม role"], ["role", "อนุญาต Scan"], ["ddb", "scan table"], ["fn", "ได้รายการ"]], rows: [["เกิดอะไร", "#2e6bd0", "โค้ดอ่าน `TABLE_NAME` → เรียก DynamoDB ด้วยสิทธิ์ของ **role** (ไม่ใช่สิทธิ์ผู้ใช้) · role แตะได้เฉพาะ table ของ env นี้"]] },
-    { t: "ตอบกลับ + เขียน log", on: ["fn", "log", "api", "user"], flow: [["fn", "return 200"], ["log", "START/END/REPORT"], ["api", "ส่งต่อ"], ["user", "200 JSON"]], rows: [["เกิดอะไร", "#3f9a73", "Lambda คืน JSON → API Gateway ส่งให้ผู้ใช้ · ทุกคำขอเขียน log (Duration, Memory, Init Duration ถ้า cold) ไป CloudWatch"]] },
+    { t: "ตอบกลับ + เขียน log", on: ["fn", "log", "api", "user"], flow: [["fn", "return 200"], ["log", "START/END/REPORT"], ["api", "ส่งต่อ"], ["user", "200 JSON"]], rows: [["เกิดอะไร", "#2f8cff", "Lambda คืน JSON → API Gateway ส่งให้ผู้ใช้ · ทุกคำขอเขียน log (Duration, Memory, Init Duration ถ้า cold) ไป CloudWatch"]] },
     { t: "dev vs prd: แยกกันจริง", on: ["user", "api", "fn", "ddb"], flow: [["user", "/dev/drugs"], ["api", "API dev"], ["fn", "Lambda dev"], ["ddb", "table dev"]], rows: [["เกิดอะไร", "#7d4acf", "`/dev/…` ใช้ API + Lambda + table ของ **dev** เท่านั้น · ข้อมูลทดสอบไม่ปนกับ prd · role ของ dev แตะ table prd ไม่ได้"]] },
     { t: "เคส error 1: Lambda ไม่มีสิทธิ์ DynamoDB", on: ["fn", "role", "ddb"], bad: ["role"], flow: [["fn", "Scan"], ["role", "✗ AccessDenied"]], rows: [["อาการ", "#c62828", "ผู้ใช้เห็นแค่ `500 Internal Server Error` · ใน log: `AccessDeniedException … not authorized to perform dynamodb:Scan`"], ["สาเหตุ", "#a85a00", "role ไม่มี policy แตะ table (หรือชี้ ARN ผิด table)"]] },
     { t: "เคส error 2: API Gateway เรียก Lambda ไม่ได้", on: ["api", "fn"], bad: ["fn"], flow: [["api", "invoke"], ["fn", "✗ ไม่มี permission"]], rows: [["อาการ", "#c62828", "500 เหมือนกัน แต่ **Lambda ไม่มี log เลย** (ไม่เคยถูกเรียก) · Monitor แสดง Invocations = 0"], ["สาเหตุ", "#a85a00", "ไม่มี `aws_lambda_permission` (console ใส่ให้เอง ตอนเขียน Terraform ลืมบ่อย)"]] },
@@ -11892,36 +11892,36 @@ UC.push({
 });
 
 UC.push({
-  id: "cd", no: 4, video: "videos/usecase4-j.mp4", title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#3f9a73", dir: "labs/04-cicd", loadKind: "cd",
+  id: "cd", no: 4, video: "videos/usecase4-j.mp4", title: "CI/CD: CodePipeline + CodeBuild → ECR → ECS dev → prd", color: "#2f8cff", dir: "labs/04-cicd", loadKind: "cd",
   tag: "ปล่อยของอัตโนมัติ ไม่ต้อง docker build/push เอง · ต่อยอดจาก use case 2",
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่อยาก push โค้ดแล้วปล่อย dev → อนุมัติ → prd อัตโนมัติด้วย AWS ล้วน — **เพราะ** ไม่ต้องดูแลเครื่อง Jenkins เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "แทนที่ที่ต้อง `docker build/push` และกด update service เอง: push โค้ดขึ้น GitHub → **CodePipeline** ดึงโค้ด → **CodeBuild** build + push image ขึ้น ECR → deploy **ECS dev** → **คนอนุมัติ** → deploy **ECS prd**"],
-    ["ใครใช้", "#3f9a73", "ทีมที่ใช้ AWS ล้วน (ไม่อยากดูแล Jenkins เอง) · เทียบกับ lab หลัก: Jenkins + ArgoCD ทำงานแบบเดียวกันแต่ต้องดูแลเครื่อง · ที่นี่ทุกอย่างเป็น managed"],
+    ["ใครใช้", "#2f8cff", "ทีมที่ใช้ AWS ล้วน (ไม่อยากดูแล Jenkins เอง) · เทียบกับ lab หลัก: Jenkins + ArgoCD ทำงานแบบเดียวกันแต่ต้องดูแลเครื่อง · ที่นี่ทุกอย่างเป็น managed"],
     ["dev vs prd", "#c0392b", "pipeline เดียวส่งไปทั้งสอง env ตามลำดับ: **dev อัตโนมัติ** → ตรวจ → **กด Approve** → prd · image ตัวเดียวกัน (tag = commit 8 ตัว) ไม่ build ใหม่ระหว่าง env · rollback = Release change ของ commit เก่า"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① GitHub **connection** ต้อง authorize ใน console (Terraform ทำให้ไม่ได้ ติด Pending) ② CodeBuild ต้องเปิด **Privileged** ถึงจะ docker build ได้ ③ role ของ CodeBuild ต้องมี **ECR** เอง ④ ขั้น Deploy ต้อง **iam:PassRole** ⑤ `CONTAINER_NAME` ใน build ต้องตรงชื่อ container ใน task definition ⑥ ล้มที่ขั้นไหน กด **Retry stage** ได้หลังแก้"]
   ],
   envs: [["", "dev", "prd"], ["ทริกเกอร์", "อัตโนมัติหลัง Build ผ่าน", "หลังคนกด Approve"], ["ECS cluster / service", "pharmacy-dev / pharmacy-api", "pharmacy-prd / pharmacy-api"], ["Image", "pharmacy/api:<commit 8 ตัว>", "ตัวเดียวกับที่ dev ทดสอบ"], ["Task definition", "สร้าง revision ใหม่ทุกครั้ง", "สร้าง revision ใหม่ทุกครั้ง"], ["ใช้ร่วมกัน", "bucket artifact · connection · CodeBuild project · pipeline เดียว", "เหมือน dev"]],
   nodes: [
     { id: "gh", ico: "github", x: 24, y: 40, w: 150, h: 64, t: "GitHub", s: "push → main", c: "#475569" },
-    { id: "pipe", ico: "codepipeline", x: 250, y: 150, w: 190, h: 80, t: "CodePipeline", s: "Source → Build → Deploy", c: "#3f9a73" },
+    { id: "pipe", ico: "codepipeline", x: 250, y: 150, w: 190, h: 80, t: "CodePipeline", s: "Source → Build → Deploy", c: "#2f8cff" },
     { id: "build", ico: "codebuild", x: 520, y: 30, w: 190, h: 70, t: "CodeBuild", s: "docker build + push", c: "#c2185b" },
     { id: "ecr", ico: "ecr", x: 800, y: 30, w: 190, h: 70, t: "ECR pharmacy/api", s: "tag = commit", c: "#d9480f" },
     { id: "dev", ico: "ecs", x: 520, y: 170, w: 190, h: 70, t: "ECS dev", s: "service pharmacy-api", c: "#d9480f" },
     { id: "human", x: 520, y: 300, w: 190, h: 64, t: "คนอนุมัติ", s: "Review → Approve", c: "#7d4acf" },
     { id: "prd", ico: "ecs", x: 800, y: 300, w: 190, h: 70, t: "ECS prd", s: "service pharmacy-api", c: "#d9480f" },
-    { id: "iam", ico: "iam", x: 250, y: 320, w: 190, h: 64, t: "IAM roles", s: "codebuild · pipeline", c: "#3f9a73" }
+    { id: "iam", ico: "iam", x: 250, y: 320, w: 190, h: 64, t: "IAM roles", s: "codebuild · pipeline", c: "#2f8cff" }
   ],
   links: [["gh", "pipe"], ["pipe", "build"], ["build", "ecr"], ["pipe", "dev"], ["dev", "human"], ["human", "prd"], ["iam", "pipe"], ["ecr", "dev"]],
   scenes: [
-    { t: "push โค้ด → pipeline เริ่ม", on: ["gh", "pipe"], flow: [["gh", "git push main"], ["pipe", "Source: ดึง commit"]], rows: [["เกิดอะไร", "#3f9a73", "pipeline ใช้ **connection** ดึงโค้ดจาก GitHub (ต้อง Available) เก็บเป็น artifact ใน S3 · ใช้ role ของ pipeline"]] },
+    { t: "push โค้ด → pipeline เริ่ม", on: ["gh", "pipe"], flow: [["gh", "git push main"], ["pipe", "Source: ดึง commit"]], rows: [["เกิดอะไร", "#2f8cff", "pipeline ใช้ **connection** ดึงโค้ดจาก GitHub (ต้อง Available) เก็บเป็น artifact ใน S3 · ใช้ role ของ pipeline"]] },
     { t: "CodeBuild: build + push image", on: ["pipe", "build", "ecr"], flow: [["pipe", "StartBuild"], ["build", "ecr login + docker build"], ["ecr", "docker push :<commit>"], ["pipe", "imagedefinitions.json"]], rows: [["เกิดอะไร", "#c2185b", "CodeBuild รัน buildspec: login ECR → `docker build` (ต้อง Privileged) → push tag = commit 8 ตัว → เขียน `imagedefinitions.json` {name, imageUri}"]] },
     { t: "Deploy dev: ECS ใช้ image ใหม่", on: ["pipe", "dev", "ecr"], flow: [["pipe", "Deploy (ECS)"], ["dev", "register task def ใหม่"], ["ecr", "ดึง image ใหม่"], ["dev", "rolling update → stable"]], rows: [["เกิดอะไร", "#d9480f", "action ECS อ่าน imagedefinitions.json → สร้าง **task definition revision ใหม่** (เปลี่ยนแค่ image ของ container ชื่อนั้น) → update service → รอ steady state"]] },
     { t: "รออนุมัติ", on: ["dev", "human"], flow: [["dev", "dev พร้อมให้ตรวจ"], ["human", "เปิด dev ตรวจ → Approve"]], rows: [["เกิดอะไร", "#7d4acf", "stage Approve หยุดรอ · คนตรวจที่ dev (Browser: เปิด ALB :8080) แล้วกด **Review → Approve** (หรือ Reject = จบ Failed)"]] },
-    { t: "Deploy prd: image ตัวเดียวกัน", on: ["human", "prd", "ecr"], flow: [["human", "Approved"], ["prd", "register task def ใหม่"], ["ecr", "ดึง image เดิม"], ["prd", "stable (2 tasks)"]], rows: [["เกิดอะไร", "#3f9a73", "prd ได้ image **ตัวเดียวกับที่ dev ทดสอบ** (ไม่ build ใหม่) · prd มี 2 task กระจาย AZ"]] },
+    { t: "Deploy prd: image ตัวเดียวกัน", on: ["human", "prd", "ecr"], flow: [["human", "Approved"], ["prd", "register task def ใหม่"], ["ecr", "ดึง image เดิม"], ["prd", "stable (2 tasks)"]], rows: [["เกิดอะไร", "#2f8cff", "prd ได้ image **ตัวเดียวกับที่ dev ทดสอบ** (ไม่ build ใหม่) · prd มี 2 task กระจาย AZ"]] },
     { t: "Rollback = release commit เก่า", on: ["gh", "pipe", "prd"], flow: [["gh", "เลือก commit เก่า"], ["pipe", "Release change"], ["prd", "task def กลับ image เดิม"]], rows: [["เกิดอะไร", "#475569", "ECR เก็บ image เก่าไว้ (tag ไม่ซ้ำ) · ปล่อย commit ก่อนหน้าผ่าน pipeline เดิม = rollback ที่ตรวจสอบย้อนหลังได้"]] },
     { t: "เคส error 1: connection ยัง Pending", on: ["gh", "pipe"], bad: ["gh"], flow: [["gh", "ขอโค้ด"], ["pipe", "✗ connection Pending"]], rows: [["อาการ", "#c62828", "ขั้น Source ล้มทันที `Connection is not available`"], ["สาเหตุ", "#a85a00", "Terraform/console สร้าง connection แล้วไม่ได้ authorize กับ GitHub"]] },
-    { t: "เคส error 2: docker daemon / ECR", on: ["pipe", "build", "ecr"], bad: ["build"], flow: [["pipe", "StartBuild"], ["build", "✗ docker / ECR"]], rows: [["อาการ", "#c62828", "`Cannot connect to the Docker daemon` (ไม่เปิด Privileged) หรือ `AccessDeniedException … ecr:GetAuthorizationToken` (role ไม่มี ECR)"], ["แก้", "#3f9a73", "เปิด Privileged / แนบสิทธิ์ ECR แล้ว Retry stage Build"]] },
+    { t: "เคส error 2: docker daemon / ECR", on: ["pipe", "build", "ecr"], bad: ["build"], flow: [["pipe", "StartBuild"], ["build", "✗ docker / ECR"]], rows: [["อาการ", "#c62828", "`Cannot connect to the Docker daemon` (ไม่เปิด Privileged) หรือ `AccessDeniedException … ecr:GetAuthorizationToken` (role ไม่มี ECR)"], ["แก้", "#2f8cff", "เปิด Privileged / แนบสิทธิ์ ECR แล้ว Retry stage Build"]] },
     { t: "เคส error 3: deploy ไม่ผ่าน (container name)", on: ["pipe", "dev"], bad: ["dev"], flow: [["pipe", "Deploy"], ["dev", "✗ container ไม่ตรง"]], rows: [["อาการ", "#c62828", "build ผ่านแต่ Deploy dev: `Unable to find container named 'app' in task definition`"], ["สาเหตุ", "#a85a00", "CONTAINER_NAME ใน CodeBuild ไม่ตรงชื่อ container ใน task definition (api)"]] },
     { t: "เคส error 4: iam:PassRole", on: ["iam", "pipe", "dev"], bad: ["iam"], flow: [["pipe", "RegisterTaskDefinition"], ["iam", "✗ PassRole ถูกปฏิเสธ"]], rows: [["อาการ", "#c62828", "Deploy dev: `not authorized to perform: iam:PassRole on resource: …role/pharmacy-ecs-execution`"], ["สาเหตุ", "#a85a00", "ECS ต้อง 'ส่งต่อ' execution/task role เดิมให้ revision ใหม่ role ของ pipeline ต้องมีสิทธิ์นี้"]] }
   ],
@@ -11952,7 +11952,7 @@ UC.push({
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ทีมที่เก็บโค้ดบน GitHub อยู่แล้วและปล่อยลง ECS — **เพราะ** workflow อยู่ใน repo เดียวกัน และไม่ต้องเก็บ access key ถาวร (OIDC)"],
     ["ใช้ทำอะไร", "#2b6cb0", "push โค้ดขึ้น **GitHub** → **GitHub Actions** (รันบนเครื่องของ GitHub) build image → push **ECR** → deploy **ECS dev** อัตโนมัติ · สร้าง **tag** → รอ **คนอนุมัติ** → deploy **ECS prd**"],
-    ["ทำไมนิยม", "#3f9a73", "ไม่ต้องดูแล Jenkins · config เป็น YAML อยู่กับโค้ด · ฟรีสำหรับ repo ส่วนตัวในระดับหนึ่ง · มี action สำเร็จรูปของ AWS (configure-credentials, ecr-login, ecs-deploy)"],
+    ["ทำไมนิยม", "#2f8cff", "ไม่ต้องดูแล Jenkins · config เป็น YAML อยู่กับโค้ด · ฟรีสำหรับ repo ส่วนตัวในระดับหนึ่ง · มี action สำเร็จรูปของ AWS (configure-credentials, ecr-login, ecs-deploy)"],
     ["เรื่องสำคัญ: OIDC", "#c0392b", "สมัยก่อนเก็บ **AWS access key** เป็น secret ใน GitHub (รั่ว = อันตราย หมุนยาก) · ตอนนี้ใช้ **OIDC**: GitHub ออก **ID token** ให้ทุก job → job ขอ `AssumeRoleWithWebIdentity` → ได้ **credential ชั่วคราว** · AWS เชื่อ token เพราะมี **OIDC provider** + **trust policy** ที่ระบุว่า repo ไหน/branch ไหน/environment ไหนขอ role นี้ได้"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① workflow ต้องมี `permissions: id-token: write` ② trust policy ต้องจับคู่ **sub** ให้ตรง: job ปกติ = `repo:O/R:ref:refs/heads/develop` แต่ job ที่ใส่ `environment:` ส่ง sub = `repo:O/R:environment:NAME` (**ไม่ใช่ branch/tag**) ③ ห้ามใช้ `repo:ORG/*` (ทุก repo ใน org assume ได้) ④ role ต้องมีสิทธิ์ ECR + ECS + **iam:PassRole** ⑤ tag image ห้ามซ้ำ (ECR immutable) ⑥ **repo ที่สร้างหลัง 15 ก.ค. 2026 ส่ง sub แบบ immutable** `repo:O@<id>/R@<id>:…` (repo เก่าไม่เปลี่ยน) · trust แบบเก่าจะ Not authorized · TF lab ใส่ทั้งสองแบบ · sim: ติ๊ก ‘repo สร้างหลัง 15 ก.ค. 2026’ ที่ฟอร์ม workflow หรือโหลดเคส gha-immutable"]
   ],
@@ -11960,7 +11960,7 @@ UC.push({
   nodes: [
     { id: "dev", ico: "github", x: 24, y: 160, w: 140, h: 64, t: "นักพัฒนา", s: "git push / tag", c: "#475569" },
     { id: "gh", ico: "github", x: 230, y: 40, w: 190, h: 80, t: "GitHub Actions", s: "workflow + ID token", c: "#24292f" },
-    { id: "oidc", ico: "iam", x: 230, y: 300, w: 190, h: 70, t: "IAM OIDC + role", s: "trust: aud + sub", c: "#3f9a73" },
+    { id: "oidc", ico: "iam", x: 230, y: 300, w: 190, h: 70, t: "IAM OIDC + role", s: "trust: aud + sub", c: "#2f8cff" },
     { id: "ecr", ico: "ecr", x: 520, y: 40, w: 190, h: 70, t: "ECR pharmacy/api", s: "tag = sha / v1.1.0", c: "#d9480f" },
     { id: "ecsdev", ico: "ecs", x: 520, y: 170, w: 190, h: 70, t: "ECS dev", s: "pharmacy-api", c: "#d9480f" },
     { id: "human", x: 520, y: 300, w: 190, h: 64, t: "ผู้อนุมัติ", s: "Review deployments", c: "#7d4acf" },
@@ -11969,11 +11969,11 @@ UC.push({
   links: [["dev", "gh"], ["gh", "oidc"], ["gh", "ecr"], ["gh", "ecsdev"], ["ecsdev", "human"], ["human", "ecsprd"], ["oidc", "ecsprd"]],
   scenes: [
     { t: "merge เข้า develop → workflow เริ่ม", on: ["dev", "gh"], flow: [["dev", "merge PR → develop"], ["gh", "รัน job deploy-dev"]], rows: [["เกิดอะไร", "#24292f", "GitHub เริ่ม workflow บนเครื่องของ GitHub (runner) · ออก **ID token** ให้ job (ถ้ามี `id-token: write`) ที่ระบุ repo, branch, environment"]] },
-    { t: "ขอ role ด้วย OIDC (ไม่มี key)", on: ["gh", "oidc"], flow: [["gh", "ส่ง ID token"], ["oidc", "ตรวจ provider + aud + sub"], ["gh", "ได้ credential ชั่วคราว"]], rows: [["เกิดอะไร", "#3f9a73", "action `configure-aws-credentials` เรียก STS `AssumeRoleWithWebIdentity` · AWS ตรวจว่า **provider เชื่อถือ**, **aud = sts.amazonaws.com**, **sub ตรงกับ trust policy** → ให้ credential อายุสั้น (ประมาณ 1 ชม.)"]] },
+    { t: "ขอ role ด้วย OIDC (ไม่มี key)", on: ["gh", "oidc"], flow: [["gh", "ส่ง ID token"], ["oidc", "ตรวจ provider + aud + sub"], ["gh", "ได้ credential ชั่วคราว"]], rows: [["เกิดอะไร", "#2f8cff", "action `configure-aws-credentials` เรียก STS `AssumeRoleWithWebIdentity` · AWS ตรวจว่า **provider เชื่อถือ**, **aud = sts.amazonaws.com**, **sub ตรงกับ trust policy** → ให้ credential อายุสั้น (ประมาณ 1 ชม.)"]] },
     { t: "build + push image", on: ["gh", "ecr"], flow: [["gh", "docker build"], ["ecr", "login + push :sha"]], rows: [["เกิดอะไร", "#d9480f", "login ECR ด้วย credential ชั่วคราว · build บน runner · push tag = commit sha (ไม่ซ้ำ ECR immutable จึงไม่ชน)"]] },
     { t: "deploy dev", on: ["gh", "ecsdev", "ecr"], flow: [["gh", "render task definition"], ["ecsdev", "register revision ใหม่"], ["ecr", "ดึง image ใหม่"], ["ecsdev", "รอ stable"]], rows: [["เกิดอะไร", "#d9480f", "`amazon-ecs-render-task-definition` เปลี่ยน image ของ container ชื่อที่ระบุ · `amazon-ecs-deploy-task-definition` update service แล้วรอ servicesStable (`wait-for-service-stability: true`)"]] },
     { t: "tag v* → รออนุมัติ", on: ["dev", "gh", "human"], flow: [["dev", "git tag v1.1.0 + push"], ["gh", "job deploy-prd รอ environment"], ["human", "Review → Approve"]], rows: [["เกิดอะไร", "#7d4acf", "job ที่ใส่ `environment: production` หยุดรอจนผู้ตรวจที่ตั้งไว้กด Approve · พอเริ่ม token จะมี **sub = repo:O/R:environment:production**"]] },
-    { t: "deploy prd", on: ["human", "oidc", "ecsprd"], flow: [["human", "Approved"], ["oidc", "assume role (sub แบบ environment)"], ["ecsprd", "deploy + รอ stable"]], rows: [["เกิดอะไร", "#3f9a73", "trust policy ต้องมี sub แบบ environment อยู่ในรายการ (Terraform ของ lab ใส่ไว้ทั้ง branch และ environment)"]] },
+    { t: "deploy prd", on: ["human", "oidc", "ecsprd"], flow: [["human", "Approved"], ["oidc", "assume role (sub แบบ environment)"], ["ecsprd", "deploy + รอ stable"]], rows: [["เกิดอะไร", "#2f8cff", "trust policy ต้องมี sub แบบ environment อยู่ในรายการ (Terraform ของ lab ใส่ไว้ทั้ง branch และ environment)"]] },
     { t: "เคส error 1: ไม่มี id-token / provider", on: ["gh", "oidc"], bad: ["oidc"], flow: [["gh", "ขอ role"], ["oidc", "✗ ไม่มี token / provider"]], rows: [["อาการ", "#c62828", "ขั้น Configure AWS credentials ล้ม: `Credentials could not be loaded…` (ไม่มี id-token: write) หรือ `No OpenIDConnect provider found` (ลืมสร้าง provider)"]] },
     { t: "เคส error 2: sub ไม่ตรง (environment)", on: ["human", "oidc"], bad: ["oidc"], flow: [["human", "Approved"], ["oidc", "✗ sub ไม่ตรง trust"]], rows: [["อาการ", "#c62828", "dev ผ่าน แต่ prd: `Not authorized to perform sts:AssumeRoleWithWebIdentity`"], ["สาเหตุ", "#a85a00", "trust ผูกแค่ `…:ref:refs/heads/develop` แต่ job ที่ใช้ environment ส่ง sub เป็น `…:environment:production`"]] },
     { t: "เคส error 3: สิทธิ์/ชื่อ container", on: ["gh", "ecr", "ecsdev"], bad: ["ecsdev"], flow: [["gh", "push/deploy"], ["ecsdev", "✗ AccessDenied / container"]], rows: [["อาการ", "#c62828", "`denied … ecr:InitiateLayerUpload` · `Could not find container definition with matching name` · `not authorized to perform: iam:PassRole`"]] }
@@ -12002,7 +12002,7 @@ UC.push({
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "MVP · เว็บร้านค้าท้องถิ่น (Next.js + DB) ทราฟฟิกน้อย — **เพราะ** ถูกสุด เครื่องเดียวจบ แลกกับต้อง patch/backup เอง"],
     ["ใช้ทำอะไร", "#2b6cb0", "รัน **ทั้งระบบบนเครื่อง EC2 เครื่องเดียว** ด้วย **Docker Compose**: app + ฐานข้อมูล + **Caddy** (reverse proxy ที่ขอใบรับรอง HTTPS จาก Let's Encrypt ให้อัตโนมัติ) · ไม่มี ALB / NAT / k8s / RDS"],
-    ["ใครใช้", "#3f9a73", "สตาร์ทอัพช่วงแรก · ฟรีแลนซ์/เอเจนซี่ · เครื่องมือภายใน · งานที่ traffic น้อย-กลาง · ค่าใช้จ่ายหลักร้อย-พันบาท/เดือน (เทียบ ECS+ALB+RDS ที่ ALB อย่างเดียวก็ ~600 บาท/เดือน)"],
+    ["ใครใช้", "#2f8cff", "สตาร์ทอัพช่วงแรก · ฟรีแลนซ์/เอเจนซี่ · เครื่องมือภายใน · งานที่ traffic น้อย-กลาง · ค่าใช้จ่ายหลักร้อย-พันบาท/เดือน (เทียบ ECS+ALB+RDS ที่ ALB อย่างเดียวก็ ~600 บาท/เดือน)"],
     ["ข้อแลกเปลี่ยน", "#c0392b", "**จุดล้มเดียว** (เครื่องดับ = เว็บดับ) · **ต้อง patch/backup เอง** · scale ได้แค่ขยายเครื่อง · deploy มักเป็น `ssh` + `docker compose pull && up -d` หรือ GitHub Actions ผ่าน SSH · ข้อมูลอยู่ในดิสก์เครื่อง (ต้อง snapshot EBS)"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① **user_data รันครั้งเดียวตอนบูตแรก** แก้ทีหลังไม่รันซ้ำ ② SG ต้องเปิด **80 + 443** (80 ใช้ให้ Let's Encrypt ตรวจโดเมน) ③ **Elastic IP** ไม่งั้น public IP เปลี่ยนทุกครั้งที่ stop/start แล้ว DNS ชี้ผิด ④ ชื่อใน Caddyfile ต้องตรงกับ A record ⑤ SSH เปิดเฉพาะ My IP ⑥ ต้อง snapshot EBS / backup DB เอง"]
   ],
@@ -12013,7 +12013,7 @@ UC.push({
     { id: "ec2", ico: "ec2", x: 450, y: 130, w: 220, h: 100, t: "EC2 เครื่องเดียว", s: "Elastic IP · SG 80/443", c: "#d9480f" },
     { id: "caddy", x: 760, y: 40, w: 220, h: 64, t: "Caddy (container)", s: ":80 :443 + Let's Encrypt", c: "#8c4fff" },
     { id: "app", x: 760, y: 150, w: 220, h: 64, t: "app (container)", s: "reverse_proxy → :8000", c: "#2e6bd0" },
-    { id: "db", x: 760, y: 260, w: 220, h: 64, t: "Postgres (container)", s: "volume บน EBS", c: "#3f9a73" },
+    { id: "db", x: 760, y: 260, w: 220, h: 64, t: "Postgres (container)", s: "volume บน EBS", c: "#2f8cff" },
     { id: "le", x: 450, y: 320, w: 220, h: 64, t: "Let's Encrypt", s: "ตรวจโดเมนผ่าน port 80", c: "#475569" },
     { id: "me", ico: "github", x: 210, y: 320, w: 170, h: 64, t: "คุณ (ssh / CI)", s: "port 22 เฉพาะ My IP", c: "#475569" }
   ],
@@ -12022,10 +12022,10 @@ UC.push({
     { t: "บูตครั้งแรก: user_data ทำงาน", on: ["ec2", "caddy", "app", "db"], flow: [["ec2", "cloud-init อ่าน user_data"], ["app", "apt install docker"], ["caddy", "docker compose up -d"]], rows: [["เกิดอะไร", "#d9480f", "ตอนบูตครั้งแรก cloud-init รันสคริปต์: ติดตั้ง docker → เขียน `docker-compose.yml` + `Caddyfile` → `docker compose up -d` · **รันครั้งเดียว** (แก้ user_data ทีหลังเครื่องเดิมไม่รันซ้ำ)"]] },
     { t: "DNS: ชื่อ → Elastic IP", on: ["user", "dns"], flow: [["user", "ถาม app.โดเมน"], ["dns", "A = Elastic IP"]], rows: [["เกิดอะไร", "#0d7c8f", "A record ชี้ Elastic IP (IP ตรึง ไม่เปลี่ยนตอน stop/start) · TTL 60 วินาทีให้เปลี่ยนได้เร็ว"]] },
     { t: "Caddy ขอใบรับรอง HTTPS", on: ["caddy", "le", "ec2"], flow: [["caddy", "ขอใบรับรอง app.โดเมน"], ["le", "ท้า HTTP-01 ที่ :80"], ["caddy", "ได้ใบรับรอง"]], rows: [["เกิดอะไร", "#8c4fff", "Caddy เห็นชื่อโดเมนใน Caddyfile → ขอใบรับรองจาก **Let's Encrypt** เอง · Let's Encrypt ต้องเข้า **port 80** ของเครื่อง และชื่อต้องชี้มาที่เครื่องนี้ · ต่ออายุอัตโนมัติ"]] },
-    { t: "คำขอของผู้ใช้", on: ["user", "ec2", "caddy", "app", "db"], flow: [["user", "https://app.โดเมน"], ["caddy", "TLS + reverse_proxy"], ["app", "ประมวลผล"], ["db", "query"], ["user", "200"]], rows: [["เกิดอะไร", "#3f9a73", "SG ผ่าน 443 → Caddy ถอด TLS → ส่งต่อ app:8000 ผ่านเครือข่ายภายใน docker → app ต่อ Postgres → ตอบกลับ"]] },
+    { t: "คำขอของผู้ใช้", on: ["user", "ec2", "caddy", "app", "db"], flow: [["user", "https://app.โดเมน"], ["caddy", "TLS + reverse_proxy"], ["app", "ประมวลผล"], ["db", "query"], ["user", "200"]], rows: [["เกิดอะไร", "#2f8cff", "SG ผ่าน 443 → Caddy ถอด TLS → ส่งต่อ app:8000 ผ่านเครือข่ายภายใน docker → app ต่อ Postgres → ตอบกลับ"]] },
     { t: "ปล่อยเวอร์ชันใหม่", on: ["me", "ec2", "app"], flow: [["me", "ssh / GitHub Actions"], ["app", "docker compose pull && up -d"]], rows: [["เกิดอะไร", "#475569", "เข้า ssh (22 เฉพาะ My IP) หรือให้ CI ทำ: `docker compose pull && docker compose up -d` · มี downtime สั้น ๆ ตอน container รีสตาร์ท (ต่างจาก ECS ที่ rolling update)"]] },
     { t: "เคส error 1: เปิดไม่ติด (SG / ไม่มี compose up)", on: ["user", "ec2"], bad: ["ec2"], flow: [["user", "https://app…"], ["ec2", "✗ timeout / refused"]], rows: [["อาการ", "#c62828", "`ERR_CONNECTION_TIMED_OUT` (SG ไม่เปิด 80/443) หรือ `ERR_CONNECTION_REFUSED` (เครื่องขึ้นแต่ไม่มี container เพราะ user_data ลืม `docker compose up`)"]] },
-    { t: "เคส error 2: IP เปลี่ยน (ไม่มี Elastic IP)", on: ["dns", "ec2"], bad: ["dns"], flow: [["dns", "A ชี้ IP เก่า"], ["ec2", "✗ IP ใหม่"]], rows: [["อาการ", "#c62828", "stop/start เครื่องแล้วเว็บเปิดไม่ได้ · public IP เปลี่ยน แต่ A record ยังชี้ IP เก่า"], ["แก้", "#3f9a73", "ผูก Elastic IP แล้วแก้ A record (หรือ terraform: aws_eip.instance)"]] },
+    { t: "เคส error 2: IP เปลี่ยน (ไม่มี Elastic IP)", on: ["dns", "ec2"], bad: ["dns"], flow: [["dns", "A ชี้ IP เก่า"], ["ec2", "✗ IP ใหม่"]], rows: [["อาการ", "#c62828", "stop/start เครื่องแล้วเว็บเปิดไม่ได้ · public IP เปลี่ยน แต่ A record ยังชี้ IP เก่า"], ["แก้", "#2f8cff", "ผูก Elastic IP แล้วแก้ A record (หรือ terraform: aws_eip.instance)"]] },
     { t: "เคส error 3: HTTPS ไม่ได้ (DNS / port 80)", on: ["caddy", "le"], bad: ["le"], flow: [["caddy", "ขอใบรับรอง"], ["le", "✗ ตรวจโดเมนไม่ผ่าน"]], rows: [["อาการ", "#c62828", "`ERR_SSL_PROTOCOL_ERROR` · ใน log ของ Caddy: challenge failed"], ["สาเหตุ", "#a85a00", "A record ไม่ชี้เครื่องนี้ หรือ SG ปิด port 80 จึง Let's Encrypt เข้าไม่ได้"]] }
   ],
   tf: [
@@ -12051,7 +12051,7 @@ UC.push({
   intro: [
     ["ตัวอย่างงาน", "#0b7a8f", "ระบบเก่าที่รัน container เว็บ/API ขนาดเล็กบน App Runner อยู่แล้ว — **เพราะ** ย้ายยังไม่จำเป็น · โปรเจกต์ใหม่ไม่ควรเริ่มที่นี่"],
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** (จาก ECR) แล้ว **App Runner** จัดการที่เหลือ: URL HTTPS, load balancing, scale (ไม่ลงถึง 0: เก็บ instance ขั้นต่ำ 1 ตัว ช่วงว่างคิดเงินแค่ memory), deploy · ไม่มี cluster / ALB / NAT / task definition"],
-    ["สถานะ", "#c62828", "**App Runner ปิดรับ customer ใหม่แล้ว** · คนที่ใช้อยู่ยังสร้าง service ใหม่ได้ · AWS ไม่เพิ่ม feature · โปรเจกต์ใหม่ใช้ **ECS Express Mode** (image + 2 role → ได้ Fargate + ALB + autoscale) · lab นี้ไว้เข้าใจแนวคิด PaaS + อ่านระบบเก่า"], ["ใครใช้", "#3f9a73", "ทีมที่มี App Runner อยู่แล้ว · เว็บ/API container ขนาดเล็ก-กลาง"],
+    ["สถานะ", "#c62828", "**App Runner ปิดรับ customer ใหม่แล้ว** · คนที่ใช้อยู่ยังสร้าง service ใหม่ได้ · AWS ไม่เพิ่ม feature · โปรเจกต์ใหม่ใช้ **ECS Express Mode** (image + 2 role → ได้ Fargate + ALB + autoscale) · lab นี้ไว้เข้าใจแนวคิด PaaS + อ่านระบบเก่า"], ["ใครใช้", "#2f8cff", "ทีมที่มี App Runner อยู่แล้ว · เว็บ/API container ขนาดเล็ก-กลาง"],
     ["ข้อแลกเปลี่ยน", "#c0392b", "คุมเครือข่าย/เครื่องได้น้อย (เข้า VPC ผ่าน VPC connector) · ไม่มี sidecar/EFS · แพงต่อ vCPU กว่า Fargate · ต้อง **access role** ดึง ECR ส่วนตัว"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① **port** ต้องตรงกับที่แอปฟัง ② health check แบบ TCP ผ่านง่าย แบบ HTTP ต้องมี path ที่ตอบ 200 ③ access role ≠ instance role (อันแรกให้ AWS ดึง image · อันหลังให้แอปเรียก AWS) ④ แก้ image tag แล้วต้อง deploy (หรือเปิด auto deploy)"]
   ],
@@ -12067,7 +12067,7 @@ UC.push({
   scenes: [
     { t: "สร้าง service: ดึง image", on: ["ar", "role", "ecr"], flow: [["ar", "สวม access role"], ["role", "GetAuthorizationToken"], ["ecr", "pull image"]], rows: [["เกิดอะไร", "#c2185b", "App Runner สวม **access role** (trust `build.apprunner.amazonaws.com`) ไปดึง image จาก ECR ส่วนตัว · role ไม่มี policy ECR = ดึงไม่ได้"]] },
     { t: "รัน + health check", on: ["ar", "inst"], flow: [["ar", "start instance"], ["inst", "ฟัง :8000"], ["ar", "health check"]], rows: [["เกิดอะไร", "#2e6bd0", "start container แล้วยิง health check (TCP เช็ค port เปิด · HTTP เช็ค path ได้ 200) ผ่านติดต่อกัน = RUNNING · ไม่ผ่านตามจำนวนครั้ง = Create failed"]] },
-    { t: "คำขอของผู้ใช้", on: ["user", "ar", "inst"], flow: [["user", "GET /healthz"], ["ar", "TLS + LB"], ["inst", "200"]], rows: [["เกิดอะไร", "#3f9a73", "App Runner ถอด TLS ให้ (ใบรับรองของ AWS) แล้วส่งต่อ instance · scale ตาม concurrent requests"]] },
+    { t: "คำขอของผู้ใช้", on: ["user", "ar", "inst"], flow: [["user", "GET /healthz"], ["ar", "TLS + LB"], ["inst", "200"]], rows: [["เกิดอะไร", "#2f8cff", "App Runner ถอด TLS ให้ (ใบรับรองของ AWS) แล้วส่งต่อ instance · scale ตาม concurrent requests"]] },
     { t: "เคส error 1: ดึง image ไม่ได้", on: ["ar", "role", "ecr"], bad: ["role"], flow: [["ar", "สวม role"], ["role", "✗ access denied"]], rows: [["อาการ", "#c62828", "Create failed · Failed to pull your application image"], ["สาเหตุ", "#a85a00", "role ไม่มี AWSAppRunnerServicePolicyForECRAccess / trust ผิด / tag ไม่มีใน ECR"]] },
     { t: "เคส error 2: health check ไม่ผ่าน", on: ["ar", "inst"], bad: ["inst"], flow: [["ar", "health check"], ["inst", "✗ refused / 404"]], rows: [["อาการ", "#c62828", "Create failed · Health check failed on protocol …"], ["สาเหตุ", "#a85a00", "port ไม่ตรงกับที่แอปฟัง · หรือ path ของ HTTP health check ผิด (404)"]] }
   ],
@@ -12094,7 +12094,7 @@ UC.push({
     ["ใช้ทำอะไร", "#2b6cb0", "ให้ **container image** + **role 2 ตัว** แล้ว **ECS Express Mode** สร้างให้ครบ: Fargate service, ALB พร้อม HTTPS (ใบรับรอง ACM), target group, security group, auto scaling, log group, alarm และ URL `https://<ชื่อ>.ecs.<region>.on.aws` · ทุกอย่างอยู่ในบัญชีเราและเข้าไปแก้ได้"],
     ["ต่างจาก App Runner", "#c2185b", "ของที่สร้างเป็น **ECS service ปกติ** (เห็นใน Clusters พร้อมป้าย Express) ไม่ใช่ของปิดทึบ · ALB **แชร์ได้ ≤25 service** ใน VPC เดียว (host-header rule) ค่า ALB หารกัน · รองรับเฉพาะ container image (ไม่ deploy จาก source code)"],
     ["ความนิยม", "#6b7280", "**ยังใหม่** (ประกาศ พ.ย. 2025) · AWS ผลักดันเป็นตัวแทน App Runner แต่ **ไม่มีตัวเลขการใช้งานจริงที่ยืนยันได้** · ตัวที่ใช้กันเยอะจริงคือ ECS Fargate ปกติ (use case 2) กับ GitHub Actions + OIDC (use case 5) · lab นี้คุ้มเรียนเพราะระบบเก่าบน App Runner ต้องย้ายมาทางนี้"],
-    ["ใครใช้", "#3f9a73", "ทีมที่อยากได้ความง่ายแบบ PaaS แต่ยังอยู่บน ECS/Fargate · API/เว็บ stateless · ทีมแพลตฟอร์มที่อยากให้ทีมอื่น deploy เองได้"],
+    ["ใครใช้", "#2f8cff", "ทีมที่อยากได้ความง่ายแบบ PaaS แต่ยังอยู่บน ECS/Fargate · API/เว็บ stateless · ทีมแพลตฟอร์มที่อยากให้ทีมอื่น deploy เองได้"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① role 2 ตัวคนละหน้าที่: **execution** (task ดึง image/เขียน log) กับ **infrastructure** (ECS สร้าง ALB/SG/scaling แทนเรา ใช้ตอน create/update/delete เท่านั้น) ② infrastructure role **เปลี่ยนไม่ได้หลังสร้าง** ③ ค่าเริ่มต้น port 80, health path `/`, 1 vCPU/2 GB, scale 1–20 ตาม CPU 60% ④ ไม่ระบุ network = **Default VPC** + public subnet ⑤ ลบ service ต้องให้ policy ของ role อยู่จนลบเสร็จ (Terraform ใส่ depends_on)"]
   ],
   envs: [["", "dev", "prd"], ["CPU / Memory", "0.25 vCPU / 0.5 GB", "0.5 vCPU / 1 GB"], ["Tasks (min–max)", "1–2", "2–6"], ["Auto scaling", "Average CPU 60%", "Average CPU 60%"], ["URL", "pharmacy-api-dev.ecs.<region>.on.aws", "pharmacy-api-prd.ecs.<region>.on.aws"], ["ALB", "ตัวเดียวกัน (แชร์)", "ตัวเดียวกัน (แชร์)"]],
@@ -12109,7 +12109,7 @@ UC.push({
   scenes: [
     { t: "สร้าง service: ECS ประกอบของให้", on: ["infra", "alb", "task"], flow: [["infra", "สวม role"], ["alb", "สร้าง ALB/TG/SG/cert"], ["task", "สร้าง service"]], rows: [["เกิดอะไร", "#0b7a8f", "ECS สวม **infrastructure role** สร้าง ALB (หรือใช้ตัวเดิมที่แชร์), target group, security group, ใบรับรอง ACM, auto scaling, log group แล้วสร้าง ECS service · role ไม่มี policy = Provisioning failed"]] },
     { t: "task เริ่มทำงาน", on: ["exec", "task"], flow: [["exec", "สวม role"], ["task", "pull image + เขียน log"]], rows: [["เกิดอะไร", "#d9480f", "Fargate สวม **execution role** ดึง image จาก ECR และเขียน log ลง CloudWatch · แล้วแอปเริ่มฟัง port ที่ตั้งไว้"]] },
-    { t: "คำขอของผู้ใช้", on: ["user", "alb", "task"], flow: [["user", "GET /healthz"], ["alb", "TLS + host rule"], ["task", "200"]], rows: [["เกิดอะไร", "#3f9a73", "ALB ถอด TLS แล้วเลือก target group ตาม host ของ service · ตรวจสุขภาพที่ health check path · scale ตาม CPU"]] },
+    { t: "คำขอของผู้ใช้", on: ["user", "alb", "task"], flow: [["user", "GET /healthz"], ["alb", "TLS + host rule"], ["task", "200"]], rows: [["เกิดอะไร", "#2f8cff", "ALB ถอด TLS แล้วเลือก target group ตาม host ของ service · ตรวจสุขภาพที่ health check path · scale ตาม CPU"]] },
     { t: "เคส error 1: สิทธิ์ role", on: ["infra", "exec", "alb", "task"], bad: ["infra"], flow: [["infra", "✗ AccessDenied"]], rows: [["อาการ", "#c62828", "ไม่มี URL (provisioning failed) หรือ task ดึง image ไม่ได้ (ค้าง Deployment in progress)"], ["สาเหตุ", "#a85a00", "infrastructure role ไม่มี AmazonECSInfrastructureRoleforExpressGatewayServices / execution role ไม่มี AmazonECSTaskExecutionRolePolicy"]] },
     { t: "เคส error 2: health check ไม่ผ่าน", on: ["alb", "task"], bad: ["task"], flow: [["alb", "health check"], ["task", "✗ refused / 404"]], rows: [["อาการ", "#c62828", "ALB ตอบ 503 · task ถูก stop วน"], ["สาเหตุ", "#a85a00", "container port ไม่ตรงกับที่แอปฟัง · หรือ health check path ผิด · หรือ image tag ไม่มี"]] }
   ],
@@ -12139,7 +12139,7 @@ UC.push({
     ["ตัวอย่างงาน", "#c0392b", "ทีมร้านยาแก้โค้ด backend/frontend แล้ว push — **ก่อน**ขึ้น dev/prd ต้องผ่านด่านอัตโนมัติ **เทสต์ → SonarQube → build image → Trivy** ถ้าด่านไหนแดง pipeline หยุด **ไม่มีอะไรหลุดไปถึง ECR**"],
     ["ใช้ทำอะไร", "#2b6cb0", "ฝึก**อ่าน log แล้วหาว่าล้มเพราะอะไร** · stage ใน Jenkinsfile ตรงกับด่านที่ทีมจริงใช้ · ทุกโจทย์ทำในตัวจำลองได้เอง: แก้ไฟล์ → git push → Build with Parameters → ดู Console Output"],
     ["ต่างจาก use case 1–8", "#c2185b", "use case อื่นสร้างของบน **AWS** ด้วย Terraform · อันนี้อยู่ฝั่ง **CI** (Jenkins บน EC2): AWS มาเกี่ยวตอน push image เข้า **ECR** และสิทธิ์ IAM role ของเครื่อง Jenkins"],
-    ["ใครใช้", "#3f9a73", "แทบทุกทีมที่มี CI · Quality Gate และ image scan เป็นด่านบังคับของทีมที่ต้องผ่านตรวจ security"],
+    ["ใครใช้", "#2f8cff", "แทบทุกทีมที่มี CI · Quality Gate และ image scan เป็นด่านบังคับของทีมที่ต้องผ่านตรวจ security"],
     ["สิ่งที่ต้องรู้", "#a85a00", "① SonarQube ต้องมี **baseline** (build ผ่านก่อน 1 รอบ) ถึงบอกได้ว่าอะไรคือโค้ดใหม่ ② Trivy ล้มเมื่อเจอ HIGH/CRITICAL ที่ **มี fixed version** ③ ข้อความล้มของ stage ก่อนหน้าทำให้ stage หลังขึ้น not run"]
   ],
   envs: [["", "dev", "prd"], ["VERSION", "tag อะไรก็ได้ เช่น v1.0.0", "ต้องเป็น vN.N.N เท่านั้น"], ["ด่านตรวจ", "รันครบทุกครั้ง", "รันครบ + ต้องกด approve ก่อน deploy"], ["ปล่อยด้วยอะไร", "Jenkins ssh → docker compose บน pharmacy-dev (ไม่มี ArgoCD)", "แก้ manifest → ArgoCD sync (ตาม AUTO_SYNC) + คนกดยืนยัน"]],
@@ -12184,7 +12184,7 @@ UC.push({
     ["เกิดอะไรขึ้น", "#c0392b", "`git push origin develop` → **GitHub ยิง webhook** → Jenkins เริ่ม build เอง → Test · SonarQube · Trivy → push image ขึ้น ECR (tag `dev-<sha 7 ตัว>`) → Jenkins **ssh ไปสั่ง docker compose** บน VM pharmacy-dev"],
     ["dev ต่างจาก prd ยังไง", "#8456ce", "**dev** = docker compose เครื่องเดียว Jenkins **ส่งเอง** (push-based) · **prd** = k3s + ArgoCD Jenkins แค่แก้ manifest แล้ว ArgoCD **ดึงเอง** (GitOps) และต้องมีคนอนุมัติ"],
     ["ต้องตั้งอะไร", "#a85a00", "① Jenkinsfile มี `triggers { githubPush() }` ② job ดู branch `*/develop` + ติ๊ก GitHub hook trigger ③ GitHub › Settings › Webhooks ชี้ `http://<jenkins>:8080/github-webhook/` ④ SG ของ Jenkins เปิด 8080 ให้ IP ของ GitHub ⑤ **Secret** ของ webhook ต้องตรงกับ credential `github-webhook-secret` ใน Jenkins (กันคนอื่นยิง URL นี้สั่ง build)"],
-    ["ที่ต้องรู้", "#3f9a73", "push เข้า branch อื่น (เช่น main) ไม่ build · tag image มาจาก commit จึงย้อนหาโค้ดได้ · webhook ที่ส่งไม่ถึงจะเห็นใน Recent Deliveries (timeout = SG ปิด)"]
+    ["ที่ต้องรู้", "#2f8cff", "push เข้า branch อื่น (เช่น main) ไม่ build · tag image มาจาก commit จึงย้อนหาโค้ดได้ · webhook ที่ส่งไม่ถึงจะเห็นใน Recent Deliveries (timeout = SG ปิด)"]
   ],
   envs: [["", "dev (push develop)", "prd (กดเอง)"], ["ตัวสั่งงาน", "git push → webhook", "Build with Parameters + tag vN.N.N"], ["tag image", "dev-<sha 7 ตัว>", "vN.N.N เท่านั้น"], ["ปล่อยด้วยอะไร", "Jenkins ssh → docker compose", "แก้ manifest → ArgoCD (+ คนอนุมัติ)"]],
   nodes: [
@@ -12227,7 +12227,7 @@ UC.push({
     ["GitOps คืออะไร", "#2b6cb0", "**Git คือความจริงเดียว**: สิ่งที่รันบน cluster ต้องตรงกับไฟล์ใน repo `pharmacy-manifests` · Jenkins แก้ไฟล์ ArgoCD เห็นว่าไม่ตรง (**OutOfSync**) แล้วดึงไปปรับ · ย้อนเวอร์ชัน = ย้อน commit หรือ deploy-only"],
     ["ต่างจาก dev (use case 10)", "#8456ce", "**dev** = Jenkins ssh ไปสั่ง docker compose (push-based, ไม่มี ArgoCD) · **prd** = ArgoCD ดึงเอง (pull-based) + มีด่านยืนยัน + tag ต้องเป็น vN.N.N + replicas 3 กระจายหลายเครื่อง"],
     ["ต้องตั้งอะไร", "#a85a00", "① `ansible-playbook k8s.yml` (k3s HA + ArgoCD) ② เข้า ArgoCD ด้วยรหัสเริ่มต้น ③ แก้ `apps.yaml` ให้ชี้ repo ของคุณ แล้ว `kubectl apply` ④ `deployment.yaml` มีบรรทัด `image:` ที่ Jenkins แก้ + Job migrate"],
-    ["ที่ต้องรู้", "#3f9a73", "prd ไม่ตั้ง auto-sync: ต้องมีคนกด Sync (หรือติ๊ก AUTO_SYNC ใน Jenkins) · ถ้า role ของ node ไม่มีสิทธิ์ ECR จะเห็น ImagePullBackOff · deploy backend ก่อน frontend ครั้งแรก"]
+    ["ที่ต้องรู้", "#2f8cff", "prd ไม่ตั้ง auto-sync: ต้องมีคนกด Sync (หรือติ๊ก AUTO_SYNC ใน Jenkins) · ถ้า role ของ node ไม่มีสิทธิ์ ECR จะเห็น ImagePullBackOff · deploy backend ก่อน frontend ครั้งแรก"]
   ],
   envs: [["", "dev (use case 10)", "prd (use case นี้)"], ["ตัวปล่อย", "Jenkins ssh → docker compose", "Jenkins แก้ manifest → ArgoCD Sync"], ["tag", "dev-<sha 7 ตัว>", "vN.N.N เท่านั้น"], ["ด่านยืนยัน", "ไม่มี", "ต้องกด ยืนยัน ใน Jenkins"], ["จำนวนเครื่อง/replica", "1 เครื่อง · 1 ตัว", "3 เครื่อง · 3 ตัว (HA)"]],
   nodes: [
@@ -12268,7 +12268,7 @@ UC.push({
     ["5 ขั้นที่ฝึก", "#2b6cb0", "① `pipeline { agent any … }` + `echo` ② หลาย `stage` (`sh 'pytest'`) ③ `environment` + `parameters` ④ `when` + `post` ⑤ `parallel` + `error` (ทำให้ล้มตั้งใจ)"],
     ["ต่างจาก use case 9", "#c2185b", "use case 9 = **อ่าน log** ของ Jenkinsfile จริงของโปรเจกต์แล้วหาว่าล้มเพราะอะไร · อันนี้ = **เขียนเอง** ตั้งแต่บรรทัดแรก จึงเห็นว่าแต่ละบล็อกไปโผล่ตรงไหนของหน้า Jenkins"],
     ["Pipeline script vs from SCM", "#8456ce", "**Pipeline script** พิมพ์ในหน้า Configure (เหมาะลองเขียน ไม่มีประวัติ) · **from SCM** อ่าน `Jenkinsfile` จาก Git (ใช้จริง แก้ผ่าน commit/PR) · เขียนเป็น Pipeline script ให้ผ่านก่อนแล้วย้ายไฟล์เข้า repo"],
-    ["ที่ต้องรู้", "#3f9a73", "ตัวจำลองใช้ parser แบบง่าย (ไม่ใช่ Groovy จริง) · ของจริงมี sandbox/script approval และ error ของ Groovy ที่ตัวจำลองไม่ทำ · stage ที่ `when` ไม่ตรงจะ **skipped** (ไม่ใช่ล้ม) · stage ล้ม = stage หลังจากนั้น **not run**"]
+    ["ที่ต้องรู้", "#2f8cff", "ตัวจำลองใช้ parser แบบง่าย (ไม่ใช่ Groovy จริง) · ของจริงมี sandbox/script approval และ error ของ Groovy ที่ตัวจำลองไม่ทำ · stage ที่ `when` ไม่ตรงจะ **skipped** (ไม่ใช่ล้ม) · stage ล้ม = stage หลังจากนั้น **not run**"]
   ],
   envs: [["", "Pipeline script (ในหน้า Configure)", "Pipeline script from SCM (Jenkinsfile ใน Git)"], ["สคริปต์อยู่ที่", "ช่อง Script ของ job", "ไฟล์ Jenkinsfile ใน repo"], ["เหมาะกับ", "ลองเขียน/เรียนรู้", "ใช้งานจริงทั้งทีม"], ["แก้ไขยังไง", "แก้แล้ว Save/Build ได้ทันที", "commit + push (มีประวัติ รีวิวได้)"], ["ความเสี่ยง", "ไม่มีประวัติ ไม่ผ่านรีวิว", "ต้องตั้ง credential/branch/trigger ให้ถูก"]],
   nodes: [
@@ -12336,20 +12336,20 @@ function ucTfTable(u) {
   var list = h("div", { style: "display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:14px;align-items:start" });
   var left = h("div", { style: "display:flex;flex-direction:column;gap:4px" }, u.tf.map(function (r, i) { return h("button", { cls: "btn" + (i === sel ? " pri" : ""), type: "button", style: "text-align:left;white-space:normal", text: (i + 1) + ". " + r.type + "." + r.name, onclick: function () { UC_SEL.tf = i; render(); } }); }));
   var r = u.tf[sel], code = mgBlock(r.file, r.type, r.name);
-  var right = h("div", {}, [h("div", { cls: "ic" }, [["โค้ด Terraform", "#6d28d9", "`" + r.file + "` · resource `" + r.type + "." + r.name + "`"]].concat([["กดที่ console", "#0972d3", r.console[0]], ["ช่องที่กรอก", "#3f9a73", r.console[1]], ["Error ที่เจอ", "#c62828", r.err]]).map(function (x) { return h("div", { cls: "ic-row", style: "--c:" + x[1] }, [h("div", { cls: "ic-lb", text: x[0] }), h("div", { cls: "ic-tx" }, rich(x[2]))]); })), codePre(code, "hcl")]);
+  var right = h("div", {}, [h("div", { cls: "ic" }, [["โค้ด Terraform", "#6d28d9", "`" + r.file + "` · resource `" + r.type + "." + r.name + "`"]].concat([["กดที่ console", "#0972d3", r.console[0]], ["ช่องที่กรอก", "#2f8cff", r.console[1]], ["Error ที่เจอ", "#c62828", r.err]]).map(function (x) { return h("div", { cls: "ic-row", style: "--c:" + x[1] }, [h("div", { cls: "ic-lb", text: x[0] }), h("div", { cls: "ic-tx" }, rich(x[2]))]); })), codePre(code, "hcl")]);
   list.appendChild(left); list.appendChild(right); box.appendChild(list); return box;
 }
 function ucErrTable(u) {
   var w = h("div", { cls: "uc-errs" });
   u.errors.forEach(function (e) {
     w.appendChild(h("div", { cls: "uc-err" }, [h("div", { cls: "uc-err-t", text: e.t }),
-      h("div", { cls: "ic" }, [["อาการ", "#c62828", e.sym], ["ไล่หา", "#2b6cb0", e.find], ["แก้", "#3f9a73", e.fix]].map(function (x) { return h("div", { cls: "ic-row", style: "--c:" + x[1] }, [h("div", { cls: "ic-lb", text: x[0] }), h("div", { cls: "ic-tx" }, rich(x[2]))]); })),
+      h("div", { cls: "ic" }, [["อาการ", "#c62828", e.sym], ["ไล่หา", "#2b6cb0", e.find], ["แก้", "#2f8cff", e.fix]].map(function (x) { return h("div", { cls: "ic-row", style: "--c:" + x[1] }, [h("div", { cls: "ic-lb", text: x[0] }), h("div", { cls: "ic-tx" }, rich(x[2]))]); })),
       h("button", { cls: "btn pri", type: "button", text: "โหลดเคสนี้", onclick: function () { try { if (u.errGo) { u.errGo(e); return; } buildStatic(e.load); UI.sel = {}; UI.form = null; flash("ok", "โหลดเคส “" + e.t + "” แล้ว ไปเปิดเว็บที่ Browser"); go("browser", {}, "Browser"); W.addr = "https://www.pharmacy.example.com"; wbGo(W.addr); } catch (er) { flash("bad", "โหลดไม่สำเร็จ: " + er.message); render(); } } })]));
   });
   return w;
 }
 // หมู่ตามแกน "แอปรันที่ไหน" + แกน CI/CD แยก (CI/CD 4,5 ปล่อยลง ECS ของ use case 2)
-var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#3f9a73"], ["CI/CD ฝั่ง Jenkins", ["jk", "jkpush", "prdgitops", "jenkinsfile"], "#c0392b"]];
+var UC_GRP = [["ดูแลเครื่องเอง", ["single"], "#8c4fff"], ["Managed container", ["ecs", "exp", "apr"], "#d9480f"], ["ไม่มี server เลย", ["static", "sls"], "#7d4acf"], ["CI/CD (ปล่อยลง ECS)", ["cd", "gha"], "#2f8cff"], ["CI/CD ฝั่ง Jenkins", ["jk", "jkpush", "prdgitops", "jenkinsfile"], "#c0392b"]];
 // player: ดับเบิลคลิก/แตะครึ่งขวา = ข้าม 5 วิ, ครึ่งซ้าย = ย้อน 5 วิ, คลิกเดียว = เล่น/หยุด + ปุ่มเปิด-ปิดเสียง
 var VI = {
   play: '<path d="M8 5v14l11-7z" fill="currentColor"/>', pause: '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>',
@@ -12762,7 +12762,7 @@ function lamTestTab(l) {
     h("button", { cls: "btn pri", type: "button", text: "Test", onclick: function () { T.res = slsInvokeDirect(l.name, T.ev); render(); } })]);
   var r = T.res; if (!r) return w;
   if (r.fnErr) { w.appendChild(h("div", { cls: "alert bad", text: r.fnErr })); return w; }
-  var ex = r.ex, col = r.failed ? "#c62828" : "#3f9a73";
+  var ex = r.ex, col = r.failed ? "#c62828" : "#2f8cff";
   w.appendChild(h("div", { cls: "alert " + (r.failed ? "bad" : "ok"), style: "margin-top:12px" }, [h("b", { text: "Execution result: " + (r.failed ? "failed" : "succeeded") }), h("span", { text: r.failed ? " · error จาก handler (ไม่ใช่ error ของ API Gateway)" : "" })]));
   w.appendChild(h("h4", { text: "Response" })); w.appendChild(codePre(JSON.stringify(r.payload, null, 2), "an"));
   w.appendChild(h("h4", { text: "Function logs" })); w.appendChild(codePre(ex.lines.join("\n"), "an"));
@@ -12874,7 +12874,7 @@ PAGES["cw-metrics"] = function () {
   NAV.Lab = lab; NAVHOME.CodePipeline = "pipes"; NAVHOME.CodeBuild = "cbps";
   LK.pipe = "pipes"; LK.cbp = "cbps"; LK.conn = "conns";
 })();
-var CD_COL = { Succeeded: ["#3f9a73", "#f2fcf3"], Failed: ["#c62828", "#fdf3f1"], InProgress: ["#0972d3", "#f2f8fd"], Waiting: ["#a85a00", "#fffbea"], NotRun: ["#5f6b7a", "#ffffff"] };
+var CD_COL = { Succeeded: ["#2f8cff", "#f2fcf3"], Failed: ["#c62828", "#fdf3f1"], InProgress: ["#0972d3", "#f2f8fd"], Waiting: ["#a85a00", "#fffbea"], NotRun: ["#5f6b7a", "#ffffff"] };
 function cdBadge(s) { return s === "Succeeded" ? okIco("Succeeded") : s === "Failed" ? tagp("Failed", "bad") : s === "Waiting" || s === "InProgress" ? tagp(s === "Waiting" ? "Waiting for approval" : "In progress", "warn") : tagp("No executions yet", "warn"); }
 function cdRoleOpts(svc) { return [["", "เลือก role"]].concat(S.roles.filter(function (r) { return roleTrusts(r, svc); }).map(function (r) { return [r.name, r.name]; })); }
 function cdStageCard(p, i, ex) {
@@ -13460,7 +13460,7 @@ var AP_ROWS = [
   ["+ CI/CD (ปล่อยลง ECS)", "GitHub Actions + OIDC (นิยมสุด)", "code อยู่ GitHub", "ต่ำ", "฿ ต่ำ", { uc: "gha" }],
   ["+ CI/CD (ปล่อยลง ECS)", "CodePipeline + CodeBuild", "ทีมที่ใช้ AWS ล้วน", "ต่ำ", "฿ ต่ำ", { uc: "cd" }]
 ];
-var AP_COL = { "①": "#8c4fff", "②": "#d9480f", "③": "#7d4acf", "+": "#3f9a73" };
+var AP_COL = { "①": "#8c4fff", "②": "#d9480f", "③": "#7d4acf", "+": "#2f8cff" };
 PAGES["lab-ap"] = function () {
   var groups = [], cur = null;
   AP_ROWS.forEach(function (r) { if (!cur || cur.name !== r[0]) { cur = { name: r[0], rows: [] }; groups.push(cur); } cur.rows.push(r); });
@@ -14724,8 +14724,8 @@ function wbJsonBody(obj, o) {
 // ===== Cost & Bill management: การ์ดในหน้า use case ทุกใบ + หน้า Lab รวม =====
 function money(n) { return "$" + (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n)); }
 function moneyH(n) { return "$" + (n < 1 ? n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2)); }
-var CG = { red: ["#d23a22", "#f76045"], green: ["#52b088", "#52b088"], amber: ["#c99700", "#ffd23f"], blue: ["#2563eb", "#7c3aed"], slate: ["#334155", "#64748b"] };
-var CG_LV = [["#0e9f62", "#52b088"], ["#52b088", "#8bdc4a"], ["#dba800", "#ffe14d"], ["#cc5a1f", "#f7a46a"], ["#d23a22", "#f76045"]]; // ไล่ตามระดับราคา (เขียว→เหลือง→ส้ม→แดง)
+var CG = { red: ["#d23a22", "#f76045"], green: ["#2f8cff", "#5bb8ff"], amber: ["#c99700", "#ffd23f"], blue: ["#2563eb", "#7c3aed"], slate: ["#334155", "#64748b"] };
+var CG_LV = [["#1f7ae0", "#4aa8ff"], ["#2f8cff", "#6fd0ff"], ["#dba800", "#ffe14d"], ["#cc5a1f", "#f7a46a"], ["#d23a22", "#f76045"]]; // ไล่ตามระดับราคา (เขียว→เหลือง→ส้ม→แดง)
 function gstyle(g) { return "--g1:" + g[0] + ";--g2:" + g[1]; }
 function bahtS(usd, perHr) { var b = usd * COST_THB; if (b <= 0) return "ฟรี"; if (b < (perHr ? 0.01 : 1)) return perHr ? "<฿0.01" : "<฿1"; return baht(usd).replace(/(\.\d)$/, "$1").replace(/^฿(\d)\.(\d)$/, function (m) { return perHr ? "฿" + b.toFixed(2) : m; }); }
 function usdS(n) { return n <= 0 ? "$0" : n < 0.01 ? "<$0.01" : money(n); }
@@ -14762,7 +14762,7 @@ function costVerdictCard(c, vd, lv) { // ราคานี้ถูก/ปก�
 function costBlock(c) {
   var rk = riskOf(costSum(c.items).month), cs0 = costSum(c.items), vd = c.bench ? costVerdict(cs0.month, c.bench) : null, lv = costLabVerdict(cs0.perHours(4));
   var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items, c.bench), vd ? costVerdictCard(c, vd, lv) : h("span"), costTable(c.items, c.ex)]);
-  if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#3f9a73", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
+  if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#2f8cff", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
   out.appendChild(costCaveat()); return out;
 }
 function costGen() { // คู่มือจัดการ bill เป็นการ์ดเรียงเป็นขั้น

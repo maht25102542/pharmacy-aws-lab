@@ -178,7 +178,7 @@ function lamTestTab(l) {
     h("button", { cls: "btn pri", type: "button", text: "Test", onclick: function () { T.res = slsInvokeDirect(l.name, T.ev); render(); } })]);
   var r = T.res; if (!r) return w;
   if (r.fnErr) { w.appendChild(h("div", { cls: "alert bad", text: r.fnErr })); return w; }
-  var ex = r.ex, col = r.failed ? "#c62828" : "#3f9a73";
+  var ex = r.ex, col = r.failed ? "#c62828" : "#2f8cff";
   w.appendChild(h("div", { cls: "alert " + (r.failed ? "bad" : "ok"), style: "margin-top:12px" }, [h("b", { text: "Execution result: " + (r.failed ? "failed" : "succeeded") }), h("span", { text: r.failed ? " · error จาก handler (ไม่ใช่ error ของ API Gateway)" : "" })]));
   w.appendChild(h("h4", { text: "Response" })); w.appendChild(codePre(JSON.stringify(r.payload, null, 2), "an"));
   w.appendChild(h("h4", { text: "Function logs" })); w.appendChild(codePre(ex.lines.join("\n"), "an"));
