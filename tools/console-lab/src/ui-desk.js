@@ -1,6 +1,6 @@
 // Laptop › Desktop: เดสก์ท็อป macOS (สไตล์ Big Sur) จำลอง — Finder / Terminal / Code Editor เป็นหน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้
-var DESK = { z: 11, wins: { finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
-var DESK_APPS = [["finder", "Finder", "find"], ["term", "Terminal", "term"], ["files", "Code", "code"]];
+var DESK = { z: 11, wins: { chrome: { open: false, min: false, max: false, x: 70, y: 40, w: 0, h: 0, z: 8 }, safari: { open: false, min: false, max: false, x: 100, y: 60, w: 0, h: 0, z: 7 }, finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
+var DESK_APPS = [["finder", "Finder", "find"], ["term", "Terminal", "term"], ["files", "Code", "code"], ["chrome", "Google Chrome", "chrome"], ["safari", "Safari", "web"]];
 
 // ไอคอนแอปแบบ macOS (SVG) และวอลเปเปอร์ภูเขา-ทะเลสาบ
 var DESK_ICO = {
@@ -22,10 +22,11 @@ var DESK_SYM = {
   cc: '<svg viewBox="0 0 18 14" class="dsym" style="width:15px"><rect x=".8" y=".8" width="16.400" height="5" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.300"/><circle cx="4.500" cy="3.300" r="1.600" fill="currentColor"/><rect x=".8" y="8.200" width="16.400" height="5" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.300"/><circle cx="13.500" cy="10.700" r="1.600" fill="currentColor"/></svg>'
 };
 function deskSym(k) { var d = document.createElement("span"); d.className = "dsymw"; d.innerHTML = DESK_SYM[k]; return d; }
-function deskTitle(id) { if (id === "finder") return !FD.path || FD.path === "/" ? "Macintosh HD" : FD.path.split("/").pop(); if (id === "files") return (ED.active ? ED.active.split("/").pop() + " — " : "") + "pharmacy-aws-lab"; return "swd — zsh — 96×28"; }
+function deskTitle(id) { if (id === "chrome" || id === "safari") return typeof bdTitle === "function" ? bdTitle() : "Browser"; if (id === "finder") return !FD.path || FD.path === "/" ? "Macintosh HD" : FD.path.split("/").pop(); if (id === "files") return (ED.active ? ED.active.split("/").pop() + " — " : "") + "pharmacy-aws-lab"; return "swd — zsh — 96×28"; }
 function deskBody(id) {
   if (id === "files") return editorApp();
   if (id === "finder") return finderApp();
+  if (id === "chrome" || id === "safari") return browserApp(id);
   var el = PAGES[id](); [].slice.call(el.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1,.ic,.card")) el.removeChild(c); }); return el;
 }
 function deskOpen(id) { var w = DESK.wins[id]; w.open = true; w.min = false; w.z = ++DESK.z; render(); }
@@ -36,7 +37,7 @@ PAGES["desk"] = function () {
   var desk = h("div", { cls: "desk", id: "desk" }), tops = DESK_APPS.filter(function (a) { var w = DESK.wins[a[0]]; return w.open && !w.min; }).sort(function (x, y) { return DESK.wins[y[0]].z - DESK.wins[x[0]].z; })[0], appn = tops ? tops[1] : "Finder";
   var apple = document.createElementNS("http://www.w3.org/2000/svg", "svg"); apple.setAttribute("viewBox", "0 0 24 24"); apple.setAttribute("class", "dapl"); apple.innerHTML = '<path fill="currentColor" d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.800 2.300-1.600 2.800-.4 6.900 1.200 9.200.8 1.100 1.700 2.400 2.900 2.300 1.200 0 1.600-.7 3-.7s1.800.7 3 .7c1.300 0 2.100-1.100 2.800-2.200.9-1.300 1.300-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.800zM14.200 5.900c.6-.8 1.100-1.800.9-2.900-.9 0-2 .6-2.700 1.400-.6.700-1.100 1.800-1 2.800 1 .1 2.100-.5 2.800-1.300z"/>';
   var top = h("div", { cls: "dtop" }, [h("div", { cls: "dml" }, [apple, h("b", { text: appn })].concat((appn === "Finder" ? ["File", "Edit", "View", "Go", "Window", "Help"] : appn === "Terminal" ? ["Shell", "Edit", "View", "Window", "Help"] : ["File", "Edit", "Selection", "View", "Go", "Run", "Window", "Help"]).map(function (m) { return h("span", { text: m }); }))), h("div", { cls: "dmr", title: "สถานะเครื่อง (จำลอง)" }, [deskSym("bat"), deskSym("wifi"), deskSym("search"), deskSym("cc"), h("span", { id: "deskclock", text: deskClock() })])]);
-  var dock = h("div", { cls: "ddock" }, DESK_APPS.map(function (a) { var w = DESK.wins[a[0]]; return h("button", { type: "button", cls: "dapp" + (w.open ? " run" : ""), title: a[1], onclick: function () { deskDock(a[0]); } }, [deskIco(a[2])]); }).concat([h("button", { type: "button", cls: "dapp", title: "Google Chrome → แท็บ Browser", onclick: function () { go("browser", {}, "Browser"); } }, [deskIco("chrome")]), h("button", { type: "button", cls: "dapp", title: "Safari → แท็บ Browser", onclick: function () { go("browser", {}, "Browser"); } }, [deskIco("web")]), h("span", { cls: "dsep" }), h("button", { type: "button", cls: "dapp", title: "Trash (จำลอง)", onclick: function () { flash("info", "ถังขยะว่างเปล่า"); } }, [deskIco("trash")])]));
+  var dock = h("div", { cls: "ddock" }, DESK_APPS.map(function (a) { var w = DESK.wins[a[0]]; return h("button", { type: "button", cls: "dapp" + (w.open ? " run" : ""), title: a[1], onclick: function () { deskDock(a[0]); } }, [deskIco(a[2])]); }).concat([h("span", { cls: "dsep" }), h("button", { type: "button", cls: "dapp", title: "Trash (จำลอง)", onclick: function () { flash("info", "ถังขยะว่างเปล่า"); } }, [deskIco("trash")])]));
   var ico = h("button", { type: "button", cls: "dicon", ondblclick: function () { FD.path = REPO; deskOpen("finder"); }, onclick: function () { FD.path = REPO; deskOpen("finder"); }, title: "เปิด pharmacy-aws-lab ใน Finder" }, [deskIco("folder"), "pharmacy-aws-lab"]);
   var wp = h("div", { cls: "dwp" }, [ico]);
   var wall = h('div', { cls: 'dwallw' }); wall.innerHTML = DESK_WALL; desk.appendChild(wall); desk.appendChild(top); var age = DESK.toast ? Date.now() - DESK.toast.t : 99999; if (DESK.toast && age < 3600) { var tk = DESK.toast.kind; desk.appendChild(h('div', { cls: 'dtoast ' + tk, style: 'animation-name:' + (age < 300 ? 'dtIn,dtOut' : 'dtOut') + ';animation-delay:' + (age < 300 ? '0s,' : '') + Math.max(0, (3.2 - age / 1000)).toFixed(2) + 's' }, [h('div', { cls: 'dti', text: tk === 'bad' || tk === 'error' ? '!' : tk === 'ok' ? '✓' : 'i' }), h('div', {}, [h('b', { text: 'Console Lab' }), h('span', { text: DESK.toast.msg })])])); } desk.appendChild(dock); desk.appendChild(wp);
@@ -55,7 +56,7 @@ PAGES["desk"] = function () {
     }
     tb.addEventListener("pointerdown", tbDown);
     win.addEventListener("pointerdown", function () { if (w.z !== DESK.z) { w.z = ++DESK.z; win.style.zIndex = w.z; } });
-    win.appendChild(tb); win.appendChild(h("div", { cls: "dwbody" }, [deskBody(id)])); desk.appendChild(win); var fdt = win.querySelector(".fdtb"); if (fdt) fdt.addEventListener("pointerdown", tbDown);
+    win.appendChild(tb); win.appendChild(h("div", { cls: "dwbody" }, [deskBody(id)])); desk.appendChild(win); var fdt = win.querySelector(".fdtb,.bdtb,.bdtabs"); if (fdt) fdt.addEventListener("pointerdown", tbDown);
     win.addEventListener("mouseup", function () { if (!w.max && win.offsetWidth > 200) { w.w = win.offsetWidth; w.h = win.offsetHeight; } });
   });
   setTimeout(function () { var i = document.getElementById("terminp"); if (i) i.focus(); }, 30);
