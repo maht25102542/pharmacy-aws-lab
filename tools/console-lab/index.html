@@ -9139,7 +9139,7 @@ function whH() { return whOn() ? WHP : WH; } // Preview มีประวัต
 function whCur() { var o = {}; WH_KEYS.forEach(function (k) { o[k] = W[k] === undefined ? "" : W[k]; }); o.job = S.jk && S.jk.job ? S.jk.job.name : ""; o.ph = W.ph ? { view: W.ph.view, page: W.ph.page, mpage: W.ph.mpage, low: W.ph.low } : null; if (whOn()) o.pv = { tab: PV.tab, fe: { page: PV.fe.page, mp: PV.fe.mp, mvp: PV.fe.mvp, q: PV.fe.q, cat: PV.fe.cat, low: PV.fe.low }, db: { t: PV.db.t, p: PV.db.p, sort: PV.db.sort, dir: PV.db.dir } }; return o; }
 function whTrack() { if (!whOn() && !W.addr) return; var H = whH(), c = whCur(), l = H.st[H.i]; if (l && JSON.stringify(l) === JSON.stringify(c)) return; H.st = H.st.slice(0, H.i + 1); H.st.push(c); H.i = H.st.length - 1; if (H.st.length > 60) { H.st.shift(); H.i--; } }
 function whCan(d) { var H = whH(); return !!H.st[H.i + d]; }
-function whGo(d) { var H = whH(), t = H.st[H.i + d]; if (!t) return; H.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); if (t.ph && W.ph) Object.assign(W.ph, t.ph); if (t.pv) { PV.tab = t.pv.tab; Object.assign(PV.fe, t.pv.fe); Object.assign(PV.db, t.pv.db); } if (W.addr) W.res = webOpen(W.addr); render(); }
+function whGo(d) { var H = whH(), t = H.st[H.i + d]; if (!t) return; H.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); if (t.ph && W.ph) Object.assign(W.ph, t.ph); if (t.pv) { PV.tab = t.pv.tab; Object.assign(PV.fe, t.pv.fe); Object.assign(PV.db, t.pv.db); } if (W.addr) W.res = webOpen(W.addr); else W.res = null; render(); }
 function wbGo(a) { W.addr = a; W.res = webOpen(a); W.page = ""; W.sq = ""; W.ar = ""; W.sp = ""; W.agp = ""; W.ags = ""; W.agn = null; W.agpj = ""; W.lg = ""; render(); }
 function wbBadge(r) { return h("span", { cls: "tag " + (r === "SUCCESS" ? "ok" : r === "FAILURE" || r === "ABORTED" ? "bad" : "warn"), text: r || "RUNNING" }); }
 function wbSel(label, id, opts, get, set) { return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), h("select", { id: "w-" + id, "aria-label": label, onchange: function (e) { set(e.target.value); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(get()) ? "selected" : null }); }))]); }
@@ -15794,7 +15794,7 @@ function bdTitle() {
   var r = W.res; if (!r) return "New Tab"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
   return { jenkins: "Dashboard [Jenkins]", sonarqube: "SonarQube", argocd: "Argo CD", app: "pharmacy", github: "GitHub", cf: (r.host || "CloudFront"), apigw: "pharmacy-api", compose: "pharmacy", aprun: "pharmacy" }[r.site] || (r.host || W.addr);
 }
-function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; wbGo(v); }
+function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!WH.st.length) { WH.st.push(whCur()); WH.i = 0; } /* เก็บหน้า New Tab ไว้ให้ย้อนกลับได้ */ if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; wbGo(v); }
 function bdSvg(k) { return '<svg viewBox="0 0 16 16" width="16" height="16" class="bdsv">' + (typeof FD_SI !== "undefined" ? FD_SI[k] : "") + "</svg>"; }
 function bdName(u) { var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
 function bdTiles(kind) {
@@ -15829,6 +15829,17 @@ function browserApp(kind) {
   }
   return h("div", { cls: "bdapp " + kind }, [bar, dl, h("div", { cls: "bdview" }, [view])]);
 }
+
+// คีย์ลัดเบราว์เซอร์ (เมื่อ Chrome/Safari อยู่หน้าสุด): Ctrl/⌘+R หรือ F5 = reload · Alt+←/→ หรือ Ctrl/⌘+[ ] = ย้อน/ไปข้างหน้า · Ctrl/⌘+L = โฟกัสแถบ URL
+window.addEventListener("keydown", function (e) {
+  if (UI.page !== "desk" || typeof dmFront !== "function") return; var f = dmFront(); if (f !== "chrome" && f !== "safari") return;
+  var mod = e.ctrlKey || e.metaKey, k = e.key, act = null;
+  if ((mod && (k === "r" || k === "R")) || k === "F5") act = function () { if (W.addr) wbGo(W.addr); };
+  else if ((e.altKey && k === "ArrowLeft") || (mod && k === "[")) act = function () { if (whCan(-1)) whGo(-1); };
+  else if ((e.altKey && k === "ArrowRight") || (mod && k === "]")) act = function () { if (whCan(1)) whGo(1); };
+  else if (mod && (k === "l" || k === "L")) act = function () { var o = document.querySelector(".bdom"); if (o) { o.focus(); o.select(); } };
+  if (act) { e.preventDefault(); e.stopPropagation(); act(); }
+}, true);
 
 // เมนูบาร์ macOS บน Desktop: Apple + เมนูของแอปที่อยู่หน้าสุด (กดแล้วมี dropdown ใช้งานได้จริงหลายรายการ)
 function dmFront() { var t = DESK_APPS.filter(function (a) { var w = DESK.wins[a[0]]; return w.open && !w.min; }).sort(function (x, y) { return DESK.wins[y[0]].z - DESK.wins[x[0]].z; })[0]; return t ? t[0] : null; }

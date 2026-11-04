@@ -10,7 +10,7 @@ function bdTitle() {
   var r = W.res; if (!r) return "New Tab"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
   return { jenkins: "Dashboard [Jenkins]", sonarqube: "SonarQube", argocd: "Argo CD", app: "pharmacy", github: "GitHub", cf: (r.host || "CloudFront"), apigw: "pharmacy-api", compose: "pharmacy", aprun: "pharmacy" }[r.site] || (r.host || W.addr);
 }
-function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; wbGo(v); }
+function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!WH.st.length) { WH.st.push(whCur()); WH.i = 0; } /* เก็บหน้า New Tab ไว้ให้ย้อนกลับได้ */ if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; wbGo(v); }
 function bdSvg(k) { return '<svg viewBox="0 0 16 16" width="16" height="16" class="bdsv">' + (typeof FD_SI !== "undefined" ? FD_SI[k] : "") + "</svg>"; }
 function bdName(u) { var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
 function bdTiles(kind) {
@@ -45,3 +45,14 @@ function browserApp(kind) {
   }
   return h("div", { cls: "bdapp " + kind }, [bar, dl, h("div", { cls: "bdview" }, [view])]);
 }
+
+// คีย์ลัดเบราว์เซอร์ (เมื่อ Chrome/Safari อยู่หน้าสุด): Ctrl/⌘+R หรือ F5 = reload · Alt+←/→ หรือ Ctrl/⌘+[ ] = ย้อน/ไปข้างหน้า · Ctrl/⌘+L = โฟกัสแถบ URL
+window.addEventListener("keydown", function (e) {
+  if (UI.page !== "desk" || typeof dmFront !== "function") return; var f = dmFront(); if (f !== "chrome" && f !== "safari") return;
+  var mod = e.ctrlKey || e.metaKey, k = e.key, act = null;
+  if ((mod && (k === "r" || k === "R")) || k === "F5") act = function () { if (W.addr) wbGo(W.addr); };
+  else if ((e.altKey && k === "ArrowLeft") || (mod && k === "[")) act = function () { if (whCan(-1)) whGo(-1); };
+  else if ((e.altKey && k === "ArrowRight") || (mod && k === "]")) act = function () { if (whCan(1)) whGo(1); };
+  else if (mod && (k === "l" || k === "L")) act = function () { var o = document.querySelector(".bdom"); if (o) { o.focus(); o.select(); } };
+  if (act) { e.preventDefault(); e.stopPropagation(); act(); }
+}, true);
