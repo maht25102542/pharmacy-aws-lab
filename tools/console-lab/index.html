@@ -1157,6 +1157,16 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .dwbody { flex: 1; min-height: 0; overflow: auto; background: var(--surface, #fff); color: var(--fg, #16191f); } .dw[data-w="term"] .dwbody { background: #1a0f1c; padding: 0; }
 .dwbody #termwrap { display: flex; flex-direction: column; height: 100%; } .dwbody #termwrap .term { flex: 1; min-height: 0 !important; max-height: none !important; border-radius: 0; } .dwbody .filewrap { padding: 10px; grid-template-columns: 230px 1fr; } .dwbody .filewrap textarea { height: calc(100% - 60px); min-height: 220px; }
 .dwbody .termbar { display: none !important; } .dwbody .termbar-x { margin: 0 !important; padding: 6px 12px !important; background: #2b1a2e !important; color: #e8dce8 !important; border: 0 !important; border-bottom: 1px solid rgba(255,255,255,.1) !important; font-size: .75rem; } .dwbody .termbar select { font-size: .75rem; padding: 1px 6px; } .dwbody .termrow { background: #1a0f1c; padding: 4px 12px 10px; }
+.dwbody #termwrap { background: var(--t-bg, #1a0f1c); } .dwbody .termrow { background: var(--t-bg, #1a0f1c) !important; }
+.dw[data-w="files"] .dwbody { background: #1e1e1e; overflow: hidden; }
+.edr { display: flex; height: 100%; font-size: .8rem; color: #ccc; background: #1e1e1e; } .edtree { flex: none; width: 210px; background: #252526; overflow: auto; padding-bottom: 10px; } .edh { padding: 10px 14px 6px; font-size: .68rem; letter-spacing: .08em; color: #bbb; } .edh2 { padding: 2px 14px 6px; font-size: .7rem; font-weight: 700; color: #ddd; }
+.edrow { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: transparent; color: #ccc; font: inherit; font-size: .78rem; padding-top: 3px; padding-bottom: 3px; text-align: left; cursor: pointer; white-space: nowrap; } .edrow:hover { background: #2a2d2e; } .edrow.on { background: #37373d; color: #fff; } .edc { width: 10px; color: #999; font-size: .7rem; }
+.edmain { flex: 1; min-width: 0; display: flex; flex-direction: column; } .edtabs { flex: none; display: flex; overflow-x: auto; background: #252526; min-height: 34px; } .edtab { display: flex; align-items: center; gap: 7px; padding: 0 12px; font-size: .78rem; color: #999; background: #2d2d2d; border-right: 1px solid #1e1e1e; cursor: pointer; white-space: nowrap; } .edtab.on { background: #1e1e1e; color: #fff; box-shadow: inset 0 1px 0 #e95420; } .edx { width: 16px; text-align: center; border-radius: 4px; color: #aaa; } .edx:hover { background: #444; color: #fff; }
+.edbc { flex: none; padding: 4px 14px; font-size: .72rem; color: #999; background: #1e1e1e; } .edwrap { flex: 1; min-height: 0; display: flex; } .edgut { flex: none; width: 46px; padding: 8px 8px 8px 0; text-align: right; color: #6e7681; font: .8rem/1.6 var(--mono); white-space: pre; overflow: hidden; user-select: none; }
+.edcode { position: relative; flex: 1; min-width: 0; } .edhl, .edta { position: absolute; inset: 0; margin: 0; padding: 8px 12px; font: .8rem/1.6 var(--mono); white-space: pre; tab-size: 2; border: 0; overflow: auto; box-sizing: border-box; } .edhl { pointer-events: none; overflow: hidden; color: #d4d4d4; } .edta { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: 0; } .edta::selection { background: rgba(38,119,255,.4); }
+.edstat { flex: none; display: flex; gap: 18px; align-items: center; padding: 3px 12px; background: #e95420; color: #fff; font-size: .72rem; } .edsave { margin-left: auto; border: 0; border-radius: 4px; background: rgba(255,255,255,.22); color: #fff; font: inherit; padding: 1px 10px; cursor: pointer; } .edsave:disabled { opacity: .45; cursor: default; }
+.edwel { flex: 1; display: grid; place-content: center; justify-items: center; gap: 8px; color: #888; }
+.edr .edcode .edta { background: transparent !important; color: transparent !important; -webkit-text-fill-color: transparent; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 8px 12px !important; font: .8rem/1.6 var(--mono) !important; width: auto !important; height: auto !important; } .edr .edcode .edhl { background: #1e1e1e !important; border: 0 !important; padding: 8px 12px !important; font: .8rem/1.6 var(--mono) !important; }
 </style>
 
 <header class="top">
@@ -15460,11 +15470,72 @@ function pvGrid(cols, rows, onSort, sort, dir) {
   return h("div", { cls: "dbscroll" }, [h("table", { cls: "dbgrid" }, [h("thead", {}, [h("tr", {}, cols.map(function (c) { return h("th", { cls: onSort ? "srt" : "", onclick: onSort ? function () { onSort(c); } : null }, [c, sort === c ? (dir > 0 ? " ▲" : " ▼") : ""]); }))]), h("tbody", {}, rows.map(function (r) { return h("tr", {}, r.map(function (v) { return h("td", { cls: v === null ? "null" : typeof v === "number" ? "num" : "", title: v === null ? "" : String(v), text: v === null ? "NULL" : String(v) }); })); }).concat(rows.length ? [] : [h("tr", {}, [h("td", { colSpan: cols.length, cls: "empty", text: "Empty set" })])]))])]);
 }
 
+// Editor (แบบ VS Code) สำหรับหน้าต่างบน Desktop: Explorer เป็นโฟลเดอร์ย่อ/ขยาย, แท็บหลายไฟล์, ไฮไลต์สี, Ctrl+S บันทึก, แถบสถานะ
+var ED = { tabs: [], active: null, buf: {}, exp: {}, find: "" };
+var ED_T = ["", "#1e1e1e", "#d4d4d4", "#6a9955", "#ce9178", "#c586c0", "#9cdcfe", "#dcdcaa", "#b5cea8", "#569cd6"];
+function edKind(p) { var n = p.split("/").pop(); if (/\.tf$|\.tfvars$|\.hcl$/.test(n)) return "hcl"; if (n === "Jenkinsfile") return "jf"; if (n === "Dockerfile") return "df"; if (/\.json$/.test(n)) return "json"; if (/docker-compose/.test(n)) return "dc"; if (/\.ya?ml(\.j2)?$/.test(n)) return "yaml"; return ""; }
+function edLang(p) { var k = edKind(p), n = p.split("/").pop(); return { hcl: "Terraform", jf: "Groovy (Jenkinsfile)", df: "Dockerfile", json: "JSON", dc: "YAML (compose)", yaml: "YAML" }[k] || (/\.sh$/.test(n) ? "Shell" : /\.py$/.test(n) ? "Python" : /\.md$/.test(n) ? "Markdown" : "Plain Text"); }
+function edIco(n, dir, open) { if (dir) return open ? "📂" : "📁"; if (/\.tf$/.test(n)) return "🏗️"; if (/\.ya?ml/.test(n)) return "📋"; if (/\.sh$/.test(n)) return "⚙️"; if (/\.py$/.test(n)) return "🐍"; if (/\.json$/.test(n)) return "🧾"; if (/\.md$/.test(n)) return "📝"; if (n === "Jenkinsfile" || n === "Dockerfile") return "🧩"; return "📄"; }
+function edRO(p) { return /\/\.(ssh|aws)\//.test(p) || /terraform\.tfstate/.test(p); }
+function edText(p) { return ED.buf[p] != null ? ED.buf[p] : (fsAll()[p] != null ? fsAll()[p] : ""); }
+function edDirty(p) { return ED.buf[p] != null && ED.buf[p] !== (fsAll()[p] != null ? fsAll()[p] : ""); }
+function edOpen(p) { if (ED.tabs.indexOf(p) < 0) ED.tabs.push(p); ED.active = p; var parts = p.split("/"); for (var i = 1; i < parts.length; i++) ED.exp[parts.slice(0, i).join("/")] = true; }
+function edSave(p) { if (!p || edRO(p) || ED.buf[p] == null) return false; fsWrite(p, ED.buf[p]); delete ED.buf[p]; save(); return true; }
+function edTree() {
+  var all = fsAll(), root = { d: {}, f: [] };
+  Object.keys(all).forEach(function (k) {
+    var rel; if (k.indexOf(REPO + "/") === 0) rel = k.slice(REPO.length + 1); else if (k.indexOf(HOME + "/.") === 0) rel = "~/" + k.slice(HOME.length + 1); else return;
+    var parts = rel.split("/"), cur = root; parts.slice(0, -1).forEach(function (s) { cur = cur.d[s] = cur.d[s] || { d: {}, f: [] }; }); cur.f.push([parts[parts.length - 1], k]);
+  });
+  return root;
+}
+function edHL(text, kind) { var frag = document.createDocumentFragment(); text.split("\n").forEach(function (ln, i, a) { jkxHi(ln, kind, ED_T).forEach(function (n) { frag.appendChild(n); }); frag.appendChild(document.createTextNode(i < a.length - 1 ? "\n" : " ")); }); return frag; }
+function editorApp() {
+  if (!ED.active) { var pref = REPO + "/ansible/dev.yml", all = fsAll(); edOpen(UI.edit && all[UI.edit] != null ? UI.edit : all[pref] != null ? pref : Object.keys(all).filter(function (k) { return k.indexOf(REPO + "/") === 0; }).sort()[0]); }
+  var root = h("div", { cls: "edr" }), tree = h("div", { cls: "edtree" }), main = h("div", { cls: "edmain" }), stat = h("div", { cls: "edstat" });
+  function nodes(n, base, depth) {
+    var out = [];
+    Object.keys(n.d).sort().forEach(function (d) { var path = base ? base + "/" + d : d, open = !!ED.exp[path]; out.push(h("button", { type: "button", cls: "edrow", style: "padding-left:" + (8 + depth * 14) + "px", onclick: function () { ED.exp[path] = !open; render(); } }, [h("span", { cls: "edc", text: open ? "▾" : "▸" }), h("span", { text: edIco(d, true, open) }), h("span", { text: d })])); if (open) nodes(n.d[d], path, depth + 1).forEach(function (x) { out.push(x); }); });
+    n.f.sort(function (a, b) { return a[0] < b[0] ? -1 : 1; }).forEach(function (f) { out.push(h("button", { type: "button", cls: "edrow" + (ED.active === f[1] ? " on" : ""), style: "padding-left:" + (22 + depth * 14) + "px", onclick: function () { edOpen(f[1]); render(); } }, [h("span", { text: edIco(f[0], false) }), h("span", { text: f[0] })])); });
+    return out;
+  }
+  tree.appendChild(h("div", { cls: "edh", text: "EXPLORER" })); tree.appendChild(h("div", { cls: "edh2", text: "PHARMACY-AWS-LAB" }));
+  nodes(edTree(), "", 0).forEach(function (x) { tree.appendChild(x); });
+  var tabs = h("div", { cls: "edtabs" });
+  ED.tabs.forEach(function (p) { var n = p.split("/").pop(); tabs.appendChild(h("div", { cls: "edtab" + (p === ED.active ? " on" : ""), title: p.replace(HOME, "~"), onclick: function () { ED.active = p; render(); } }, [h("span", { text: edIco(n, false) }), h("span", { text: n }), h("b", { cls: "edx", "data-p": p, text: edDirty(p) ? "●" : "×", title: "ปิด", onclick: function (e) { e.stopPropagation(); ED.tabs.splice(ED.tabs.indexOf(p), 1); delete ED.buf[p]; if (ED.active === p) ED.active = ED.tabs[ED.tabs.length - 1] || null; render(); } })])); });
+  var p = ED.active;
+  if (!p) { main.appendChild(tabs); main.appendChild(h("div", { cls: "edwel" }, [h("div", { style: "font-size:3rem", text: "📝" }), h("b", { text: "Code Editor" }), h("span", { text: "เลือกไฟล์จาก Explorer ด้านซ้ายเพื่อเริ่มแก้ · Ctrl+S บันทึก" })])); root.appendChild(tree); root.appendChild(main); return root; }
+  var ro = edRO(p), kind = edKind(p), ta = h("textarea", { cls: "edta", spellcheck: "false", wrap: "off", readonly: ro ? "readonly" : null }), pre = h("pre", { cls: "edhl" }), gut = h("div", { cls: "edgut" }), wrap = h("div", { cls: "edwrap" });
+  ta.value = edText(p);
+  var pos = h("span", { text: "Ln 1, Col 1" });
+  function refresh() {
+    var t = ta.value; pre.textContent = ""; pre.appendChild(edHL(t, kind)); var n = t.split("\n").length; gut.textContent = ""; var s = []; for (var i = 1; i <= n; i++) s.push(i); gut.textContent = s.join("\n");
+    var before = t.slice(0, ta.selectionStart).split("\n"); pos.textContent = "Ln " + before.length + ", Col " + (before[before.length - 1].length + 1);
+    var tabx = tabs.querySelector('.edx[data-p="' + p.replace(/"/g, '\\"') + '"]'); if (tabx) tabx.textContent = edDirty(p) ? "●" : "×"; save1.disabled = ro || !edDirty(p);
+  }
+  var save1 = h("button", { type: "button", cls: "edsave", text: "💾 Save", disabled: true, onclick: function () { if (edSave(p)) { flash("ok", "บันทึก " + p.replace(HOME, "~") + " แล้ว"); refresh(); } } });
+  var raf = 0;
+  ta.addEventListener("input", function () { ED.buf[p] = ta.value; cancelAnimationFrame(raf); raf = requestAnimationFrame(refresh); });
+  ta.addEventListener("keyup", function () { refresh(); }); ta.addEventListener("click", refresh);
+  ta.addEventListener("scroll", function () { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; gut.scrollTop = ta.scrollTop; });
+  ta.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (edSave(p)) { flash("ok", "บันทึก " + p.replace(HOME, "~") + " แล้ว"); refresh(); } }
+    else if (e.key === "Tab" && !ro) { e.preventDefault(); var s = ta.selectionStart; ta.value = ta.value.slice(0, s) + "  " + ta.value.slice(ta.selectionEnd); ta.selectionStart = ta.selectionEnd = s + 2; ED.buf[p] = ta.value; refresh(); }
+  });
+  wrap.appendChild(gut); wrap.appendChild(h("div", { cls: "edcode" }, [pre, ta]));
+  main.appendChild(tabs); main.appendChild(h("div", { cls: "edbc", text: p.replace(REPO + "/", "").replace(HOME, "~").split("/").join("  ›  ") + (ro ? "   🔒 อ่านอย่างเดียว (จัดการผ่านคำสั่ง)" : "") })); main.appendChild(wrap);
+  stat.appendChild(pos); stat.appendChild(h("span", { text: "Spaces: 2" })); stat.appendChild(h("span", { text: "UTF-8" })); stat.appendChild(h("span", { text: "LF" })); stat.appendChild(h("span", { text: edLang(p) })); stat.appendChild(save1);
+  main.appendChild(stat); root.appendChild(tree); root.appendChild(main);
+  setTimeout(function () { refresh(); }, 0);
+  return root;
+}
+
 // Laptop › Desktop: เดสก์ท็อป Ubuntu จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
-var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 150, y: 110, w: 800, h: 470, z: 10 } } };
-var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Files & editor", "📁"]];
-function deskTitle(id) { if (id === "files") return "Files & editor — " + (UI.edit ? UI.edit.replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
+var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 880, h: 500, z: 10 } } };
+var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Code Editor", "📝"]];
+function deskTitle(id) { if (id === "files") return "Code Editor — " + (ED.active ? ED.active.replace(REPO + "/", "").replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
 function deskBody(id) {
+  if (id === "files") return editorApp();
   var el = PAGES[id](); [].slice.call(el.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1,.ic,.card")) el.removeChild(c); }); return el;
 }
 function deskOpen(id) { var w = DESK.wins[id]; w.open = true; w.min = false; w.z = ++DESK.z; render(); }

@@ -1,8 +1,9 @@
 // Laptop › Desktop: เดสก์ท็อป Ubuntu จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
-var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 150, y: 110, w: 800, h: 470, z: 10 } } };
-var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Files & editor", "📁"]];
-function deskTitle(id) { if (id === "files") return "Files & editor — " + (UI.edit ? UI.edit.replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
+var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 880, h: 500, z: 10 } } };
+var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Code Editor", "📝"]];
+function deskTitle(id) { if (id === "files") return "Code Editor — " + (ED.active ? ED.active.replace(REPO + "/", "").replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
 function deskBody(id) {
+  if (id === "files") return editorApp();
   var el = PAGES[id](); [].slice.call(el.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1,.ic,.card")) el.removeChild(c); }); return el;
 }
 function deskOpen(id) { var w = DESK.wins[id]; w.open = true; w.min = false; w.z = ++DESK.z; render(); }
