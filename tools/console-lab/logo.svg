@@ -1,14 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 <defs>
-<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#3b4fc4"/></linearGradient>
-<linearGradient id="liq" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#fb923c"/></linearGradient>
-<clipPath id="fl"><path d="M25.5 11h13v14.5l11 20.2A5 5 0 0 1 45.1 53H18.9a5 5 0 0 1-4.4-7.3l11-20.2z"/></clipPath>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e2a78"/><stop offset="1" stop-color="#0b1240"/></linearGradient>
+<linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+<linearGradient id="l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#e0368f"/></linearGradient>
+<linearGradient id="r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdba74"/><stop offset="1" stop-color="#f0852d"/></linearGradient>
 </defs>
 <rect width="64" height="64" rx="16" fill="url(#bg)"/>
-<circle cx="50" cy="14" r="9" fill="#fff" opacity=".14"/>
-<path d="M25.5 11h13v14.5l11 20.2A5 5 0 0 1 45.1 53H18.9a5 5 0 0 1-4.4-7.3l11-20.2z" fill="#fff"/>
-<g clip-path="url(#fl)"><path d="M8 38c6-4 10 3 16-1s10 3 16-1 10 2 16-1V60H8z" fill="url(#liq)"/></g>
-<rect x="22.5" y="8.5" width="19" height="4.5" rx="2.2" fill="#fff"/>
-<path d="M32 40.5v8M28 44.5h8" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
-<circle cx="27" cy="33" r="1.7" fill="#38bdf8" opacity=".55"/><circle cx="36.5" cy="30" r="1.2" fill="#38bdf8" opacity=".55"/>
+<path d="M32 9 52 20.5 32 32 12 20.5z" fill="url(#t)"/>
+<path d="M12 23.5 31 34.5V56L12 45z" fill="url(#l)"/>
+<path d="M52 23.5 33 34.5V56L52 45z" fill="url(#r)"/>
+<path d="M32 15.5v10.5M26.7 20.75h10.6" stroke="#fff" stroke-width="3" stroke-linecap="round" transform="translate(0 0)"/>
 </svg>
