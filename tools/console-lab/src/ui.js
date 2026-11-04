@@ -1363,10 +1363,28 @@ function readyPanel() {
     step(4, st.prd, "ปล่อยขึ้น prd (deploy-only ใช้ image เดิมจาก dev)", "backend → frontend, AUTO_SYNC และกดยืนยัน production ให้", "▶ ปล่อย prd ให้", !st.dev, function () { readyBuild("prd"); goBrowser("http://" + alb); }),
     h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line,#d3dae3);padding-top:10px" }, [h("span", { cls: "hint", style: "align-self:center", text: "เปิดใน Browser:" }), chip("Jenkins", function () { goBrowser("http://" + ip("pharmacy-jenkins") + ":8080"); }), chip("SonarQube", function () { goBrowser("http://" + ip("pharmacy-sonarqube") + ":9000"); }), chip("ArgoCD", function () { goBrowser("https://" + ip("pharmacy-k8s-1") + ":30443"); }), chip("GitHub backend", function () { goBrowser("https://github.com/" + u + "/pharmacy-backend"); }), chip("GitHub frontend", function () { goBrowser("https://github.com/" + u + "/pharmacy-frontend"); }), chip("GitHub manifests", function () { goBrowser("https://github.com/" + u + "/pharmacy-manifests"); })])])]);
 }
+// Tab complete: ชื่อคำสั่ง / subcommand / path (กด Tab ซ้ำเพื่อดูตัวเลือก)
+var TERM_CMDS = ["aws", "ansible", "ansible-inventory", "ansible-playbook", "cat", "cd", "clear", "curl", "docker", "echo", "git", "head", "help", "history", "kubectl", "ls", "mkdir", "nano", "pwd", "rm", "ssh", "tail", "terraform", "touch", "vim"];
+var TERM_SUB = { terraform: ["apply", "destroy", "fmt", "init", "output", "plan", "state", "validate"], git: ["add", "branch", "checkout", "commit", "init", "log", "push", "remote", "status", "tag"], aws: ["configure", "ec2", "ecr", "iam", "s3", "sts"], ansible: ["-i", "--version"], docker: ["compose", "images", "ps", "pull", "run"] };
+function termComplete(inp, e) {
+  e.preventDefault(); if (TERM.busy || TERM.ask || (typeof rmInst === "function" && rmInst())) return;
+  var v = inp.value, m = /^(.*?)(\S*)$/.exec(v), head = m[1], tok = m[2], words = head.trim() ? head.trim().split(/\s+/) : [], cands = [];
+  if (!words.length) cands = TERM_CMDS.filter(function (c) { return c.indexOf(tok) === 0; }).map(function (c) { return c + " "; });
+  else {
+    if (words.length === 1 && TERM_SUB[words[0]] && tok.indexOf("/") < 0) cands = TERM_SUB[words[0]].filter(function (c) { return c.indexOf(tok) === 0; }).map(function (c) { return c + " "; });
+    if (!cands.length) { var sl = tok.lastIndexOf("/"), dp = sl >= 0 ? tok.slice(0, sl + 1) : "", base = tok.slice(sl + 1); cands = fsList(normPath(dp || ".")).filter(function (x) { return x.name.indexOf(base) === 0 && (base || x.name.charAt(0) !== "."); }).map(function (x) { return dp + x.name + (x.dir ? "/" : " "); }); }
+  }
+  if (!cands.length) return;
+  var common = cands[0]; cands.forEach(function (c) { while (c.indexOf(common) !== 0) common = common.slice(0, -1); });
+  if (cands.length === 1) { inp.value = head + cands[0]; TERM.tabV = null; return; }
+  if (common.length > tok.length) { inp.value = head + common; TERM.tabV = null; return; }
+  TERM.lines.push(termPrompt() + v); TERM.lines.push(cands.map(function (c) { return c.trim(); }).join("  ")); termDraw(); inp.value = v; // ไม่มีส่วนร่วมให้เติมแล้ว: แสดงตัวเลือก (แบบ zsh)
+}
 PAGES["term"] = function () {
   var inp = h("input", { id: "terminp", type: "text", autocomplete: "off", spellcheck: "false", "aria-label": "command", onkeydown: function (e) {
     if (e.key === "c" && e.ctrlKey && TERM.busy) { TERM.busy.skip(); e.preventDefault(); }
     else if (e.key === "Enter") { var v = inp.value; inp.value = ""; termRun(v); }
+    else if (e.key === "Tab") termComplete(inp, e);
     else if (e.key === "ArrowUp" && !TERM.ask) { if (TERM.hi > 0) inp.value = TERM.hist[--TERM.hi]; e.preventDefault(); }
     else if (e.key === "ArrowDown" && !TERM.ask) { TERM.hi = Math.min(TERM.hist.length, TERM.hi + 1); inp.value = TERM.hist[TERM.hi] || ""; e.preventDefault(); }
   } });
