@@ -1138,6 +1138,9 @@ body .pf .navlink { color: #d5f3ee !important; text-decoration: none !important;
 .pf .chart .col span { font-size:.68rem; color:var(--muted); }
 .pf .modal .receipt { min-width: min(420px, 84vw); }
 body .pf input.qty { width: 54px !important; flex: none; text-align: center; padding: 4px 6px !important; } .pf .cartline .sm { flex: none; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen { grid-template-columns: 1fr; gap: 8px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div { padding: 10px 16px; align-items: center; flex-wrap: nowrap; border-radius: 12px; gap: 14px; }
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div > p { flex: 1 1 auto; font-size: .86rem; line-height: 1.6; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div > p > b { font-size: .95rem; color: var(--fg); } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div > .btn { margin-left: auto; flex: none; align-self: center; }
 </style>
 
 <header class="top">
