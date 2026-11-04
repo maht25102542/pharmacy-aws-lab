@@ -1,8 +1,8 @@
 // ===== Cost & Bill management: การ์ดในหน้า use case ทุกใบ + หน้า Lab รวม =====
 function money(n) { return "$" + (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n)); }
 function moneyH(n) { return "$" + (n < 1 ? n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2)); }
-var CG = { red: ["#d23a22", "#f76045"], green: ["#3f9a1c", "#34d399"], amber: ["#c99700", "#ffd23f"], blue: ["#2563eb", "#7c3aed"], slate: ["#334155", "#64748b"] };
-var CG_LV = [["#0e9f62", "#34d399"], ["#3f9a1c", "#8bdc4a"], ["#dba800", "#ffe14d"], ["#cc5a1f", "#f7a46a"], ["#d23a22", "#f76045"]]; // ไล่ตามระดับราคา (เขียว→เหลือง→ส้ม→แดง)
+var CG = { red: ["#d23a22", "#f76045"], green: ["#52b088", "#52b088"], amber: ["#c99700", "#ffd23f"], blue: ["#2563eb", "#7c3aed"], slate: ["#334155", "#64748b"] };
+var CG_LV = [["#0e9f62", "#52b088"], ["#52b088", "#8bdc4a"], ["#dba800", "#ffe14d"], ["#cc5a1f", "#f7a46a"], ["#d23a22", "#f76045"]]; // ไล่ตามระดับราคา (เขียว→เหลือง→ส้ม→แดง)
 function gstyle(g) { return "--g1:" + g[0] + ";--g2:" + g[1]; }
 function bahtS(usd, perHr) { var b = usd * COST_THB; if (b <= 0) return "ฟรี"; if (b < (perHr ? 0.01 : 1)) return perHr ? "<฿0.01" : "<฿1"; return baht(usd).replace(/(\.\d)$/, "$1").replace(/^฿(\d)\.(\d)$/, function (m) { return perHr ? "฿" + b.toFixed(2) : m; }); }
 function usdS(n) { return n <= 0 ? "$0" : n < 0.01 ? "<$0.01" : money(n); }
@@ -39,7 +39,7 @@ function costVerdictCard(c, vd, lv) { // ราคานี้ถูก/ปก�
 function costBlock(c) {
   var rk = riskOf(costSum(c.items).month), cs0 = costSum(c.items), vd = c.bench ? costVerdict(cs0.month, c.bench) : null, lv = costLabVerdict(cs0.perHours(4));
   var out = h("div", {}, [h("div", { cls: "cd-call", style: "--c:" + rk[1] }, [h("div", { cls: "ic", text: "💰" }), h("div", { cls: "tx" }, [h("b", { text: c.big }), h("small", { text: "ความเสี่ยงบิลบาน: " + rk[0] + " · " + rk[2] })]), h("span", { cls: "rk", text: rk[0] })]), costChips(c.items, c.bench), vd ? costVerdictCard(c, vd, lv) : h("span"), costTable(c.items, c.ex)]);
-  if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#1d8102", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
+  if (c.drivers) out.appendChild(infoCard([["อะไรทำให้บิลพุ่ง", "#c62828", c.drivers.join(" · ")], ["ลดค่าใช้จ่าย", "#3f9a73", c.cut.join(" · ")], ["ตั้งเตือน/จับตา", "#2b6cb0", c.watch.join(" · ")], ["หยุดจ่ายเมื่อเลิกใช้", "#a85a00", c.stop]]));
   out.appendChild(costCaveat()); return out;
 }
 function costGen() { // คู่มือจัดการ bill เป็นการ์ดเรียงเป็นขั้น
