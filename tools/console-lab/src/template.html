@@ -1250,6 +1250,7 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .dtoast { position: absolute; z-index: 9500; top: 36px; right: 12px; width: 300px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 16px; background: rgba(246,246,250,.86); backdrop-filter: blur(24px) saturate(1.6); box-shadow: 0 10px 30px rgba(0,0,0,.28), 0 0 0 .5px rgba(0,0,0,.15); color: #1d1d1f; pointer-events: none; animation-duration: .25s, .4s; animation-fill-mode: both, forwards; } .dtoast b { display: block; font-size: .8rem; } .dtoast span { font-size: .78rem; color: #3a3a40; line-height: 1.35; display: block; }
 .dti { flex: none; width: 34px; height: 34px; border-radius: 9px; background: #0a84ff; color: #fff; display: grid; place-items: center; font-weight: 800; } .dtoast.ok .dti { background: #30b455; } .dtoast.bad .dti, .dtoast.error .dti { background: #ff453a; } .dtoast.warn .dti { background: #ff9f0a; }
 @keyframes dtIn { from { transform: translateY(-14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes dtOut { to { opacity: 0; transform: translateX(30px); } }
+.dw[data-w="term"] { background: #fffaf3; } .dw[data-w="term"] .dwbody, .dwbody #termwrap { background: #fffaf3 !important; } .dwbody #termwrap .termrow input { color: #061246 !important; }
 </style>
 
 <header class="top">
