@@ -7,7 +7,7 @@
   NAV.Lab = lab; NAVHOME.CodePipeline = "pipes"; NAVHOME.CodeBuild = "cbps";
   LK.pipe = "pipes"; LK.cbp = "cbps"; LK.conn = "conns";
 })();
-var CD_COL = { Succeeded: ["#3f9a73", "#f2fcf3"], Failed: ["#c62828", "#fdf3f1"], InProgress: ["#0972d3", "#f2f8fd"], Waiting: ["#a85a00", "#fffbea"], NotRun: ["#5f6b7a", "#ffffff"] };
+var CD_COL = { Succeeded: ["#7fae12", "#f2fcf3"], Failed: ["#c62828", "#fdf3f1"], InProgress: ["#0972d3", "#f2f8fd"], Waiting: ["#a85a00", "#fffbea"], NotRun: ["#5f6b7a", "#ffffff"] };
 function cdBadge(s) { return s === "Succeeded" ? okIco("Succeeded") : s === "Failed" ? tagp("Failed", "bad") : s === "Waiting" || s === "InProgress" ? tagp(s === "Waiting" ? "Waiting for approval" : "In progress", "warn") : tagp("No executions yet", "warn"); }
 function cdRoleOpts(svc) { return [["", "เลือก role"]].concat(S.roles.filter(function (r) { return roleTrusts(r, svc); }).map(function (r) { return [r.name, r.name]; })); }
 function cdStageCard(p, i, ex) {

@@ -1,7 +1,7 @@
 // ---- แอนิเมชันภาพรวมทั้งระบบ (Lab › Terraform): แบบที่ระบบจริงใช้ — 3 AZ · public/private subnet · NAT · bastion · k3s HA · Galera คนละ AZ
 // เครื่องทุกตัวเชื่อมกันยังไง · แต่ละเครื่องมีอะไรติดตัว (Role, Tier, SG, subnet/AZ, แอป FE/BE, env dev/prd) · Load balancer กระจายคำขอ
 // · เครื่องล่ม / AZ ล่มแล้วอะไรรอด · SSH ผ่าน bastion · ออกเน็ตผ่าน NAT · เส้นทางส่งมอบ CI/CD
-var SYS_C = { prd: "#2563eb", dev: "#3f9a73", db: "#b45309", tool: "#c0392b", net: "#3f9a73", alb: "#8456ce", bas: "#475569", mute: "#64748b" };
+var SYS_C = { prd: "#2563eb", dev: "#7fae12", db: "#b45309", tool: "#c0392b", net: "#7fae12", alb: "#8456ce", bas: "#475569", mute: "#64748b" };
 // ข้อมูลเครื่อง: [ชื่อ, role tag, env(สี), tier, AZ (a/b/c), SG ตามหน้าที่, แอปที่รัน (ป้าย, สี), พอร์ต/หมายเหตุ]
 var SYS_M = [
   ["pharmacy-bastion", "bastion", "bas", "public", "a", ["pharmacy-bastion"], [["SSH", "#475569"]], "SSH :22 จาก My IP เท่านั้น"],
@@ -10,7 +10,7 @@ var SYS_M = [
   ["pharmacy-k8s-1", "k8s_server", "prd", "private", "a", ["pharmacy-base", "pharmacy-k8s"], [["FE", "#2563eb"], ["BE", "#7c3aed"], ["ArgoCD", "#ef7b4d"]], "k3s server #1 (leader) · NodePort 30080/30443"],
   ["pharmacy-k8s-2", "k8s_server", "prd", "private", "b", ["pharmacy-base", "pharmacy-k8s"], [["FE", "#2563eb"], ["BE", "#7c3aed"]], "k3s server #2 · NodePort 30080"],
   ["pharmacy-k8s-3", "k8s_server", "prd", "private", "c", ["pharmacy-base", "pharmacy-k8s"], [["FE", "#2563eb"], ["BE", "#7c3aed"]], "k3s server #3 · NodePort 30080"],
-  ["pharmacy-dev", "dev", "dev", "private", "a", ["pharmacy-base", "pharmacy-dev"], [["FE", "#3f9a73"], ["BE", "#0b7285"]], "docker compose เครื่องเดียว · frontend :3000"],
+  ["pharmacy-dev", "dev", "dev", "private", "a", ["pharmacy-base", "pharmacy-dev"], [["FE", "#7fae12"], ["BE", "#0b7285"]], "docker compose เครื่องเดียว · frontend :3000"],
   ["pharmacy-db-1", "db", "db", "private", "a", ["pharmacy-base", "pharmacy-db"], [["MariaDB", "#b45309"]], "3306 จาก k8s เท่านั้น · Galera node 1"],
   ["pharmacy-db-2", "db", "db", "private", "b", ["pharmacy-base", "pharmacy-db"], [["MariaDB", "#b45309"]], "3306 จาก k8s เท่านั้น · Galera node 2"],
   ["pharmacy-db-3", "db", "db", "private", "c", ["pharmacy-base", "pharmacy-db"], [["MariaDB", "#b45309"]], "3306 จาก k8s เท่านั้น · Galera node 3"]
@@ -29,7 +29,7 @@ function sysAnim() {
   function L(layer, e) { (layers[layer] = layers[layer] || []).push(e); e.style.opacity = "0"; e.style.transition = "opacity .5s"; svg.appendChild(e); return e; }
   function show(names, on) { [].concat(names).forEach(function (n) { (layers[n] || []).forEach(function (e) { e.style.opacity = on === false ? "0" : "1"; }); }); }
   function chip(layer, x, y, w, t, col) { L(layer, sv("g", {}, [box(x, y, w, 15, 7, col + "22", col, 1), tx(x + w / 2, y + 11, t, { a: "middle", sz: 9, b: 1, c: col })])); }
-  var COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#3f9a73" }, AZN = { a: 1, b: 2, c: 3 };
+  var COL = { a: 40, b: 365, c: 690 }, CW = 310, AZC = { a: "#2563eb", b: "#8456ce", c: "#7fae12" }, AZN = { a: 1, b: 2, c: 3 };
 
   // ---------- โครงเครือข่าย ----------
   svg.appendChild(sv("g", {}, [box(30, 22, 130, 50, 25, "#eef3fa", "#8aa4c8"), tx(95, 44, "Internet", { a: "middle", b: 1, c: "#2a4a7a", sz: 13 }), tx(95, 60, "ผู้ใช้เว็บ / เรา", { a: "middle", c: "#2a4a7a", sz: 10 })]));
@@ -88,19 +88,19 @@ function sysAnim() {
   // ---------- คำอธิบาย + ไทม์ไลน์ ----------
   var cap = h("div", { style: "margin:10px 0" }), tl = h("div", { cls: "chips", style: "margin:10px 0 6px" });
   var SC = [
-    ["เครือข่าย 3 AZ", "net", [["อะไร", "#2563eb", "**VPC** `10.0.0.0/16` ซอยเป็น **public** 3 อัน และ **private** 3 อัน กระจาย **3 AZ** (a, b, c) · **IGW** คือประตูออกเน็ต · **NAT** ให้เครื่องใน private ออกเน็ตได้แต่ ==ขาเข้าเข้าไม่ได้=="], ["ทำไมแยก", "#3f9a73", "เครื่องที่เก็บ**แอปและข้อมูล**อยู่ private ไม่มี public IP ==ไม่มีทางถูกเข้าตรงจากอินเทอร์เน็ต== · มีแค่ ALB และ bastion ที่เปิดหน้าบ้าน"]]],
-    ["เครื่อง 10 ตัว", "mach", [["อะไร", "#2563eb", "**public:** bastion, Jenkins, SonarQube (+ NAT) · **private:** k8s ×3 (HA), dev, DB ×3"], ["วางยังไง", "#3f9a73", "k8s และ DB อย่างละ 3 ตัว **คนละ AZ** · dev, Jenkins, SonarQube อยู่ AZ a (ตัวเดียว)"]]],
+    ["เครือข่าย 3 AZ", "net", [["อะไร", "#2563eb", "**VPC** `10.0.0.0/16` ซอยเป็น **public** 3 อัน และ **private** 3 อัน กระจาย **3 AZ** (a, b, c) · **IGW** คือประตูออกเน็ต · **NAT** ให้เครื่องใน private ออกเน็ตได้แต่ ==ขาเข้าเข้าไม่ได้=="], ["ทำไมแยก", "#7fae12", "เครื่องที่เก็บ**แอปและข้อมูล**อยู่ private ไม่มี public IP ==ไม่มีทางถูกเข้าตรงจากอินเทอร์เน็ต== · มีแค่ ALB และ bastion ที่เปิดหน้าบ้าน"]]],
+    ["เครื่อง 10 ตัว", "mach", [["อะไร", "#2563eb", "**public:** bastion, Jenkins, SonarQube (+ NAT) · **private:** k8s ×3 (HA), dev, DB ×3"], ["วางยังไง", "#7fae12", "k8s และ DB อย่างละ 3 ตัว **คนละ AZ** · dev, Jenkins, SonarQube อยู่ AZ a (ตัวเดียว)"]]],
     ["Role + Tier", "role", [["ป้าย Role", "#7b3fe4", "นามบัตรของเครื่อง (`bastion`, `jenkins`, `k8s_server`, `dev`, `db`, `sonarqube`) · **Ansible** แยกกลุ่ม `role_*` จากป้ายนี้"], ["ป้าย Tier", "#475569", "`public` / `private` · บอกว่าเครื่องไหนมี public IP (ต้องผ่าน bastion หรือไม่)"]]],
     ["Security group", "sg", [["อะไร", "#c2410c", "**SG** = firewall ติดตัวเครื่อง · **bastion** รับ SSH จาก ==My IP== ที่เดียว · เครื่องอื่นมี `base` = รับ SSH จาก **SG ของ bastion เท่านั้น**"], ["เช่น", "#2563eb", "`k8s` รับ NodePort จาก ==ALB เท่านั้น== · `db` รับ **3306** จาก SG ของ k8s เท่านั้น · `jenkins`/`sonarqube` เปิด UI เฉพาะ My IP"]]],
     ["แอปบนเครื่อง", "app", [["อะไร", "#2563eb", "**k8s ×3** รัน FE กับ BE (prd) + **ArgoCD** ที่ k8s-1 · **dev** รัน FE/BE ของ dev · **db ×3** เป็น MariaDB Galera · **Jenkins/SonarQube** รันใน docker"], ["k3s HA", "#7c3aed", "k8s ทั้ง 3 เป็น **server** (มี etcd ในตัว) ล่มได้ 1 เครื่อง cluster ยังทำงาน · ตัวแรกเริ่ม `--cluster-init` ที่เหลือมา join"]]],
-    ["Load balancer", "alb", [["อะไร", "#8456ce", "**ALB** อยู่ public ครบ 3 AZ รับคำขอแล้วส่งเข้า k8s ใน **private** · `:80` → prd (NodePort `30080`) · `:8080` → dev (`30081`) · `:8443` → ArgoCD"], ["ตรวจสุขภาพ", "#3f9a73", "ALB เรียก `/healthz` ตลอด · ==เครื่องที่ไม่ตอบ== ไม่ถูกส่งคำขอ"]]],
+    ["Load balancer", "alb", [["อะไร", "#8456ce", "**ALB** อยู่ public ครบ 3 AZ รับคำขอแล้วส่งเข้า k8s ใน **private** · `:80` → prd (NodePort `30080`) · `:8080` → dev (`30081`) · `:8443` → ArgoCD"], ["ตรวจสุขภาพ", "#7fae12", "ALB เรียก `/healthz` ตลอด · ==เครื่องที่ไม่ตอบ== ไม่ถูกส่งคำขอ"]]],
     ["คำขอ prd", "lbprd", [["เห็นอะไร", "#2563eb", "เข้าเว็บ prd 6 ครั้ง ALB ส่ง==วนทีละเครื่อง== (**round-robin**) k8s-1 → 2 → 3 → 1 …"], ["ต่อจาก FE", "#7c3aed", "FE เรียก **BE** ผ่าน Service `backend` (สุ่ม pod ทั้ง cluster จึงข้ามเครื่อง/AZ ได้) · BE ต่อ DB ผ่าน Service `galera` เลือก node ที่ว่าง"]]],
-    ["เครื่องล่ม", "health", [["เหตุการณ์", "#c0392b", "**k8s-2 ล่ม** · health check `/healthz` ไม่ผ่าน → ALB ==ตัดออกจากวง== ส่งให้ k8s-1 กับ k8s-3"], ["ผลต่อผู้ใช้", "#3f9a73", "ผู้ใช้ไม่รู้ตัว · k8s-2 กลับมา ALB ใส่กลับเอง"]]],
-    ["AZ a ล่มทั้งโซน", "azdown", [["เหตุการณ์", "#c0392b", "ตึก **AZ a ทั้งหลังดับ** · เครื่องใน AZ a หายหมด (k8s-1, db-1, dev, bastion, NAT, Jenkins, SonarQube)"], ["ที่ยังรอด ✓", "#3f9a73", "**เว็บ prd** (k8s-2, 3 ใน AZ b, c รับต่อ) · **DB** (เหลือ db-2, db-3 = เสียงข้างมาก ==2 ใน 3== ยังรับ-เขียนได้) · k3s **ยังมี etcd 2 ใน 3**"], ["ที่หาย ✗", "#c0392b", "dev, **ArgoCD** (อยู่บน k8s-1), Jenkins, SonarQube, bastion (อยู่ AZ a ตัวเดียว) · **NAT** อยู่ AZ a ➜ private ออกเน็ตไม่ได้ (pod ที่รันอยู่ปกติ แต่ดึง image ใหม่ไม่ได้) ➜ ระบบจริงใช้ NAT ต่อ AZ"]]],
-    ["คำขอ dev", "lbdev", [["เห็นอะไร", "#3f9a73", "เข้า `:8080` = **dev** ส่งไป pharmacy-dev → FE → BE → DB ชื่อ `pharmacy_dev`"], ["ทำไมแยก", "#3f9a73", "ทดสอบเวอร์ชันใหม่บน dev ==ไม่กระทบ prd== · ใช้ Galera ชุดเดียวกัน แต่คนละฐานข้อมูล"]]],
-    ["SSH ผ่าน bastion", "ssh", [["ลำดับ", "#475569", "ผู้ดูแล (หรือ **Ansible**) ต่อ SSH เข้า **bastion** ก่อน (SG รับจาก My IP) แล้วกระโดดต่อไป **private IP** ของ k8s-2 (SG ของ k8s-2 รับ SSH จาก SG ของ bastion)"], ["ทำไม", "#3f9a73", "เครื่องภายในไม่ต้องเปิด SSH ออกอินเทอร์เน็ต · ==ทางเข้าเดียว== ตรวจ/ปิดได้ที่เดียว"]]],
-    ["ออกเน็ตผ่าน NAT", "nat", [["เห็นอะไร", "#e8590c", "k8s-2 (private) ดึง image จาก **ECR** ➜ ส่งออกทาง **NAT** ➜ IGW ➜ อินเทอร์เน็ต · คำตอบกลับมาทางเดิม"], ["ข้อจำกัด", "#3f9a73", "NAT ให้แค่ ==ขาออก== · ใครจากเน็ตเริ่มต่อเข้า k8s-2 ตรงๆ ไม่ได้"]]],
-    ["ส่งมอบ CI/CD", "cicd", [["ลำดับ", "#c0392b", "① **Jenkins** build แล้ว push image ขึ้น **ECR** ② แก้ `image:` ใน manifests ③ **ArgoCD** เห็นแล้วสั่ง cluster ④ node **ดึง image** (ผ่าน NAT)"], ["ทำไม", "#3f9a73", "Git เป็นแหล่งความจริงเดียว · ย้อนเวอร์ชัน = ย้อน commit"]]]
+    ["เครื่องล่ม", "health", [["เหตุการณ์", "#c0392b", "**k8s-2 ล่ม** · health check `/healthz` ไม่ผ่าน → ALB ==ตัดออกจากวง== ส่งให้ k8s-1 กับ k8s-3"], ["ผลต่อผู้ใช้", "#7fae12", "ผู้ใช้ไม่รู้ตัว · k8s-2 กลับมา ALB ใส่กลับเอง"]]],
+    ["AZ a ล่มทั้งโซน", "azdown", [["เหตุการณ์", "#c0392b", "ตึก **AZ a ทั้งหลังดับ** · เครื่องใน AZ a หายหมด (k8s-1, db-1, dev, bastion, NAT, Jenkins, SonarQube)"], ["ที่ยังรอด ✓", "#7fae12", "**เว็บ prd** (k8s-2, 3 ใน AZ b, c รับต่อ) · **DB** (เหลือ db-2, db-3 = เสียงข้างมาก ==2 ใน 3== ยังรับ-เขียนได้) · k3s **ยังมี etcd 2 ใน 3**"], ["ที่หาย ✗", "#c0392b", "dev, **ArgoCD** (อยู่บน k8s-1), Jenkins, SonarQube, bastion (อยู่ AZ a ตัวเดียว) · **NAT** อยู่ AZ a ➜ private ออกเน็ตไม่ได้ (pod ที่รันอยู่ปกติ แต่ดึง image ใหม่ไม่ได้) ➜ ระบบจริงใช้ NAT ต่อ AZ"]]],
+    ["คำขอ dev", "lbdev", [["เห็นอะไร", "#7fae12", "เข้า `:8080` = **dev** ส่งไป pharmacy-dev → FE → BE → DB ชื่อ `pharmacy_dev`"], ["ทำไมแยก", "#7fae12", "ทดสอบเวอร์ชันใหม่บน dev ==ไม่กระทบ prd== · ใช้ Galera ชุดเดียวกัน แต่คนละฐานข้อมูล"]]],
+    ["SSH ผ่าน bastion", "ssh", [["ลำดับ", "#475569", "ผู้ดูแล (หรือ **Ansible**) ต่อ SSH เข้า **bastion** ก่อน (SG รับจาก My IP) แล้วกระโดดต่อไป **private IP** ของ k8s-2 (SG ของ k8s-2 รับ SSH จาก SG ของ bastion)"], ["ทำไม", "#7fae12", "เครื่องภายในไม่ต้องเปิด SSH ออกอินเทอร์เน็ต · ==ทางเข้าเดียว== ตรวจ/ปิดได้ที่เดียว"]]],
+    ["ออกเน็ตผ่าน NAT", "nat", [["เห็นอะไร", "#e8590c", "k8s-2 (private) ดึง image จาก **ECR** ➜ ส่งออกทาง **NAT** ➜ IGW ➜ อินเทอร์เน็ต · คำตอบกลับมาทางเดิม"], ["ข้อจำกัด", "#7fae12", "NAT ให้แค่ ==ขาออก== · ใครจากเน็ตเริ่มต่อเข้า k8s-2 ตรงๆ ไม่ได้"]]],
+    ["ส่งมอบ CI/CD", "cicd", [["ลำดับ", "#c0392b", "① **Jenkins** build แล้ว push image ขึ้น **ECR** ② แก้ `image:` ใน manifests ③ **ArgoCD** เห็นแล้วสั่ง cluster ④ node **ดึง image** (ผ่าน NAT)"], ["ทำไม", "#7fae12", "Git เป็นแหล่งความจริงเดียว · ย้อนเวอร์ชัน = ย้อน commit"]]]
   ];
   function sync() { tl.textContent = ""; SC.forEach(function (s, i) { tl.appendChild(h("span", { cls: "chip" + (i === ci ? " on" : ""), style: "cursor:default" }, [(i + 1) + ". " + s[0]])); }); }
   function say(i) { ci = i; sync(); cap.textContent = ""; cap.appendChild(h("h3", { style: "margin:4px 0 8px", text: (i + 1) + ". " + SC[i][0] })); cap.appendChild(infoCard(SC[i][2])); }
@@ -114,14 +114,14 @@ function sysAnim() {
   function reset() {
     Object.keys(layers).forEach(function (k) { show(k, false); }); hidePk(); count = {}; ci = 0;
     Object.keys(cards).forEach(function (n) { down(n, false); glow(n, false); if (cards[n].cnt) cards[n].cnt.textContent = ""; });
-    sync(); cap.textContent = ""; cap.appendChild(infoCard([["ดูอะไร", "#2563eb", "กด ==▶ เล่น== เพื่อดูทีละฉาก: **เครือข่าย 3 AZ → เครื่อง → Role → Security group → แอป → Load balancer → คำขอ → เครื่องล่ม → AZ ล่ม → dev → SSH ผ่าน bastion → NAT → CI/CD**"], ["ปรับความเร็ว", "#3f9a73", "เลือก ช้า / ปกติ / เร็ว ที่ปุ่มด้านบน · หยุดชั่วคราวได้ทุกเมื่อ"]]));
+    sync(); cap.textContent = ""; cap.appendChild(infoCard([["ดูอะไร", "#2563eb", "กด ==▶ เล่น== เพื่อดูทีละฉาก: **เครือข่าย 3 AZ → เครื่อง → Role → Security group → แอป → Load balancer → คำขอ → เครื่องล่ม → AZ ล่ม → dev → SSH ผ่าน bastion → NAT → CI/CD**"], ["ปรับความเร็ว", "#7fae12", "เลือก ช้า / ปกติ / เร็ว ที่ปุ่มด้านบน · หยุดชั่วคราวได้ทุกเมื่อ"]]));
   }
   var P = jkxPlayer(reset, function (P) {
     var st = [], prd = ["pharmacy-k8s-1", "pharmacy-k8s-2", "pharmacy-k8s-3"], dbs = ["pharmacy-db-1", "pharmacy-db-2", "pharmacy-db-3"], rr = 0, dbi = 0, J = cards["pharmacy-jenkins"];
     function scene(i, layer, wait) { st.push([wait || 900, function () { say(i); show(layer); }]); }
     function request(env, k) {
       // เลือกเครื่องตอนเล่นจริง (ไม่ใช่ตอนสร้างลำดับ) เพราะเครื่องที่ล่มเปลี่ยนไปตามฉาก
-      var c = {}, col = env === "prd" ? "#ff9900" : "#3f9a73";
+      var c = {}, col = env === "prd" ? "#ff9900" : "#7fae12";
       st.push([350, function () {
         var alive = env === "prd" ? prd.filter(function (x) { return up[x]; }) : ["pharmacy-dev"], dalive = dbs.filter(function (x) { return up[x]; });
         c.n = alive[rr % alive.length]; c.be = env === "prd" ? alive[(rr + 1) % alive.length] : c.n; c.db = dalive[dbi++ % dalive.length]; rr++;
@@ -145,7 +145,7 @@ function sysAnim() {
     st.push([700, function () { move(288, 93, "SSH จาก My IP", "#7c3aed"); }], [800, function () { move(B.cx, B.y, "bastion", "#7c3aed"); glow("pharmacy-bastion", true, "#475569"); }], [900, function () { move(K2.cx, K2.y - 4, "→ k8s-2 (private IP)", "#7c3aed"); glow("pharmacy-k8s-2", true, "#7c3aed"); }], [900, function () { hidePk(); glow("pharmacy-bastion", false); glow("pharmacy-k8s-2", false); }]);
     scene(11, [], 700); st.push([700, function () { move(K2.cx, K2.y + 40, "docker pull ECR", "#e8590c"); }], [900, function () { move(nat.cx, nat.y + 40, "NAT", "#e8590c"); }], [900, function () { move(288, 93, "IGW", "#e8590c"); }], [900, function () { move(95, 47, "ECR / เน็ต", "#e8590c"); }], [800, function () { hidePk(); }]);
     scene(12, ["cicd"], 900); st.push([1000, function () { move(J.cx, J.y + J.h, "image v1.0.0", "#c0392b"); }], [900, function () { move(615, 812, "ECR", "#c0392b"); }], [900, function () { move(435, 812, "manifests", "#c0392b"); }], [900, function () { move(cards["pharmacy-k8s-1"].pods.ArgoCD[0], cards["pharmacy-k8s-1"].pods.ArgoCD[1], "ArgoCD อ่าน manifests", "#ef7b4d"); }], [900, function () { hidePk(); }]);
-    st.push([700, function () { cap.appendChild(infoCard([["สรุป", "#3f9a73", "**เครือข่ายเดียว** แยก public/private 3 AZ · แอปและข้อมูล**ไม่มี public IP** · เข้าได้ทางเดียว: ALB (ผู้ใช้) และ bastion (ผู้ดูแล) · k8s/DB **คนละ AZ** ทน AZ ล่มได้ · **Git → Jenkins → ECR → ArgoCD** ส่งของใหม่ขึ้นย้อนกลับได้"]])); }]);
+    st.push([700, function () { cap.appendChild(infoCard([["สรุป", "#7fae12", "**เครือข่ายเดียว** แยก public/private 3 AZ · แอปและข้อมูล**ไม่มี public IP** · เข้าได้ทางเดียว: ALB (ผู้ใช้) และ bastion (ผู้ดูแล) · k8s/DB **คนละ AZ** ทน AZ ล่มได้ · **Git → Jenkins → ECR → ArgoCD** ส่งของใหม่ขึ้นย้อนกลับได้"]])); }]);
     P.start(st);
   }, "▶ เล่น: ระบบทั้งหมด");
   var wrap = h("div", {}, [h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px" }, P.ctl), tl, cap, svg]);
