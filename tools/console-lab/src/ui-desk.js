@@ -1,4 +1,4 @@
-// Laptop › Desktop: เดสก์ท็อป macOS จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
+// Laptop › Desktop: เดสก์ท็อป macOS (Tahoe / Liquid Glass) จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
 var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
 var DESK_APPS = [["term", "Terminal", ">_", "mi-term"], ["files", "Code Editor", "</>", "mi-code"]];
 function deskTitle(id) { if (id === "files") return "Code Editor — " + (ED.active ? ED.active.replace(REPO + "/", "").replace(HOME, "~") : "pharmacy-aws-lab"); return "swd — zsh — 96×28"; }
