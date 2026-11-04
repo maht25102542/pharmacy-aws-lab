@@ -1296,7 +1296,7 @@ function termRun(raw) {
   var out = []; r.lines.forEach(function (l) { out.push.apply(out, String(l).split("\n")); });
   function finish() {
     TERM.busy = null; if (r.ask) TERM.ask = r.ask;
-    if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go("files", {}, "Laptop"); return; }
+    if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go(UI.page === "desk" ? "desk" : "files", {}, "Laptop"); return; }
     save(); termDraw();
   }
   if (S.speed !== "real" || out.length < 2) { TERM.lines.push.apply(TERM.lines, out); finish(); return; }
@@ -1376,10 +1376,10 @@ PAGES["files"] = function () {
   var all = fsAll(), ks = Object.keys(all).filter(function (k) { return k.indexOf(REPO + "/") === 0 || k.indexOf(HOME + "/.") === 0; }).sort(), cur = UI.edit && all[UI.edit] !== undefined ? UI.edit : null;
   var ro = cur && (/\/\.(ssh|aws)\//.test(cur) || /terraform\.tfstate$/.test(cur));
   var TH = JKX_THEME[JKX.theme] || JKX_THEME.github, ta = h("textarea", { id: "edtxt", rows: 24, spellcheck: "false", style: "width:100%;font-family:var(--mono);font-size:.82rem;background:" + TH[1] + ";color:" + TH[2] + ";caret-color:" + TH[5] }); ta.value = cur ? all[cur] : "";
-  var list = h("div", { cls: "filelist" }, ks.map(function (k) { return h("button", { type: "button", cls: "fbtn", text: k.replace(REPO + "/", "").replace(HOME, "~"), "aria-current": String(k === cur), onclick: function () { UI.edit = k; go("files", {}, "Laptop"); } }); }));
+  var list = h("div", { cls: "filelist" }, ks.map(function (k) { return h("button", { type: "button", cls: "fbtn", text: k.replace(REPO + "/", "").replace(HOME, "~"), "aria-current": String(k === cur), onclick: function () { UI.edit = k; go(UI.page === "desk" ? "desk" : "files", {}, "Laptop"); } }); }));
   return h("div", {}, [crumbEl("Laptop › Files & editor"), h("h1", { text: "Files & editor" }), infoCard([["ทำอะไร", "#2b6cb0", "แก้ไฟล์ Terraform/Ansible ใน repo จำลอง แล้วรัน `terraform plan` ใน Terminal ==เห็นผลทันที=="], ["ข้อยกเว้น", "#a85a00", "playbook `.yml` ของ Ansible ยังรันจาก**ชุดที่ฝังตอน build** (แก้แล้วไม่มีผล)"]]),
     h("div", { cls: "filewrap" }, [list, h("div", {}, [h("p", { cls: "mono", text: cur ? cur.replace(HOME, "~") : "เลือกไฟล์ทางซ้าย" }), ta,
-      cur ? h("p", {}, [h("button", { type: "button", cls: "btn pri", text: "Save", disabled: ro, onclick: function () { fsWrite(cur, ta.value); flash("ok", "บันทึก " + cur.replace(HOME, "~") + " แล้ว"); go("files", {}, "Laptop"); } }), ro ? h("small", { text: "  ไฟล์นี้จัดการผ่านคำสั่ง (ssh-keygen / aws configure / terraform) ไม่แก้ตรง ๆ" }) : null]) : null])])]);
+      cur ? h("p", {}, [h("button", { type: "button", cls: "btn pri", text: "Save", disabled: ro, onclick: function () { fsWrite(cur, ta.value); flash("ok", "บันทึก " + cur.replace(HOME, "~") + " แล้ว"); go(UI.page === "desk" ? "desk" : "files", {}, "Laptop"); } }), ro ? h("small", { text: "  ไฟล์นี้จัดการผ่านคำสั่ง (ssh-keygen / aws configure / terraform) ไม่แก้ตรง ๆ" }) : null]) : null])])]);
 };
 
 PAGES["faults"] = function () {

@@ -1144,6 +1144,19 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div > p { flex: 1 1 auto; font-size: .86rem; line-height: 1.6; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div > p > b { font-size: .95rem; color: var(--fg); } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .scen > div > .btn { margin-left: auto; flex: none; align-self: center; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.mini { padding: 4px 10px; margin: 1px 0; gap: 8px; font-size: .8rem; font-weight: 500; color: var(--muted) !important; background: transparent !important; box-shadow: none !important; border-color: transparent !important; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.mini .ni { width: 22px; height: 22px; font-size: .75rem; border-radius: 7px; opacity: .75; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.mini:hover, :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.mini[aria-current="true"] { color: var(--fg) !important; background: var(--accent-bg) !important; }
 :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .body { grid-template-columns: 252px minmax(0, 1fr); } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button { padding: 8px 12px; min-height: 52px; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.mini { min-height: 0; } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav .grp { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); } :is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav .grp:first-child { border-top: 0; margin-top: 0; }
+.desk { position: relative; height: calc(100vh - 190px); min-height: 560px; border-radius: 16px; overflow: hidden; background: linear-gradient(135deg, #2c0a3b 0%, #7a2a63 48%, #e95420 100%); box-shadow: 0 10px 30px rgba(44,10,59,.35); color: #fff; }
+.dtop { position: absolute; z-index: 9000; left: 0; right: 0; top: 0; height: 30px; background: rgba(10,5,15,.82); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: .8rem; font-weight: 600; }
+.dact { cursor: pointer; padding: 2px 10px; border-radius: 999px; } .dact:hover { background: rgba(255,255,255,.15); } .dsys { display: flex; gap: 12px; align-items: center; } .dclk { position: absolute; left: 50%; transform: translateX(-50%); }
+.ddock { position: absolute; z-index: 8000; left: 8px; top: 40px; bottom: 10px; width: 58px; border-radius: 16px; background: rgba(20,12,28,.55); backdrop-filter: blur(6px); display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 8px 0; }
+.dapp { position: relative; width: 44px; height: 44px; border: 0; border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; font-size: 1.4rem; cursor: pointer; display: grid; place-items: center; transition: background .15s, transform .15s; } .dapp:hover { background: rgba(255,255,255,.25); transform: scale(1.08); } .dapp.run::before { content: ""; position: absolute; left: -7px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #ffb38a; } .dsp { flex: 1; }
+.dwp { position: absolute; inset: 30px 0 0 0; padding: 18px 22px; display: flex; justify-content: flex-end; align-items: flex-start; }
+.dicon { background: transparent; border: 0; color: #fff; display: flex; flex-direction: column; gap: 4px; align-items: center; font-size: .75rem; width: 96px; padding: 8px; border-radius: 10px; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,.6); } .dicon:hover { background: rgba(255,255,255,.15); } .dicon span { font-size: 2.2rem; }
+.dw { position: absolute; display: flex; flex-direction: column; min-width: 320px; min-height: 180px; background: #300a24; color: #fff; border-radius: 12px; overflow: hidden; resize: both; box-shadow: 0 14px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12); } .dw.max { inset: 30px 0 0 74px; width: auto !important; height: auto !important; border-radius: 0; resize: none; }
+.dwt { flex: none; height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 14px; background: linear-gradient(#4a3a4a, #3b2a3b); cursor: grab; user-select: none; font-size: .82rem; font-weight: 600; } .dwtt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dwb3 { display: flex; gap: 8px; } .dwb3 button { width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(255,255,255,.18); color: #fff; font-size: .8rem; line-height: 1; cursor: pointer; padding: 0; } .dwb3 button:hover { background: rgba(255,255,255,.34); } .dwb3 .x { background: #e95420; }
+.dwbody { flex: 1; min-height: 0; overflow: auto; background: var(--surface, #fff); color: var(--fg, #16191f); } .dw[data-w="term"] .dwbody { background: #1a0f1c; padding: 0; }
+.dwbody #termwrap { display: flex; flex-direction: column; height: 100%; } .dwbody #termwrap .term { flex: 1; min-height: 0 !important; max-height: none !important; border-radius: 0; } .dwbody .filewrap { padding: 10px; grid-template-columns: 230px 1fr; } .dwbody .filewrap textarea { height: calc(100% - 60px); min-height: 220px; }
+.dwbody .termbar { display: none !important; } .dwbody .termbar-x { margin: 0 !important; padding: 6px 12px !important; background: #2b1a2e !important; color: #e8dce8 !important; border: 0 !important; border-bottom: 1px solid rgba(255,255,255,.1) !important; font-size: .75rem; } .dwbody .termbar select { font-size: .75rem; padding: 1px 6px; } .dwbody .termrow { background: #1a0f1c; padding: 4px 12px 10px; }
 </style>
 
 <header class="top">
@@ -8860,7 +8873,7 @@ function termRun(raw) {
   var out = []; r.lines.forEach(function (l) { out.push.apply(out, String(l).split("\n")); });
   function finish() {
     TERM.busy = null; if (r.ask) TERM.ask = r.ask;
-    if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go("files", {}, "Laptop"); return; }
+    if (r.edit) { UI.edit = r.edit; UI.editDraft = null; go(UI.page === "desk" ? "desk" : "files", {}, "Laptop"); return; }
     save(); termDraw();
   }
   if (S.speed !== "real" || out.length < 2) { TERM.lines.push.apply(TERM.lines, out); finish(); return; }
@@ -8940,10 +8953,10 @@ PAGES["files"] = function () {
   var all = fsAll(), ks = Object.keys(all).filter(function (k) { return k.indexOf(REPO + "/") === 0 || k.indexOf(HOME + "/.") === 0; }).sort(), cur = UI.edit && all[UI.edit] !== undefined ? UI.edit : null;
   var ro = cur && (/\/\.(ssh|aws)\//.test(cur) || /terraform\.tfstate$/.test(cur));
   var TH = JKX_THEME[JKX.theme] || JKX_THEME.github, ta = h("textarea", { id: "edtxt", rows: 24, spellcheck: "false", style: "width:100%;font-family:var(--mono);font-size:.82rem;background:" + TH[1] + ";color:" + TH[2] + ";caret-color:" + TH[5] }); ta.value = cur ? all[cur] : "";
-  var list = h("div", { cls: "filelist" }, ks.map(function (k) { return h("button", { type: "button", cls: "fbtn", text: k.replace(REPO + "/", "").replace(HOME, "~"), "aria-current": String(k === cur), onclick: function () { UI.edit = k; go("files", {}, "Laptop"); } }); }));
+  var list = h("div", { cls: "filelist" }, ks.map(function (k) { return h("button", { type: "button", cls: "fbtn", text: k.replace(REPO + "/", "").replace(HOME, "~"), "aria-current": String(k === cur), onclick: function () { UI.edit = k; go(UI.page === "desk" ? "desk" : "files", {}, "Laptop"); } }); }));
   return h("div", {}, [crumbEl("Laptop › Files & editor"), h("h1", { text: "Files & editor" }), infoCard([["ทำอะไร", "#2b6cb0", "แก้ไฟล์ Terraform/Ansible ใน repo จำลอง แล้วรัน `terraform plan` ใน Terminal ==เห็นผลทันที=="], ["ข้อยกเว้น", "#a85a00", "playbook `.yml` ของ Ansible ยังรันจาก**ชุดที่ฝังตอน build** (แก้แล้วไม่มีผล)"]]),
     h("div", { cls: "filewrap" }, [list, h("div", {}, [h("p", { cls: "mono", text: cur ? cur.replace(HOME, "~") : "เลือกไฟล์ทางซ้าย" }), ta,
-      cur ? h("p", {}, [h("button", { type: "button", cls: "btn pri", text: "Save", disabled: ro, onclick: function () { fsWrite(cur, ta.value); flash("ok", "บันทึก " + cur.replace(HOME, "~") + " แล้ว"); go("files", {}, "Laptop"); } }), ro ? h("small", { text: "  ไฟล์นี้จัดการผ่านคำสั่ง (ssh-keygen / aws configure / terraform) ไม่แก้ตรง ๆ" }) : null]) : null])])]);
+      cur ? h("p", {}, [h("button", { type: "button", cls: "btn pri", text: "Save", disabled: ro, onclick: function () { fsWrite(cur, ta.value); flash("ok", "บันทึก " + cur.replace(HOME, "~") + " แล้ว"); go(UI.page === "desk" ? "desk" : "files", {}, "Laptop"); } }), ro ? h("small", { text: "  ไฟล์นี้จัดการผ่านคำสั่ง (ssh-keygen / aws configure / terraform) ไม่แก้ตรง ๆ" }) : null]) : null])])]);
 };
 
 PAGES["faults"] = function () {
@@ -15446,5 +15459,42 @@ function pvDb() {
 function pvGrid(cols, rows, onSort, sort, dir) {
   return h("div", { cls: "dbscroll" }, [h("table", { cls: "dbgrid" }, [h("thead", {}, [h("tr", {}, cols.map(function (c) { return h("th", { cls: onSort ? "srt" : "", onclick: onSort ? function () { onSort(c); } : null }, [c, sort === c ? (dir > 0 ? " ▲" : " ▼") : ""]); }))]), h("tbody", {}, rows.map(function (r) { return h("tr", {}, r.map(function (v) { return h("td", { cls: v === null ? "null" : typeof v === "number" ? "num" : "", title: v === null ? "" : String(v), text: v === null ? "NULL" : String(v) }); })); }).concat(rows.length ? [] : [h("tr", {}, [h("td", { colSpan: cols.length, cls: "empty", text: "Empty set" })])]))])]);
 }
+
+// Laptop › Desktop: เดสก์ท็อป Ubuntu จำลอง — หน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้ ใช้ Terminal กับ Files & editor เดิมเป็นแอปในหน้าต่าง
+var DESK = { z: 11, wins: { term: { open: true, min: false, max: false, x: 90, y: 56, w: 660, h: 420, z: 11 }, files: { open: false, min: false, max: false, x: 150, y: 110, w: 800, h: 470, z: 10 } } };
+var DESK_APPS = [["term", "Terminal", "⌨️"], ["files", "Files & editor", "📁"]];
+function deskTitle(id) { if (id === "files") return "Files & editor — " + (UI.edit ? UI.edit.replace(HOME, "~") : "pharmacy-aws-lab"); return (typeof termPrompt === "function" ? termPrompt() : "ubuntu@laptop:~$").replace(/[$#] ?$/, "").replace(/\s+$/, ""); }
+function deskBody(id) {
+  var el = PAGES[id](); [].slice.call(el.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1,.ic,.card")) el.removeChild(c); }); return el;
+}
+function deskOpen(id) { var w = DESK.wins[id]; w.open = true; w.min = false; w.z = ++DESK.z; render(); }
+function deskDock(id) { var w = DESK.wins[id]; if (w.open && !w.min && w.z === DESK.z) { w.min = true; } else { w.open = true; w.min = false; w.z = ++DESK.z; } render(); }
+function deskClock() { var d = new Date(), D = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."], M = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]; return D[d.getDay()] + " " + d.getDate() + " " + M[d.getMonth()] + "  " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+setInterval(function () { var c = document.getElementById("deskclock"); if (c) c.textContent = deskClock(); }, 15000);
+PAGES["desk"] = function () {
+  var desk = h("div", { cls: "desk", id: "desk" }), top = h("div", { cls: "dtop" }, [h("span", { cls: "dact", text: "Activities", onclick: function () { deskOpen("term"); } }), h("span", { id: "deskclock", cls: "dclk", text: deskClock() }), h("span", { cls: "dsys", title: "เครือข่าย · เสียง · แบตเตอรี่ (จำลอง)" }, ["📶", "🔊", "🔋 87%", h("b", { text: "ubuntu ▾" })])]);
+  var dock = h("div", { cls: "ddock" }, DESK_APPS.map(function (a) { var w = DESK.wins[a[0]]; return h("button", { type: "button", cls: "dapp" + (w.open ? " run" : ""), title: a[1], onclick: function () { deskDock(a[0]); } }, [h("span", { text: a[2] })]); }).concat([h("button", { type: "button", cls: "dapp", title: "Browser (เปิดแท็บ Browser)", onclick: function () { go("browser", {}, "Browser"); } }, [h("span", { text: "🌐" })]), h("span", { cls: "dsp" }), h("button", { type: "button", cls: "dapp", title: "Show Applications (จำลอง)", onclick: function () { flash("info", "แอปที่มีในเครื่องนี้: Terminal, Files & editor, Browser"); } }, [h("span", { text: "⋮⋮⋮" })])]));
+  var ico = h("button", { type: "button", cls: "dicon", ondblclick: function () { deskOpen("files"); }, onclick: function () { deskOpen("files"); }, title: "เปิด pharmacy-aws-lab" }, [h("span", { text: "📁" }), "pharmacy-aws-lab"]);
+  var wp = h("div", { cls: "dwp" }, [ico]);
+  desk.appendChild(top); desk.appendChild(dock); desk.appendChild(wp);
+  DESK_APPS.forEach(function (a) {
+    var id = a[0], w = DESK.wins[id]; if (!w.open || w.min) return;
+    var win = h("div", { cls: "dw" + (w.max ? " max" : ""), "data-w": id, style: w.max ? "z-index:" + w.z : "left:" + w.x + "px;top:" + w.y + "px;width:" + w.w + "px;height:" + w.h + "px;z-index:" + w.z });
+    var tb = h("div", { cls: "dwt" }, [h("span", { cls: "dwtt", text: a[2] + " " + deskTitle(id) }), h("span", { cls: "dwb3" }, [h("button", { type: "button", title: "ย่อ", text: "–", onclick: function (e) { e.stopPropagation(); w.min = true; render(); } }), h("button", { type: "button", title: "ขยาย", text: w.max ? "❐" : "□", onclick: function (e) { e.stopPropagation(); w.max = !w.max; render(); } }), h("button", { type: "button", cls: "x", title: "ปิด", text: "×", onclick: function (e) { e.stopPropagation(); w.open = false; render(); } })])]);
+    tb.addEventListener("dblclick", function () { w.max = !w.max; render(); });
+    tb.addEventListener("pointerdown", function (e) {
+      if (e.target.closest("button") || w.max) return; var sx = e.clientX, sy = e.clientY, ox = w.x, oy = w.y, bx = desk.clientWidth, by = desk.clientHeight; tb.setPointerCapture(e.pointerId); w.z = ++DESK.z; win.style.zIndex = w.z;
+      function mv(ev) { w.x = Math.max(-w.w + 90, Math.min(bx - 90, ox + ev.clientX - sx)); w.y = Math.max(32, Math.min(by - 40, oy + ev.clientY - sy)); win.style.left = w.x + "px"; win.style.top = w.y + "px"; }
+      function up() { tb.removeEventListener("pointermove", mv); tb.removeEventListener("pointerup", up); }
+      tb.addEventListener("pointermove", mv); tb.addEventListener("pointerup", up);
+    });
+    win.addEventListener("pointerdown", function () { if (w.z !== DESK.z) { w.z = ++DESK.z; win.style.zIndex = w.z; } });
+    win.appendChild(tb); win.appendChild(h("div", { cls: "dwbody" }, [deskBody(id)])); desk.appendChild(win);
+    if (!w.max && window.ResizeObserver) { var first = true; new ResizeObserver(function () { if (first) { first = false; return; } w.w = win.offsetWidth; w.h = win.offsetHeight; }).observe(win); }
+  });
+  setTimeout(function () { var i = document.getElementById("terminp"); if (i) i.focus(); }, 30);
+  return h("div", {}, [desk]);
+};
+NAV.Laptop[0][1].unshift(["desk", "Desktop"]); NAVICO.desk = "🖥️"; NAVHOME.Laptop = "desk";
 
 </script>
