@@ -8,7 +8,7 @@ function dmInfo(t) { return function () { flash("info", t); }; }
 function dmExec(cmd) { document.execCommand(cmd); }
 function dmNewTerm() { if (DESK.wins.files.open && !DESK.wins.files.min) { ED.termOpen = true; DESK.wins.term.open = false; } else dmOpen("term"); }
 function dmGoDir(p) { return function () { FD.path = p; dmOpen("finder"); }; }
-function dmWin() { return [["Minimize", "⌘M", dmMin], ["Zoom", "", dmZoom], "-", ["Finder", "", function () { dmOpen("finder"); }], ["Terminal", "", function () { dmOpen("term"); }], ["Code", "", function () { dmOpen("files"); }], ["Google Chrome", "", function () { dmOpen("chrome"); }], ["Safari", "", function () { dmOpen("safari"); }]]; }
+function dmWin() { return [["Minimize", "⌘M", dmMin], ["Zoom", "", dmZoom], "-", ["Finder", "", function () { dmOpen("finder"); }], ["Terminal", "", function () { dmOpen("term"); }], ["Code", "", function () { dmOpen("files"); }], ["Google Chrome", "", function () { dmOpen("chrome"); }], ["Safari", "", function () { dmOpen("safari"); }], ["Lab", "", function () { dmOpen("lab"); }]]; }
 function dmEdit() { return [["Undo", "⌘Z", function () { dmExec("undo"); }], ["Redo", "⇧⌘Z", function () { dmExec("redo"); }], "-", ["Cut", "⌘X", function () { dmExec("cut"); }], ["Copy", "⌘C", function () { dmExec("copy"); }], ["Paste", "⌘V", null], ["Select All", "⌘A", function () { dmExec("selectAll"); }]]; }
 function dmHelp(app) { return [["Search", "", null], "-", [app + " Help", "", dmInfo("Help ไม่ได้จำลอง")]]; }
 function deskMenus(app) {
@@ -34,6 +34,8 @@ function deskMenus(app) {
     [ch ? "History" : "History", [["Back", "⌘[", function () { if (whCan(-1)) whGo(-1); }], ["Forward", "⌘]", function () { if (whCan(1)) whGo(1); }]]],
     ["Bookmarks", [["Add Bookmark…", "⌘D", dmInfo("Bookmark ไม่ได้จำลอง")]]],
     ["Window", dmWin()], ["Help", dmHelp(app)]]; }
+  if (app === "Lab") return [["Lab", [["About Lab", "", dmInfo("Lab (จำลอง) — ศูนย์รวม use case / Terraform / Ansible / Jenkins")], "-", ["Quit Lab", "⌘Q", quit]]],
+    ["File", [["Close Window", "⌘W", dmClose]]], ["Edit", dmEdit()], ["Window", dmWin()], ["Help", dmHelp("Lab")]];
   return [["Finder", [["About Finder", "", dmInfo("Finder (จำลอง)")], "-", ["Settings…", "⌘,", dmInfo("Settings ไม่ได้จำลอง")], "-", ["Empty Trash…", "⇧⌘⌫", dmInfo("ถังขยะว่างเปล่า")]]],
     ["File", [["New Finder Window", "⌘N", function () { FD.path = REPO; dmOpen("finder"); }], "-", ["Close Window", "⌘W", dmClose]]],
     ["Edit", dmEdit()],

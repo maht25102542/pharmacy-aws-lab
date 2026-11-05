@@ -42,7 +42,7 @@ UI = { svc: "VPC", page: "vpc-dash", params: {}, sel: {}, filter: {}, pg: {}, dt
 
 function navHas(svc, page) { return NAV[svc].some(function (g) { return g[1].some(function (p) { return p[0] === page; }); }); }
 function go(page, params, svc) {
-  if (typeof awsInterceptGo === "function" && awsInterceptGo(page, svc)) { awsGo(page, params, svc); return; }
+  if (typeof awsInterceptGo === "function" && awsInterceptGo(page, svc, params)) return;
   UI.page = page; UI.params = params || {}; UI.form = null; UI.menu = false;
   if (page !== "ak-retrieve") { UI.secrets = {}; UI.showSecret = false; }
   if (svc) UI.svc = svc; else if (!navHas(UI.svc, page)) { for (var s in NAV) if (navHas(s, page)) { UI.svc = s; break; } }
@@ -72,7 +72,7 @@ function crumbEl(text) {
 
 function render() {
   if (typeof PV !== "undefined" && PV) pvSync();
-  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.page === "desk" && typeof AC !== "undefined" && AC.on ? AC.svc : UI.svc); document.body.classList.toggle("deskfull", UI.page === "desk" && typeof DESK !== "undefined" && !!DESK.full);
+  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.page === "desk" && typeof DESK !== "undefined" && DESK.bsvc ? DESK.bsvc : UI.svc); document.body.classList.toggle("deskfull", UI.page === "desk" && typeof DESK !== "undefined" && !!DESK.full);
   document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal"; document.getElementById("speedsel").value = S.speed || "instant";
   var sv = document.getElementById("svc"); sv.textContent = "";
   var aws = !!SVC_ICO[UI.svc]; if (aws) sv.appendChild(h("button", { type: "button", cls: "cur-svc", "aria-current": "true", title: "บริการที่เปิดอยู่ (เปลี่ยนที่เมนู Services)", onclick: function () { go(NAVHOME[UI.svc], {}, UI.svc); } }, [awsIco(SVC_ICO[UI.svc], 18), SVC_NAME[UI.svc] || UI.svc]));

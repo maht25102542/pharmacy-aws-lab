@@ -26,7 +26,7 @@ function browserStart(kind) {
   return h("div", { cls: "bdstart safari" }, [h("h3", { text: "Favorites" }), bdTiles("safari"), h("h3", { text: "Privacy Report" }), h("div", { cls: "bdpriv", text: "🛡️  Safari ป้องกันตัวติดตามให้คุณ (จำลอง)" })]);
 }
 function browserApp(kind) {
-  var isAws = !!(W.res && W.res.site === "awsconsole"); AC.on = isAws; if (UI.page === "desk") document.body.setAttribute("data-svc", isAws ? AC.svc : UI.svc); var pg = isAws ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : W.res ? kids[kids.length - 1] : browserStart(kind);
+  var isAws = !!(W.res && W.res.site === "awsconsole"); AC.on = isAws; if (isAws) DESK.bsvc = AC.svc; var pg = isAws ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : W.res ? kids[kids.length - 1] : browserStart(kind);
   var https = /^https:/i.test(W.addr || ""), host = (/^https?:\/\/([^\/]+)/i.exec(W.addr || "") || [0, ""])[1];
   var can = function (d) { return typeof whCan === "function" && whCan(d); };
   var dl = h("datalist", { id: "bdurls" }, bdUrls().map(function (u) { return h("option", { value: u }); }));

@@ -16,13 +16,6 @@ function awsGo(page, params, svc) {
   if (svc) AC.svc = svc; else if (!navHas(AC.svc, page)) { awsSvcs().some(function (s) { if (navHas(s, page)) { AC.svc = s; return true; } return false; }); }
   AC.page = page; AC.params = params || {}; UI.form = null; AC.menu = false; W.acs = AC.svc; W.acp = AC.page; W.addr = awsUrl(); render();
 }
-// go() ที่เรียกจากหน้า AWS ที่ฝังอยู่ ให้ไปเปลี่ยนหน้าในหน้าต่าง ไม่พาออกจาก Desktop
-function awsInterceptGo(page, svc) {
-  if (!(AC.on && UI.page === "desk")) return false;
-  if (svc && !/^(Laptop|Browser|Lab)$/.test(svc) === false) return false;
-  if (!svc) { var found = null; for (var s in NAV) if (navHas(s, page)) { found = s; break; } if (found && /^(Laptop|Browser|Lab)$/.test(found)) return false; if (!found && !PAGES[page]) return false; } /* หน้าย่อยที่ไม่อยู่ในเมนู (เช่น vpc-create) ถือเป็นหน้าของบริการที่เปิดอยู่ */
-  return true;
-}
 function awsEmbed() {
   if (W.acs && (W.acs !== AC.svc || W.acp !== AC.page)) { AC.svc = W.acs; AC.page = W.acp || AC.page; AC.params = {}; } // ย้อน/ไปข้างหน้า (whGo คืนค่า W.acs/acp)
   var sv = UI.svc, pg = UI.page, pa = UI.params, main;
