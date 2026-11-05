@@ -7,12 +7,13 @@ function bdUrls() {
   return urls.filter(function (u, i, a) { return a.indexOf(u) === i; });
 }
 function bdTitle(w) {
-  w = w || W; var r = w.res; if (!r) return "New Tab"; if (r.site === "azportal") return "Microsoft Azure"; if (r.site === "awsconsole") return ((SVC_NAME[w.acs] || w.acs || "EC2") + " Management Console"); if (r.site === "google") return r.q ? r.q + " - Google Search" : "Google"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
+  w = w || W; var r = w.res; if (!r) return "New Tab"; if (r.site === "azweb") return (/<title>([^<]*)/i.exec((azWebFetch(w.addr) || {}).body || "") || [0, "Static website"])[1]; if (r.site === "azportal") return "Microsoft Azure"; if (r.site === "awsconsole") return ((SVC_NAME[w.acs] || w.acs || "EC2") + " Management Console"); if (r.site === "google") return r.q ? r.q + " - Google Search" : "Google"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
   return { jenkins: "Dashboard [Jenkins]", sonarqube: "SonarQube", argocd: "Argo CD", app: "pharmacy", github: "GitHub", cf: (r.host || "CloudFront"), apigw: "pharmacy-api", compose: "pharmacy", aprun: "pharmacy" }[r.site] || (r.host || w.addr);
 }
 // URL พิเศษที่เบราว์เซอร์บน Desktop จัดการเอง: AWS console + Google (หน้าแรก/ผลค้นหาจำลอง)
 function bdSpecial(u) {
   u = String(u || ""); if (typeof isAwsUrl === "function" && isAwsUrl(u)) return { site: "awsconsole" };
+  if (/^https?:\/\/[a-z0-9]+\.z23\.web\.core\.windows\.net/i.test(u)) return { site: "azweb" };
   if (/^https?:\/\/portal\.azure\.com/i.test(u)) { if (!W.azp) W.azp = "home"; return { site: "azportal" }; }
   var m = /^https?:\/\/(www\.)?google\.(com|co\.th)(\/[^?#]*)?(\?[^#]*)?/i.exec(u); if (m) { var q = /[?&]q=([^&#]*)/.exec(m[4] || ""); return { site: "google", q: q ? decodeURIComponent(q[1].replace(/\+/g, " ")) : "" }; }
   return null;
@@ -70,7 +71,7 @@ function btNew() { btSave(); BT.tabs.push({ id: ++BT.seq, w: null, h: null }); B
 function btSwitch(i) { if (i === BT.cur) return; btSave(); BT.cur = i; btLoad(BT.tabs[i]); render(); }
 function btClose(i) { if (BT.tabs.length === 1) { BT.tabs[0] = { id: ++BT.seq, w: null, h: null }; BT.cur = 0; btLoad(BT.tabs[0]); render(); return; } if (i === BT.cur) { BT.tabs.splice(i, 1); BT.cur = Math.min(i, BT.tabs.length - 1); btLoad(BT.tabs[BT.cur]); } else { btSave(); BT.tabs.splice(i, 1); if (i < BT.cur) BT.cur--; } render(); }
 function browserApp(kind) {
-  var isAws = !!(W.res && W.res.site === "awsconsole"), isG = !!(W.res && W.res.site === "google"), isAz = !!(W.res && W.res.site === "azportal"); AC.on = isAws; if (isAws) DESK.bsvc = AC.svc; var pg = isAws || isG || isAz ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : isAz ? azurePortal() : isG ? googleView() : W.res ? kids[kids.length - 1] : browserStart(kind);
+  var isAws = !!(W.res && W.res.site === "awsconsole"), isG = !!(W.res && W.res.site === "google"), isAz = !!(W.res && W.res.site === "azportal"), isWeb = !!(W.res && W.res.site === "azweb"); AC.on = isAws; if (isAws) DESK.bsvc = AC.svc; var pg = isAws || isG || isAz || isWeb ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : isAz ? azurePortal() : isWeb ? azWebView() : isG ? googleView() : W.res ? kids[kids.length - 1] : browserStart(kind);
   var https = /^https:/i.test(W.addr || ""), host = (/^https?:\/\/([^\/]+)/i.exec(W.addr || "") || [0, ""])[1];
   var can = function (d) { return typeof whCan === "function" && whCan(d); };
   var dl = h("datalist", { id: "bdurls" }, bdUrls().map(function (u) { return h("option", { value: u }); }));
