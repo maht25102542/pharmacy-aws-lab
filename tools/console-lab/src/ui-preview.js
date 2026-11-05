@@ -1,7 +1,7 @@
 // ===== หน้า Preview เว็บ (Lab › Preview เว็บ): ดูหน้าตาของแต่ละเว็บเหมือนของจริง มีบัญชีให้ล็อกอิน + ข้อมูลตัวอย่างเยอะ · ไม่ผูกกับ use case =====
 // ใช้ state แยกต่างหาก (PV.s) สลับเข้า S เฉพาะตอนอยู่หน้านี้ (pvSync เรียกต้น render) → ไม่ยุ่งกับ lab ที่กำลังทำ และไม่ถูกบันทึกลง session
 var PV = { on: false, real: null, realW: null, s: null, w: null, err: "", tab: "gh", openFor: "", D: null, fe: { page: "dash", mp: 1, mvp: 1, q: "", cat: "", low: false, err: "", modal: null }, sw: { tok: "", open: {}, out: {}, auth: false }, db: { t: "stock_medicine", p: 1, sort: "", dir: 1, f: "", mode: "browse", sql: "", sqlOut: null } };
-var PV_TABS = [["gh", "GitHub"], ["jk", "Jenkins"], ["sq", "SonarQube"], ["ag", "Argo CD"], ["fe", "Pharmacy Web (FE)"], ["be", "Pharmacy API (BE · Swagger)"], ["db", "Pharmacy DB (ตารางข้อมูล)"]];
+var PV_TABS = [["gh", "GitHub"], ["jk", "Jenkins"], ["sq", "SonarQube"], ["ag", "Argo CD"], ["fe", "Pharmacy Web (FE)"], ["az", "Azure Portal"], ["be", "Pharmacy API (BE · Swagger)"], ["db", "Pharmacy DB (ตารางข้อมูล)"]];
 // ช่องกรอกทุกช่องในหน้า Preview: dropdown ตัวอย่าง + เลือก “ไม่ระบุ” แล้วพิมพ์เองได้ (ใช้ exPick เดียวกับทั้งตัวจำลอง) · ค่าเก็บใน object st[key]
 function pvEx(label, st, key, ex, ph, type, area, onSet, bare) { var pick = exPick(ex.map(function (x) { return typeof x === "string" ? [x, x] : x; }), function () { return st[key]; }, function (v) { st[key] = v; if (onSet) onSet(v); }, st, "_c" + key, ph || "", label, area, type); return bare ? pick : h("label", {}, [label, pick]); }
 var PV_USERS_EX = ["admin", "somsri", "manee", "prasert", "wichai", "napa"], PV_PW_STAFF = "Pharmacy-Staff-2026!", PV_PW_ADMIN = "Pharmacy-Admin-2026!", PV_PW_NEW = ["Str0ng-Passw0rd!", "Clerk-Passw0rd-2026", "Another-Passw0rd-77"];
@@ -17,6 +17,7 @@ function pvBuildCi() {
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["backend", "frontend"].forEach(function (svc) { try { jkSelect("pharmacy-" + svc); jkNew({ TARGET_ENV: "dev", VERSION: tg, ACTION: "build-and-deploy", AUTO_SYNC: true, CHANGE_NOTE: "release " + tg }); } catch (e) {} }); });
     Object.keys(S.argo.apps).forEach(function (n) { try { argoSyncApp(n); } catch (e) {} });
     try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh(GH_ACCT.user); pvSeedGh2(GH_ACCT.user); } catch (e) { PV.err = "seed: " + (e && e.message); }
+    try { var ask = function (c, a) { var r = shRun(c); a = (a || []).slice(); while (r.ask) r = r.ask.done(a.shift()); }; ask("az login"); ask("cd " + REPO + "/terraform-azure"); ask("terraform init"); ask("terraform apply", [AZ_SUB, "198.51.100.7/32", "yes"]); S.azSess = false; } catch (e) { PV.err = "azure: " + (e && e.message); }
     S.jk.login = ""; S.sq.login = false; S.argo.login = false; S.gh.session = null; S.laptop.cwd = REPO;
     PV.s = S;
   } catch (e) { PV.err = String(e && e.message); PV.s = S; }
@@ -49,7 +50,8 @@ PAGES["lab-preview"] = function () {
     wrap.appendChild(h("div", { cls: "pvinfo" }, [h("div", { cls: "pvia" }, [row("URL", A[0]), row("ผู้ใช้", A[1]), row("รหัสผ่าน", A[2])]), h("div", { cls: "pvib" }, [h("div", { cls: "hint", text: A[3] }), h("div", { style: "display:flex;gap:8px;margin-top:8px;flex-wrap:wrap" }, [h("button", { type: "button", cls: "btn pri sm", text: "ล็อกอินให้เลย", onclick: function () { A[4](); PV.openFor = ""; W.page = ""; render(); } }), reset])])]));
     if (PV.openFor !== T) { PV.openFor = T; W.addr = pvUrl(T) + (T === "gh" && !S.gh.session ? "login" : ""); W.res = webOpen(W.addr); W.page = ""; }
     var bp = PAGES.browser(); if (bp.children.length > 2) { bp.removeChild(bp.children[0]); bp.removeChild(bp.children[0]); } wrap.appendChild(bp);
-  } else if (T === "fe") { wrap.appendChild(pvFeInfo(reset)); wrap.appendChild(pvFe()); }
+  } else if (T === "az") { wrap.appendChild(pvInfoBox([["URL", "https://portal.azure.com/"], ["ผู้ใช้", AZ_ACCT.user], ["รหัสผ่าน", AZ_ACCT.pw + "  (ตัวจำลองไม่ตรวจรหัส)"]], "terraform-azure/ apply แล้ว: VM ×10 (zone 1-3), VNet, NSG ×2, Load balancer, ACR, NAT gateway, Public IP", [h("button", { type: "button", cls: "btn pri sm", text: "ล็อกอินให้เลย", onclick: function () { S.azSess = true; W.azp = "home"; render(); } }), reset])); if (!W.azp) W.azp = "home"; wrap.appendChild(h("div", { cls: "pvaz" }, [azurePortal()])); }
+  else if (T === "fe") { wrap.appendChild(pvFeInfo(reset)); wrap.appendChild(pvFe()); }
   else if (T === "be") { wrap.appendChild(pvBeInfo(reset)); wrap.appendChild(pvSwagger()); }
   else { wrap.appendChild(pvDbInfo(reset)); wrap.appendChild(pvDb()); }
   return wrap;

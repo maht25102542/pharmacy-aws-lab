@@ -1,6 +1,6 @@
 // ---- Azure Portal จำลอง (portal.azure.com) ใน Chrome/Safari บน Desktop: อ่านจาก S.az ที่ terraform-azure/ สร้าง
 // หน้า = W.azp (home | all | list:<kind> | res) · resource ที่เลือก = W.azs (ID) · ค้นหา = W.azq · เก็บใน W เพื่อให้ปุ่ม Back/Forward ใช้ได้
-var AZ_HOST = "portal.azure.com";
+var AZ_HOST = "portal.azure.com", AZ_ACCT = { user: "maht25102542@lab.onmicrosoft.com", pw: "Lab-2026!" };
 var AZ_NAV = [["home", "Home", ""], ["rgs", "Resource groups", "rg"], ["all", "All resources", ""], ["list:vm", "Virtual machines", "vm"], ["list:vnet", "Virtual networks", "vnet"], ["list:nsg", "Network security groups", "nsg"], ["list:lb", "Load balancers", "lb"], ["list:pip", "Public IP addresses", "pip"], ["list:nat", "NAT gateways", "nat"], ["list:acr", "Container registries", "acr"], ["list:nic", "Network interfaces", "nic"], ["list:asg", "Application security groups", "asg"]];
 function azpGo(page, sel) { W.azp = page; W.azs = sel || ""; W.azq = ""; W.addr = "https://" + AZ_HOST + "/#" + (sel ? "@" + AZ_TENANT + "/resource" + sel : page === "home" ? "home" : "browse/" + page); W.res = { site: "azportal" }; render(); }
 function azpKind(r) { return (AZ_KINDS[r.kind] || {}).label || r.kind; }
@@ -47,7 +47,13 @@ function azpMain() {
   var bar = pg === "res" || pg === "home" ? null : h("div", { cls: "azcmd" }, [h("button", { type: "button", cls: "azbtn", text: "+ Create", onclick: function () { flash("สร้างด้วย Terraform: terraform-azure/ (az login → terraform apply) ตัวจำลองยังไม่มีฟอร์ม Create ใน Portal"); } }), h("button", { type: "button", cls: "azbtn", text: "↻ Refresh", onclick: function () { render(); } }), h("input", { cls: "azflt", type: "text", placeholder: "Filter for any field...", value: W.azq || "", oninput: function (e) { W.azq = e.target.value; var pos = e.target.selectionStart; render(); var el = document.querySelector(".azflt"); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } })]);
   return h("div", { cls: "azmain" }, [h("div", { cls: "azttl" }, [h("h2", { text: ttl }), sub ? h("span", { cls: "azsub", text: sub }) : null].filter(Boolean)), bar].filter(Boolean).concat(kids));
 }
+// หน้า Sign in (ไม่ตรวจรหัส) · ล็อกอินแล้วจำใน S.azSess
+function azpSignin() {
+  var u = h("input", { type: "text", value: AZ_ACCT.user, spellcheck: "false", cls: "azin" }), pw = h("input", { type: "password", value: AZ_ACCT.pw, cls: "azin" }), go = function () { S.azSess = true; render(); };
+  return h("div", { cls: "azsign" }, [h("div", { cls: "azcard" }, [h("div", { cls: "azlogo2", text: "Microsoft" }), h("h2", { text: "Sign in" }), u, pw, h("div", { cls: "azhint", text: "บัญชีตัวอย่าง " + AZ_ACCT.user + " · รหัส " + AZ_ACCT.pw + " (ตัวจำลองไม่ตรวจ)" }), h("button", { type: "button", cls: "azbtn pri", text: "Sign in", onclick: go })])]);
+}
 function azurePortal() {
+  if (!S.azSess) return azpSignin();
   var pg = W.azp || "home", cur = pg === "res" ? "" : pg;
   var nav = h("nav", { cls: "aznav" }, AZ_NAV.map(function (n) { return h("a", { href: "#", cls: "aznl" + (cur === n[0] ? " on" : ""), text: n[1], onclick: function (e) { e.preventDefault(); azpGo(n[0]); } }); }));
   var s = h("input", { cls: "azsearch", type: "text", placeholder: "Search resources, services, and docs (G+/)", onkeydown: function (e) { if (e.key === "Enter") { W.azq = e.target.value; azpGo("all"); W.azq = e.target.value; render(); } } });

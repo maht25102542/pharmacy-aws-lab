@@ -1600,6 +1600,12 @@ body.deskfull { overflow: hidden; }
 .aztiles{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px}.aztile{display:flex;flex-direction:column;align-items:center;gap:6px;width:112px;padding:10px 6px;background:#fff;border:1px solid transparent;border-radius:3px;cursor:pointer;font:inherit}.aztile:hover{background:#f3f2f1}
 .azti{width:34px;height:34px;border-radius:6px;background:#0078d4;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
 .azhint{background:#eff6fc;border-left:3px solid #0078d4;padding:8px 12px;margin:4px 0}
+.azsign{height:100%;display:flex;align-items:center;justify-content:center;background:#f2f2f2}
+.azcard{width:360px;background:#fff;padding:32px 40px;box-shadow:0 2px 6px #0003;display:flex;flex-direction:column;gap:12px}
+.azcard h2{margin:0;font-size:22px;font-weight:600}.azlogo2{font-weight:600;color:#505050}
+.azin{border:0;border-bottom:1px solid #666;padding:6px 2px;font:inherit;outline:none}
+.azbtn.pri{background:#0067b8;color:#fff;border-color:#0067b8;align-self:flex-end;padding:6px 28px}
+.pvaz{height:560px;border:1px solid #d0d0d0;border-radius:6px;overflow:hidden}
 </style>
 
 <header class="top">
@@ -15974,7 +15980,7 @@ function pvPurchModal(M) {
 // ===== หน้า Preview เว็บ (Lab › Preview เว็บ): ดูหน้าตาของแต่ละเว็บเหมือนของจริง มีบัญชีให้ล็อกอิน + ข้อมูลตัวอย่างเยอะ · ไม่ผูกกับ use case =====
 // ใช้ state แยกต่างหาก (PV.s) สลับเข้า S เฉพาะตอนอยู่หน้านี้ (pvSync เรียกต้น render) → ไม่ยุ่งกับ lab ที่กำลังทำ และไม่ถูกบันทึกลง session
 var PV = { on: false, real: null, realW: null, s: null, w: null, err: "", tab: "gh", openFor: "", D: null, fe: { page: "dash", mp: 1, mvp: 1, q: "", cat: "", low: false, err: "", modal: null }, sw: { tok: "", open: {}, out: {}, auth: false }, db: { t: "stock_medicine", p: 1, sort: "", dir: 1, f: "", mode: "browse", sql: "", sqlOut: null } };
-var PV_TABS = [["gh", "GitHub"], ["jk", "Jenkins"], ["sq", "SonarQube"], ["ag", "Argo CD"], ["fe", "Pharmacy Web (FE)"], ["be", "Pharmacy API (BE · Swagger)"], ["db", "Pharmacy DB (ตารางข้อมูล)"]];
+var PV_TABS = [["gh", "GitHub"], ["jk", "Jenkins"], ["sq", "SonarQube"], ["ag", "Argo CD"], ["fe", "Pharmacy Web (FE)"], ["az", "Azure Portal"], ["be", "Pharmacy API (BE · Swagger)"], ["db", "Pharmacy DB (ตารางข้อมูล)"]];
 // ช่องกรอกทุกช่องในหน้า Preview: dropdown ตัวอย่าง + เลือก “ไม่ระบุ” แล้วพิมพ์เองได้ (ใช้ exPick เดียวกับทั้งตัวจำลอง) · ค่าเก็บใน object st[key]
 function pvEx(label, st, key, ex, ph, type, area, onSet, bare) { var pick = exPick(ex.map(function (x) { return typeof x === "string" ? [x, x] : x; }), function () { return st[key]; }, function (v) { st[key] = v; if (onSet) onSet(v); }, st, "_c" + key, ph || "", label, area, type); return bare ? pick : h("label", {}, [label, pick]); }
 var PV_USERS_EX = ["admin", "somsri", "manee", "prasert", "wichai", "napa"], PV_PW_STAFF = "Pharmacy-Staff-2026!", PV_PW_ADMIN = "Pharmacy-Admin-2026!", PV_PW_NEW = ["Str0ng-Passw0rd!", "Clerk-Passw0rd-2026", "Another-Passw0rd-77"];
@@ -15990,6 +15996,7 @@ function pvBuildCi() {
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["backend", "frontend"].forEach(function (svc) { try { jkSelect("pharmacy-" + svc); jkNew({ TARGET_ENV: "dev", VERSION: tg, ACTION: "build-and-deploy", AUTO_SYNC: true, CHANGE_NOTE: "release " + tg }); } catch (e) {} }); });
     Object.keys(S.argo.apps).forEach(function (n) { try { argoSyncApp(n); } catch (e) {} });
     try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh(GH_ACCT.user); pvSeedGh2(GH_ACCT.user); } catch (e) { PV.err = "seed: " + (e && e.message); }
+    try { var ask = function (c, a) { var r = shRun(c); a = (a || []).slice(); while (r.ask) r = r.ask.done(a.shift()); }; ask("az login"); ask("cd " + REPO + "/terraform-azure"); ask("terraform init"); ask("terraform apply", [AZ_SUB, "198.51.100.7/32", "yes"]); S.azSess = false; } catch (e) { PV.err = "azure: " + (e && e.message); }
     S.jk.login = ""; S.sq.login = false; S.argo.login = false; S.gh.session = null; S.laptop.cwd = REPO;
     PV.s = S;
   } catch (e) { PV.err = String(e && e.message); PV.s = S; }
@@ -16022,7 +16029,8 @@ PAGES["lab-preview"] = function () {
     wrap.appendChild(h("div", { cls: "pvinfo" }, [h("div", { cls: "pvia" }, [row("URL", A[0]), row("ผู้ใช้", A[1]), row("รหัสผ่าน", A[2])]), h("div", { cls: "pvib" }, [h("div", { cls: "hint", text: A[3] }), h("div", { style: "display:flex;gap:8px;margin-top:8px;flex-wrap:wrap" }, [h("button", { type: "button", cls: "btn pri sm", text: "ล็อกอินให้เลย", onclick: function () { A[4](); PV.openFor = ""; W.page = ""; render(); } }), reset])])]));
     if (PV.openFor !== T) { PV.openFor = T; W.addr = pvUrl(T) + (T === "gh" && !S.gh.session ? "login" : ""); W.res = webOpen(W.addr); W.page = ""; }
     var bp = PAGES.browser(); if (bp.children.length > 2) { bp.removeChild(bp.children[0]); bp.removeChild(bp.children[0]); } wrap.appendChild(bp);
-  } else if (T === "fe") { wrap.appendChild(pvFeInfo(reset)); wrap.appendChild(pvFe()); }
+  } else if (T === "az") { wrap.appendChild(pvInfoBox([["URL", "https://portal.azure.com/"], ["ผู้ใช้", AZ_ACCT.user], ["รหัสผ่าน", AZ_ACCT.pw + "  (ตัวจำลองไม่ตรวจรหัส)"]], "terraform-azure/ apply แล้ว: VM ×10 (zone 1-3), VNet, NSG ×2, Load balancer, ACR, NAT gateway, Public IP", [h("button", { type: "button", cls: "btn pri sm", text: "ล็อกอินให้เลย", onclick: function () { S.azSess = true; W.azp = "home"; render(); } }), reset])); if (!W.azp) W.azp = "home"; wrap.appendChild(h("div", { cls: "pvaz" }, [azurePortal()])); }
+  else if (T === "fe") { wrap.appendChild(pvFeInfo(reset)); wrap.appendChild(pvFe()); }
   else if (T === "be") { wrap.appendChild(pvBeInfo(reset)); wrap.appendChild(pvSwagger()); }
   else { wrap.appendChild(pvDbInfo(reset)); wrap.appendChild(pvDb()); }
   return wrap;
@@ -16577,7 +16585,7 @@ document.addEventListener("click", function (e) { if (e.target.closest && e.targ
 
 // ---- Azure Portal จำลอง (portal.azure.com) ใน Chrome/Safari บน Desktop: อ่านจาก S.az ที่ terraform-azure/ สร้าง
 // หน้า = W.azp (home | all | list:<kind> | res) · resource ที่เลือก = W.azs (ID) · ค้นหา = W.azq · เก็บใน W เพื่อให้ปุ่ม Back/Forward ใช้ได้
-var AZ_HOST = "portal.azure.com";
+var AZ_HOST = "portal.azure.com", AZ_ACCT = { user: "maht25102542@lab.onmicrosoft.com", pw: "Lab-2026!" };
 var AZ_NAV = [["home", "Home", ""], ["rgs", "Resource groups", "rg"], ["all", "All resources", ""], ["list:vm", "Virtual machines", "vm"], ["list:vnet", "Virtual networks", "vnet"], ["list:nsg", "Network security groups", "nsg"], ["list:lb", "Load balancers", "lb"], ["list:pip", "Public IP addresses", "pip"], ["list:nat", "NAT gateways", "nat"], ["list:acr", "Container registries", "acr"], ["list:nic", "Network interfaces", "nic"], ["list:asg", "Application security groups", "asg"]];
 function azpGo(page, sel) { W.azp = page; W.azs = sel || ""; W.azq = ""; W.addr = "https://" + AZ_HOST + "/#" + (sel ? "@" + AZ_TENANT + "/resource" + sel : page === "home" ? "home" : "browse/" + page); W.res = { site: "azportal" }; render(); }
 function azpKind(r) { return (AZ_KINDS[r.kind] || {}).label || r.kind; }
@@ -16624,7 +16632,13 @@ function azpMain() {
   var bar = pg === "res" || pg === "home" ? null : h("div", { cls: "azcmd" }, [h("button", { type: "button", cls: "azbtn", text: "+ Create", onclick: function () { flash("สร้างด้วย Terraform: terraform-azure/ (az login → terraform apply) ตัวจำลองยังไม่มีฟอร์ม Create ใน Portal"); } }), h("button", { type: "button", cls: "azbtn", text: "↻ Refresh", onclick: function () { render(); } }), h("input", { cls: "azflt", type: "text", placeholder: "Filter for any field...", value: W.azq || "", oninput: function (e) { W.azq = e.target.value; var pos = e.target.selectionStart; render(); var el = document.querySelector(".azflt"); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } })]);
   return h("div", { cls: "azmain" }, [h("div", { cls: "azttl" }, [h("h2", { text: ttl }), sub ? h("span", { cls: "azsub", text: sub }) : null].filter(Boolean)), bar].filter(Boolean).concat(kids));
 }
+// หน้า Sign in (ไม่ตรวจรหัส) · ล็อกอินแล้วจำใน S.azSess
+function azpSignin() {
+  var u = h("input", { type: "text", value: AZ_ACCT.user, spellcheck: "false", cls: "azin" }), pw = h("input", { type: "password", value: AZ_ACCT.pw, cls: "azin" }), go = function () { S.azSess = true; render(); };
+  return h("div", { cls: "azsign" }, [h("div", { cls: "azcard" }, [h("div", { cls: "azlogo2", text: "Microsoft" }), h("h2", { text: "Sign in" }), u, pw, h("div", { cls: "azhint", text: "บัญชีตัวอย่าง " + AZ_ACCT.user + " · รหัส " + AZ_ACCT.pw + " (ตัวจำลองไม่ตรวจ)" }), h("button", { type: "button", cls: "azbtn pri", text: "Sign in", onclick: go })])]);
+}
 function azurePortal() {
+  if (!S.azSess) return azpSignin();
   var pg = W.azp || "home", cur = pg === "res" ? "" : pg;
   var nav = h("nav", { cls: "aznav" }, AZ_NAV.map(function (n) { return h("a", { href: "#", cls: "aznl" + (cur === n[0] ? " on" : ""), text: n[1], onclick: function (e) { e.preventDefault(); azpGo(n[0]); } }); }));
   var s = h("input", { cls: "azsearch", type: "text", placeholder: "Search resources, services, and docs (G+/)", onkeydown: function (e) { if (e.key === "Enter") { W.azq = e.target.value; azpGo("all"); W.azq = e.target.value; render(); } } });
