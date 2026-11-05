@@ -7299,6 +7299,8 @@ function jkCheckoutFail(b, jb, lines) { b.log.push.apply(b.log, lines.concat(["[
 // ===== GitHub + git จำลอง (ไม่มี DOM): repo-backend / repo-frontend / repo-manifests บน laptop → push → GitHub =====
 // ponytail: ไม่จำลอง auth ของ GitHub (ข้ามการถาม username/token) และไม่มี branch อื่นนอกจาก main
 var GH_DIRS = { "repo-backend": "pharmacy-backend", "repo-frontend": "pharmacy-frontend", "repo-manifests": "pharmacy-manifests" };
+// บัญชี GitHub ตัวอย่างของตัวจำลอง (email = noreply ของ GitHub; ไม่ใช้อีเมลจริง เพราะหน้าเว็บถูกแชร์ได้)
+var GH_ACCT = { user: "maht25102542", email: "maht25102542@users.noreply.github.com", pw: "Pharmacy-Lab-2026!" };
 function ghUser() { return ansVars().github_user || "YOUR_GITHUB_USER"; }
 function ghDirName(cwd) { var m = /\/(repo-backend|repo-frontend|repo-manifests)(\/|$)/.exec(cwd); return m ? m[1] : null; }
 function ghSnapshot(dirName) { var base = REPO + "/" + dirName + "/", all = fsAll(), o = {}; Object.keys(all).forEach(function (k) { if (k.indexOf(base) === 0) o[k.slice(base.length)] = all[k]; }); return o; }
@@ -14169,7 +14171,7 @@ function ghFooterLinks() { return h("footer", { cls: "gx-ft" }, ["Terms", "Priva
 
 // ---- หน้า /login (ข้อความ/ปุ่ม/ลำดับตามหน้าจริง)
 function wbGhLogin(returnTo, notice) {
-  var G = W.gl = W.gl || { u: "", p: "", err: "" };
+  var G = W.gl = W.gl || { u: GH_ACCT.user, p: GH_ACCT.pw, err: "" };
   var input = function (id, type, key, extra) { return h("input", Object.assign({ type: type, id: id, cls: "gx-in", autocomplete: type === "password" ? "current-password" : "username", value: G[key], oninput: function (e) { G[key] = e.target.value; }, onkeydown: function (e) { if (e.key === "Enter") { e.preventDefault(); sub(); } } }, extra || {})); };
   var sub = function () {
     var u = (document.getElementById("login_field") || {}).value || "", p = (document.getElementById("password") || {}).value || ""; G.u = u; G.p = p;
@@ -14187,6 +14189,7 @@ function wbGhLogin(returnTo, notice) {
       h("div", { cls: "gx-prow" }, [h("label", { for: "password", text: "Password" }), h("a", { href: "#", cls: "gx-lnk", text: "Forgot password?", onclick: function (e) { e.preventDefault(); } })]), input("password", "password", "p"),
       h("button", { type: "button", cls: "gx-green", text: "Sign in", onclick: sub })
     ]),
+    h("p", { cls: "gx-new", style: "font-size:12px;color:#59636e", text: "บัญชีตัวอย่างของตัวจำลอง: " + GH_ACCT.user + " · " + GH_ACCT.email + " · รหัส " + GH_ACCT.pw }),
     h("div", { cls: "gx-or" }, [h("span", { text: "or" })]),
     h("button", { type: "button", cls: "gx-alt" }, [h("span", { cls: "gx-g", text: "G" }), "Continue with Google"]),
     h("button", { type: "button", cls: "gx-alt" }, [ghSvg("M11.2 8.5c0-1.6 1.3-2.4 1.4-2.4-.8-1.1-1.9-1.3-2.3-1.3-1-.1-1.9.6-2.4.6s-1.3-.6-2.1-.5c-1.1 0-2.1.6-2.6 1.6-1.1 1.9-.3 4.8.8 6.4.5.8 1.2 1.6 2 1.6.8 0 1.1-.5 2.1-.5s1.3.5 2.1.5 1.4-.8 1.9-1.5c.6-.9.8-1.7.9-1.8-.1 0-1.8-.7-1.8-2.6zM9.6 3.6c.4-.5.7-1.2.6-1.9-.6 0-1.4.4-1.8.9-.4.4-.7 1.1-.6 1.8.7.1 1.4-.3 1.8-.8z", 16), "Continue with Apple"]),
@@ -15691,14 +15694,14 @@ function pvD() { if (!PV.D) { try { var j = sessionStorage.getItem("pvD"), o = j
 function pvBuildCi() {
   var realS = S, realW = W; PV.err = "";
   try {
-    buildReady("demo-pharmacy");
+    buildReady(GH_ACCT.user);
     var run = function (c) { return shRun(c); };
     readyPushCmds().forEach(run);
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["repo-backend", "repo-frontend"].forEach(function (d) { run("cd " + REPO + "/" + d); run("git tag " + tg); run("git push origin " + tg); }); });
     readyBuild("dev"); readyBuild("prd");
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["backend", "frontend"].forEach(function (svc) { try { jkSelect("pharmacy-" + svc); jkNew({ TARGET_ENV: "dev", VERSION: tg, ACTION: "build-and-deploy", AUTO_SYNC: true, CHANGE_NOTE: "release " + tg }); } catch (e) {} }); });
     Object.keys(S.argo.apps).forEach(function (n) { try { argoSyncApp(n); } catch (e) {} });
-    try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh("demo-pharmacy"); pvSeedGh2("demo-pharmacy"); } catch (e) { PV.err = "seed: " + (e && e.message); }
+    try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh(GH_ACCT.user); pvSeedGh2(GH_ACCT.user); } catch (e) { PV.err = "seed: " + (e && e.message); }
     S.jk.login = ""; S.sq.login = false; S.argo.login = false; S.gh.session = null; S.laptop.cwd = REPO;
     PV.s = S;
   } catch (e) { PV.err = String(e && e.message); PV.s = S; }
@@ -15712,7 +15715,7 @@ function pvSync() {
 function pvIp(name) { var i = S.insts.filter(function (x) { return x.name === name; })[0]; return i ? i.publicIp : "203.0.113.10"; }
 function pvUrl(t) { return t === "jk" ? "http://" + pvIp("pharmacy-jenkins") + ":8080" : t === "sq" ? "http://" + pvIp("pharmacy-sonarqube") + ":9000" : t === "ag" ? String((S.tf.outputs && S.tf.outputs.argocd_url) || "") : "https://github.com/"; }
 function pvAcct(t) {
-  var A = { gh: ["https://github.com/login", "ใช้ชื่ออะไรก็ได้ เช่น demo-pharmacy", "รหัสผ่านอะไรก็ได้ (ตัวจำลองไม่ตรวจ)", "มี repo pharmacy-backend / frontend / manifests พร้อมไฟล์จริง, tag v1.0.0–v1.2.0, README, Settings (Environments, Webhooks, tokens)", function () { S.gh.session = { user: "demo-pharmacy" }; }],
+  var A = { gh: ["https://github.com/login", GH_ACCT.user + "  ·  อีเมล " + GH_ACCT.email, GH_ACCT.pw + "  (ตัวจำลองไม่ตรวจรหัส — พิมพ์อะไรก็ได้)", "มี repo pharmacy-backend / frontend / manifests พร้อมไฟล์จริง, tag v1.0.0–v1.2.0, README, Settings (Environments, Webhooks, tokens)", function () { S.gh.session = { user: GH_ACCT.user }; }],
     jk: [pvUrl("jk"), "admin", "Pharmacy-Lab-2026!", "job pharmacy-backend / pharmacy-frontend มี build หลายรอบ (dev, prd, v1.0.0–v1.2.0) พร้อม Stage View และ console log", function () { S.jk.login = "admin"; }],
     sq: [pvUrl("sq"), "admin", "Pharmacy-Lab-2026!", "โปรเจกต์ที่ scan แล้วจาก Jenkins พร้อม Quality gate, token ชื่อ jenkins", function () { S.sq.login = true; S.sq.pwdChanged = true; }],
     ag: [pvUrl("ag"), "admin", argoInst() ? argoPwdOf(argoInst()) : "-", "4 แอป (backend/frontend × dev/prd) sync แล้ว มี resource tree", function () { S.argo.login = true; }] };

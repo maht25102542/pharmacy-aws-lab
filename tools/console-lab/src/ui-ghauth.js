@@ -52,7 +52,7 @@ function ghFooterLinks() { return h("footer", { cls: "gx-ft" }, ["Terms", "Priva
 
 // ---- หน้า /login (ข้อความ/ปุ่ม/ลำดับตามหน้าจริง)
 function wbGhLogin(returnTo, notice) {
-  var G = W.gl = W.gl || { u: "", p: "", err: "" };
+  var G = W.gl = W.gl || { u: GH_ACCT.user, p: GH_ACCT.pw, err: "" };
   var input = function (id, type, key, extra) { return h("input", Object.assign({ type: type, id: id, cls: "gx-in", autocomplete: type === "password" ? "current-password" : "username", value: G[key], oninput: function (e) { G[key] = e.target.value; }, onkeydown: function (e) { if (e.key === "Enter") { e.preventDefault(); sub(); } } }, extra || {})); };
   var sub = function () {
     var u = (document.getElementById("login_field") || {}).value || "", p = (document.getElementById("password") || {}).value || ""; G.u = u; G.p = p;
@@ -70,6 +70,7 @@ function wbGhLogin(returnTo, notice) {
       h("div", { cls: "gx-prow" }, [h("label", { for: "password", text: "Password" }), h("a", { href: "#", cls: "gx-lnk", text: "Forgot password?", onclick: function (e) { e.preventDefault(); } })]), input("password", "password", "p"),
       h("button", { type: "button", cls: "gx-green", text: "Sign in", onclick: sub })
     ]),
+    h("p", { cls: "gx-new", style: "font-size:12px;color:#59636e", text: "บัญชีตัวอย่างของตัวจำลอง: " + GH_ACCT.user + " · " + GH_ACCT.email + " · รหัส " + GH_ACCT.pw }),
     h("div", { cls: "gx-or" }, [h("span", { text: "or" })]),
     h("button", { type: "button", cls: "gx-alt" }, [h("span", { cls: "gx-g", text: "G" }), "Continue with Google"]),
     h("button", { type: "button", cls: "gx-alt" }, [ghSvg("M11.2 8.5c0-1.6 1.3-2.4 1.4-2.4-.8-1.1-1.9-1.3-2.3-1.3-1-.1-1.9.6-2.4.6s-1.3-.6-2.1-.5c-1.1 0-2.1.6-2.6 1.6-1.1 1.9-.3 4.8.8 6.4.5.8 1.2 1.6 2 1.6.8 0 1.1-.5 2.1-.5s1.3.5 2.1.5 1.4-.8 1.9-1.5c.6-.9.8-1.7.9-1.8-.1 0-1.8-.7-1.8-2.6zM9.6 3.6c.4-.5.7-1.2.6-1.9-.6 0-1.4.4-1.8.9-.4.4-.7 1.1-.6 1.8.7.1 1.4-.3 1.8-.8z", 16), "Continue with Apple"]),

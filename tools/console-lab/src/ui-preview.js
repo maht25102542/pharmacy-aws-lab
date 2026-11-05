@@ -9,14 +9,14 @@ function pvD() { if (!PV.D) { try { var j = sessionStorage.getItem("pvD"), o = j
 function pvBuildCi() {
   var realS = S, realW = W; PV.err = "";
   try {
-    buildReady("demo-pharmacy");
+    buildReady(GH_ACCT.user);
     var run = function (c) { return shRun(c); };
     readyPushCmds().forEach(run);
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["repo-backend", "repo-frontend"].forEach(function (d) { run("cd " + REPO + "/" + d); run("git tag " + tg); run("git push origin " + tg); }); });
     readyBuild("dev"); readyBuild("prd");
     ["v1.1.0", "v1.2.0"].forEach(function (tg) { ["backend", "frontend"].forEach(function (svc) { try { jkSelect("pharmacy-" + svc); jkNew({ TARGET_ENV: "dev", VERSION: tg, ACTION: "build-and-deploy", AUTO_SYNC: true, CHANGE_NOTE: "release " + tg }); } catch (e) {} }); });
     Object.keys(S.argo.apps).forEach(function (n) { try { argoSyncApp(n); } catch (e) {} });
-    try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh("demo-pharmacy"); pvSeedGh2("demo-pharmacy"); } catch (e) { PV.err = "seed: " + (e && e.message); }
+    try { jkPlugins().push({ id: "blueocean", name: "Blue Ocean", ver: "1.27.15", en: true }); } catch (e) {} try { pvSeedGh(GH_ACCT.user); pvSeedGh2(GH_ACCT.user); } catch (e) { PV.err = "seed: " + (e && e.message); }
     S.jk.login = ""; S.sq.login = false; S.argo.login = false; S.gh.session = null; S.laptop.cwd = REPO;
     PV.s = S;
   } catch (e) { PV.err = String(e && e.message); PV.s = S; }
@@ -30,7 +30,7 @@ function pvSync() {
 function pvIp(name) { var i = S.insts.filter(function (x) { return x.name === name; })[0]; return i ? i.publicIp : "203.0.113.10"; }
 function pvUrl(t) { return t === "jk" ? "http://" + pvIp("pharmacy-jenkins") + ":8080" : t === "sq" ? "http://" + pvIp("pharmacy-sonarqube") + ":9000" : t === "ag" ? String((S.tf.outputs && S.tf.outputs.argocd_url) || "") : "https://github.com/"; }
 function pvAcct(t) {
-  var A = { gh: ["https://github.com/login", "ใช้ชื่ออะไรก็ได้ เช่น demo-pharmacy", "รหัสผ่านอะไรก็ได้ (ตัวจำลองไม่ตรวจ)", "มี repo pharmacy-backend / frontend / manifests พร้อมไฟล์จริง, tag v1.0.0–v1.2.0, README, Settings (Environments, Webhooks, tokens)", function () { S.gh.session = { user: "demo-pharmacy" }; }],
+  var A = { gh: ["https://github.com/login", GH_ACCT.user + "  ·  อีเมล " + GH_ACCT.email, GH_ACCT.pw + "  (ตัวจำลองไม่ตรวจรหัส — พิมพ์อะไรก็ได้)", "มี repo pharmacy-backend / frontend / manifests พร้อมไฟล์จริง, tag v1.0.0–v1.2.0, README, Settings (Environments, Webhooks, tokens)", function () { S.gh.session = { user: GH_ACCT.user }; }],
     jk: [pvUrl("jk"), "admin", "Pharmacy-Lab-2026!", "job pharmacy-backend / pharmacy-frontend มี build หลายรอบ (dev, prd, v1.0.0–v1.2.0) พร้อม Stage View และ console log", function () { S.jk.login = "admin"; }],
     sq: [pvUrl("sq"), "admin", "Pharmacy-Lab-2026!", "โปรเจกต์ที่ scan แล้วจาก Jenkins พร้อม Quality gate, token ชื่อ jenkins", function () { S.sq.login = true; S.sq.pwdChanged = true; }],
     ag: [pvUrl("ag"), "admin", argoInst() ? argoPwdOf(argoInst()) : "-", "4 แอป (backend/frontend × dev/prd) sync แล้ว มี resource tree", function () { S.argo.login = true; }] };
