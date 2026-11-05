@@ -18,7 +18,7 @@ function settingsApp() {
   });
   var cur = ST_PANES.filter(function (p) { return p[0] === ST.pane; })[0] || ST_PANES[0];
   main.appendChild(h("h2", { text: cur[1] }));
-  if (cur[0] === "general") main.appendChild(h("div", { cls: "stgrp" }, [stRow("ความเร็วของตัวจำลอง", "เสร็จทันที = ผลออกเลย · เวลาเหมือนจริง = รอตามเวลา AWS จริง (เช่น สร้าง NAT ~ 1 นาที)", stSeg("speedsel", stOpts("speedsel")))]));
+  if (cur[0] === "general") main.appendChild(h("div", { cls: "stgrp" }, [stRow("ความเร็วของตัวจำลอง", "เสร็จทันที = ผลออกเลย · เวลาเหมือนจริง = รอตามเวลา AWS/Azure จริง (เช่น AWS: สร้าง NAT ~ 1 นาที · Azure: สร้าง VM ~ 50 วิ, Start/Stop VM ~ 30-40 วิ, หน้า Deployment in progress)", stSeg("speedsel", stOpts("speedsel")))]));
   if (cur[0] === "appearance") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Appearance", "โหมดสว่าง/มืด ของทั้งหน้า", stSeg("theme", stOpts("theme"))), stRow("สีธีม", "ชุดสีของหน้า Lab (ค่าเริ่มต้น: ผสม พื้นชานม)", stSel("pal"))]));
   if (cur[0] === "reset") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Reset ข้อมูลตัวจำลอง", "ล้าง VPC/EC2/ฯลฯ ที่สร้างไว้ทั้งหมด กลับเป็นบัญชีใหม่ที่มีแค่ default VPC (ไม่แตะไฟล์ที่คุณแก้)", h("button", { type: "button", cls: "stbtn", text: "Reset…", onclick: settingsReset }))]));
   if (cur[0] === "preview") {

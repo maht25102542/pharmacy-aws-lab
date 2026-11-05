@@ -242,3 +242,17 @@ tfReadData = function (node, env, attrs) {
   if (node.type === "azurerm_client_config") return { subscription_id: AZ_SUB, tenant_id: AZ_TENANT, client_id: "04b07795-8ddb-461a-bbee-02f9e1bf7b46", object_id: azGuid(), id: "clientConfigs/clientId=04b07795;objectId=0;subscriptionId=" + AZ_SUB + ";tenantId=" + AZ_TENANT };
   return tfReadDataAws(node, env, attrs);
 };
+
+// ---- เวลา: โหมด "เวลาเหมือนจริง" (S.speed === "real") resource ใหม่จะ Creating ก่อนแล้วค่อย Succeeded · โหมด "เสร็จทันที" ข้ามทั้งหมด ----
+var AZ_DUR_MS = { rg: 3000, vnet: 8000, subnet: 4000, pip: 8000, nat: 25000, asg: 3000, nsg: 8000, nic: 8000, vm: 50000, acr: 25000, lb: 15000 }; // ponytail: ระยะเวลาจากความจำ ไม่ใช่ค่าที่ยืนยัน
+var AZ_TF_SECS = { azurerm_resource_group: 3, azurerm_virtual_network: 8, azurerm_subnet: 4, azurerm_public_ip: 8, azurerm_nat_gateway: 25, azurerm_application_security_group: 3, azurerm_network_security_group: 8, azurerm_network_interface: 8, azurerm_linux_virtual_machine: 50, azurerm_container_registry: 25, azurerm_lb: 15 };
+var tfCreateSecsAws = tfCreateSecs;
+tfCreateSecs = function (type, attrs) { return /^azurerm_/.test(type) ? (AZ_TF_SECS[type] || 0) : tfCreateSecsAws(type, attrs); };
+function azProvState(r) { return S.speed === "real" && r.born && Date.now() - r.born < (AZ_DUR_MS[r.kind] || 0) ? "Creating" : "Succeeded"; }
+var AZ_VM_TRANS = { start: ["Starting", 30000], restart: ["Restarting", 35000], stop: ["Stopping", 40000] };
+function azVmStatus(r) {
+  var p = r.p; if (azProvState(r) === "Creating") return "Creating";
+  if (p.trans) { if (Date.now() >= p.trans.until) { p.state = p.trans.to; p.trans = null; } else return p.trans.label; }
+  return p.state;
+}
+function azBusy() { return azList().some(function (r) { return azProvState(r) === "Creating" || (r.kind === "vm" && r.p.trans && Date.now() < r.p.trans.until); }); }

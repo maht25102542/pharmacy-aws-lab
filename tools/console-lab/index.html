@@ -1754,6 +1754,10 @@ body.deskfull { overflow: hidden; }
 .azrl{display:flex;align-items:center;gap:8px;margin:8px 0}.azcsd{width:560px}
 body .azportal select.azsel,body .azportal .azfc select,body .azdlg select{background-color:#fff!important;background-image:none!important;border:1px solid #8a8886!important;border-radius:2px!important;box-shadow:none!important;appearance:auto!important}
 .azfld.v .azfc,.azdlg .azfc{width:100%}
+.azdot.wait{background:#0078d4;animation:azp 1s infinite}@keyframes azp{50%{opacity:.3}}
+.azspin{animation:azr 1s linear infinite}@keyframes azr{to{transform:rotate(360deg)}}
+.azdpl{display:flex;gap:14px;align-items:center;padding:14px 4px;margin:6px 0}.azdpt{font-size:18px;font-weight:600}
+.azbtn.dis,.azbtn:disabled{opacity:.5;cursor:default}
 </style>
 
 <header class="top">
@@ -7293,6 +7297,20 @@ tfReadData = function (node, env, attrs) {
   if (node.type === "azurerm_client_config") return { subscription_id: AZ_SUB, tenant_id: AZ_TENANT, client_id: "04b07795-8ddb-461a-bbee-02f9e1bf7b46", object_id: azGuid(), id: "clientConfigs/clientId=04b07795;objectId=0;subscriptionId=" + AZ_SUB + ";tenantId=" + AZ_TENANT };
   return tfReadDataAws(node, env, attrs);
 };
+
+// ---- เวลา: โหมด "เวลาเหมือนจริง" (S.speed === "real") resource ใหม่จะ Creating ก่อนแล้วค่อย Succeeded · โหมด "เสร็จทันที" ข้ามทั้งหมด ----
+var AZ_DUR_MS = { rg: 3000, vnet: 8000, subnet: 4000, pip: 8000, nat: 25000, asg: 3000, nsg: 8000, nic: 8000, vm: 50000, acr: 25000, lb: 15000 }; // ponytail: ระยะเวลาจากความจำ ไม่ใช่ค่าที่ยืนยัน
+var AZ_TF_SECS = { azurerm_resource_group: 3, azurerm_virtual_network: 8, azurerm_subnet: 4, azurerm_public_ip: 8, azurerm_nat_gateway: 25, azurerm_application_security_group: 3, azurerm_network_security_group: 8, azurerm_network_interface: 8, azurerm_linux_virtual_machine: 50, azurerm_container_registry: 25, azurerm_lb: 15 };
+var tfCreateSecsAws = tfCreateSecs;
+tfCreateSecs = function (type, attrs) { return /^azurerm_/.test(type) ? (AZ_TF_SECS[type] || 0) : tfCreateSecsAws(type, attrs); };
+function azProvState(r) { return S.speed === "real" && r.born && Date.now() - r.born < (AZ_DUR_MS[r.kind] || 0) ? "Creating" : "Succeeded"; }
+var AZ_VM_TRANS = { start: ["Starting", 30000], restart: ["Restarting", 35000], stop: ["Stopping", 40000] };
+function azVmStatus(r) {
+  var p = r.p; if (azProvState(r) === "Creating") return "Creating";
+  if (p.trans) { if (Date.now() >= p.trans.until) { p.state = p.trans.to; p.trans = null; } else return p.trans.label; }
+  return p.state;
+}
+function azBusy() { return azList().some(function (r) { return azProvState(r) === "Creating" || (r.kind === "vm" && r.p.trans && Date.now() < r.p.trans.until); }); }
 
 // ---- mod/60-timing.js
 // ===== โหมด "เวลาเหมือนจริง": คำนวณหน่วงเวลาต่อบรรทัดของ output (ไม่มี DOM) =====
@@ -16780,13 +16798,14 @@ function azModalEl() {
   return h("div", { cls: "azov" + (m.side ? " side" : "") }, [h("div", { cls: "azdlg" }, [h("div", { cls: "azdh" }, [m.side ? azIco("nsg", 30) : null, h("div", { cls: "azdt" }, [h("b", { text: m.title }), m.sub ? h("div", { cls: "azmut", text: m.sub }) : null].filter(Boolean))].filter(Boolean).concat([h("span", { cls: "azx azxx", html: azSvg("close", 14), onclick: close })])), h("div", { cls: "azdb" }, [err].filter(Boolean).concat(m.body())), h("div", { cls: "azdf" }, [m.ok ? h("button", { type: "button", cls: "azbtn pri", text: m.ok, onclick: function () { var e = m.onok(); if (e) { m.err = e; render(); } else { AZM = null; render(); } } }) : null, h("button", { type: "button", cls: "azbtn", text: m.ok ? "Cancel" : "Close", onclick: close })].filter(Boolean))])]);
 }
 function azVmOp(r, op) {
-  var p = r.p, up = { start: "Running", restart: "Running", stop: "Stopped (deallocated)" }[op], verb = { start: "Started", restart: "Restarted", stop: "Stopped" }[op];
-  if (op !== "start" && p.state !== "Running") return; if (op === "start" && p.state === "Running") return;
+  var p = r.p, st = azVmStatus(r), up = { start: "Running", restart: "Running", stop: "Stopped (deallocated)" }[op], verb = { start: "Started", restart: "Restarted", stop: "Stopped" }[op];
+  if (op === "start" ? st !== "Stopped (deallocated)" && st !== "Stopped" : st !== "Running") return;
+  if (S.speed === "real") { var t = AZ_VM_TRANS[op]; p.trans = { to: up, label: t[0], until: Date.now() + t[1] }; azNote(t[0] + " virtual machine " + r.name + "..."); flash("info", t[0] + " " + r.name + "..."); render(); return; }
   p.state = up; azNote(verb + " virtual machine " + r.name); flash("ok", verb + " " + r.name); render();
 }
 function azVmConnect(r) {
   var nic = azByRef(r.p.nic) || { p: {} }, pip = azByRef(nic.p.pip), bast = azOfKind("pip").filter(function (x) { return /bastion/.test(x.name); })[0];
-  azModal("Connect to " + r.name, function () { return [h("p", { text: "Native SSH · " + (pip ? "Public IP " + pip.p.ip : "VM นี้ไม่มี public IP: เข้าผ่าน bastion") }), h("code", { cls: "azid", text: pip ? "ssh ubuntu@" + pip.p.ip : "ssh -J ubuntu@" + (bast ? bast.p.ip : "<bastion-ip>") + " ubuntu@" + nic.p.ip }), h("p", { cls: "azmut", text: r.p.state === "Running" ? "VM กำลัง Running" : "VM ไม่ได้ Running (กด Start ก่อน)" })]; });
+  azModal("Connect to " + r.name, function () { return [h("p", { text: "Native SSH · " + (pip ? "Public IP " + pip.p.ip : "VM นี้ไม่มี public IP: เข้าผ่าน bastion") }), h("code", { cls: "azid", text: pip ? "ssh ubuntu@" + pip.p.ip : "ssh -J ubuntu@" + (bast ? bast.p.ip : "<bastion-ip>") + " ubuntu@" + nic.p.ip }), h("p", { cls: "azmut", text: azVmStatus(r) === "Running" ? "VM กำลัง Running" : "VM ไม่ได้ Running (กด Start ก่อน)" })]; });
 }
 function azConfirmDelete(r) { azModal("Delete " + azpKind(r).toLowerCase() + "?", function () { return [h("p", { text: "Are you sure you want to delete '" + r.name + "'?" }), r.kind === "rg" ? h("p", { cls: "azmut", text: "ทุก resource ในกลุ่มจะถูกลบด้วย" }) : null].filter(Boolean); }, "Delete", function () { azDel("", r.kind, r.id); azNote("Deleted " + azpKind(r).toLowerCase() + " " + r.name); azpGo(r.kind === "rg" ? "rgs" : "list:" + r.kind); flash("ok", "ลบ " + r.name + " แล้ว · ถ้ามาจาก Terraform ให้ terraform plan จะเห็นว่าต้องสร้างใหม่"); return ""; }); }
 function azAddRule(nsg) {
@@ -16892,15 +16911,16 @@ function azpResPage() {
   });
   var bsearch = h("div", { cls: "azbs" }, [h("div", { cls: "azbsb" }, [h("span", { cls: "azbic", html: azSvg("search", 14) }), h("input", { type: "text", placeholder: "Search", spellcheck: "false", value: W.azbq || "", oninput: function (e) { W.azbq = e.target.value; var p = e.target.selectionStart; azKeep(render); var el = document.querySelector(".azbsb input"); if (el) { el.focus(); el.setSelectionRange(p, p); } } })]), h("span", { cls: "azbsi", html: azSvg("chev", 12) }), h("span", { cls: "azbsi", html: azSvg("dbl", 14) })]);
   var cmd = [["Delete", function () { azConfirmDelete(r); }, "del"], ["Refresh", function () { render(); }, "refresh"], ["Feedback", null, "smile"]];
-  if (r.kind === "vm") { var up = p.state === "Running"; cmd = [["Connect", function () { azVmConnect(r); }, "connect", 1], ["Start", up ? null : function () { azVmOp(r, "start"); }, "start"], ["Restart", up ? function () { azVmOp(r, "restart"); } : null, "restart"], ["Stop", up ? function () { azVmOp(r, "stop"); } : null, "stop"], ["Hibernate", null, "stop"], ["Capture", null, "view", 1], ["Delete", function () { azConfirmDelete(r); }, "del"], ["Refresh", function () { render(); }, "refresh"], ["Open in mobile", null, "view"], ["Feedback", null, "smile"], ["CLI / PS", null, "shell"]]; }
+  if (r.kind === "vm") { var vst = azVmStatus(r), up = vst === "Running", dn = vst === "Stopped (deallocated)" || vst === "Stopped"; cmd = [["Connect", function () { azVmConnect(r); }, "connect", 1], ["Start", dn ? function () { azVmOp(r, "start"); } : null, "start"], ["Restart", up ? function () { azVmOp(r, "restart"); } : null, "restart"], ["Stop", up ? function () { azVmOp(r, "stop"); } : null, "stop"], ["Hibernate", null, "stop"], ["Capture", null, "view", 1], ["Delete", function () { azConfirmDelete(r); }, "del"], ["Refresh", function () { render(); }, "refresh"], ["Open in mobile", null, "view"], ["Feedback", null, "smile"], ["CLI / PS", null, "shell"]]; }
   var ess = [["Resource group", rgo ? h("span", {}, [azpLink(rgo.id, r.rg)]) : "—"], ["Location", r.loc], ["Subscription", h("a", { href: "#", cls: "azl", text: "Azure subscription 1", onclick: function (e) { e.preventDefault(); } })], ["Subscription ID", AZ_SUB], ["Tags (edit)", azpTags(r)]];
-  if (r.kind === "vm") { var nic = azByRef(p.nic) || { p: {} }, pip = azByRef(nic.p.pip); ess = [["Resource group", ess[0][1]], ["Status", h("span", {}, [h("span", { cls: "azdot" }), " " + p.state])], ["Location", r.loc + (p.zone ? " (Zone " + p.zone + ")" : "")], ["Subscription", ess[2][1]], ["Operating system", "Linux (" + p.image + ")"], ["Size", p.size], ["Public IP address", pip ? azpLink(pip.id, pip.p.ip) : "—"], ["Private IP address", nic.p.ip], ["Tags (edit)", ess[4][1]]]; }
+  if (r.kind === "vm") { var nic = azByRef(p.nic) || { p: {} }, pip = azByRef(nic.p.pip); ess = [["Resource group", ess[0][1]], ["Status", h("span", {}, [h("span", { cls: "azdot" + (azVmStatus(r) === "Running" ? "" : " wait") }), " " + azVmStatus(r)])], ["Location", r.loc + (p.zone ? " (Zone " + p.zone + ")" : "")], ["Subscription", ess[2][1]], ["Operating system", "Linux (" + p.image + ")"], ["Size", p.size], ["Public IP address", pip ? azpLink(pip.id, pip.p.ip) : "—"], ["Private IP address", nic.p.ip], ["Tags (edit)", ess[4][1]]]; }
   if (r.kind === "pip") ess.push(["IP address", p.ip], ["DNS name", p.fqdn || "—"], ["SKU", p.sku]);
   if (r.kind === "lb") ess.push(["SKU", p.sku], ["Frontend IP", (p.frontends || []).map(function (f) { return f.ip; }).join(", ")]);
   if (r.kind === "acr") ess.push(["Login server", r.name.toLowerCase() + ".azurecr.io"], ["SKU", p.sku]);
   if (r.kind === "vnet") ess.push(["Address space", (p.space || []).join(", ")]);
   if (r.kind === "nic") ess.push(["Private IP address", p.ip], ["Attached to", p.vm ? azpLink(p.vm) : "—"]);
   if (r.kind === "subnet") ess.push(["Address range", (p.prefixes || []).join(", ")], ["Virtual network", azpLink(p.vnet)]);
+  if (azProvState(r) !== "Succeeded") ess.push(["Provisioning state", h("span", {}, [h("span", { cls: "azdot wait" }), " Creating"])]);
   var body = [];
   if (bl === "overview") {
     body = [h("div", { cls: "azesh" }, [h("span", { cls: "azesl" }, [azIc("chev", 12), " Essentials"]), h("span", { cls: "azesr" }, [h("a", { href: "#", cls: "azl", text: "View Cost", onclick: function (e) { e.preventDefault(); } }), h("span", { cls: "azpipe", text: " | " }), h("a", { href: "#", cls: "azl", text: "JSON View", onclick: function (e) { e.preventDefault(); W.azb = "json"; render(); } })])]), azpEss(ess), h("div", { cls: "aztabs" }, [["Properties", "Properties"], ["Monitoring", "Monitoring"], ["Capabilities (" + (r.kind === "vm" ? 8 : 5) + ")", "Capabilities"], ["Recommendations", "Recommendations"], ["Tutorials", "Tutorials"]].map(function (t) { return h("span", { cls: "aztab" + ((W.azt2 || "Properties") === t[1] ? " on" : ""), text: t[0], onclick: function () { W.azt2 = t[1]; azKeep(render); } }); })), (W.azt2 || "Properties") === "Properties" ? h("div", { cls: "azprop" }, [h("div", { cls: "azpg", text: "Resource ID" }), h("code", { cls: "azid", text: r.id }), h("div", { cls: "azpg", text: "Type" }), h("div", { text: azpKind(r) })]) : azTabPane(r)];
@@ -16923,7 +16943,7 @@ function azpList(pg) {
   else if (pg === "all") { ttl = "All resources"; rows = filt(all.filter(function (x) { return x.kind !== "subnet"; })).map(function (x) { return [nm(x), azpKind(x), x.kind === "rg" ? "—" : x.rg, x.loc, "Azure subscription 1"]; }); cols = ["Name", "Type", "Resource group", "Location", "Subscription"]; kd = ""; }
   else { kd = m[1]; ttl = (AZ_NAV.filter(function (n) { return n[2] === kd; })[0] || [0, kd])[1]; var rs = filt(azOfKind(kd));
     cols = { vm: ["Name", "Type", "Subscription", "Resource group", "Location", "Status", "Size", "Public IP address"], pip: ["Name", "Resource group", "Location", "IP address", "SKU", "Associated to"], vnet: ["Name", "Resource group", "Location", "Address space", "Subscription"], nsg: ["Name", "Resource group", "Location", "Subscription"], lb: ["Name", "Resource group", "Location", "SKU", "Subscription"], acr: ["Name", "Resource group", "Location", "Login server", "SKU"], nic: ["Name", "Resource group", "Location", "Private IP address", "Virtual machine"] }[kd] || ["Name", "Resource group", "Location", "Subscription"];
-    rows = rs.map(function (x) { var p = x.p || {}, a = [nm(x)]; if (x.kind === "vm") a.push("Virtual machine", "Azure subscription 1", x.rg, x.loc, p.state, p.size, (function () { var n = azByRef(p.nic), pp = n && azByRef(n.p.pip); return pp ? pp.p.ip : "—"; })()); else { a.push(x.rg, x.loc); if (x.kind === "pip") a.push(p.ip, p.sku, (p.bound || [])[0] ? azpName(p.bound[0]) : "—"); else if (x.kind === "vnet") a.push((p.space || []).join(", "), "Azure subscription 1"); else if (x.kind === "lb") a.push(p.sku, "Azure subscription 1"); else if (x.kind === "acr") a.push(x.name.toLowerCase() + ".azurecr.io", p.sku); else if (x.kind === "nic") a.push(p.ip, p.vm ? azpName(p.vm) : "—"); else a.push("Azure subscription 1"); } return a; }); }
+    rows = rs.map(function (x) { var p = x.p || {}, a = [nm(x)]; if (x.kind === "vm") a.push("Virtual machine", "Azure subscription 1", x.rg, x.loc, azVmStatus(x), p.size, (function () { var n = azByRef(p.nic), pp = n && azByRef(n.p.pip); return pp ? pp.p.ip : "—"; })()); else { a.push(x.rg, x.loc); if (x.kind === "pip") a.push(p.ip, p.sku, (p.bound || [])[0] ? azpName(p.bound[0]) : "—"); else if (x.kind === "vnet") a.push((p.space || []).join(", "), "Azure subscription 1"); else if (x.kind === "lb") a.push(p.sku, "Azure subscription 1"); else if (x.kind === "acr") a.push(x.name.toLowerCase() + ".azurecr.io", p.sku); else if (x.kind === "nic") a.push(p.ip, p.vm ? azpName(p.vm) : "—"); else a.push("Azure subscription 1"); } return a; }); }
   var cmd = azpCmd([["Create", function () { if (AZ_CREATE[kd]) azpGo("create:" + kd); else azpGo("create"); }, "plus", 1], "|", ["Manage view", null, "☰"], ["Refresh", function () { render(); }, "restart"], ["Export to CSV", null, "⭳"], ["Assign tags", null, "🏷"]]);
   var chip = function (a, b, x) { return h("span", { cls: "azchip" }, [a + " ", h("b", { text: b }), x ? h("span", { cls: "azchx", html: azSvg("close", 11) }) : null].filter(Boolean)); };
   var flt = h("div", { cls: "azfr" }, [h("input", { cls: "azflt", type: "text", placeholder: "Filter for any field...", value: W.azq || "", oninput: function (e) { W.azq = e.target.value; var pos = e.target.selectionStart; render(); var el = document.querySelector(".azflt"); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } }), chip("Subscription equals", "all"), chip("Location equals", "all", 1), h("span", { cls: "azchip add" }, [azIc("filter", 14, "azcg"), " Add filter"])]);
@@ -17023,7 +17043,7 @@ function azpCreateVm() {
       var pipId = ""; if (v.pip !== "None") pipId = TF_PROV.azurerm_public_ip.create({ attrs: { name: v.name + "-ip", resource_group_name: v.rg, location: v.loc, allocation_method: "Static", sku: "Standard" }, tags: {} }).id;
       var nic = TF_PROV.azurerm_network_interface.create({ attrs: { name: v.name + "-nic", resource_group_name: v.rg, location: v.loc, ip_configuration: [{ name: "primary", subnet_id: subnetId, private_ip_address_allocation: "Dynamic", public_ip_address_id: pipId || undefined }] }, tags: {} });
       var vm = TF_PROV.azurerm_linux_virtual_machine.create({ attrs: { name: v.name, resource_group_name: v.rg, location: v.loc, size: v.size, zone: v.avail === "Availability zone" ? v.zone : undefined, admin_username: v.user, network_interface_ids: [nic.id], os_disk: [{ caching: "ReadWrite", storage_account_type: "StandardSSD_LRS", disk_size_gb: 30 }], source_image_reference: [{ publisher: "Canonical", offer: "ubuntu-24_04-lts", sku: "server", version: "latest" }] }, tags: {} });
-      AZV = null; azNote("Deployment succeeded: " + v.name); flash("ok", "Deployment succeeded: " + v.name); azpGo("res", vm.id);
+      AZV = null; azDeploy(v.name, [vm.id, nic.id].concat(pipId ? [pipId] : [], v.vnet === "(new)" ? [vn.id] : []), vm.id);
     } catch (e) { o.err = String(e.message).replace(/^.*?Message="?/, "").replace(/"$/, ""); o.tab = 7; render(); }
   }
   return h("div", { cls: "azmain azwiz" }, [h("div", { cls: "azcrumb" }, [h("a", { href: "#", cls: "azl", text: "Home", onclick: function (e) { e.preventDefault(); azpGo("home"); } }), azIc("right", 10, "azcr"), h("a", { href: "#", cls: "azl", text: "Virtual machines", onclick: function (e) { e.preventDefault(); AZV = null; azpGo("list:vm"); } })]), h("div", { cls: "azttl" }, [h("h2", { text: "Create a virtual machine" }), h("span", { cls: "azdots", html: azSvg("dots", 16) }), h("span", { cls: "azx", html: azSvg("close", 16), onclick: function () { AZV = null; azpGo("list:vm"); } })]), azTabs(tabs, o.tab, function (i) { o.tab = i; render(); }), h("div", { cls: "azwb" }, body.filter(Boolean)), azWizFoot(o, 7, create, tabs[o.tab + 1] || "Review + create")]);
@@ -17046,10 +17066,32 @@ function azpCreateLb() {
       var pool = TF_PROV.azurerm_lb_backend_address_pool.create({ attrs: { name: v.pool, loadbalancer_id: lb.id }, tags: {} });
       var pr = TF_PROV.azurerm_lb_probe.create({ attrs: { name: "probe-" + v.front, loadbalancer_id: lb.id, protocol: v.probe, port: +v.back, request_path: v.probe === "Tcp" ? undefined : v.ppath }, tags: {} });
       TF_PROV.azurerm_lb_rule.create({ attrs: { name: v.ruleName, loadbalancer_id: lb.id, protocol: "Tcp", frontend_port: +v.front, backend_port: +v.back, frontend_ip_configuration_name: v.fe, backend_address_pool_ids: [pool.id], probe_id: pr.id }, tags: {} });
-      AZB = null; azNote("Deployment succeeded: " + v.name); flash("ok", "Deployment succeeded: " + v.name); azpGo("res", lb.id);
+      AZB = null; azDeploy(v.name, [lb.id].concat(v.pip === "(new)" ? [pipId] : []), lb.id);
     } catch (e) { o.err = String(e.message).replace(/^.*?Message="?/, "").replace(/"$/, ""); o.tab = 6; render(); }
   }
   return h("div", { cls: "azmain azwiz" }, [h("div", { cls: "azcrumb" }, [h("a", { href: "#", cls: "azl", text: "Home", onclick: function (e) { e.preventDefault(); azpGo("home"); } }), azIc("right", 10, "azcr"), h("a", { href: "#", cls: "azl", text: "Load balancers", onclick: function (e) { e.preventDefault(); AZB = null; azpGo("list:lb"); } })]), h("div", { cls: "azttl" }, [h("h2", { text: "Create load balancer" }), h("span", { cls: "azdots", html: azSvg("dots", 16) }), h("span", { cls: "azx", html: azSvg("close", 16), onclick: function () { AZB = null; azpGo("list:lb"); } })]), azTabs(tabs, o.tab, function (i) { o.tab = i; render(); }), h("div", { cls: "azwb" }, body.filter(Boolean)), azWizFoot(o, 6, create, tabs[o.tab + 1] || "Review + create")]);
+}
+
+// ---- หน้า "Your deployment is complete" หลังกด Create ----
+var AZD = null;
+function azDeploy(name, ids, go) {
+  var dur = S.speed === "real" ? Math.max.apply(null, [3000].concat(ids.map(function (i) { var r = azByRef(i); return r ? AZ_DUR_MS[r.kind] || 0 : 0; }))) : 0;
+  AZD = { name: name, ids: ids, go: go, start: Date.now(), dur: dur, noted: false };
+  azNote(dur ? "Deployment in progress: " + name : "Deployment succeeded: " + name);
+  if (!dur) { AZD.noted = true; flash("ok", "Deployment succeeded: " + name); }
+  azpGo("deploy");
+}
+function azpDeploy() {
+  var d = AZD; if (!d) return h("div", { cls: "azmain" }, [h("p", { text: "ไม่มี deployment" })]);
+  var done = Date.now() - d.start >= d.dur;
+  if (done && !d.noted) { d.noted = true; azNote("Deployment succeeded: " + d.name); flash("ok", "Deployment succeeded: " + d.name); }
+  var gor = azByRef(d.go);
+  var rows = d.ids.map(function (i) { var r = azByRef(i); return r ? [azpLink(r.id), azpKind(r), done ? "OK" : (azProvState(r) === "Creating" ? "Created (provisioning)" : "OK")] : null; }).filter(Boolean);
+  return h("div", { cls: "azmain" }, [h("div", { cls: "azttl" }, [h("h2", {}, [d.name, h("span", { cls: "azpipe", text: " | " }), h("span", { cls: "azst", text: "Overview" })]), h("span", { cls: "azx", html: azSvg("close", 16), onclick: function () { azpGo("home"); } })]),
+    azpCmd([["Delete", null, "del"], ["Cancel", null, "stop"], ["Redeploy", null, "restart"], ["Refresh", function () { render(); }, "refresh"]]),
+    h("div", { cls: "azdpl " + (done ? "ok" : "wait") }, [h("span", { cls: "azdpi", html: done ? '<svg viewBox="0 0 24 24" width="30" height="30"><circle cx="12" cy="12" r="11" fill="#107c10"/><path d="M6.500 12.500l3.800 3.800 7.200-8" stroke="#fff" stroke-width="2.200" fill="none"/></svg>' : '<svg viewBox="0 0 24 24" width="30" height="30" class="azspin"><circle cx="12" cy="12" r="10" fill="none" stroke="#c7e0f4" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#0078d4" stroke-width="3" fill="none"/></svg>' }), h("div", {}, [h("div", { cls: "azdpt", text: done ? "Your deployment is complete" : "Deployment is in progress" }), h("div", { cls: "azmut", text: "Deployment name: " + d.name + "  ·  Subscription: Azure subscription 1  ·  Resource group: " + ((gor && gor.rg) || "—") })])]),
+    h("div", { cls: "azfg", text: "Deployment details" }), azpTable(["Resource", "Type", "Status"], rows, "—"),
+    h("div", { style: "margin-top:18px" }, [h("button", { type: "button", cls: "azbtn pri" + (done ? "" : " dis"), style: "min-width:140px;height:32px;padding:0 16px;border:1px solid #0078d4;background:#0078d4;color:#fff;cursor:pointer", disabled: !done, text: "Go to resource", onclick: function () { azpGo("res", d.go); } })])]);
 }
 
 function azpCreate(kind) {
@@ -17072,7 +17114,7 @@ function azpCreate(kind) {
   function create() {
     var a = { name: v.name, location: v.loc }; if (kind !== "rg") a.resource_group_name = v.rg;
     if (kind === "vnet") a.address_space = [v.space]; if (kind === "pip") { a.sku = v.sku; a.allocation_method = v.asg || "Static"; } if (kind === "acr") { a.sku = v.sku; a.admin_enabled = false; }
-    try { if (!v.name) throw new Error("The Name field is required."); var st = TF_PROV[ci[1]].create({ attrs: a, tags: {} }); var r = azByRef(st.id); AZC = { kind: "", tab: 0, v: {}, err: "" }; azNote("Deployment succeeded: " + v.name); flash("ok", "Deployment succeeded: " + v.name + " · Terraform ไม่รู้จัก resource นี้ (สร้างนอก state)"); azpGo("res", st.id); }
+    try { if (!v.name) throw new Error("The Name field is required."); var st = TF_PROV[ci[1]].create({ attrs: a, tags: {} }); var r = azByRef(st.id); AZC = { kind: "", tab: 0, v: {}, err: "" }; azDeploy(v.name, [st.id], st.id); }
     catch (e) { AZC.err = String(e.message).replace(/^.*?Message="?/, "").replace(/"$/, ""); AZC.tab = 2; render(); }
   }
   var foot = h("div", { cls: "azfoot" }, [h("button", { type: "button", cls: "azbtn pri" + (AZC.tab === 2 ? "" : " dis"), text: AZC.tab === 2 ? "Create" : "Review + create", onclick: function () { if (AZC.tab === 2) create(); else { AZC.tab = 2; AZC.err = ""; render(); } } }), h("button", { type: "button", cls: "azbtn", text: "< Previous", disabled: AZC.tab === 0, onclick: function () { AZC.tab--; render(); } }), h("button", { type: "button", cls: "azbtn", text: "Next : " + (AZC.tab === 0 ? "Tags" : "Review + create") + " >", disabled: AZC.tab === 2, onclick: function () { AZC.tab++; render(); } }), h("a", { href: "#", cls: "azl", text: "Download a template for automation", onclick: function (e) { e.preventDefault(); } })]);
@@ -17098,9 +17140,11 @@ function azpSearchBox() {
   inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { var v = inp.value; panel.style.display = "none"; azpGo("all"); W.azq = v; render(); } else if (e.key === "Escape") { panel.style.display = "none"; inp.blur(); } });
   return wrap;
 }
+var AZ_TIMER = 0;
 function azurePortal() {
   if (!S.azSess) return azpSignin();
-  var pg = W.azp || "home", main = pg === "res" ? azpResPage() : pg === "create" ? azpCreateChooser() : pg === "allsvc" ? azpAllServices() : /^create:/.test(pg) ? azpCreate(pg.slice(7)) : pg === "home" ? azpHome() : azpList(pg);
+  if (!AZ_TIMER && (azBusy() || (AZD && W.azp === "deploy" && Date.now() - AZD.start < AZD.dur + 500))) AZ_TIMER = setTimeout(function () { AZ_TIMER = 0; if (W.res && W.res.site === "azportal") render(); }, 1500);
+  var pg = W.azp || "home", main = pg === "res" ? azpResPage() : pg === "deploy" ? azpDeploy() : pg === "create" ? azpCreateChooser() : pg === "allsvc" ? azpAllServices() : /^create:/.test(pg) ? azpCreate(pg.slice(7)) : pg === "home" ? azpHome() : azpList(pg);
   var s = azpSearchBox();
   var ic = function (g, t, fn) { return h("span", { cls: "azti2" + (fn ? "" : " off"), title: fn ? t : t + " (ยังไม่ได้จำลอง)", html: azSvg(g, 17), onclick: fn || function () { flash("info", t + " ยังไม่ได้จำลองในตัวจำลอง"); } }); };
   var top = h("header", { cls: "aztop" }, [h("button", { type: "button", cls: "azham", html: azSvg("menu", 18), onclick: function () { W.azm = W.azm === false; azKeep(render); } }), h("a", { href: "#", cls: "azlogo", text: "Microsoft Azure", onclick: function (e) { e.preventDefault(); azpGo("home"); } }), s, h("button", { type: "button", cls: "azcop", onclick: function () { flash("Copilot ไม่มีในตัวจำลอง"); } }, [h("span", { cls: "azcpl", html: '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="5.500" cy="5.500" r="3.500" fill="#4f6bed"/><circle cx="10.500" cy="5.500" r="3.500" fill="#e53935" opacity=".85"/><circle cx="8" cy="10.500" r="3.500" fill="#f7b500" opacity=".9"/></svg>' }), " Copilot"]), h("span", { cls: "azicons" }, [ic("shell", "Cloud Shell", function () { AZCS.open = !AZCS.open; if (AZCS.open && !AZCS.ready) AZCS.setup = true; if (AZCS.open && !AZCS.out.length) AZCS.out.push("Requesting a Cloud Shell. Succeeded.", "Connecting terminal...", "Welcome to Azure Cloud Shell", "Type \"az\" to use Azure CLI"); render(); }), ic("bell", "Notifications", function () { W.azn = !W.azn; render(); }), ic("gear", "Settings"), ic("help", "Help + support"), ic("smile", "Feedback")]), h("span", { cls: "azuser" }, [h("span", { text: AZ_ACCT.user }), h("span", { cls: "azdir", text: "DEFAULT DIRECTORY (LAB.ONMICROSOFT.COM)" })]), h("span", { cls: "azav", text: "S" })]);
@@ -17159,7 +17203,7 @@ function settingsApp() {
   });
   var cur = ST_PANES.filter(function (p) { return p[0] === ST.pane; })[0] || ST_PANES[0];
   main.appendChild(h("h2", { text: cur[1] }));
-  if (cur[0] === "general") main.appendChild(h("div", { cls: "stgrp" }, [stRow("ความเร็วของตัวจำลอง", "เสร็จทันที = ผลออกเลย · เวลาเหมือนจริง = รอตามเวลา AWS จริง (เช่น สร้าง NAT ~ 1 นาที)", stSeg("speedsel", stOpts("speedsel")))]));
+  if (cur[0] === "general") main.appendChild(h("div", { cls: "stgrp" }, [stRow("ความเร็วของตัวจำลอง", "เสร็จทันที = ผลออกเลย · เวลาเหมือนจริง = รอตามเวลา AWS/Azure จริง (เช่น AWS: สร้าง NAT ~ 1 นาที · Azure: สร้าง VM ~ 50 วิ, Start/Stop VM ~ 30-40 วิ, หน้า Deployment in progress)", stSeg("speedsel", stOpts("speedsel")))]));
   if (cur[0] === "appearance") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Appearance", "โหมดสว่าง/มืด ของทั้งหน้า", stSeg("theme", stOpts("theme"))), stRow("สีธีม", "ชุดสีของหน้า Lab (ค่าเริ่มต้น: ผสม พื้นชานม)", stSel("pal"))]));
   if (cur[0] === "reset") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Reset ข้อมูลตัวจำลอง", "ล้าง VPC/EC2/ฯลฯ ที่สร้างไว้ทั้งหมด กลับเป็นบัญชีใหม่ที่มีแค่ default VPC (ไม่แตะไฟล์ที่คุณแก้)", h("button", { type: "button", cls: "stbtn", text: "Reset…", onclick: settingsReset }))]));
   if (cur[0] === "preview") {
