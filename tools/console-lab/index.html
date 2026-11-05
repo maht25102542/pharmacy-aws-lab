@@ -8049,7 +8049,7 @@ function crumbEl(text) {
 
 function render() {
   if (typeof PV !== "undefined" && PV) pvSync();
-  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.svc);
+  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.page === "desk" && typeof AC !== "undefined" && AC.on ? AC.svc : UI.svc);
   document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal"; document.getElementById("speedsel").value = S.speed || "instant";
   var sv = document.getElementById("svc"); sv.textContent = "";
   var aws = !!SVC_ICO[UI.svc]; if (aws) sv.appendChild(h("button", { type: "button", cls: "cur-svc", "aria-current": "true", title: "บริการที่เปิดอยู่ (เปลี่ยนที่เมนู Services)", onclick: function () { go(NAVHOME[UI.svc], {}, UI.svc); } }, [awsIco(SVC_ICO[UI.svc], 18), SVC_NAME[UI.svc] || UI.svc]));
@@ -16097,7 +16097,7 @@ function browserStart(kind) {
   return h("div", { cls: "bdstart safari" }, [h("h3", { text: "Favorites" }), bdTiles("safari"), h("h3", { text: "Privacy Report" }), h("div", { cls: "bdpriv", text: "🛡️  Safari ป้องกันตัวติดตามให้คุณ (จำลอง)" })]);
 }
 function browserApp(kind) {
-  var isAws = !!(W.res && W.res.site === "awsconsole"); AC.on = isAws; var pg = isAws ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : W.res ? kids[kids.length - 1] : browserStart(kind);
+  var isAws = !!(W.res && W.res.site === "awsconsole"); AC.on = isAws; if (UI.page === "desk") document.body.setAttribute("data-svc", isAws ? AC.svc : UI.svc); var pg = isAws ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : W.res ? kids[kids.length - 1] : browserStart(kind);
   var https = /^https:/i.test(W.addr || ""), host = (/^https?:\/\/([^\/]+)/i.exec(W.addr || "") || [0, ""])[1];
   var can = function (d) { return typeof whCan === "function" && whCan(d); };
   var dl = h("datalist", { id: "bdurls" }, bdUrls().map(function (u) { return h("option", { value: u }); }));
