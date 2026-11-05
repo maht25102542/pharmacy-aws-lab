@@ -1568,6 +1568,7 @@ body.deskfull { overflow: hidden; }
 .stseg { display: inline-flex; background: #e9e9ed; border-radius: 8px; padding: 2px; flex: none; } .stseg button { border: 0; background: transparent; padding: 4px 14px; border-radius: 6px; font: .8rem -apple-system, system-ui, sans-serif; color: #1d1d1f; cursor: pointer; } .stseg button.on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); font-weight: 600; }
 .stsel { flex: none; border: 1px solid #d6d6da; border-radius: 8px; background: #fff; padding: 4px 10px; font: .82rem -apple-system, system-ui, sans-serif; } .stbtn { flex: none; border: 1px solid #d6d6da; border-radius: 8px; background: #fff; padding: 5px 16px; font: .82rem -apple-system, system-ui, sans-serif; color: #d70015; cursor: pointer; } .stver { flex: none; color: #6c6c72; font-size: .8rem; }
 .awsacc { position: relative; } .awsacc .acctname { background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; } .awsaccm { position: absolute; right: 0; top: 34px; z-index: 90; width: 300px; background: #fff; color: #0f1b2a; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.3); padding: 12px 14px; display: grid; gap: 10px; text-align: left; } .awsaccm .ah { font-weight: 700; font-size: .85rem; } .awsaccm label { display: grid; gap: 4px; font-size: .78rem; color: #5f6b7a; } .awsaccm input, .awsaccm select { border: 1px solid #aab7b8; border-radius: 6px; padding: 5px 8px; font: .85rem system-ui; color: #0f1b2a; background: #fff; }
+.stmain .pvtabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; } .stmain .alert { margin: 0 0 12px; }
 </style>
 
 <header class="top">
@@ -8022,7 +8023,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย dev / prd"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed"], ["lab-preview", "Preview เว็บ"]], "mini"]],
+  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย dev / prd"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed"]], "mini"]],
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
@@ -15700,7 +15701,7 @@ function pvBuildCi() {
   finally { S = realS; W = realW; }
 }
 function pvSync() {
-  var want = UI && UI.page === "lab-preview" && UI.svc === "Lab";
+  var want = UI && ((UI.page === "lab-preview" && UI.svc === "Lab") || (UI.page === "desk" && typeof ST !== "undefined" && ST.pane === "preview" && DESK.wins.settings.open && !DESK.wins.settings.min));
   if (want && !PV.on) { if (!PV.s) pvBuildCi(); if (!PV.w) PV.w = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" }; PV.real = S; PV.realW = W; S = PV.s; W = PV.w; PV.on = true; PV.openFor = ""; }
   else if (!want && PV.on) { PV.s = S; PV.w = W; S = PV.real; W = PV.realW; PV.on = false; }
 }
@@ -16269,7 +16270,7 @@ function awsInterceptGo(page, svc, params) {
 
 // System Settings (แอปบน macOS): ตัวควบคุมของตัวจำลอง — ความเร็ว / ธีม / สี / Reset (My IP + บัญชีอยู่ใน AWS console ที่เมนูบัญชีมุมขวาบน)
 var ST = { pane: "general", q: "" };
-var ST_PANES = [["general", "General", "ความเร็วของตัวจำลอง", "#8a8a90"], ["appearance", "Appearance", "ธีมและสี", "#2a7fff"], ["reset", "Reset", "ล้างข้อมูลตัวจำลอง", "#ff453a"], ["about", "About", "เกี่ยวกับ", "#34c759"]];
+var ST_PANES = [["general", "General", "ความเร็วของตัวจำลอง", "#8a8a90"], ["appearance", "Appearance", "ธีมและสี", "#2a7fff"], ["reset", "Reset", "ล้างข้อมูลตัวจำลอง", "#ff453a"], ["preview", "Preview เว็บ", "GitHub · Jenkins · SonarQube · Argo CD · เว็บร้านยา", "#ff9f0a"], ["about", "About", "เกี่ยวกับ", "#34c759"]];
 function stSet(id, v) { var el = document.getElementById(id); if (!el) return; el.value = v; el.dispatchEvent(new Event("change")); }
 function stOpts(id) { var el = document.getElementById(id); return el ? [].map.call(el.options, function (o) { return [o.value, o.textContent]; }) : []; }
 function stCur(id) { var el = document.getElementById(id); return el ? el.value : ""; }
@@ -16290,6 +16291,12 @@ function settingsApp() {
   if (cur[0] === "general") main.appendChild(h("div", { cls: "stgrp" }, [stRow("ความเร็วของตัวจำลอง", "เสร็จทันที = ผลออกเลย · เวลาเหมือนจริง = รอตามเวลา AWS จริง (เช่น สร้าง NAT ~ 1 นาที)", stSeg("speedsel", stOpts("speedsel")))]));
   if (cur[0] === "appearance") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Appearance", "โหมดสว่าง/มืด ของทั้งหน้า", stSeg("theme", stOpts("theme"))), stRow("สีธีม", "ชุดสีของหน้า Lab (ค่าเริ่มต้น: ผสม พื้นชานม)", stSel("pal"))]));
   if (cur[0] === "reset") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Reset ข้อมูลตัวจำลอง", "ล้าง VPC/EC2/ฯลฯ ที่สร้างไว้ทั้งหมด กลับเป็นบัญชีใหม่ที่มีแค่ default VPC (ไม่แตะไฟล์ที่คุณแก้)", h("button", { type: "button", cls: "stbtn", text: "Reset…", onclick: settingsReset }))]));
+  if (cur[0] === "preview") {
+    main.appendChild(h("div", { cls: "alert info", text: "ⓘ หน้านี้ใช้ข้อมูลตัวอย่างแยกจาก lab ของคุณ (ไม่แตะของจริง) — เปลี่ยนไปหัวข้ออื่นเพื่อกลับมาใช้ข้อมูล lab ของคุณ" }));
+    var sv = UI.svc, pg = UI.page; UI.svc = "Lab"; UI.page = "lab-preview"; var pvp;
+    try { pvp = PAGES["lab-preview"](); } catch (e) { pvp = h("div", { cls: "alert error", text: "แสดงผลไม่ได้: " + (e && e.message) }); } finally { UI.svc = sv; UI.page = pg; }
+    [].slice.call(pvp.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1")) pvp.removeChild(c); }); main.appendChild(pvp);
+  }
   if (cur[0] === "about") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Console Lab", "จำลอง AWS console + Terraform + Ansible + Jenkins/ArgoCD ไม่ได้เรียก AWS จริง", h("span", { cls: "stver", text: "macOS (จำลอง)" })), stRow("My IP / บัญชี", "ตั้งใน AWS console (Chrome) ที่เมนูชื่อบัญชีมุมขวาบน", h("span", { cls: "stver", text: S.myIp }))]));
   return h("div", { cls: "stapp" }, [side, main]);
 }
@@ -16320,7 +16327,7 @@ var DESK_SYM = {
   cc: '<svg viewBox="0 0 18 14" class="dsym" style="width:15px"><rect x=".8" y=".8" width="16.400" height="5" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.300"/><circle cx="4.500" cy="3.300" r="1.600" fill="currentColor"/><rect x=".8" y="8.200" width="16.400" height="5" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.300"/><circle cx="13.500" cy="10.700" r="1.600" fill="currentColor"/></svg>'
 };
 function deskSym(k) { var d = document.createElement("span"); d.className = "dsymw"; d.innerHTML = DESK_SYM[k]; return d; }
-function deskTitle(id) { if (id === "settings") return ({ general: "General", appearance: "Appearance", reset: "Reset", about: "About" })[ST.pane] || "System Settings"; if (id === "lab") return "Lab — " + ((NAV.Lab.reduce(function (a, g) { return a.concat(g[1]); }, []).filter(function (p) { return p[0] === LB.page; })[0] || [0, "Lab"])[1]); if (id === "chrome" || id === "safari") return typeof bdTitle === "function" ? bdTitle() : "Browser"; if (id === "finder") return !FD.path || FD.path === "/" ? "Macintosh HD" : FD.path.split("/").pop(); if (id === "files") return (ED.active ? ED.active.split("/").pop() + " — " : "") + "pharmacy-aws-lab"; return "swd — zsh — 96×28"; }
+function deskTitle(id) { if (id === "settings") return ({ general: "General", appearance: "Appearance", reset: "Reset", preview: "Preview เว็บ", about: "About" })[ST.pane] || "System Settings"; if (id === "lab") return "Lab — " + ((NAV.Lab.reduce(function (a, g) { return a.concat(g[1]); }, []).filter(function (p) { return p[0] === LB.page; })[0] || [0, "Lab"])[1]); if (id === "chrome" || id === "safari") return typeof bdTitle === "function" ? bdTitle() : "Browser"; if (id === "finder") return !FD.path || FD.path === "/" ? "Macintosh HD" : FD.path.split("/").pop(); if (id === "files") return (ED.active ? ED.active.split("/").pop() + " — " : "") + "pharmacy-aws-lab"; return "swd — zsh — 96×28"; }
 function deskBody(id) {
   if (id === "files") return editorApp();
   if (id === "finder") return finderApp();

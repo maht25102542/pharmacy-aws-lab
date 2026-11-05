@@ -1,6 +1,6 @@
 // System Settings (แอปบน macOS): ตัวควบคุมของตัวจำลอง — ความเร็ว / ธีม / สี / Reset (My IP + บัญชีอยู่ใน AWS console ที่เมนูบัญชีมุมขวาบน)
 var ST = { pane: "general", q: "" };
-var ST_PANES = [["general", "General", "ความเร็วของตัวจำลอง", "#8a8a90"], ["appearance", "Appearance", "ธีมและสี", "#2a7fff"], ["reset", "Reset", "ล้างข้อมูลตัวจำลอง", "#ff453a"], ["about", "About", "เกี่ยวกับ", "#34c759"]];
+var ST_PANES = [["general", "General", "ความเร็วของตัวจำลอง", "#8a8a90"], ["appearance", "Appearance", "ธีมและสี", "#2a7fff"], ["reset", "Reset", "ล้างข้อมูลตัวจำลอง", "#ff453a"], ["preview", "Preview เว็บ", "GitHub · Jenkins · SonarQube · Argo CD · เว็บร้านยา", "#ff9f0a"], ["about", "About", "เกี่ยวกับ", "#34c759"]];
 function stSet(id, v) { var el = document.getElementById(id); if (!el) return; el.value = v; el.dispatchEvent(new Event("change")); }
 function stOpts(id) { var el = document.getElementById(id); return el ? [].map.call(el.options, function (o) { return [o.value, o.textContent]; }) : []; }
 function stCur(id) { var el = document.getElementById(id); return el ? el.value : ""; }
@@ -21,6 +21,12 @@ function settingsApp() {
   if (cur[0] === "general") main.appendChild(h("div", { cls: "stgrp" }, [stRow("ความเร็วของตัวจำลอง", "เสร็จทันที = ผลออกเลย · เวลาเหมือนจริง = รอตามเวลา AWS จริง (เช่น สร้าง NAT ~ 1 นาที)", stSeg("speedsel", stOpts("speedsel")))]));
   if (cur[0] === "appearance") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Appearance", "โหมดสว่าง/มืด ของทั้งหน้า", stSeg("theme", stOpts("theme"))), stRow("สีธีม", "ชุดสีของหน้า Lab (ค่าเริ่มต้น: ผสม พื้นชานม)", stSel("pal"))]));
   if (cur[0] === "reset") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Reset ข้อมูลตัวจำลอง", "ล้าง VPC/EC2/ฯลฯ ที่สร้างไว้ทั้งหมด กลับเป็นบัญชีใหม่ที่มีแค่ default VPC (ไม่แตะไฟล์ที่คุณแก้)", h("button", { type: "button", cls: "stbtn", text: "Reset…", onclick: settingsReset }))]));
+  if (cur[0] === "preview") {
+    main.appendChild(h("div", { cls: "alert info", text: "ⓘ หน้านี้ใช้ข้อมูลตัวอย่างแยกจาก lab ของคุณ (ไม่แตะของจริง) — เปลี่ยนไปหัวข้ออื่นเพื่อกลับมาใช้ข้อมูล lab ของคุณ" }));
+    var sv = UI.svc, pg = UI.page; UI.svc = "Lab"; UI.page = "lab-preview"; var pvp;
+    try { pvp = PAGES["lab-preview"](); } catch (e) { pvp = h("div", { cls: "alert error", text: "แสดงผลไม่ได้: " + (e && e.message) }); } finally { UI.svc = sv; UI.page = pg; }
+    [].slice.call(pvp.children).forEach(function (c) { if (c.matches && c.matches(".crumb,h1")) pvp.removeChild(c); }); main.appendChild(pvp);
+  }
   if (cur[0] === "about") main.appendChild(h("div", { cls: "stgrp" }, [stRow("Console Lab", "จำลอง AWS console + Terraform + Ansible + Jenkins/ArgoCD ไม่ได้เรียก AWS จริง", h("span", { cls: "stver", text: "macOS (จำลอง)" })), stRow("My IP / บัญชี", "ตั้งใน AWS console (Chrome) ที่เมนูชื่อบัญชีมุมขวาบน", h("span", { cls: "stver", text: S.myIp }))]));
   return h("div", { cls: "stapp" }, [side, main]);
 }

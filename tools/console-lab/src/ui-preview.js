@@ -23,7 +23,7 @@ function pvBuildCi() {
   finally { S = realS; W = realW; }
 }
 function pvSync() {
-  var want = UI && UI.page === "lab-preview" && UI.svc === "Lab";
+  var want = UI && ((UI.page === "lab-preview" && UI.svc === "Lab") || (UI.page === "desk" && typeof ST !== "undefined" && ST.pane === "preview" && DESK.wins.settings.open && !DESK.wins.settings.min));
   if (want && !PV.on) { if (!PV.s) pvBuildCi(); if (!PV.w) PV.w = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" }; PV.real = S; PV.realW = W; S = PV.s; W = PV.w; PV.on = true; PV.openFor = ""; }
   else if (!want && PV.on) { PV.s = S; PV.w = W; S = PV.real; W = PV.realW; PV.on = false; }
 }

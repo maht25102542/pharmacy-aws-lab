@@ -34,7 +34,7 @@ var NAV = {
   Laptop: [["เครื่องของคุณ (จำลอง)", [["term", "Terminal"], ["files", "Files & editor"]]]],
   ECR: [["Private registry", [["repos", "Repositories"], [null, "Features & Settings"]]], ["Public registry", [[null, "Repositories"]]]],
   Browser: [["", [["browser", "Browser"]]]],
-  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย dev / prd"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed"], ["lab-preview", "Preview เว็บ"]], "mini"]],
+  Lab: [["เริ่มที่นี่", [["lab-ap", "เลือกแบบไหน"], ["lab-uc", "Use case จริง 12 แบบ"], ["lab-scen", "ตัวอย่างสำเร็จรูป"], ["lab-cost", "ค่าใช้จ่าย & Bill"]]], ["Lab ร้านยา · ทำตามลำดับ", [["lab-hcl", "① Terraform"], ["lab-ansible", "② Ansible ตั้งค่า"], ["lab-jenkins", "③ Jenkins pipeline"], ["lab-flow", "④ ปล่อย dev / prd"]]], ["ทางเลือก & เครื่องมือช่วย", [["lab-managed", "เทียบ VM กับ Managed"]], "mini"]],
 };
 var NAVICO = { term: "⌨️", files: "📁", faults: "🧯", browser: "🌐", "lab-check": "✅", "lab-hcl": "🏗️", "lab-ansible": "🎛️", "lab-flow": "🚀", "lab-jenkins": "🧩", "lab-rules": "📏", "lab-scen": "🎬", "lab-managed": "☁️" };
 var NAVHOME = { VPC: "vpc-dash", EC2: "ec2-dash", IAM: "roles", ECR: "repos", Laptop: "term", Browser: "browser", Lab: "lab-check" };
