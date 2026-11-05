@@ -27,8 +27,9 @@ function svcItemBtn(x, onpick) {
   var ic = x.ico && AWS_ICONS[x.ico] ? h("img", { src: AWS_ICONS[x.ico], alt: "" }) : h("span", { cls: "ph", text: x.name.slice(0, 2) });
   return h("button", { type: "button", cls: "sm-it" + (x.svc ? "" : " off"), title: x.svc ? "" : (x.next ? "อยู่ในแผนแล็บถัดไป" : "ยังไม่ได้จำลอง"), onclick: function () { svcOpen(x, onpick); } }, [ic, h("span", {}, [h("b", { text: x.name }), h("small", {}, [x.desc, x.svc ? "" : h("span", { cls: "bd" + (x.next ? " nx" : ""), text: x.next ? "แล็บถัดไป" : "ยังไม่จำลอง" })])])]);
 }
-(function () {
-  var btn = document.getElementById("svcbtn"), menu = document.getElementById("svcmenu"), cat = "fav", q = "";
+// เมนู Services (mega menu): ใช้ได้ทั้ง header บน (svcbtn/svcmenu) และ header ของ AWS console ที่ฝังในหน้าต่าง Chrome
+function svcMenuInit(btn, menu, embedded) {
+  var cat = "fav", q = "";
   function hide() { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); }
   function favs() { return svcFavs(); }
   function star(x, redraw) { var on = favs().indexOf(x.name) >= 0; return h("button", { type: "button", cls: "sm-star" + (on ? " on" : ""), "aria-label": (on ? "Remove " : "Add ") + x.name + (on ? " from favorites" : " to favorites"), "aria-pressed": String(on), title: on ? "Remove from favorites" : "Add to favorites", onclick: function (e) { e.stopPropagation(); var f = favs(), i = f.indexOf(x.name); if (i >= 0) f.splice(i, 1); else f.push(x.name); redraw(); } }, [on ? "★" : "☆"]); }
@@ -61,8 +62,11 @@ function svcItemBtn(x, onpick) {
     menu.appendChild(rail); menu.appendChild(main); list(); return input;
   }
   btn.addEventListener("click", function (e) { e.stopPropagation(); if (!menu.hidden) { hide(); return; } var inp = build(); menu.hidden = false; btn.setAttribute("aria-expanded", "true"); setTimeout(function () { inp.focus(); }, 0); });
-  document.addEventListener("click", function (e) { if (!e.target.closest(".svcwrap")) hide(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+  if (!embedded) { document.addEventListener("click", function (e) { if (!e.target.closest(".svcwrap")) hide(); }); document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); }); }
+  return hide;
+}
+(function () {
+  var hide = svcMenuInit(document.getElementById("svcbtn"), document.getElementById("svcmenu"));
   // ---------- Search ----------
   var inp = document.getElementById("gsearch"), box = document.getElementById("gres"), cur = -1, items = [];
   function close() { box.hidden = true; box.textContent = ""; cur = -1; items = []; }

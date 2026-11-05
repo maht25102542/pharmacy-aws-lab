@@ -1556,6 +1556,7 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .bdview .awsemb { min-height: 100%; background: var(--bg, #fff); } .bdview .awsemb .top { position: sticky; top: 0; z-index: 20; } .bdview .awsemb .body { min-height: 400px; } .bdview .awsemb .nav { position: static; height: auto; }
 .awsetop .svcwrap { position: relative; } .awsemenu { position: absolute; top: 36px; left: 0; z-index: 60; width: 220px; max-height: 360px; overflow: auto; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.3); padding: 6px; } .awsemenu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 10px; border-radius: 6px; font: .82rem system-ui; color: #0f1b2a; cursor: pointer; } .awsemenu button:hover { background: #f1f3f5; }
 .bdview .awsemb .nav button { padding: 6px 12px !important; min-height: 0 !important; margin: 0 !important; font-size: .86rem !important; } .bdview .awsemb .nav .grp { margin-top: 10px; }
+.bdview .awsemb .svcmenu { width: min(1040px, 90vw); height: min(560px, 70vh); z-index: 80; } .awsemb .svcwrap { position: relative; }
 </style>
 
 <header class="top">
@@ -13582,8 +13583,9 @@ function svcItemBtn(x, onpick) {
   var ic = x.ico && AWS_ICONS[x.ico] ? h("img", { src: AWS_ICONS[x.ico], alt: "" }) : h("span", { cls: "ph", text: x.name.slice(0, 2) });
   return h("button", { type: "button", cls: "sm-it" + (x.svc ? "" : " off"), title: x.svc ? "" : (x.next ? "อยู่ในแผนแล็บถัดไป" : "ยังไม่ได้จำลอง"), onclick: function () { svcOpen(x, onpick); } }, [ic, h("span", {}, [h("b", { text: x.name }), h("small", {}, [x.desc, x.svc ? "" : h("span", { cls: "bd" + (x.next ? " nx" : ""), text: x.next ? "แล็บถัดไป" : "ยังไม่จำลอง" })])])]);
 }
-(function () {
-  var btn = document.getElementById("svcbtn"), menu = document.getElementById("svcmenu"), cat = "fav", q = "";
+// เมนู Services (mega menu): ใช้ได้ทั้ง header บน (svcbtn/svcmenu) และ header ของ AWS console ที่ฝังในหน้าต่าง Chrome
+function svcMenuInit(btn, menu, embedded) {
+  var cat = "fav", q = "";
   function hide() { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); }
   function favs() { return svcFavs(); }
   function star(x, redraw) { var on = favs().indexOf(x.name) >= 0; return h("button", { type: "button", cls: "sm-star" + (on ? " on" : ""), "aria-label": (on ? "Remove " : "Add ") + x.name + (on ? " from favorites" : " to favorites"), "aria-pressed": String(on), title: on ? "Remove from favorites" : "Add to favorites", onclick: function (e) { e.stopPropagation(); var f = favs(), i = f.indexOf(x.name); if (i >= 0) f.splice(i, 1); else f.push(x.name); redraw(); } }, [on ? "★" : "☆"]); }
@@ -13616,8 +13618,11 @@ function svcItemBtn(x, onpick) {
     menu.appendChild(rail); menu.appendChild(main); list(); return input;
   }
   btn.addEventListener("click", function (e) { e.stopPropagation(); if (!menu.hidden) { hide(); return; } var inp = build(); menu.hidden = false; btn.setAttribute("aria-expanded", "true"); setTimeout(function () { inp.focus(); }, 0); });
-  document.addEventListener("click", function (e) { if (!e.target.closest(".svcwrap")) hide(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+  if (!embedded) { document.addEventListener("click", function (e) { if (!e.target.closest(".svcwrap")) hide(); }); document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); }); }
+  return hide;
+}
+(function () {
+  var hide = svcMenuInit(document.getElementById("svcbtn"), document.getElementById("svcmenu"));
   // ---------- Search ----------
   var inp = document.getElementById("gsearch"), box = document.getElementById("gres"), cur = -1, items = [];
   function close() { box.hidden = true; box.textContent = ""; cur = -1; items = []; }
@@ -16214,10 +16219,13 @@ function awsEmbed() {
     if (g[0]) nav.appendChild(h("div", { cls: "grp", text: g[0] }));
     g[1].forEach(function (p) { var on = !!p[0] && AC.page === p[0]; nav.appendChild(h("button", { type: "button", cls: p[0] ? "" : "off", "aria-current": String(on), onclick: function () { if (p[0]) awsGo(p[0], {}, AC.svc); } }, [p[1]])); });
   });
-  var svcMenu = h("div", { cls: "awsemenu", style: AC.menu ? "" : "display:none" }, awsSvcs().map(function (s) { return h("button", { type: "button", text: SVC_NAME[s] || s, onclick: function () { awsGo(NAVHOME[s] || NAV[s][0][1][0][0], {}, s); } }); }));
-  var top = h("header", { cls: "top awsetop" }, [h("span", { cls: "awslogo", text: "aws" }), h("span", { cls: "svcwrap" }, [h("button", { type: "button", cls: "svcbtn", "aria-expanded": String(AC.menu), onclick: function () { AC.menu = !AC.menu; render(); } }, ["▦ Services"]), svcMenu]), h("div", { cls: "gsearch" }, [h("input", { type: "search", placeholder: "Search   [Alt+S]", "aria-label": "Search" })]), h("div", { cls: "hright" }, [h("button", { type: "button", cls: "pillr", text: "Asia Pacific (Singapore) ▾" }), h("span", { cls: "acctname", text: "tf-admin @ 0000-0000-0000 ▾" })])]);
+  var svcBtn = h("button", { type: "button", cls: "svcbtn", "aria-haspopup": "true", "aria-expanded": "false", html: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="3" r="1.400"/><circle cx="8" cy="3" r="1.400"/><circle cx="13" cy="3" r="1.400"/><circle cx="3" cy="8" r="1.400"/><circle cx="8" cy="8" r="1.400"/><circle cx="13" cy="8" r="1.400"/><circle cx="3" cy="13" r="1.400"/><circle cx="8" cy="13" r="1.400"/><circle cx="13" cy="13" r="1.400"/></svg> Services' }), svcMenu = h("div", { cls: "svcmenu", hidden: "hidden" });
+  svcMenuInit(svcBtn, svcMenu, true);
+  var top = h("header", { cls: "top awsetop" }, [h("span", { cls: "awslogo", text: "aws" }), h("span", { cls: "svcwrap" }, [svcBtn, svcMenu]), h("div", { cls: "gsearch" }, [h("input", { type: "search", placeholder: "Search   [Alt+S]", "aria-label": "Search" })]), h("div", { cls: "hright" }, [h("button", { type: "button", cls: "pillr", text: "Asia Pacific (Singapore) ▾" }), h("span", { cls: "acctname", text: "tf-admin @ 0000-0000-0000 ▾" })])]);
   return h("div", { cls: "awsemb", "data-svc": AC.svc }, [top, h("div", { cls: "body" }, [nav, h("main", { cls: "main" }, [main])])]);
 }
+
+document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".svcwrap")) return; [].forEach.call(document.querySelectorAll(".awsemb .svcmenu"), function (m) { m.hidden = true; }); });
 
 // Laptop › Desktop: เดสก์ท็อป macOS (สไตล์ Big Sur) จำลอง — Finder / Terminal / Code Editor เป็นหน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้
 var DESK = { z: 11, menu: null, wins: { chrome: { open: false, min: false, max: false, x: 70, y: 40, w: 0, h: 0, z: 8 }, safari: { open: false, min: false, max: false, x: 100, y: 60, w: 0, h: 0, z: 7 }, finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
