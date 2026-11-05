@@ -7300,7 +7300,7 @@ function jkCheckoutFail(b, jb, lines) { b.log.push.apply(b.log, lines.concat(["[
 // ponytail: ไม่จำลอง auth ของ GitHub (ข้ามการถาม username/token) และไม่มี branch อื่นนอกจาก main
 var GH_DIRS = { "repo-backend": "pharmacy-backend", "repo-frontend": "pharmacy-frontend", "repo-manifests": "pharmacy-manifests" };
 // บัญชี GitHub ตัวอย่างของตัวจำลอง (email = noreply ของ GitHub; ไม่ใช้อีเมลจริง เพราะหน้าเว็บถูกแชร์ได้)
-var GH_ACCT = { user: "maht25102542", email: "maht25102542@users.noreply.github.com", pw: "Pharmacy-Lab-2026!" };
+var GH_ACCT = { user: "maht25102542", email: "maht25102542@users.noreply.github.com", pw: "Lab-2026!" };
 function ghUser() { return ansVars().github_user || "YOUR_GITHUB_USER"; }
 function ghDirName(cwd) { var m = /\/(repo-backend|repo-frontend|repo-manifests)(\/|$)/.exec(cwd); return m ? m[1] : null; }
 function ghSnapshot(dirName) { var base = REPO + "/" + dirName + "/", all = fsAll(), o = {}; Object.keys(all).forEach(function (k) { if (k.indexOf(base) === 0) o[k.slice(base.length)] = all[k]; }); return o; }
