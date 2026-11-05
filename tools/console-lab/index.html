@@ -1559,6 +1559,7 @@ body .pf input.qty { width: 54px !important; flex: none; text-align: center; pad
 .bdview .awsemb .svcmenu { width: min(1040px, 90vw); height: min(560px, 70vh); z-index: 80; } .awsemb .svcwrap { position: relative; }
 .desk { height: calc(100vh - 150px); min-height: 600px; } .desk.full { position: fixed; inset: 0; height: auto; min-height: 0; border-radius: 0; z-index: 9000; }
 .dfs { border: 0; background: transparent; color: inherit; padding: 2px 6px; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; } .dfs:hover { background: rgba(255,255,255,.45); }
+body.deskfull { overflow: hidden; }
 </style>
 
 <header class="top">
@@ -8051,7 +8052,7 @@ function crumbEl(text) {
 
 function render() {
   if (typeof PV !== "undefined" && PV) pvSync();
-  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.page === "desk" && typeof AC !== "undefined" && AC.on ? AC.svc : UI.svc);
+  var y = window.scrollY; if (typeof whTrack === "function") whTrack(); save(); document.body.setAttribute("data-svc", UI.page === "desk" && typeof AC !== "undefined" && AC.on ? AC.svc : UI.svc); document.body.classList.toggle("deskfull", UI.page === "desk" && typeof DESK !== "undefined" && !!DESK.full);
   document.getElementById("myip").value = S.myIp; document.getElementById("acct").value = S.acct || "normal"; document.getElementById("speedsel").value = S.speed || "instant";
   var sv = document.getElementById("svc"); sv.textContent = "";
   var aws = !!SVC_ICO[UI.svc]; if (aws) sv.appendChild(h("button", { type: "button", cls: "cur-svc", "aria-current": "true", title: "บริการที่เปิดอยู่ (เปลี่ยนที่เมนู Services)", onclick: function () { go(NAVHOME[UI.svc], {}, UI.svc); } }, [awsIco(SVC_ICO[UI.svc], 18), SVC_NAME[UI.svc] || UI.svc]));
@@ -16229,6 +16230,7 @@ function awsEmbed() {
 
 document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".svcwrap")) return; [].forEach.call(document.querySelectorAll(".awsemb .svcmenu"), function (m) { m.hidden = true; }); });
 
+
 // Laptop › Desktop: เดสก์ท็อป macOS (สไตล์ Big Sur) จำลอง — Finder / Terminal / Code Editor เป็นหน้าต่างลาก/ย่อ/ขยาย/ปรับขนาดได้
 var DESK = { z: 11, menu: null, wins: { chrome: { open: false, min: false, max: false, x: 70, y: 40, w: 0, h: 0, z: 8 }, safari: { open: false, min: false, max: false, x: 100, y: 60, w: 0, h: 0, z: 7 }, finder: { open: false, min: false, max: false, x: 60, y: 40, w: 0, h: 0, z: 9 }, term: { open: true, min: false, max: false, x: 90, y: 44, w: 0, h: 0, z: 11 }, files: { open: false, min: false, max: false, x: 120, y: 70, w: 0, h: 0, z: 10 } } };
 var DESK_APPS = [["finder", "Finder", "find"], ["term", "Terminal", "term"], ["files", "Code", "code"], ["chrome", "Google Chrome", "chrome"], ["safari", "Safari", "web"]];
@@ -16296,5 +16298,8 @@ PAGES["desk"] = function () {
 NAV.Laptop[0][1].unshift(["desk", "Desktop"]); NAVICO.desk = "🖥️"; NAVHOME.Laptop = "desk";
 
 window.addEventListener("keydown", function (e) { if (e.key === "Escape" && UI.page === "desk" && DESK.full) { DESK.full = false; render(); } });
+
+// เปิดหน้ามาเป็นเดสก์ท็อป macOS เต็มจอเลย (ปุ่ม ⤢ หรือ Esc = ออกไปหน้า Lab/AWS เดิม) · ใส่ #lab ท้าย URL เพื่อเริ่มที่หน้า AWS เดิม (สคริปต์อัดวิดีโอใช้)
+if (location.hash !== "#lab") { UI.svc = "Laptop"; UI.page = "desk"; DESK.full = true; render(); }
 
 </script>

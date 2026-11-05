@@ -10,7 +10,7 @@ async function start(url, w = 1280, h = 800) {
   ws = new WebSocket(tg.webSocketDebuggerUrl); await new Promise((r) => (ws.onopen = r));
   ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && pending[d.id]) { pending[d.id](d); delete pending[d.id]; } };
   await send("Page.enable"); await send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
-  await send("Page.navigate", { url }); await sleep(1500); await ev(OVERLAY);
+  await send("Page.navigate", { url: /#/.test(url) ? url : url + "#lab" }); await sleep(1500); await ev(OVERLAY);
 }
 function send(method, params = {}) { return new Promise((res) => { const i = ++id; pending[i] = res; ws.send(JSON.stringify({ id: i, method, params })); }); }
 async function ev(expr) { const r = await send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true }); if (r.result && r.result.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails.exception && r.result.exceptionDetails.exception.description || r.result.exceptionDetails)); return r.result && r.result.result && r.result.result.value; }

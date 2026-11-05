@@ -65,3 +65,6 @@ PAGES["desk"] = function () {
 NAV.Laptop[0][1].unshift(["desk", "Desktop"]); NAVICO.desk = "🖥️"; NAVHOME.Laptop = "desk";
 
 window.addEventListener("keydown", function (e) { if (e.key === "Escape" && UI.page === "desk" && DESK.full) { DESK.full = false; render(); } });
+
+// เปิดหน้ามาเป็นเดสก์ท็อป macOS เต็มจอเลย (ปุ่ม ⤢ หรือ Esc = ออกไปหน้า Lab/AWS เดิม) · ใส่ #lab ท้าย URL เพื่อเริ่มที่หน้า AWS เดิม (สคริปต์อัดวิดีโอใช้)
+if (location.hash !== "#lab") { UI.svc = "Laptop"; UI.page = "desk"; DESK.full = true; render(); }

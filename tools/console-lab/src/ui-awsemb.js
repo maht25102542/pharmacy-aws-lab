@@ -41,3 +41,4 @@ function awsEmbed() {
 }
 
 document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".svcwrap")) return; [].forEach.call(document.querySelectorAll(".awsemb .svcmenu"), function (m) { m.hidden = true; }); });
+
