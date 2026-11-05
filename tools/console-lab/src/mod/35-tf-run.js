@@ -87,7 +87,8 @@ function tfRequireInit(out) {
 function tfExec(o) {
   var P = o.prep, cfg = P.cfg; S.tfCfg = cfg; var env = tfMakeEnv(cfg, P.vars), apply = o.mode === "apply", actions = [], errors = [], log = [], out = o.out;
   var order; try { order = tfOrder(cfg); } catch (e) { if (e.tfCycle) return { fail: tfFmtError("Cycle", "Cycle: " + e.tfCycle.join(", ")) }; throw e; }
-  var pv = cfg.providers.aws, who0 = whoAmI();
+  var pv = cfg.providers.aws, usesAws = Object.keys(cfg.res).concat(Object.keys(cfg.data)).some(function (a) { return /^(data\.)?aws_/.test(a); }), who0 = usesAws ? whoAmI() : {};
+  if (Object.keys(cfg.res).some(function (a) { return /^azurerm_/.test(a); }) && !S.laptop.azLogin) return { fail: tfFmtError("Error building ARM Client", "building account: could not acquire access token to parse claims: running Azure CLI: exit status 1: ERROR: Please run 'az login' to setup account.", cfg.providers.azurerm ? { file: cfg.providers.azurerm.file, line: cfg.providers.azurerm.line, src: "provider \"azurerm\" {" } : null) };
   if (who0.err) return { fail: tfFmtError("Retrieving AWS account details", "validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: " + tfReqId() + ", api error " + who0.err + ": " + who0.msg + (who0.err === "NoCredentialProviders" ? "\nPlease see https://registry.terraform.io/providers/hashicorp/aws for more information about providing credentials." : ""), pv ? { file: pv.file, line: pv.line, ctx: "in provider \"aws\"", src: tfSrcLine(cfg, pv.file, pv.line) } : null) };
   try { if (pv) { var ba = tfEvalBody(pv.body, env.baseCtx({ file: pv.file })); env.region = ba.region || env.region; var dt = ba.default_tags && ba.default_tags[0]; env.defaultTags = (dt && dt.tags) || {}; } } catch (e) { return { fail: tfErrFrom(e, cfg, null, null) }; }
   var wanted = {}, st = S.tf.state, drift = [];

@@ -75,13 +75,13 @@ function tfValidate(cfg) {
   function err(node, line, summary, detail) { errs.push({ file: node.file, line: line, summary: summary, detail: detail, ctx: node.kind === "data" ? "in data \"" + node.type + "\" \"" + node.name + "\"" : "in resource \"" + node.type + "\" \"" + node.name + "\"", addr: node.addr }); }
   Object.keys(cfg.res).forEach(function (a) {
     var n = cfg.res[a], sc = TF_SCHEMA[n.type];
-    if (!sc) { err(n, n.line, "Invalid resource type", "The provider " + (/^local_/.test(n.type) ? "hashicorp/local" : "hashicorp/aws") + " does not support resource type \"" + n.type + "\" (หรือชนิดนี้ Console Lab ยังไม่ได้จำลอง ชนิดที่จำลอง: " + Object.keys(TF_SCHEMA).join(", ") + ")."); return; }
+    if (!sc) { err(n, n.line, "Invalid resource type", "The provider " + (/^local_/.test(n.type) ? "hashicorp/local" : /^azurerm_/.test(n.type) ? "hashicorp/azurerm" : "hashicorp/aws") + " does not support resource type \"" + n.type + "\" (หรือชนิดนี้ Console Lab ยังไม่ได้จำลอง ชนิดที่จำลอง: " + Object.keys(TF_SCHEMA).join(", ") + ")."); return; }
     tfCheckBody(cfg, n, n.body, sc, "", err);
     var pv = n.attrs.provider; if (pv && pv.expr && pv.expr.t === "attr" && pv.expr.e && pv.expr.e.t === "ref" && !cfg.providers[pv.expr.e.n + "." + pv.expr.n]) err(n, pv.line, "Reference to undeclared provider", "There is no explicit declaration for local provider name \"" + pv.expr.e.n + "." + pv.expr.n + "\" (ต้องมี provider \"" + pv.expr.e.n + "\" { alias = \"" + pv.expr.n + "\" })");
   });
   Object.keys(cfg.data).forEach(function (a) {
     var n = cfg.data[a], sc = TF_DATA_SCHEMA[n.type];
-    if (!sc) { err(n, n.line, "Invalid data source", "The provider hashicorp/aws does not support data source \"" + n.type + "\" (หรือ Console Lab ยังไม่ได้จำลอง)."); return; }
+    if (!sc) { err(n, n.line, "Invalid data source", "The provider " + (/^azurerm_/.test(n.type) ? "hashicorp/azurerm" : "hashicorp/aws") + " does not support data source \"" + n.type + "\" (หรือ Console Lab ยังไม่ได้จำลอง)."); return; }
     tfCheckBody(cfg, n, n.body, sc, "", err);
   });
   // อ้างถึงของที่ไม่มี

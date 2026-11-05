@@ -35,6 +35,17 @@ function shTerraform(a) {
   }
   return go();
 }
+function shAz(a) {
+  var acct = { cloudName: "AzureCloud", id: AZ_SUB, isDefault: true, name: "Azure subscription 1", state: "Enabled", tenantId: AZ_TENANT, user: { name: "maht25102542@lab.onmicrosoft.com", type: "user" } };
+  if (a[0] === "login") { S.laptop.azLogin = true; return { lines: ["A web browser has been opened at https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize. Please continue the login in the web browser.", "", "Retrieving tenants and subscriptions for the selection...", "", "[Tenant and subscription selection]", "", "No     Subscription name    Subscription ID                       Tenant", "-----  --------------------  ------------------------------------  ------------", "[1] *  Azure subscription 1  " + AZ_SUB + "  Default Directory", "", "The default is marked with an *; the default tenant is 'Default Directory' and subscription is 'Azure subscription 1' (" + AZ_SUB + ").", "", "You have logged in. Now let us find all the subscriptions to which you have access..."] }; }
+  if (a[0] === "logout") { S.laptop.azLogin = false; return { lines: [] }; }
+  if (!S.laptop.azLogin) return { lines: ["ERROR: Please run 'az login' to setup account."] };
+  if (a[0] === "account" && (a[1] === "show" || a[1] === "list")) return { lines: JSON.stringify(a[1] === "list" ? [acct] : acct, null, 2).split("\n") };
+  if (a[0] === "group" && a[1] === "list") return { lines: JSON.stringify(azOfKind("rg").map(function (r) { return { id: r.id, location: r.loc, name: r.name, properties: { provisioningState: "Succeeded" }, tags: r.tags }; }), null, 2).split("\n") };
+  if (a[0] === "vm" && a[1] === "list") return { lines: JSON.stringify(azOfKind("vm").map(function (r) { return { name: r.name, resourceGroup: r.rg, location: r.loc, hardwareProfile: { vmSize: r.p.size }, zones: r.p.zone ? [r.p.zone] : [], id: r.id }; }), null, 2).split("\n") };
+  if (a[0] === "acr" && a[1] === "login") { var reg = azOfKind("acr").filter(function (r) { return a.indexOf(r.name) >= 0; })[0]; return { lines: reg ? ["Login Succeeded"] : ["ERROR: The registry '" + (a[a.indexOf("--name") + 1] || "") + "' was not found in the current subscription."] }; }
+  return { lines: ["az: จำลองคำสั่ง: login, logout, account show|list, group list, vm list, acr login --name <ชื่อ>"] };
+}
 function shAws(a) {
   var w;
   if (a[0] === "configure" && a[1] === "list") { var c = S.laptop.creds; return { lines: ["      Name                    Value             Type    Location", "      ----                    -----             ----    --------", "   profile                <not set>             None    None", "access_key     " + (c ? "****************" + c.id.slice(-4) : "<not set>").padStart(16) + " shared-credentials-file", "secret_key     " + (c ? "****************" + "????" : "<not set>").padStart(16) + " shared-credentials-file", "    region     " + (S.laptop.awsRegion || "<not set>").padStart(16) + " config-file    ~/.aws/config"] }; }
@@ -126,6 +137,7 @@ function shRun(line) {
   if (c === "ssh") return shSsh(a);
   if (c === "git") return { lines: gitCmd(a, L.cwd) };
   if (c === "aws") return shAws(a);
+  if (c === "az") return shAz(a);
   if (c === "kubectl") return shKubectl(a);
   if (c === "docker") return shDocker(a);
   if (c === "curl") return shCurl(a);

@@ -1,7 +1,7 @@
 // ===== คำสั่ง terraform ที่เรียกจากเทอร์มินัล (ไม่มี DOM) =====
 function tfDir() { return S.laptop.cwd; }
 // terraform แต่ละโฟลเดอร์มี state ของตัวเอง (terraform/ กับ terraform-managed/ ไม่ปนกัน) · สลับ S.tf ตามโฟลเดอร์ที่รันอยู่
-function tfIsDir(dir) { return dir === REPO + "/terraform" || dir === REPO + "/terraform-managed" || dir.indexOf(REPO + "/labs/") === 0 && dir.split("/").length === (REPO + "/labs/x").split("/").length; }
+function tfIsDir(dir) { return dir === REPO + "/terraform" || dir === REPO + "/terraform-managed" || dir === REPO + "/terraform-azure" || dir.indexOf(REPO + "/labs/") === 0 && dir.split("/").length === (REPO + "/labs/x").split("/").length; }
 function tfUseDir(dir) {
   if (!tfIsDir(dir)) return;
   if (!S.tfDirs) S.tfDirs = {}; if (!S.tfCur) S.tfCur = REPO + "/terraform";
@@ -12,11 +12,11 @@ function tfInitCmd(dir, upgrade) {
   var files = tfFilesIn(dir), out = [];
   if (!Object.keys(files).length) return ["Terraform initialized in an empty directory!", "", "The directory has no Terraform configuration files. You may begin working", "with Terraform immediately by creating Terraform configuration files."];
   var cfg = tfLoad(files); if (cfg.errors.length) return tfFmtErrors(cfg.errors, cfg);
-  var req = ["aws", "local"].filter(function (p) { return Object.keys(cfg.res).some(function (a) { return cfg.res[a].type.indexOf(p === "aws" ? "aws_" : "local_") === 0; }) || Object.keys(cfg.data).some(function (a) { return cfg.data[a].type.indexOf("aws_") === 0 && p === "aws"; }); });
+  var req = ["aws", "local", "azurerm"].filter(function (p) { return Object.keys(cfg.res).some(function (a) { return cfg.res[a].type.indexOf(p === "local" ? "local_" : p + "_") === 0; }) || Object.keys(cfg.data).some(function (a) { return cfg.data[a].type.indexOf(p + "_") === 0; }); });
   if (S.faults.providerLock && !upgrade) return ["Initializing the backend...", "", "Initializing provider plugins...", "- Reusing previous version of hashicorp/aws from the dependency lock file", "╷", "│ Error: Failed to query available provider packages", "│ ", "│ Could not retrieve the list of available versions for provider hashicorp/aws: locked provider registry.terraform.io/hashicorp/aws 4.67.0 does not match configured version constraint >= 5.0; must use terraform init -upgrade to allow selection of new versions", "╵"];
   if (S.faults.providerLock && upgrade) delete S.faults.providerLock;
   out.push("Initializing the backend...", "", "Initializing provider plugins...");
-  req.forEach(function (p) { out.push("- Finding hashicorp/" + p + " versions matching \"" + (p === "aws" ? ">= 5.0" : ">= 2.4") + "\"...", "- Installing hashicorp/" + p + " (จำลอง: ไม่ได้ดาวน์โหลดจริง)...", "- Installed hashicorp/" + p + " (signed by HashiCorp)"); });
+  req.forEach(function (p) { out.push("- Finding hashicorp/" + p + " versions matching \"" + (p === "aws" ? ">= 5.0" : p === "azurerm" ? "~> 4.0" : ">= 2.4") + "\"...", "- Installing hashicorp/" + p + " (จำลอง: ไม่ได้ดาวน์โหลดจริง)...", "- Installed hashicorp/" + p + " (signed by HashiCorp)"); });
   out.push("", "Terraform has created a lock file .terraform.lock.hcl to record the provider", "selections it made above. Include this file in your version control repository", "so that Terraform can guarantee to make the same selections by default when", "you run \"terraform init\" in the future.", "", "Terraform has been successfully initialized!", "", "You may now begin working with Terraform. Try running \"terraform plan\" to see", "any changes that are required for your infrastructure. All Terraform commands", "should now work.");
   S.tf.inited = true; return out;
 }

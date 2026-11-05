@@ -3,7 +3,7 @@
 #   public : bastion, Jenkins, SonarQube   (มี public IP)
 #   private: Kubernetes ×N, dev, DB ×N      (ไม่มี public IP, กระจาย zone 1-3)
 # รวมนิยามไว้ที่ local.vms แล้วสร้าง NIC/VM ด้วย for_each ชุดเดียว (AWS แยกเป็น resource ต่อบทบาท)
-#   acr = สิทธิ์ที่ managed identity ของ VM ได้บน ACR (ไม่มี = ไม่มี identity) · แทน IAM instance profile ของ AWS
+#   acr = สิทธิ์ที่ managed identity ของ VM ได้บน ACR (ว่าง = ไม่ให้สิทธิ์) · แทน IAM instance profile ของ AWS
 # ดิสก์ 30 GB ขั้นต่ำเพราะ image Ubuntu ของ Azure ใหญ่ 30 GB (AWS bastion ใช้ 8 GB ได้)
 
 locals {
@@ -82,11 +82,9 @@ resource "azurerm_linux_virtual_machine" "vm" {
     version   = "latest"
   }
 
-  dynamic "identity" {
-    for_each = each.value.acr == "" ? [] : [1]
-    content {
-      type = "SystemAssigned"
-    }
+  # ทุกเครื่องมี managed identity (ใช้จริงเฉพาะที่มี role บน ACR ใน acr.tf)
+  identity {
+    type = "SystemAssigned"
   }
 
   tags = merge(local.tags, {

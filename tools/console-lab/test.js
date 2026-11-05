@@ -4,7 +4,7 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const src = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const logic = src.slice(0, src.indexOf("//==UI=="));
 new Function(src); // syntax of the UI half (not executed)
-const L = new Function(logic + ";return {jfLoad,prdLoad,jkpushLoad,devcStatus,devcState,API,ghEnvReview,hash32,ghInit,jkCred,ghTokens,ghTokenCanPush,hcl,buildExpress,checksExpress,expEval,expOf,expResources,buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkTestRun,jkScanRun,JKEX,sqRecord,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
+const L = new Function(logic + ";return {azOfKind,jfLoad,prdLoad,jkpushLoad,devcStatus,devcState,API,ghEnvReview,hash32,ghInit,jkCred,ghTokens,ghTokenCanPush,hcl,buildExpress,checksExpress,expEval,expOf,expResources,buildApr,checksApr,aprEval,aprSvc,buildSingle,checksSingle,ec2App,dnsA,webOpen,buildGha,checksGha,ghaTrust,ghaYaml,ghaRunsOf,ghaWf,isGhaLab,ghostRows,rdsPhase,acmStatus,cfInvTick,cfRequest,tfDestroySecs,eksPhase,ngPhase,cfPhase,rdsPhase,ecsWarm,cdTick,vpceReach,buildCd,checksCd,iamCan,cdPipe,cdProj,cdStageView,isCdLab,slsPartiql,slsInsights,slsMetrics,slsAlarmState,slsInvokeDirect,fsWrite,buildSls,checksSls,slsInvoke,slsLam,slsTbl,slsApi,slsApiHost,slsCan,isSlsLab,buildEcs,checksEcs,isEcsLab,ecsEval,ecsApiResponse,ecsClusterByName,ecsSvcOf,buildStatic,cfRequest,dnsResolve,acmStatus,s3Allows,bucketByName,checksStatic,isStaticLab,buildManaged,rdsReach,checksManaged,isManagedLab,sessionCheck,buildAnsibleLab,readyState,readyBuild,readyPushCmds,buildReady,jkSelect,jkJob,jkJobs,jkBuildsOf,jkRepoName,phApi,phState,phDbUp, phAdminPw,delPlan,sgRuleRisk,hcl,hclPlan,HCL_INFO,ITYPE_ALL,ITYPES,instPhase,natPhase,albPhase,webOpen,jkSetup,jkUnlock,jkCustomize,jkCreateAdmin,jkSetUrl,jkStart,jkSignIn,jkSignOut,jkPwdOf,jkInst,jkAddCred,jkCred,jkCreateJob,jkBuildNow,jkNew,jkAdvance,jkTestRun,jkScanRun,JKEX,sqRecord,jkNextDelay,jkInput,sqLogin,sqChangePw,sqGenToken,argoPwdOf,argoStatus,argoApply,gitCmd,REPO2:REPO,tfInitCmd,tfPlanCmd,tfApplyCmd,tfValidateCmd,tfStateList,tfOutputCmd,fsWrite,fsRead,REPO,sessionCheck,POLICY_DEF,ensureState,principalActions,API,get S(){return S},shRun,timingPlan,fresh,buildLab,shRun,ansGraph,ansPing,ansPlaybook,ansInventory,checks,sshCheck,albHealth,hcl,lbName,ecrName,internetOut,delPlan,liveInsts}")();
 
 L.buildLab("full");
 assert.strictEqual(L.checks().filter(c => !c.ok).length, 0, "full lab ต้องผ่านทุกข้อ");
@@ -973,4 +973,20 @@ console.log("ok");
   assert(/No changes/.test(sh10("terraform plan")), "plan ซ้ำไม่เปลี่ยน");
   const ds = sh10("terraform destroy", ["yes"]); assert(/Destroy complete! Resources: 9 destroyed/.test(ds), ds.slice(-500));
   assert(!L.S.exps.length && !L.S.albs.filter(a => a.express).length, "destroy แล้วไม่เหลือ ALB ของ Express");
+}
+// ---- Azure: terraform-azure/ ผ่าน az login + terraform
+{
+  L.fresh();
+  function shaz(line, answers) { let r = L.shRun(line), out = r.lines.slice(); answers = (answers || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(answers.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  const V = ["00000000-0000-0000-0000-000000000000", "198.51.100.7/32"];
+  shaz("cd ~/Desktop/work/pharmacy-aws-lab/terraform-azure"); shaz("terraform init");
+  assert(/az login/.test(shaz("terraform plan", V)), "ไม่ az login ต้อง error");
+  shaz("az login");
+  const aa = shaz("terraform apply", V.concat(["yes"])); assert(/Apply complete! Resources: 71 added/.test(aa), aa.slice(-500));
+  assert(L.azOfKind("vm").length === 10 && L.azOfKind("nsg").length === 2 && L.azOfKind("acr").length === 1, "VM ×10 NSG ×2 ACR ×1");
+  assert([1, 2, 3].every(z => L.azOfKind("vm").some(v => v.p.zone === String(z))), "k8s/db กระจาย zone 1-3");
+  assert(/No changes/.test(shaz("terraform plan", V)), "plan ซ้ำไม่เปลี่ยน");
+  assert(/acr_login_server/.test(shaz("terraform output")) && /Login Succeeded/.test(shaz("az acr login --name " + L.azOfKind("acr")[0].name)), "output + az acr login");
+  const dz = shaz("terraform destroy -auto-approve", V); assert(/Destroy complete! Resources: 71 destroyed/.test(dz), dz.slice(-400));
+  assert(L.azOfKind("rg").length === 0, "destroy แล้วไม่เหลือ resource");
 }
