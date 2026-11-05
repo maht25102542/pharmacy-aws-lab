@@ -1006,3 +1006,12 @@ console.log("ok");
   const ok = L.azWebFetch("https://pharmacyweb01.z23.web.core.windows.net/"), nf = L.azWebFetch("https://pharmacyweb01.z23.web.core.windows.net/x");
   assert(ok.status === 200 && ok.body === "<h1>hi</h1>" && nf.status === 404 && nf.body === "nf", "เว็บ static ตอบ index + 404 document");
 }
+// ---- Azure lab 09 static site ผ่าน terraform ใน Terminal จำลอง
+{
+  L.fresh(); function shl(line, a) { let r = L.shRun(line), out = r.lines.slice(); a = (a || []).slice(); while (r.ask) { out.push(r.ask.label); r = r.ask.done(a.shift()); out = out.concat(r.lines); } return out.join("\n"); }
+  shl("cd ~/Desktop/work/pharmacy-aws-lab/labs/09-azure-static-site"); shl("az login"); shl("terraform init");
+  const ap9 = shl("terraform apply", ["00000000-0000-0000-0000-000000000000", "yes"]); assert(/Apply complete! Resources: 9 added/.test(ap9), ap9.slice(-400));
+  assert(L.azWebFetch("https://pharmacywebprd01.z23.web.core.windows.net/").body.indexOf("PRD") > 0 && L.azWebFetch("https://pharmacywebdev01.z23.web.core.windows.net/x").status === 404, "เว็บ dev/prd เปิดได้ + 404");
+  assert(/No changes/.test(shl("terraform plan", ["00000000-0000-0000-0000-000000000000"])), "plan ซ้ำไม่เปลี่ยน");
+  assert(/Destroy complete! Resources: 9 destroyed/.test(shl("terraform destroy -auto-approve", ["00000000-0000-0000-0000-000000000000"])), "destroy lab 09");
+}
