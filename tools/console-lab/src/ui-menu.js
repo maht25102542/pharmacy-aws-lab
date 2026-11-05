@@ -8,7 +8,7 @@ function dmInfo(t) { return function () { flash("info", t); }; }
 function dmExec(cmd) { document.execCommand(cmd); }
 function dmNewTerm() { if (DESK.wins.files.open && !DESK.wins.files.min) { ED.termOpen = true; DESK.wins.term.open = false; } else dmOpen("term"); }
 function dmGoDir(p) { return function () { FD.path = p; dmOpen("finder"); }; }
-function dmWin() { return [["Minimize", "⌘M", dmMin], ["Zoom", "", dmZoom], "-", ["Finder", "", function () { dmOpen("finder"); }], ["Terminal", "", function () { dmOpen("term"); }], ["Code", "", function () { dmOpen("files"); }], ["Google Chrome", "", function () { dmOpen("chrome"); }], ["Safari", "", function () { dmOpen("safari"); }], ["Lab", "", function () { dmOpen("lab"); }]]; }
+function dmWin() { return [["Minimize", "⌘M", dmMin], ["Zoom", "", dmZoom], "-", ["Finder", "", function () { dmOpen("finder"); }], ["Terminal", "", function () { dmOpen("term"); }], ["Code", "", function () { dmOpen("files"); }], ["Google Chrome", "", function () { dmOpen("chrome"); }], ["Safari", "", function () { dmOpen("safari"); }], ["Lab", "", function () { dmOpen("lab"); }], ["System Settings", "", function () { dmOpen("settings"); }]]; }
 function dmEdit() { return [["Undo", "⌘Z", function () { dmExec("undo"); }], ["Redo", "⇧⌘Z", function () { dmExec("redo"); }], "-", ["Cut", "⌘X", function () { dmExec("cut"); }], ["Copy", "⌘C", function () { dmExec("copy"); }], ["Paste", "⌘V", null], ["Select All", "⌘A", function () { dmExec("selectAll"); }]]; }
 function dmHelp(app) { return [["Search", "", null], "-", [app + " Help", "", dmInfo("Help ไม่ได้จำลอง")]]; }
 function deskMenus(app) {
@@ -34,6 +34,7 @@ function deskMenus(app) {
     [ch ? "History" : "History", [["Back", "⌘[", function () { if (whCan(-1)) whGo(-1); }], ["Forward", "⌘]", function () { if (whCan(1)) whGo(1); }]]],
     ["Bookmarks", [["Add Bookmark…", "⌘D", dmInfo("Bookmark ไม่ได้จำลอง")]]],
     ["Window", dmWin()], ["Help", dmHelp(app)]]; }
+  if (app === "System Settings") return [["System Settings", [["About System Settings", "", dmInfo("ตัวควบคุมของตัวจำลอง")], "-", ["Quit System Settings", "⌘Q", quit]]], ["Edit", dmEdit()], ["Window", dmWin()], ["Help", dmHelp("System Settings")]];
   if (app === "Lab") return [["Lab", [["About Lab", "", dmInfo("Lab (จำลอง) — ศูนย์รวม use case / Terraform / Ansible / Jenkins")], "-", ["Quit Lab", "⌘Q", quit]]],
     ["File", [["Close Window", "⌘W", dmClose]]], ["Edit", dmEdit()], ["Window", dmWin()], ["Help", dmHelp("Lab")]];
   return [["Finder", [["About Finder", "", dmInfo("Finder (จำลอง)")], "-", ["Settings…", "⌘,", dmInfo("Settings ไม่ได้จำลอง")], "-", ["Empty Trash…", "⇧⌘⌫", dmInfo("ถังขยะว่างเปล่า")]]],
@@ -43,7 +44,7 @@ function deskMenus(app) {
     ["Go", [["Back", "⌘[", function () { if (FD.back && FD.back.length) { FD.fwd.push(FD.path); FD.path = FD.back.pop(); } }], "-", ["Applications", "⇧⌘A", dmGoDir("/Applications")], ["Desktop", "⇧⌘D", dmGoDir(HOME + "/Desktop")], ["Documents", "⇧⌘O", dmGoDir(HOME + "/Documents")], ["Downloads", "⌥⌘L", dmGoDir(HOME + "/Downloads")], ["Home", "⇧⌘H", dmGoDir(HOME)], ["pharmacy-aws-lab", "", dmGoDir(REPO)]]],
     ["Window", dmWin()], ["Help", dmHelp("Finder")]];
 }
-function deskAppleMenu() { return [["About This Mac", "", dmInfo("Mac จำลอง · macOS (Big Sur style)")], "-", ["System Settings…", "", dmInfo("System Settings ไม่ได้จำลอง")], ["App Store…", "", dmInfo("ไม่ได้จำลอง")], "-", ["Recent Items", "", null], "-", ["Force Quit…", "⌥⌘⎋", function () { dmClose(); }], "-", ["Sleep", "", dmInfo("Mac จำลอง ไม่เข้าสู่โหมดพัก")], ["Restart…", "", dmInfo("Mac จำลอง ไม่รีสตาร์ท")], ["Shut Down…", "", dmInfo("Mac จำลอง ไม่ปิดเครื่อง")], "-", ["Lock Screen", "⌃⌘Q", dmInfo("ล็อกหน้าจอไม่ได้จำลอง")], ["Log Out swd…", "⇧⌘Q", dmInfo("Log out ไม่ได้จำลอง")]]; }
+function deskAppleMenu() { return [["About This Mac", "", dmInfo("Mac จำลอง · macOS (Big Sur style)")], "-", ["System Settings…", "", function () { dmOpen("settings"); }], ["App Store…", "", dmInfo("ไม่ได้จำลอง")], "-", ["Recent Items", "", null], "-", ["Force Quit…", "⌥⌘⎋", function () { dmClose(); }], "-", ["Sleep", "", dmInfo("Mac จำลอง ไม่เข้าสู่โหมดพัก")], ["Restart…", "", dmInfo("Mac จำลอง ไม่รีสตาร์ท")], ["Shut Down…", "", dmInfo("Mac จำลอง ไม่ปิดเครื่อง")], "-", ["Lock Screen", "⌃⌘Q", dmInfo("ล็อกหน้าจอไม่ได้จำลอง")], ["Log Out swd…", "⇧⌘Q", dmInfo("Log out ไม่ได้จำลอง")]]; }
 function dmMenu(key, label, items, bold, icon) {
   var wrap = h("span", { cls: "dmi", "data-k": key }), btn = h("button", { type: "button", cls: "dmb" + (bold ? " b" : "") + (DESK.menu === key ? " on" : ""), onclick: function () { dmShow(DESK.menu === key ? null : key); }, onmouseenter: function () { if (DESK.menu != null && DESK.menu !== key) dmShow(key); } }, [icon || label]);
   var dd = h("div", { cls: "dmd", style: DESK.menu === key ? "" : "display:none" }, items.map(function (it) {
