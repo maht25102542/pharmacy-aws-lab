@@ -1,18 +1,19 @@
 // Chrome / Safari บน Desktop: หน้าต่างเบราว์เซอร์ใช้งานได้จริง (พิมพ์ URL + Enter, ย้อน/ไปข้างหน้า/reload) แสดงเว็บจำลองตัวเดียวกับแท็บ Browser
 function bdUrls() {
-  var urls = ["https://" + AWS_HOST + "/", "https://www.google.com/"]; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
+  var urls = ["https://" + AWS_HOST + "/", "https://" + AZ_HOST + "/", "https://www.google.com/"]; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
   S.cfds.forEach(function (d) { d.aliases.forEach(function (a) { urls.push("https://" + a); }); urls.push("https://" + d.domain); });
   var gu = typeof ghUser === "function" ? ghUser() : "demo-user"; urls.push("https://github.com/" + gu + "/pharmacy-backend");
   S.albs.forEach(function (a) { a.listeners.forEach(function (l) { var t = find(S.tgs, l.tgId); if (t && t.ttype === "ip" && a.dns) urls.push("http://" + a.dns + (l.port === 80 ? "" : ":" + l.port) + "/api/drugs"); }); });
   return urls.filter(function (u, i, a) { return a.indexOf(u) === i; });
 }
 function bdTitle(w) {
-  w = w || W; var r = w.res; if (!r) return "New Tab"; if (r.site === "awsconsole") return ((SVC_NAME[w.acs] || w.acs || "EC2") + " Management Console"); if (r.site === "google") return r.q ? r.q + " - Google Search" : "Google"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
+  w = w || W; var r = w.res; if (!r) return "New Tab"; if (r.site === "azportal") return "Microsoft Azure"; if (r.site === "awsconsole") return ((SVC_NAME[w.acs] || w.acs || "EC2") + " Management Console"); if (r.site === "google") return r.q ? r.q + " - Google Search" : "Google"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
   return { jenkins: "Dashboard [Jenkins]", sonarqube: "SonarQube", argocd: "Argo CD", app: "pharmacy", github: "GitHub", cf: (r.host || "CloudFront"), apigw: "pharmacy-api", compose: "pharmacy", aprun: "pharmacy" }[r.site] || (r.host || w.addr);
 }
 // URL พิเศษที่เบราว์เซอร์บน Desktop จัดการเอง: AWS console + Google (หน้าแรก/ผลค้นหาจำลอง)
 function bdSpecial(u) {
   u = String(u || ""); if (typeof isAwsUrl === "function" && isAwsUrl(u)) return { site: "awsconsole" };
+  if (/^https?:\/\/portal\.azure\.com/i.test(u)) { if (!W.azp) W.azp = "home"; return { site: "azportal" }; }
   var m = /^https?:\/\/(www\.)?google\.(com|co\.th)(\/[^?#]*)?(\?[^#]*)?/i.exec(u); if (m) { var q = /[?&]q=([^&#]*)/.exec(m[4] || ""); return { site: "google", q: q ? decodeURIComponent(q[1].replace(/\+/g, " ")) : "" }; }
   return null;
 }
@@ -24,7 +25,7 @@ function bdGo(v) {
   wbGo(v);
 }
 function bdSvg(k) { return '<svg viewBox="0 0 16 16" width="16" height="16" class="bdsv">' + (typeof FD_SI !== "undefined" ? FD_SI[k] : "") + "</svg>"; }
-function bdName(u) { if (/google\.com\/?$/.test(u)) return ["Google", "#4285f4"]; if (/console\.aws\.amazon\.com/.test(u)) return ["AWS Console", "#ff9900"]; var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
+function bdName(u) { if (/google\.com\/?$/.test(u)) return ["Google", "#4285f4"]; if (/console\.aws\.amazon\.com/.test(u)) return ["AWS Console", "#ff9900"]; if (/portal\.azure\.com/.test(u)) return ["Azure Portal", "#0078d4"]; var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
 function bdTiles(kind) {
   var seen = {}, us = bdUrls().filter(function (u) { var n = bdName(u)[0]; if (seen[n]) return false; seen[n] = 1; return true; }).slice(0, 8);
   return h("div", { cls: "bdtiles " + kind }, us.map(function (u) { var n = bdName(u); return h("button", { type: "button", cls: "bdtile", title: u, onclick: function () { bdGo(u); } }, [h("span", { cls: "bdti", style: "background:" + n[1], text: n[0].charAt(0).toUpperCase() }), h("span", { cls: "bdtn", text: n[0] })]); }));
@@ -69,7 +70,7 @@ function btNew() { btSave(); BT.tabs.push({ id: ++BT.seq, w: null, h: null }); B
 function btSwitch(i) { if (i === BT.cur) return; btSave(); BT.cur = i; btLoad(BT.tabs[i]); render(); }
 function btClose(i) { if (BT.tabs.length === 1) { BT.tabs[0] = { id: ++BT.seq, w: null, h: null }; BT.cur = 0; btLoad(BT.tabs[0]); render(); return; } if (i === BT.cur) { BT.tabs.splice(i, 1); BT.cur = Math.min(i, BT.tabs.length - 1); btLoad(BT.tabs[BT.cur]); } else { btSave(); BT.tabs.splice(i, 1); if (i < BT.cur) BT.cur--; } render(); }
 function browserApp(kind) {
-  var isAws = !!(W.res && W.res.site === "awsconsole"), isG = !!(W.res && W.res.site === "google"); AC.on = isAws; if (isAws) DESK.bsvc = AC.svc; var pg = isAws || isG ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : isG ? googleView() : W.res ? kids[kids.length - 1] : browserStart(kind);
+  var isAws = !!(W.res && W.res.site === "awsconsole"), isG = !!(W.res && W.res.site === "google"), isAz = !!(W.res && W.res.site === "azportal"); AC.on = isAws; if (isAws) DESK.bsvc = AC.svc; var pg = isAws || isG || isAz ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : isAz ? azurePortal() : isG ? googleView() : W.res ? kids[kids.length - 1] : browserStart(kind);
   var https = /^https:/i.test(W.addr || ""), host = (/^https?:\/\/([^\/]+)/i.exec(W.addr || "") || [0, ""])[1];
   var can = function (d) { return typeof whCan === "function" && whCan(d); };
   var dl = h("datalist", { id: "bdurls" }, bdUrls().map(function (u) { return h("option", { value: u }); }));
