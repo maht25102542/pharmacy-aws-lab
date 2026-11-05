@@ -145,7 +145,7 @@ pre.hcl { background: var(--code-bg); border-radius: 8px; padding: 12px 14px; ov
 .regmenu { right: 0; min-width: 270px; }
 .regmenu div { padding: 5px 10px; font-size: .86rem; color: var(--muted); }
 .regmenu div.on { color: var(--fg); font-weight: 600; }
-.nav button.off { color: var(--muted); }
+.nav button.off { color: var(--muted); opacity: .55; cursor: default; }
 a.lnk { color: var(--accent); font-weight: 500; text-decoration: none; }
 a.lnk:hover, .crumb a:hover { text-decoration: underline; }
 .crumb a { color: var(--accent); text-decoration: none; }
@@ -361,7 +361,7 @@ thead th { background: var(--code-bg, #fafafa); color: var(--muted, #414d5c); fo
 .svcmenu .sm-it:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,153,0,.4); }
 .svcmenu .sm-it img { width: 28px; height: 28px; border-radius: 6px; flex: none; margin-top: 1px; box-shadow: 0 1px 3px rgba(16,24,40,.2); } .svcmenu .sm-it .ph { width: 28px; height: 28px; border-radius: 6px; flex: none; background: #8a96a3; color: #fff; display: grid; place-items: center; font-size: .7rem; font-weight: 700; }
 .svcmenu .sm-it b { display: block; font-size: .9rem; font-weight: 700; color: var(--accent); } .svcmenu .sm-it:hover b { color: #c2570c; text-decoration: underline; } .svcmenu .sm-it small { display: block; color: var(--muted); font-size: .75rem; line-height: 1.35; }
-.svcmenu .sm-it.off b { color: var(--muted); } .svcmenu .sm-it.off { opacity: .75; } .svcmenu .sm-it .bd { font-size: .62rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; background: var(--code-bg); color: var(--muted); } .svcmenu .sm-it .bd.nx { background: #fff1d6; color: #9a5b00; }
+.svcmenu .sm-it.off b { color: var(--muted); } .svcmenu .sm-it.off { opacity: .55; } .svcmenu .sm-it .bd { font-size: .62rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; background: var(--code-bg); color: var(--muted); } .svcmenu .sm-it .bd.nx { background: #fff1d6; color: #9a5b00; }
 .svcmenu .sm-empty { grid-column: 1 / -1; color: var(--muted); padding: 24px 0; }
 @media (max-width: 900px) { .svcmenu .sm-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .svcmenu { grid-template-columns: 1fr; } .svcmenu .sm-cats { display: none; } .svcmenu .sm-top { grid-column: 1; } .svcmenu .sm-list { grid-template-columns: 1fr; } }
@@ -1732,6 +1732,12 @@ body.deskfull { overflow: hidden; }
 .azportal select:focus,.azportal input[type=text]:focus,.azportal textarea:focus{border-color:#0078d4!important;outline:1px solid #0078d4!important}
 .azportal input[type=radio],.azportal input[type=checkbox]{accent-color:#0078d4}
 .azcmd{border-top:1px solid #edebe9;border-bottom:1px solid #edebe9}
+.azti2.off,.azng.off{opacity:.55;cursor:default}.azng.off{color:#605e5c!important;text-decoration:none!important}
+:is(body[data-svc="Lab"],body[data-svc="Browser"],body[data-svc="Laptop"]) .nav button.off{opacity:.55}
+:is(.awsemb[data-svc="Lab"],.awsemb[data-svc="Browser"],.awsemb[data-svc="Laptop"]) .nav button.off{opacity:.55}
+.awsemb .nav button.off{opacity:.55;cursor:default}
+.awsemb .pillr.off{opacity:.6;cursor:default}
+.aztool{opacity:.85;cursor:default}
 </style>
 
 <header class="top">
@@ -16699,11 +16705,11 @@ function awsEmbed() {
   var nav = h("nav", { cls: "nav" });
   NAV[AC.svc].forEach(function (g) {
     if (g[0]) nav.appendChild(h("div", { cls: "grp", text: g[0] }));
-    g[1].forEach(function (p) { var on = !!p[0] && AC.page === p[0]; nav.appendChild(h("button", { type: "button", cls: p[0] ? "" : "off", "aria-current": String(on), onclick: function () { if (p[0]) awsGo(p[0], {}, AC.svc); } }, [p[1]])); });
+    g[1].forEach(function (p) { var on = !!p[0] && AC.page === p[0]; nav.appendChild(h("button", { type: "button", cls: p[0] ? "" : "off", "aria-current": String(on), title: p[0] ? "" : "ยังไม่ได้จำลองหน้านี้", onclick: function () { if (p[0]) awsGo(p[0], {}, AC.svc); else flash("info", "หน้า \"" + p[1] + "\" มีอยู่ใน console จริงแต่ยังไม่ได้จำลอง"); } }, [p[1]])); });
   });
   var svcBtn = h("button", { type: "button", cls: "svcbtn", "aria-haspopup": "true", "aria-expanded": "false", html: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="3" r="1.400"/><circle cx="8" cy="3" r="1.400"/><circle cx="13" cy="3" r="1.400"/><circle cx="3" cy="8" r="1.400"/><circle cx="8" cy="8" r="1.400"/><circle cx="13" cy="8" r="1.400"/><circle cx="3" cy="13" r="1.400"/><circle cx="8" cy="13" r="1.400"/><circle cx="13" cy="13" r="1.400"/></svg> Services' }), svcMenu = h("div", { cls: "svcmenu", hidden: "hidden" });
   svcMenuInit(svcBtn, svcMenu, true);
-  var top = h("header", { cls: "top awsetop" }, [h("span", { cls: "awslogo", text: "aws" }), h("span", { cls: "svcwrap" }, [svcBtn, svcMenu]), h("div", { cls: "gsearch" }, [h("input", { type: "search", placeholder: "Search   [Alt+S]", "aria-label": "Search" })]), h("div", { cls: "hright" }, [h("button", { type: "button", cls: "pillr", text: "Asia Pacific (Singapore) ▾" }), h("span", { cls: "svcwrap awsacc" }, [h("button", { type: "button", cls: "acctname", text: "tf-admin @ 0000-0000-0000 ▾", onclick: function () { AC.acc = !AC.acc; render(); } }), h("div", { cls: "awsaccm", style: AC.acc ? "" : "display:none" }, [h("div", { cls: "ah", text: "Account ID: 0000-0000-0000" }), h("label", {}, ["My IP (ใช้ตั้ง security group)", h("input", { type: "text", value: S.myIp, "aria-label": "My IP", onchange: function (e) { var v = e.target.value.trim(); if (ip2n(v) === null) { flash("bad", "My IP ไม่ถูกต้อง"); e.target.value = S.myIp; } else S.myIp = v; render(); } })]), h("label", {}, ["บัญชี", h("select", { "aria-label": "ชนิดบัญชี", onchange: function (e) { S.acct = e.target.value; S.newAcct = S.acct === "free"; render(); } }, [["normal", "ปกติ"], ["free", "Free plan (สร้างหลัง 15 ก.ค. 2025)"], ["suspended", "ถูกระงับ (suspended)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: S.acct === o[0] ? "selected" : null }); }))])])])])]);
+  var top = h("header", { cls: "top awsetop" }, [h("span", { cls: "awslogo", text: "aws" }), h("span", { cls: "svcwrap" }, [svcBtn, svcMenu]), h("div", { cls: "gsearch" }, [h("input", { type: "search", placeholder: "Search   [Alt+S]", "aria-label": "Search" })]), h("div", { cls: "hright" }, [h("button", { type: "button", cls: "pillr off", title: "ตัวจำลองใช้ ap-southeast-1 ภูมิภาคเดียว", text: "Asia Pacific (Singapore) ▾", onclick: function () { flash("info", "ตัวจำลองใช้ ap-southeast-1 ภูมิภาคเดียว"); } }), h("span", { cls: "svcwrap awsacc" }, [h("button", { type: "button", cls: "acctname", text: "tf-admin @ 0000-0000-0000 ▾", onclick: function () { AC.acc = !AC.acc; render(); } }), h("div", { cls: "awsaccm", style: AC.acc ? "" : "display:none" }, [h("div", { cls: "ah", text: "Account ID: 0000-0000-0000" }), h("label", {}, ["My IP (ใช้ตั้ง security group)", h("input", { type: "text", value: S.myIp, "aria-label": "My IP", onchange: function (e) { var v = e.target.value.trim(); if (ip2n(v) === null) { flash("bad", "My IP ไม่ถูกต้อง"); e.target.value = S.myIp; } else S.myIp = v; render(); } })]), h("label", {}, ["บัญชี", h("select", { "aria-label": "ชนิดบัญชี", onchange: function (e) { S.acct = e.target.value; S.newAcct = S.acct === "free"; render(); } }, [["normal", "ปกติ"], ["free", "Free plan (สร้างหลัง 15 ก.ค. 2025)"], ["suspended", "ถูกระงับ (suspended)"]].map(function (o) { return h("option", { value: o[0], text: o[1], selected: S.acct === o[0] ? "selected" : null }); }))])])])])]);
   return h("div", { cls: "awsemb", "data-svc": AC.svc }, [top, h("div", { cls: "body" }, [nav, h("main", { cls: "main" }, [main])])]);
 }
 
@@ -16915,7 +16921,7 @@ function azpHome() {
   return h("div", { cls: "azhome" }, [h("h2", { cls: "azh2", text: "Azure services" }), h("div", { cls: "azsv" }, svcs.map(function (x) { return h("button", { type: "button", cls: "azsvb", onclick: function () { if (x[2]) azpGo(x[2]); else azpGo("create"); } }, [azIco(x[0], 34), h("span", { text: x[1] })]); }).concat([h("button", { type: "button", cls: "azsvb", onclick: function () { azpGo("all"); } }, [h("span", { cls: "azarrow", text: "→" }), h("span", { text: "More services" })])])),
     h("h2", { cls: "azh2", text: "Resources" }), h("div", { cls: "aztabs" }, [["recent", "Recent"], ["fav", "Favorite"]].map(function (t) { return h("span", { cls: "aztab " + (tab === t[0] ? "on" : ""), text: t[1], onclick: function () { W.azt = t[0]; render(); } }); })),
     azpTable(["Name", "Type", "Last Viewed"], tab === "fav" ? [] : rec.map(function (x) { return [h("span", { cls: "azrn" }, [azIco(x.kind, 16), azpLink(x.id)]), azpKind(x), "A few seconds ago"]; }), tab === "fav" ? "No favorites yet" : "No recent resources · เปิด Terminal แล้ว az login + terraform apply ใน terraform-azure/"),
-    h("div", { cls: "azcols" }, [h("div", {}, [h("h2", { cls: "azh2", text: "Navigate" }), h("div", { cls: "aznavg" }, nav.map(function (x) { return h("a", { href: "#", cls: "azl azng", text: x[0], onclick: function (e) { e.preventDefault(); if (x[1]) azpGo(x[1]); } }); }))]), h("div", {}, [h("h2", { cls: "azh2", text: "Tools" }), h("div", { cls: "aztools" }, tools.map(function (x) { return h("div", { cls: "aztool" }, [h("b", { text: x[0] }), h("span", { text: x[1] })]); }))])])]);
+    h("div", { cls: "azcols" }, [h("div", {}, [h("h2", { cls: "azh2", text: "Navigate" }), h("div", { cls: "aznavg" }, nav.map(function (x) { return h("a", { href: "#", cls: "azl azng" + (x[1] ? "" : " off"), text: x[0], onclick: function (e) { e.preventDefault(); if (x[1]) azpGo(x[1]); else flash("info", x[0] + " ยังไม่ได้จำลอง"); } }); }))]), h("div", {}, [h("h2", { cls: "azh2", text: "Tools" }), h("div", { cls: "aztools" }, tools.map(function (x) { return h("div", { cls: "aztool" }, [h("b", { text: x[0] }), h("span", { text: x[1] })]); }))])])]);
 }
 function azpMenu() {
   var fav = AZ_NAV.slice(1);
@@ -16982,7 +16988,7 @@ function azurePortal() {
   if (!S.azSess) return azpSignin();
   var pg = W.azp || "home", main = pg === "res" ? azpResPage() : pg === "create" ? azpCreateChooser() : /^create:/.test(pg) ? azpCreate(pg.slice(7)) : pg === "home" ? azpHome() : azpList(pg);
   var s = azpSearchBox();
-  var ic = function (g, t, fn) { return h("span", { cls: "azti2", title: t, html: azSvg(g, 17), onclick: fn }); };
+  var ic = function (g, t, fn) { return h("span", { cls: "azti2" + (fn ? "" : " off"), title: fn ? t : t + " (ยังไม่ได้จำลอง)", html: azSvg(g, 17), onclick: fn || function () { flash("info", t + " ยังไม่ได้จำลองในตัวจำลอง"); } }); };
   var top = h("header", { cls: "aztop" }, [h("button", { type: "button", cls: "azham", html: azSvg("menu", 18), onclick: function () { W.azm = !W.azm; render(); } }), h("a", { href: "#", cls: "azlogo", text: "Microsoft Azure", onclick: function (e) { e.preventDefault(); azpGo("home"); } }), s, h("button", { type: "button", cls: "azcop", onclick: function () { flash("Copilot ไม่มีในตัวจำลอง"); } }, [h("span", { cls: "azcpl", html: '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="5.500" cy="5.500" r="3.500" fill="#4f6bed"/><circle cx="10.500" cy="5.500" r="3.500" fill="#e53935" opacity=".85"/><circle cx="8" cy="10.500" r="3.500" fill="#f7b500" opacity=".9"/></svg>' }), " Copilot"]), h("span", { cls: "azicons" }, [ic("shell", "Cloud Shell", function () { AZCS.open = !AZCS.open; if (AZCS.open && !AZCS.out.length) AZCS.out.push("Requesting a Cloud Shell. Succeeded.", "Connecting terminal...", "Welcome to Azure Cloud Shell", "Type \"az\" to use Azure CLI"); render(); }), ic("bell", "Notifications", function () { W.azn = !W.azn; render(); }), ic("gear", "Settings"), ic("help", "Help + support"), ic("smile", "Feedback")]), h("span", { cls: "azuser" }, [h("span", { text: AZ_ACCT.user }), h("span", { cls: "azdir", text: "DEFAULT DIRECTORY (LAB.ONMICROSOFT.COM)" })]), h("span", { cls: "azav", text: "S" })]);
   return h("div", { cls: "azportal" }, [top, h("div", { cls: "azbody" }, [W.azm ? azpMenu() : null, main].filter(Boolean)), azCloudShell(), azNotifEl(), azModalEl()].filter(Boolean));
 }
