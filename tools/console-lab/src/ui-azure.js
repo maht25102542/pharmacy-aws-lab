@@ -247,7 +247,7 @@ function azpCreateChooser() {
 }
 function azpField(label, ctl, req, note) { return h("div", { cls: "azfld" }, [h("label", { cls: "azfl" }, [label, req ? h("span", { cls: "azreq", text: " *" }) : null].filter(Boolean)), h("div", { cls: "azfc" }, [ctl].concat(note ? [h("div", { cls: "azfn" }, [note])] : []))]); }
 function azpSel(opts, key) { return h("select", { cls: "azsel", onchange: function (e) { AZC.v[key] = e.target.value; render(); } }, opts.map(function (o) { return h("option", { value: o, text: o, selected: AZC.v[key] === o }); })); }
-function azpTxt(key, ph) { return h("input", { type: "text", cls: "azfi2", spellcheck: "false", placeholder: ph || "", value: AZC.v[key] || "", oninput: function (e) { AZC.v[key] = e.target.value; } }); }
+function azpTxt(key, ph) { return h("input", { type: "text", cls: "azfi2", "data-k": "az:" + AZC.kind + ":" + key, spellcheck: "false", placeholder: ph || "", value: AZC.v[key] || "", oninput: function (e) { AZC.v[key] = e.target.value; } }); }
 function azpRadio(opts, key) { return h("div", { cls: "azrad" }, opts.map(function (o) { return h("label", {}, [h("input", { type: "radio", name: "r" + key, checked: AZC.v[key] === o, onchange: function () { AZC.v[key] = o; render(); } }), " " + o]); })); }
 function azpCreate(kind) {
   if (AZC.kind !== kind) { AZC = { kind: kind, tab: 0, v: { rg: (azOfKind("rg")[0] || {}).name || "", loc: "southeastasia", sku: kind === "acr" ? "Basic" : "Standard", space: "10.0.0.0/16", name: "" }, err: "" }; }

@@ -1,6 +1,6 @@
 // ===== GitHub + git จำลอง (ไม่มี DOM): repo-backend / repo-frontend / repo-manifests บน laptop → push → GitHub =====
 // ponytail: ไม่จำลอง auth ของ GitHub (ข้ามการถาม username/token) และไม่มี branch อื่นนอกจาก main
-var GH_DIRS = { "repo-backend": "pharmacy-backend", "repo-frontend": "pharmacy-frontend", "repo-manifests": "pharmacy-manifests" };
+var GH_DIRS = { "repo-backend": "pharmacy-backend", "repo-frontend": "pharmacy-frontend", "repo-manifests": "pharmacy-manifests", "repo-cafe-backend": "cafe-backend", "repo-cafe-frontend": "cafe-frontend", "repo-iam-backend": "iam-backend", "repo-iam-frontend": "iam-frontend" };
 // บัญชี GitHub ตัวอย่างของตัวจำลอง (email = noreply ของ GitHub; ไม่ใช้อีเมลจริง เพราะหน้าเว็บถูกแชร์ได้)
 var GH_ACCT = { user: "maht25102542", email: "maht25102542@users.noreply.github.com", pw: "Lab-2026!" };
 function ghUser() { return ansVars().github_user || "YOUR_GITHUB_USER"; }

@@ -367,8 +367,8 @@ var EXF = {
 };
 function exFor(id) { var fn = UI.form ? UI.form.name : ""; var hit = EXF[fn + "." + id] || EXF["*." + id]; if (!hit && fn.slice(-1) === "-") hit = null; if (!hit) Object.keys(EXF).some(function (k) { if (k.indexOf(".") > 0 && k.slice(-id.length - 1) === "." + id && k.charAt(k.length - id.length - 2) === "-" && fn.indexOf(k.slice(0, k.length - id.length - 1)) === 0) { hit = EXF[k]; return true; } }); return hit ? hit.map(function (x) { return [x, x]; }) : null; }
 // ex: [[val,label]]; get/set ค่า; flag = object+key ที่จำว่าเลือก "พิมพ์เอง" ไว้
-// ทุก dropdown ตัวอย่าง: ถ้ามีค่าที่ขึ้นต้น pharmacy ให้เพิ่มคู่ cafe ต่อท้ายอัตโนมัติ (เพิ่ม ไม่แทนที่) สำหรับทดสอบโดยไม่ต้องพิมพ์
-function cafeEx(ex) { var out = ex.slice(); ex.forEach(function (e) { var v = String(e[0]), l = String(e[1]); if ((/pharmacy/i.test(v) || /pharmacy/i.test(l)) && !/github\.com\//.test(v)) { var cv = v.replace(/pharmacy/g, "cafe"), cl = l.replace(/pharmacy/g, "cafe"); if (!out.some(function (o) { return String(o[0]) === cv; })) out.push([cv, cl]); } }); return out; }
+// ทุก dropdown ตัวอย่าง: ถ้ามีค่าที่ขึ้นต้น pharmacy ให้เพิ่มคู่ cafe และ iam ต่อท้ายอัตโนมัติ (เพิ่ม ไม่แทนที่) สำหรับทดสอบโดยไม่ต้องพิมพ์
+function cafeEx(ex) { var out = ex.slice(); ex.forEach(function (e) { var v = String(e[0]), l = String(e[1]); if ((/pharmacy/i.test(v) || /pharmacy/i.test(l)) && !/github\.com\//.test(v)) ["cafe", "iam"].forEach(function (pj) { var cv = v.replace(/pharmacy/g, pj), cl = l.replace(/pharmacy/g, pj); if (!out.some(function (o) { return String(o[0]) === cv; })) out.push([cv, cl]); }); }); return out; }
 function exPick(ex, get, set, flag, fk, ph, aria, area, type, id) {
   ex = cafeEx(ex);
   var cur = get() == null ? "" : String(get()), has = ex.some(function (e) { return e[0] === cur; }), custom = flag[fk] || (cur !== "" && !has);
