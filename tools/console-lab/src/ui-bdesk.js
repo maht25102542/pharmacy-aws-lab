@@ -1,6 +1,6 @@
 // Chrome / Safari บน Desktop: หน้าต่างเบราว์เซอร์ใช้งานได้จริง (พิมพ์ URL + Enter, ย้อน/ไปข้างหน้า/reload) แสดงเว็บจำลองตัวเดียวกับแท็บ Browser
 function bdUrls() {
-  var urls = ["https://" + AWS_HOST + "/"]; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
+  var urls = ["https://" + AWS_HOST + "/", "https://www.google.com/"]; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
   S.cfds.forEach(function (d) { d.aliases.forEach(function (a) { urls.push("https://" + a); }); urls.push("https://" + d.domain); });
   var gu = typeof ghUser === "function" ? ghUser() : "demo-user"; urls.push("https://github.com/" + gu + "/pharmacy-backend");
   S.albs.forEach(function (a) { a.listeners.forEach(function (l) { var t = find(S.tgs, l.tgId); if (t && t.ttype === "ip" && a.dns) urls.push("http://" + a.dns + (l.port === 80 ? "" : ":" + l.port) + "/api/drugs"); }); });
@@ -24,7 +24,7 @@ function bdGo(v) {
   wbGo(v);
 }
 function bdSvg(k) { return '<svg viewBox="0 0 16 16" width="16" height="16" class="bdsv">' + (typeof FD_SI !== "undefined" ? FD_SI[k] : "") + "</svg>"; }
-function bdName(u) { if (/console\.aws\.amazon\.com/.test(u)) return ["AWS Console", "#ff9900"]; var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
+function bdName(u) { if (/google\.com\/?$/.test(u)) return ["Google", "#4285f4"]; if (/console\.aws\.amazon\.com/.test(u)) return ["AWS Console", "#ff9900"]; var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
 function bdTiles(kind) {
   var seen = {}, us = bdUrls().filter(function (u) { var n = bdName(u)[0]; if (seen[n]) return false; seen[n] = 1; return true; }).slice(0, 8);
   return h("div", { cls: "bdtiles " + kind }, us.map(function (u) { var n = bdName(u); return h("button", { type: "button", cls: "bdtile", title: u, onclick: function () { bdGo(u); } }, [h("span", { cls: "bdti", style: "background:" + n[1], text: n[0].charAt(0).toUpperCase() }), h("span", { cls: "bdtn", text: n[0] })]); }));

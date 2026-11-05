@@ -54,7 +54,7 @@ PAGES["desk"] = function () {
     var tb = h("div", { cls: "dwt" }, [h("span", { cls: "dwb3" }, [h("button", { type: "button", cls: "x", title: "ปิด", text: "×", onclick: function (e) { e.stopPropagation(); w.open = false; render(); } }), h("button", { type: "button", cls: "m", title: "ย่อ", text: "−", onclick: function (e) { e.stopPropagation(); w.min = true; render(); } }), h("button", { type: "button", cls: "z", title: "ขยาย", text: "+", onclick: function (e) { e.stopPropagation(); w.max = !w.max; render(); } })]), h("span", { cls: "dwtt", text: deskTitle(id) })]);
     tb.addEventListener("dblclick", function () { w.max = !w.max; render(); });
     function tbDown(e) {
-      var tb = e.currentTarget; if (e.target.closest("button") || w.max) return; var sx = e.clientX, sy = e.clientY, ox = w.x, oy = w.y, bx = desk.clientWidth, by = desk.clientHeight; tb.setPointerCapture(e.pointerId); w.z = ++DESK.z; win.style.zIndex = w.z;
+      var tb = e.currentTarget; if (e.target.closest("button,input,select,textarea,a,.bdtab,.bdplus,.bdomw,.bdb,.fdsr") || w.max) return; /* ไม่ดักลากถ้ากดบนปุ่ม/ช่องพิมพ์/แท็บ (ไม่งั้น pointer capture กลืนคลิก) */ var sx = e.clientX, sy = e.clientY, ox = w.x, oy = w.y, bx = desk.clientWidth, by = desk.clientHeight; tb.setPointerCapture(e.pointerId); w.z = ++DESK.z; win.style.zIndex = w.z;
       function mv(ev) { w.x = Math.max(-w.w + 90, Math.min(bx - 90, ox + ev.clientX - sx)); w.y = Math.max(32, Math.min(by - 40, oy + ev.clientY - sy)); win.style.left = w.x + "px"; win.style.top = w.y + "px"; }
       function up() { tb.removeEventListener("pointermove", mv); tb.removeEventListener("pointerup", up); }
       tb.addEventListener("pointermove", mv); tb.addEventListener("pointerup", up);
