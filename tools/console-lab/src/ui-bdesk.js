@@ -1,18 +1,18 @@
 // Chrome / Safari บน Desktop: หน้าต่างเบราว์เซอร์ใช้งานได้จริง (พิมพ์ URL + Enter, ย้อน/ไปข้างหน้า/reload) แสดงเว็บจำลองตัวเดียวกับแท็บ Browser
 function bdUrls() {
-  var urls = []; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
+  var urls = ["https://" + AWS_HOST + "/"]; ["jenkins_url", "sonarqube_url", "argocd_url", "site_prd", "site_dev"].forEach(function (k) { if (S.tf.outputs[k]) urls.push(String(S.tf.outputs[k])); });
   S.cfds.forEach(function (d) { d.aliases.forEach(function (a) { urls.push("https://" + a); }); urls.push("https://" + d.domain); });
   var gu = typeof ghUser === "function" ? ghUser() : "demo-user"; urls.push("https://github.com/" + gu + "/pharmacy-backend");
   S.albs.forEach(function (a) { a.listeners.forEach(function (l) { var t = find(S.tgs, l.tgId); if (t && t.ttype === "ip" && a.dns) urls.push("http://" + a.dns + (l.port === 80 ? "" : ":" + l.port) + "/api/drugs"); }); });
   return urls.filter(function (u, i, a) { return a.indexOf(u) === i; });
 }
 function bdTitle() {
-  var r = W.res; if (!r) return "New Tab"; if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
+  var r = W.res; if (!r) return "New Tab"; if (r.site === "awsconsole") return awsTitle(); if (r.err) return /CERT|SSL/.test(r.err) ? "Privacy error" : "This site can’t be reached";
   return { jenkins: "Dashboard [Jenkins]", sonarqube: "SonarQube", argocd: "Argo CD", app: "pharmacy", github: "GitHub", cf: (r.host || "CloudFront"), apigw: "pharmacy-api", compose: "pharmacy", aprun: "pharmacy" }[r.site] || (r.host || W.addr);
 }
-function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!WH.st.length) { WH.st.push(whCur()); WH.i = 0; } /* เก็บหน้า New Tab ไว้ให้ย้อนกลับได้ */ if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; wbGo(v); }
+function bdGo(v) { v = String(v || "").trim(); if (!v) return; if (!WH.st.length) { WH.st.push(whCur()); WH.i = 0; } /* เก็บหน้า New Tab ไว้ให้ย้อนกลับได้ */ if (!/^[a-z]+:\/\//i.test(v)) v = (/^(localhost|[\d.]+)(:\d+)?(\/|$)/.test(v) ? "http://" : "https://") + v; if (isAwsUrl(v)) { W.addr = v; W.res = { site: "awsconsole" }; W.page = ""; awsFromUrl(v); render(); return; } wbGo(v); }
 function bdSvg(k) { return '<svg viewBox="0 0 16 16" width="16" height="16" class="bdsv">' + (typeof FD_SI !== "undefined" ? FD_SI[k] : "") + "</svg>"; }
-function bdName(u) { var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
+function bdName(u) { if (/console\.aws\.amazon\.com/.test(u)) return ["AWS Console", "#ff9900"]; var h2 = (/^https?:\/\/([^\/]+)/i.exec(u) || [0, u])[1]; if (/github\.com/.test(h2)) return ["GitHub", "#24292f"]; if (/:8080/.test(h2) && !/\/api/.test(u)) return ["Jenkins", "#d33833"]; if (/:9000/.test(h2)) return ["SonarQube", "#4e9bcd"]; if (/:8443/.test(h2)) return ["Argo CD", "#ef7b4d"]; if (/\/api\//.test(u) || /\/drugs/.test(u)) return ["pharmacy API", "#7b3fe4"]; if (/cloudfront|pharmacy\.example/.test(h2)) return [h2.replace(/^www\./, ""), "#0ea5e9"]; return [h2.replace(/^www\./, "").slice(0, 18), "#34509a"]; }
 function bdTiles(kind) {
   var seen = {}, us = bdUrls().filter(function (u) { var n = bdName(u)[0]; if (seen[n]) return false; seen[n] = 1; return true; }).slice(0, 8);
   return h("div", { cls: "bdtiles " + kind }, us.map(function (u) { var n = bdName(u); return h("button", { type: "button", cls: "bdtile", title: u, onclick: function () { bdGo(u); } }, [h("span", { cls: "bdti", style: "background:" + n[1], text: n[0].charAt(0).toUpperCase() }), h("span", { cls: "bdtn", text: n[0] })]); }));
@@ -26,7 +26,7 @@ function browserStart(kind) {
   return h("div", { cls: "bdstart safari" }, [h("h3", { text: "Favorites" }), bdTiles("safari"), h("h3", { text: "Privacy Report" }), h("div", { cls: "bdpriv", text: "🛡️  Safari ป้องกันตัวติดตามให้คุณ (จำลอง)" })]);
 }
 function browserApp(kind) {
-  var pg = PAGES.browser(), kids = [].slice.call(pg.children), view = W.res ? kids[kids.length - 1] : browserStart(kind);
+  var isAws = !!(W.res && W.res.site === "awsconsole"); AC.on = isAws; var pg = isAws ? null : PAGES.browser(), kids = pg ? [].slice.call(pg.children) : [], view = isAws ? awsEmbed() : W.res ? kids[kids.length - 1] : browserStart(kind);
   var https = /^https:/i.test(W.addr || ""), host = (/^https?:\/\/([^\/]+)/i.exec(W.addr || "") || [0, ""])[1];
   var can = function (d) { return typeof whCan === "function" && whCan(d); };
   var dl = h("datalist", { id: "bdurls" }, bdUrls().map(function (u) { return h("option", { value: u }); }));

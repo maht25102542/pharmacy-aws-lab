@@ -37,7 +37,34 @@ const DATA = "var AWS_ICONS = " + JSON.stringify(AWS_ICONS) + ";\nvar BRAND_ICON
 const parts = [src("engine.js"), "// ---- generated data (build.js)\n" + DATA];
 const modDir = path.join(here, "src", "mod");
 fs.readdirSync(modDir).filter((f) => f.endsWith(".js")).sort().forEach((f) => parts.push("// ---- mod/" + f + "\n" + src("mod/" + f)));
-const html = src("template.html").replace("/*SCRIPT*/", () => parts.join("\n") + "\n//==UI==\n" + src("ui-icons.js") + "\n" + src("ui.js") + "\n" + src("ui-flow.js") + "\n" + src("ui-jenkins.js") + "\n" + src("ui-jenkins2.js") + "\n" + src("ui-jenkins3.js") + "\n" + src("ui-sonar2.js") + "\n" + src("ui-sonar3.js") + "\n" + src("ui-argoimg.js") + "\n" + src("ui-argo2.js") + "\n" + src("ui-svg.js") + "\n" + src("ui-select.js") + "\n" + src("ui-ansible.js") + "\n" + src("ui-system.js") + "\n" + "\n" + src("ui-managed.js") + "\n" + "\n" + src("ui-aws2.js") + "\n" + "\n" + src("ui-aws3.js") + "\n" + src("ui-usecase.js") + "\n" + src("ui-aws4.js") + "\n" + src("ui-aws5.js") + "\n" + src("ui-aws6.js") + "\n" + src("ui-real.js") + "\n" + src("ui-services.js") + "\n" + src("ui-aws7.js") + "\n" + src("ui-aws8.js") + "\n" + src("ui-aws9.js") + "\n" + src("ui-aws10.js") + "\n" + src("ui-pharmapp.js") + "\n" + src("ui-ghauth.js") + "\n" + src("ui-ghsettings.js") + "\n" + src("ui-ghrepo.js") + "\n" + src("ui-ghmore.js") + "\n" + src("ui-ghtabs.js") + "\n" + src("ui-ghmore2.js") + "\n" + src("ui-github.js") + "\n" + src("ui-browser2.js") + "\n" + src("ui-cost.js") + "\n" + src("ui-pharmdata.js") + "\n" + src("ui-pharmsales.js") + "\n" + src("ui-preview.js") + "\n" + src("ui-editor.js") + "\n" + src("ui-finder.js") + "\n" + src("ui-bdesk.js") + "\n" + src("ui-menu.js") + "\n" + src("ui-desk.js"));
+// ทำสำเนากฎ CSS ที่ขึ้นด้วย body[data-svc=…] ให้ใช้กับ .awsemb[data-svc=…] ด้วย (AWS console ที่ฝังในหน้าต่าง Chrome บน Desktop)
+function dupBodyCss(css) {
+  function rules(s) {
+    const out = []; let i = 0, n = s.length;
+    while (i < n) {
+      if (s.startsWith("/*", i)) { const e = s.indexOf("*/", i + 2); const end = e < 0 ? n : e + 2; out.push([s.slice(i, end), "c"]); i = end; continue; }
+      if (/\s/.test(s[i])) { let j = i; while (j < n && /\s/.test(s[j])) j++; out.push([s.slice(i, j), "w"]); i = j; continue; }
+      let j = i; while (j < n && s[j] !== "{" && s[j] !== ";") j++;
+      if (s[j] === ";") { out.push([s.slice(i, j + 1), "s"]); i = j + 1; continue; }
+      let depth = 0, k = j, q = null; for (; k < n; k++) { const c = s[k]; if (q) { if (c === q && s[k - 1] !== "\\") q = null; continue; } if (c === '"' || c === "'") { q = c; continue; } if (c === "{") depth++; else if (c === "}") { depth--; if (depth === 0) { k++; break; } } }
+      out.push([s.slice(i, k), "r", s.slice(i, j), s.slice(j + 1, k - 1)]); i = k;
+    }
+    return out;
+  }
+  function walk(s) {
+    return rules(s).map((r) => {
+      if (r[1] !== "r") return r[0];
+      const sel = r[2], body = r[3];
+      if (/^\s*@(media|supports)/.test(sel)) return sel + "{" + walk(body) + "}";
+      if (/^\s*@/.test(sel)) return r[0];
+      if (sel.indexOf("body[data-svc") >= 0) return r[0] + "\n" + sel.replace(/body\[data-svc/g, ".awsemb[data-svc") + "{" + body + "}";
+      return r[0];
+    }).join("");
+  }
+  return walk(css);
+}
+const html0 = src("template.html").replace("/*SCRIPT*/", () => parts.join("\n") + "\n//==UI==\n" + src("ui-icons.js") + "\n" + src("ui.js") + "\n" + src("ui-flow.js") + "\n" + src("ui-jenkins.js") + "\n" + src("ui-jenkins2.js") + "\n" + src("ui-jenkins3.js") + "\n" + src("ui-sonar2.js") + "\n" + src("ui-sonar3.js") + "\n" + src("ui-argoimg.js") + "\n" + src("ui-argo2.js") + "\n" + src("ui-svg.js") + "\n" + src("ui-select.js") + "\n" + src("ui-ansible.js") + "\n" + src("ui-system.js") + "\n" + "\n" + src("ui-managed.js") + "\n" + "\n" + src("ui-aws2.js") + "\n" + "\n" + src("ui-aws3.js") + "\n" + src("ui-usecase.js") + "\n" + src("ui-aws4.js") + "\n" + src("ui-aws5.js") + "\n" + src("ui-aws6.js") + "\n" + src("ui-real.js") + "\n" + src("ui-services.js") + "\n" + src("ui-aws7.js") + "\n" + src("ui-aws8.js") + "\n" + src("ui-aws9.js") + "\n" + src("ui-aws10.js") + "\n" + src("ui-pharmapp.js") + "\n" + src("ui-ghauth.js") + "\n" + src("ui-ghsettings.js") + "\n" + src("ui-ghrepo.js") + "\n" + src("ui-ghmore.js") + "\n" + src("ui-ghtabs.js") + "\n" + src("ui-ghmore2.js") + "\n" + src("ui-github.js") + "\n" + src("ui-browser2.js") + "\n" + src("ui-cost.js") + "\n" + src("ui-pharmdata.js") + "\n" + src("ui-pharmsales.js") + "\n" + src("ui-preview.js") + "\n" + src("ui-editor.js") + "\n" + src("ui-finder.js") + "\n" + src("ui-bdesk.js") + "\n" + src("ui-menu.js") + "\n" + src("ui-awsemb.js") + "\n" + src("ui-desk.js"));
+const html = html0.replace(/<style>([\s\S]*?)<\/style>/, (m, c) => "<style>" + dupBodyCss(c) + "</style>");
 const script = html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
 if (/<\/script/i.test(script)) throw new Error("build: </script> inside script source (split it, e.g. \"</scr\" + \"ipt>\")");
 fs.writeFileSync(path.join(here, "index.html"), html);

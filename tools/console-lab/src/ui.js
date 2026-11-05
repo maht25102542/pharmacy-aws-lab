@@ -42,6 +42,7 @@ UI = { svc: "VPC", page: "vpc-dash", params: {}, sel: {}, filter: {}, pg: {}, dt
 
 function navHas(svc, page) { return NAV[svc].some(function (g) { return g[1].some(function (p) { return p[0] === page; }); }); }
 function go(page, params, svc) {
+  if (typeof awsInterceptGo === "function" && awsInterceptGo(page, svc)) { awsGo(page, params, svc); return; }
   UI.page = page; UI.params = params || {}; UI.form = null; UI.menu = false;
   if (page !== "ak-retrieve") { UI.secrets = {}; UI.showSecret = false; }
   if (svc) UI.svc = svc; else if (!navHas(UI.svc, page)) { for (var s in NAV) if (navHas(s, page)) { UI.svc = s; break; } }
@@ -1438,14 +1439,14 @@ function wbTick() {
 }
 var W = { addr: "", res: null, page: "", f: {}, bid: 0, lg: "" };
 // ประวัติหน้าของเว็บใน Browser: บันทึกอัตโนมัติทุกครั้งที่ตำแหน่ง (URL + หน้าภายในเว็บ) เปลี่ยน · ปุ่ม ← → ใน address bar
-var WH = { st: [], i: -1 }, WHP = { st: [], i: -1 }, WH_KEYS = ["addr", "page", "bid", "lg", "sq", "ar", "sp", "btab", "ghPT", "ghBr", "bov", "boj", "boi", "bot", "bos", "bjt", "sqt", "sqk", "sqa", "sqg", "agp", "ags", "agpj", "agv"];
+var WH = { st: [], i: -1 }, WHP = { st: [], i: -1 }, WH_KEYS = ["acs", "acp", "addr", "page", "bid", "lg", "sq", "ar", "sp", "btab", "ghPT", "ghBr", "bov", "boj", "boi", "bot", "bos", "bjt", "sqt", "sqk", "sqa", "sqg", "agp", "ags", "agpj", "agv"];
 function whOn() { return typeof PV !== "undefined" && PV && PV.on; }
 function whH() { return whOn() ? WHP : WH; } // Preview มีประวัติแยกจาก Browser
 function whCur() { var o = {}; WH_KEYS.forEach(function (k) { o[k] = W[k] === undefined ? "" : W[k]; }); o.job = S.jk && S.jk.job ? S.jk.job.name : ""; o.ph = W.ph ? { view: W.ph.view, page: W.ph.page, mpage: W.ph.mpage, low: W.ph.low } : null; if (whOn()) o.pv = { tab: PV.tab, fe: { page: PV.fe.page, mp: PV.fe.mp, mvp: PV.fe.mvp, q: PV.fe.q, cat: PV.fe.cat, low: PV.fe.low }, db: { t: PV.db.t, p: PV.db.p, sort: PV.db.sort, dir: PV.db.dir } }; return o; }
 function whTrack() { if (!whOn() && !W.addr) return; var H = whH(), c = whCur(), l = H.st[H.i]; if (l && JSON.stringify(l) === JSON.stringify(c)) return; H.st = H.st.slice(0, H.i + 1); H.st.push(c); H.i = H.st.length - 1; if (H.st.length > 60) { H.st.shift(); H.i--; } }
 function whCan(d) { var H = whH(); return !!H.st[H.i + d]; }
-function whGo(d) { var H = whH(), t = H.st[H.i + d]; if (!t) return; H.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); if (t.ph && W.ph) Object.assign(W.ph, t.ph); if (t.pv) { PV.tab = t.pv.tab; Object.assign(PV.fe, t.pv.fe); Object.assign(PV.db, t.pv.db); } if (W.addr) W.res = webOpen(W.addr); else W.res = null; render(); }
-function wbGo(a) { W.addr = a; W.res = webOpen(a); W.page = ""; W.sq = ""; W.ar = ""; W.sp = ""; W.agp = ""; W.ags = ""; W.agn = null; W.agpj = ""; W.lg = ""; render(); }
+function whGo(d) { var H = whH(), t = H.st[H.i + d]; if (!t) return; H.i += d; WH_KEYS.forEach(function (k) { W[k] = t[k]; }); if (t.job && typeof jkSelect === "function") jkSelect(t.job); if (t.ph && W.ph) Object.assign(W.ph, t.ph); if (t.pv) { PV.tab = t.pv.tab; Object.assign(PV.fe, t.pv.fe); Object.assign(PV.db, t.pv.db); } if (W.addr) W.res = typeof isAwsUrl === "function" && isAwsUrl(W.addr) ? { site: "awsconsole" } : webOpen(W.addr); else W.res = null; render(); }
+function wbGo(a) { W.addr = a; W.res = typeof isAwsUrl === "function" && isAwsUrl(a) ? { site: "awsconsole" } : webOpen(a); W.page = ""; W.sq = ""; W.ar = ""; W.sp = ""; W.agp = ""; W.ags = ""; W.agn = null; W.agpj = ""; W.lg = ""; render(); }
 function wbBadge(r) { return h("span", { cls: "tag " + (r === "SUCCESS" ? "ok" : r === "FAILURE" || r === "ABORTED" ? "bad" : "warn"), text: r || "RUNNING" }); }
 function wbSel(label, id, opts, get, set) { return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), h("select", { id: "w-" + id, "aria-label": label, onchange: function (e) { set(e.target.value); render(); } }, opts.map(function (o) { return h("option", { value: o[0], text: o[1], selected: String(o[0]) === String(get()) ? "selected" : null }); }))]); }
 function wbEx(label, key, ex, ph, type, id) { var F = W.f; return h("div", { cls: "f" }, [h("label", { cls: "l", text: label }), exPick(ex.map(function (x) { return typeof x === "string" ? [x, x] : x; }), function () { return F[key]; }, function (v) { F[key] = v; }, F, "_c" + key, ph, label, false, type, id)]); }
